@@ -34,17 +34,6 @@ export default function Keyboard({
 		setSelectedKeyPosition(undefined)
 	}, [connection])
 
-	useEffect( () => {
-		if ( !keymap?.layers ) return
-
-		console.log('Keymap changed, selectedLayerIndex:', selectedLayerIndex, 'layers count:', keymap?.layers.length)
-
-		// Validate that selectedLayerIndex is within bounds of the layers array
-		if ( selectedLayerIndex < 0 || selectedLayerIndex >= keymap.layers.length ) {
-			setSelectedLayerIndex( 0 )
-		}
-
-	}, [ keymap, selectedLayerIndex, setSelectedLayerIndex ] )
 
 	//todo change to zustand storing system
 
