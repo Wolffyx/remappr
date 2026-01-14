@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import path from "path"
 // https://vitejs.dev/config/
 export default defineConfig({
-    base: '/remappr/', //todo remove it after finishing refactoring
+    base: '/', //todo remove it after finishing refactoring
     plugins: [
         react(), tailwindcss(),
     ],
