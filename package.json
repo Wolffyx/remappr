@@ -1,7 +1,7 @@
 {
     "name": "remappr",
     "private": true,
-    "version": "0.0.0",
+    "version": "1.0.0",
     "type": "module",
     "main": "./out/main/index.js",
     "packageManager": "pnpm@10.30.3",

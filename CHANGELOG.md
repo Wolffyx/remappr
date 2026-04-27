@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 (2026-04-27)
+
+
+### Features
+
+* unified versioning system + release pipeline + custom titlebar … ([e661381](https://github.com/Wolffyx/remappr/commit/e661381b2feb08ab2464370765a02afa176ea75c))
+* unified versioning system + release pipeline + custom titlebar + build slimming ([af1cb99](https://github.com/Wolffyx/remappr/commit/af1cb99ae3b439aa38cc8af99019d4ed2a896e36))
+
 ## [0.3.1](https://github.com/zmkfirmware/zmk-studio/compare/v0.3.0...v0.3.1) (2025-01-20)
 
 ### Bug Fixes
