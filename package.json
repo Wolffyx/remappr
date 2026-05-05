@@ -1,8 +1,8 @@
 {
     "name": "remappr",
     "private": true,
-    "version": "1.0.0",
-  "license": "Apache-2.0",
+    "version": "1.1.0",
+    "license": "Apache-2.0",
     "type": "module",
     "main": "./out/main/index.js",
     "packageManager": "pnpm@10.30.3",
@@ -123,21 +123,21 @@
     "overrides": {
         "rimraf": "^5.0.10",
         "glob": "^13.0.0",
-      "tar": "^7.5.11",
-      "uuid": "^11.0.3",
-      "form-data": "^2.5.4",
-      "xml2js": "^0.6.2",
-      "tough-cookie": "^4.1.4",
-      "qs": "^6.14.1"
+        "tar": "^7.5.11",
+        "uuid": "^11.0.3",
+        "form-data": "^2.5.4",
+        "xml2js": "^0.6.2",
+        "tough-cookie": "^4.1.4",
+        "qs": "^6.14.1"
     },
-  "pnpm": {
-    "overrides": {
-      "tar": "^7.5.11",
-      "form-data": "^2.5.4",
-      "xml2js": "^0.6.2",
-      "tough-cookie": "^4.1.4",
-      "qs": "^6.14.1"
-    }
+    "pnpm": {
+        "overrides": {
+            "tar": "^7.5.11",
+            "form-data": "^2.5.4",
+            "xml2js": "^0.6.2",
+            "tough-cookie": "^4.1.4",
+            "qs": "^6.14.1"
+        }
     },
     "lint-staged": {
         "*.{ts,tsx}": [
