@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0](https://github.com/Wolffyx/remappr/compare/v1.1.0...v1.2.0) (2026-05-06)
+
+
+### Features
+
+* **catalog:** clarify Locking/Keypad labels and split Language tab ([9490b72](https://github.com/Wolffyx/remappr/commit/9490b723a7caf9eaa8d26fade3c925d0e156820d))
+* **catalog:** combine ZMK + QMK keycode names into one canonical catalog ([18a8163](https://github.com/Wolffyx/remappr/commit/18a81637e8886cd32ccf02983025ef981c6e181d))
+* **catalog:** merge ZMK + QMK keycode names into one canonical catalog ([b7458ca](https://github.com/Wolffyx/remappr/commit/b7458cafff92d14131dc80821d70b98b907ae41d))
+
 ## [1.1.0](https://github.com/Wolffyx/remappr/compare/v1.0.0...v1.1.0) (2026-05-05)
 
 
