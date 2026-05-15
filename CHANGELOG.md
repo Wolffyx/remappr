@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.3.0](https://github.com/Wolffyx/remappr/compare/v1.2.0...v1.3.0) (2026-05-15)
+
+
+### Features
+
+* **catalog:** add 7 QMK swap-hands variants as Misc tiles ([85b044b](https://github.com/Wolffyx/remappr/commit/85b044b5f7775b183ac4ea343ca471d88be2b283))
+* **catalog:** add Combos tab; drop vial:macro from action picker ([2c73dfb](https://github.com/Wolffyx/remappr/commit/2c73dfb7be6a4a705ff1f52ef05377651e45c5c4))
+* **catalog:** add dynamicCatalogStore + behavior capability flags ([00d4db0](https://github.com/Wolffyx/remappr/commit/00d4db06937e00c60b515a004041f0ed6d515ec3))
+* **catalog:** gate behavior-family tiles by Capabilities.behaviors flags ([fc79fff](https://github.com/Wolffyx/remappr/commit/fc79fff301e029e92872a3b4b790b279cfeabc50))
+* **catalog:** merge RGB + Backlight into single Lighting tab ([0076123](https://github.com/Wolffyx/remappr/commit/0076123389e32febd79b2976fc3be234d360170e))
+* **catalog:** plumb macro overlay description into picker tooltip ([6a98b8a](https://github.com/Wolffyx/remappr/commit/6a98b8adae89deae412fb50495cff9e6ca1d4479))
+* **catalog:** sideload ZMK .keymap combos as display-only Combos tiles ([8041fc9](https://github.com/Wolffyx/remappr/commit/8041fc97627979924a128cb582006fc50b86907e))
+* **catalog:** surface ZMK runtime macros/combos as catalog tiles ([051b183](https://github.com/Wolffyx/remappr/commit/051b1837e6e1a2a0ba517f36682edc9c52636f14))
+* **editor:** inline tap-dance editor modal from BindingEditor ([c8bdc5e](https://github.com/Wolffyx/remappr/commit/c8bdc5ec4a68eec470be80b33ad9cf60deeae1d1))
+* **keymap:** right-click copy/paste on bound keys ([4e5a5cb](https://github.com/Wolffyx/remappr/commit/4e5a5cb1ea6d579c8dc1ef086989acadbf020168))
+* **picker:** seed modifier/enum slot defaults from first listed value ([9f5483e](https://github.com/Wolffyx/remappr/commit/9f5483e245d73a43a69c8234f56bdbb04e2025b9))
+* **zmk-export:** cover all behaviors from ZMK docs index page ([03d45b5](https://github.com/Wolffyx/remappr/commit/03d45b53be3bd03a8c80a3fd392573b556a64c3b))
+* **zmk-export:** cover all behaviors from ZMK docs index page ([1b35381](https://github.com/Wolffyx/remappr/commit/1b3538106209455060a9fe0b3bc5c82fb9e7e5f1))
+
+
+### Bug Fixes
+
+* **catalog:** classify any non-system ZMK behavior as user macro ([90feaec](https://github.com/Wolffyx/remappr/commit/90feaec4e30f6eeb17c865e760a48290e40b7cca))
+* **catalog:** keep slot-bearing ZMK behaviors out of Macros tab ([7846cf1](https://github.com/Wolffyx/remappr/commit/7846cf13b49b760b4932a97ce60f04f77556df09))
+* commented import combos side loading ([854b794](https://github.com/Wolffyx/remappr/commit/854b794421a5014a914ba4fef13992d5300c355e))
+
 ## [1.2.0](https://github.com/Wolffyx/remappr/compare/v1.1.0...v1.2.0) (2026-05-06)
 
 
