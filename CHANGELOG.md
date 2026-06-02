@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.4.0](https://github.com/Wolffyx/remappr/compare/v1.3.0...v1.4.0) (2026-06-02)
+
+
+### Features
+
+* **canvas:** pannable/zoomable stage, press-count heatmap, key tooltips ([4e2327f](https://github.com/Wolffyx/remappr/commit/4e2327f96879fe70859e6adde7ebb971e91e036a))
+* **dialogs,zoom:** redesign dialogs and fixed zoom ([9d0b3f2](https://github.com/Wolffyx/remappr/commit/9d0b3f2a409b8f782f60586ce46741ebe0f5a46f))
+* **editor:** multi-select, layer peek, toolbar grouping, shortcuts ([29bc2ea](https://github.com/Wolffyx/remappr/commit/29bc2ea8db724ee9815f97b41e670cadebe60c3a))
+* feat(): added discord server and docs icon ([7a6c27a](https://github.com/Wolffyx/remappr/commit/7a6c27a650e40fde0b3e2ab2eeafce2652728bca))
+* **keycap:** changed the keycap design and added styles ([cd24242](https://github.com/Wolffyx/remappr/commit/cd242420d874353986f078a875d3c37c30e4d06a))
+* **keycaps:** colour-coded keycap system + cap-style/colour settings ([1c28a48](https://github.com/Wolffyx/remappr/commit/1c28a48a15a3552511862301465d8df422c223a8))
+* **modals:** typing-load stats, onboarding coachmarks, start-page preview ([3992e90](https://github.com/Wolffyx/remappr/commit/3992e904d19d4c89e2d6c1f7ddd8f1cdf48e5dc4))
+* **start-page:** real cached keyboard preview on device cards ([39feebb](https://github.com/Wolffyx/remappr/commit/39feebbf1b930a05c2474fb65cc005867676e4db))
+* **workspaces:** inspector + command-palette assign surfaces, tap-hold builder ([e68c276](https://github.com/Wolffyx/remappr/commit/e68c2762d62333fc0792737cfdb71c3e831bfbc5))
+
+
+### Bug Fixes
+
+* **zoom, theme:** fixed zoom system and theme system ([67fa5ac](https://github.com/Wolffyx/remappr/commit/67fa5ac17ec30e707edb53da96474eaeb8b4ae53))
+
 ## [1.3.0](https://github.com/Wolffyx/remappr/compare/v1.2.0...v1.3.0) (2026-05-15)
 
 
