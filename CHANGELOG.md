@@ -1,5 +1,57 @@
 # Changelog
 
+## [1.5.0](https://github.com/Wolffyx/remappr/compare/v1.4.0...v1.5.0) (2026-06-04)
+
+
+### Features
+
+* **build:** cloud-build hardening — head_sha polling + encrypted token (phase 9) ([fa640c5](https://github.com/Wolffyx/remappr/commit/fa640c5df4284519d400758bec71b237908eff13))
+* **builder:** canvas editing — drag/resize/rotate/marquee + undo/redo (phase 3) ([fd0fa9e](https://github.com/Wolffyx/remappr/commit/fd0fa9e33f70f6d3ce513f90a29608ca0bf397f2))
+* **builder:** design a board from scratch (grid geometry) ([c261455](https://github.com/Wolffyx/remappr/commit/c26145530bd5faf1b3e185a103584e1abac16b2b))
+* **builder:** edit encoder cw/ccw/press bindings in the inspector ([2b10237](https://github.com/Wolffyx/remappr/commit/2b10237cdae48eb4417ef859474944f468739973))
+* **builder:** editable matrix GPIO pins + add row/column ([a498117](https://github.com/Wolffyx/remappr/commit/a498117666e3c18ffa5b147fa4d6b57eed756de4))
+* **builder:** export modal + board library + editor handoff (phase 6) ([71cb5c3](https://github.com/Wolffyx/remappr/commit/71cb5c32535bcc3884e6453fbcfd79fbc14853d5))
+* **builder:** firmware-aware deviceless binding picker ([3067a95](https://github.com/Wolffyx/remappr/commit/3067a95db89971da4aba99d921cc54e58ea656a9))
+* **builder:** free-form per-key geometry editor ([59f2256](https://github.com/Wolffyx/remappr/commit/59f225634ad5692f0d1322c0c4a63842d1ed57cb))
+* **builder:** full-screen shell + start-page restyle (phase 1) ([ea842b2](https://github.com/Wolffyx/remappr/commit/ea842b204006a878eaa856ccbb80d211ce5ad728))
+* **builder:** hardware definition panel (board + kscan wiring) ([5038ca2](https://github.com/Wolffyx/remappr/commit/5038ca23d2955ab674f9b5c88e0c7d0b5a364196))
+* **builder:** inspector parity, cap rendering, per-key GPIO pin + element ([882fdf0](https://github.com/Wolffyx/remappr/commit/882fdf0fe6b8ec87ff9ddb6d10c30b83156c0527))
+* **builder:** left panel — layers, identity/firmware/matrix/lighting, presets (phase 4) ([1deda68](https://github.com/Wolffyx/remappr/commit/1deda680e90acfdfc6deb990d5575dd77e5e4f4c))
+* **builder:** live Monaco JSON config panel (phase 8) ([0034b1f](https://github.com/Wolffyx/remappr/commit/0034b1fa8db80121445367ac874906db7535e8c1))
+* **builder:** Phase 1 — download full project bundle (.zip) ([a610111](https://github.com/Wolffyx/remappr/commit/a6101116cc3f3e96f1025586a0decaa9175e843e))
+* **builder:** Phase 1 cloud build — push to GitHub & fetch firmware ([758a4d8](https://github.com/Wolffyx/remappr/commit/758a4d8a21ae73b0a6d8688d31375c794d5c4aad))
+* **builder:** pixel-drag handles + encoder placement ([f8c686e](https://github.com/Wolffyx/remappr/commit/f8c686e17104b524b27833f7dc700349111d96ae))
+* **builder:** premium entitlement gate + locked build-from-scratch entry ([c54c700](https://github.com/Wolffyx/remappr/commit/c54c7003f3e55becf5cc2e032a71df02b810dbe8))
+* **builder:** right inspector + matrix overlay + variants (phase 5) ([5867d9e](https://github.com/Wolffyx/remappr/commit/5867d9ecd792776ab9000d5e9da1b1af3c6f2387))
+* **builder:** snapping toggle, in-builder settings, start chooser ([42cb05b](https://github.com/Wolffyx/remappr/commit/42cb05b7435d9202d02a19f73d76751e8b1fcc09))
+* **builder:** visible JSON validation status + searchable All-options ([f373a4d](https://github.com/Wolffyx/remappr/commit/f373a4da49920ecf831de3ac6be81b8d75f6d43e))
+* **config:** board hardware → real ZMK kscan + electrical transform ([392150c](https://github.com/Wolffyx/remappr/commit/392150c702dd3a435305130424b051493738a065))
+* **config:** builder metadata schema fields (phase 2) ([caf1650](https://github.com/Wolffyx/remappr/commit/caf165059112e47d6c11a8b256189203d64072f9))
+* **config:** conditional layers in keymap schema ([76bd706](https://github.com/Wolffyx/remappr/commit/76bd706f5f49071305be7b61beedac098a06fc4d))
+* **config:** config store, live edit-sync, and target-aware Download modal ([7dd9821](https://github.com/Wolffyx/remappr/commit/7dd9821c66605ab18bd6d65132ffc678af91d88f))
+* **config:** custom hold-tap behaviors (flavor + definition nodes) ([c0be667](https://github.com/Wolffyx/remappr/commit/c0be6676a1057fc176af05eb0ff91ab286e8e6fc))
+* **config:** extend ZMK behavior coverage (enum tails, 2-param macros, mod-morph) ([6d5be92](https://github.com/Wolffyx/remappr/commit/6d5be9269524d781257bf47a30eee1d8b1a27c79))
+* **config:** generalized remappr keymap schema + keycode/diagnostics layer ([ad74a7a](https://github.com/Wolffyx/remappr/commit/ad74a7a70eab4c1e88cb378df8ba7ffeaf9db360))
+* **config:** JSON keymap source-of-truth, lower/raise bridge, ZMK overlay + parity ([7eb418c](https://github.com/Wolffyx/remappr/commit/7eb418ca4815dd66d81441ef90e03073bdd3d5bd))
+* **config:** per-firmware keymap compiler (ZMK / QMK / Keychron) ([149e92e](https://github.com/Wolffyx/remappr/commit/149e92efa7ea0ea6ab3c91a31f129d177e4ef1c4))
+* **config:** per-key encoder bindings + pin/element metadata ([b7e7801](https://github.com/Wolffyx/remappr/commit/b7e7801dd2795737ec301038213e471526097633))
+* **config:** raise connected ZMK keymap into remappr config ([e579be6](https://github.com/Wolffyx/remappr/commit/e579be62479c0137f78cc0458a065e42f2a5db45))
+* **config:** value-carrying lighting (RGB_COLOR_HSB + BL_SET) ([908054f](https://github.com/Wolffyx/remappr/commit/908054f1158b46e261749cc2d385bae81bb9c569))
+* **entitlements:** dev-build bypass for premium (builder access) ([0f85347](https://github.com/Wolffyx/remappr/commit/0f85347e7ae84b234bcfae6df7a3ad096c07511b))
+* **firmware:** resolve friendly pin labels to flashable kscan/config.h ([c9adaad](https://github.com/Wolffyx/remappr/commit/c9adaadfd1a8834010b07f1818efeb93a0c1f1e5))
+* **keycap:** unified RKey keycap anatomy with chord chips ([782f21a](https://github.com/Wolffyx/remappr/commit/782f21aec4a27518e165abaf19bc1f230cf807d2))
+* **qmk:** generate encoder_map + firmware-aware builder binding codes ([f743e06](https://github.com/Wolffyx/remappr/commit/f743e06969fb193bc4c9a6e8434c899dd448c1eb))
+* **zmk:** emit sensor-bindings from per-key encoderBindings ([6729f2b](https://github.com/Wolffyx/remappr/commit/6729f2bd1f347fa34822696db28375abedbf9a00))
+* **zmk:** matrix-transform overlay, hardware checklist, conditional layers, encoders ([ff55840](https://github.com/Wolffyx/remappr/commit/ff558401e8d9fb27d5adcaf85a78ad248510daf9))
+
+
+### Bug Fixes
+
+* **builder:** expose firmware export for from-scratch boards ([9918c22](https://github.com/Wolffyx/remappr/commit/9918c2228577b1422519a35d0f4b4fec3190a43a))
+* **builder:** refresh library list when the modal opens ([c16e97f](https://github.com/Wolffyx/remappr/commit/c16e97fbcf48f5102c6b9bb4cf70bac4e73d2fdc))
+* **builder:** render transparent caps + honor Key Header binding-code mode ([6cb476d](https://github.com/Wolffyx/remappr/commit/6cb476d6a12fab646bb8d70325fc0834a3732ffc))
+* **builder:** split+stagger-aware matrix wiring, scrollbar, split divider ([cbde520](https://github.com/Wolffyx/remappr/commit/cbde520fe8f2258fa092bed3d8551b1706698a5c))
+
 ## [1.4.0](https://github.com/Wolffyx/remappr/compare/v1.3.0...v1.4.0) (2026-06-02)
 
 
