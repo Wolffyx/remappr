@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.9](https://github.com/Wolffyx/remappr/compare/v0.0.8...v0.0.9) (2026-06-10)
+
+
+### Bug Fixes
+
+* **build:** unblock Electron build-release install (usocket + zmk-client) ([#139](https://github.com/Wolffyx/remappr/issues/139)) ([4cc662e](https://github.com/Wolffyx/remappr/commit/4cc662eda8af670b78d876f24d9d8bcb98df1933))
+
 ## [0.0.8](https://github.com/Wolffyx/remappr/compare/v0.0.7...v0.0.8) (2026-06-10)
 
 
