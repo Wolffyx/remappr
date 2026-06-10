@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/Wolffyx/remappr/compare/v0.0.9...v0.0.10) (2026-06-10)
+
+
+### Bug Fixes
+
+* **build:** strip usocket on Windows + bsdtar for Linux pacman ([#141](https://github.com/Wolffyx/remappr/issues/141)) ([6769fbb](https://github.com/Wolffyx/remappr/commit/6769fbb8584476d0ddf2af26f4128de63a293fd8))
+
 ## [0.0.9](https://github.com/Wolffyx/remappr/compare/v0.0.8...v0.0.9) (2026-06-10)
 
 
