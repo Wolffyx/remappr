@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/Wolffyx/remappr/compare/v0.0.6...v0.0.7) (2026-06-10)
+
+
+### Bug Fixes
+
+* **build:** Linux/Windows builds, node 24, package size 534MB→291MB ([#135](https://github.com/Wolffyx/remappr/issues/135)) ([bc7a058](https://github.com/Wolffyx/remappr/commit/bc7a058436d8f3c63a3928a0e4bb9a837c1338cc))
+
 ## [0.0.6](https://github.com/Wolffyx/remappr/compare/v0.0.5...v0.0.6) (2026-06-09)
 
 
