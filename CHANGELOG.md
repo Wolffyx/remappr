@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8](https://github.com/Wolffyx/remappr/compare/v0.0.7...v0.0.8) (2026-06-10)
+
+
+### Bug Fixes
+
+* **build:** Windows usocket patch + pnpm electron-binary install ([#137](https://github.com/Wolffyx/remappr/issues/137)) ([bfb0bce](https://github.com/Wolffyx/remappr/commit/bfb0bcead028d054d593de347e8bcf71965f6f78))
+
 ## [0.0.7](https://github.com/Wolffyx/remappr/compare/v0.0.6...v0.0.7) (2026-06-10)
 
 
