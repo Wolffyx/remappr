@@ -45,6 +45,12 @@ jobs:
             - name: Fetch @remappr projects
               run: node scripts/link-remappr.cjs
               env:
+                  # Staging pulls each project's `dev` branch so dev.remappr.com
+                  # tests the integrated dev state (firmware + ui + builder). The
+                  # linker falls back to a project's default branch if it hasn't
+                  # cut `dev` yet, so this is safe before those branches exist.
+                  # main.yml / pr-preview.yml set no ref -> they stay on default.
+                  REMAPPR_REF: dev
                   REMAPPR_FIRMWARE_URL: ${{ vars.REMAPPR_FIRMWARE_URL }}
                   REMAPPR_UI_URL: ${{ vars.REMAPPR_UI_URL }}
                   REMAPPR_BUILDER_URL: ${{ vars.REMAPPR_BUILDER_URL }}

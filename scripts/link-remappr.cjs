@@ -91,8 +91,22 @@ function writeBuilderStub(linkAbs) {
     )
 }
 
+// Branch/tag to fetch for a project: per-project REMAPPR_<NAME>_REF wins over
+// the global REMAPPR_REF; unset -> the repo's default branch. This lets the
+// app's `dev` build pull each project's `dev` branch (dev-deploy.yml sets
+// REMAPPR_REF=dev) while main/prod builds stay on the default branch.
+function refFor(t) {
+    return (
+        process.env[`REMAPPR_${t.name.toUpperCase()}_REF`] ||
+        process.env.REMAPPR_REF ||
+        ''
+    )
+}
+
 function tryClone(t) {
-    const dest = path.join(cacheRoot, t.repoDir)
+    const ref = refFor(t)
+    // Cache per ref so switching branches locally doesn't serve a stale clone.
+    const dest = path.join(cacheRoot, ref ? `${t.repoDir}@${ref}` : t.repoDir)
     if (fs.existsSync(path.join(dest, t.srcSub))) return dest // cached
     if (noFetch) return null
     // Private projects need a token; without one, skip (optional -> stub).
@@ -106,12 +120,26 @@ function tryClone(t) {
     const url = authUrl(baseUrl)
     fs.mkdirSync(cacheRoot, { recursive: true })
     fs.rmSync(dest, { recursive: true, force: true })
-    try {
-        execSync(`git clone --depth 1 ${url} "${dest}"`, { stdio: 'inherit' })
-        return dest
-    } catch {
-        return null
+    // With a ref, try that branch first; if the project hasn't branched it yet
+    // (e.g. `dev` not yet cut from main) fall back to the default branch so the
+    // build still succeeds instead of hard-failing on a missing branch.
+    const attempts = ref ? [`--branch ${ref} `, ''] : ['']
+    for (const branchArg of attempts) {
+        try {
+            execSync(`git clone --depth 1 ${branchArg}${url} "${dest}"`, {
+                stdio: 'inherit',
+            })
+            if (ref && branchArg === '') {
+                console.log(
+                    `[link-remappr] ${t.name}: ref "${ref}" not found — used the default branch.`,
+                )
+            }
+            return dest
+        } catch {
+            fs.rmSync(dest, { recursive: true, force: true })
+        }
     }
+    return null
 }
 
 for (const t of targets) {
