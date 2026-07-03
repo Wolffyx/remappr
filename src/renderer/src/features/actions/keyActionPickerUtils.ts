@@ -34,6 +34,25 @@ export function paramsForSlots(
     return next
 }
 
+// pattern-check: skip — pure slot-filtering helper alongside existing utils
+// Slots to render for the current params. A trailing slot with `enabledFor`
+// is shown only when the command (params[0]) is one that takes it — e.g.
+// &bt's profile index appears only for BT_SEL / BT_DISC. Conditional slots are
+// always trailing, so the returned prefix keeps params indices aligned.
+export function visibleSlots(
+    slots: ActionSlot[],
+    params: number[],
+): ActionSlot[] {
+    const out: ActionSlot[] = []
+    for (const slot of slots) {
+        if (slot.enabledFor && !slot.enabledFor.includes(params[0] ?? -1)) {
+            break
+        }
+        out.push(slot)
+    }
+    return out
+}
+
 export function isSlotValid(
     slot: ActionSlot,
     value: number | undefined,

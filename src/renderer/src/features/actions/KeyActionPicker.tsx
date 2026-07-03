@@ -8,9 +8,11 @@ import { ActionTypeSelector } from './ActionTypeSelector'
 import { ActionSlotsPicker } from './ActionSlotsPicker'
 import { SlotBar, type SlotDescriptor } from './SlotBar'
 import {
+    defaultForSlot,
     isSlotValid,
     paramsForSlots,
     slotBarKind,
+    visibleSlots,
 } from './keyActionPickerUtils'
 import { isMacroOrCombo } from '@/lib/keymap/behaviorClassify'
 
@@ -54,7 +56,18 @@ export const KeyActionPicker = ({
         () => actionType?.slots ?? [],
         [actionType],
     )
-    const isHoldTap = slots.length > 1
+    // Trailing slots gated by the chosen command (e.g. &bt's profile index,
+    // valid only for BT_SEL / BT_DISC) stay hidden until such a command is
+    // picked. `visible` drives every layout/validation decision below.
+    const visible = useMemo<ActionSlot[]>(
+        () => visibleSlots(slots, params),
+        [slots, params],
+    )
+    const isHoldTap = visible.length > 1
+    const safeActive = Math.min(
+        Math.max(activeSlotIndex, 0),
+        Math.max(visible.length - 1, 0),
+    )
 
     useEffect((): void => {
         /* eslint-disable react-hooks/set-state-in-effect */
@@ -77,20 +90,25 @@ export const KeyActionPicker = ({
 
     const dispatch = useCallback(
         (nextKind: string, nextParams: number[]): void => {
+            const target = actionTypes.find((t) => t.id === nextKind)
+            const targetSlots = target?.slots ?? []
+            // Only the visible slots belong to the binding — a gated-out
+            // trailing param (e.g. &bt's profile for BT_CLR) is dropped so the
+            // stored action is `[command]`, not `[command, staleProfile]`.
+            const vis = visibleSlots(targetSlots, nextParams)
+            const trimmed = nextParams.slice(0, vis.length)
             if (
                 nextKind === action.kind &&
-                nextParams.length === action.params.length &&
-                nextParams.every((v, i) => v === action.params[i])
+                trimmed.length === action.params.length &&
+                trimmed.every((v, i) => v === action.params[i])
             ) {
                 return
             }
-            const target = actionTypes.find((t) => t.id === nextKind)
-            const targetSlots = target?.slots ?? []
-            const allValid = targetSlots.every((slot, i) =>
-                isSlotValid(slot, nextParams[i], layerIds),
+            const allValid = vis.every((slot, i) =>
+                isSlotValid(slot, trimmed[i], layerIds),
             )
             if (!allValid) return
-            onChange({ kind: nextKind, params: nextParams })
+            onChange({ kind: nextKind, params: trimmed })
         },
         [action, actionTypes, layerIds, onChange],
     )
@@ -104,34 +122,46 @@ export const KeyActionPicker = ({
         dispatch(selectedId, nextParams)
     }
 
+    // pattern-check: skip — gating an existing slot handler, no new abstraction
     const handleSlotChanged = (slotIndex: number, value?: number): void => {
         const nextParams = [...params]
         nextParams[slotIndex] = value ?? 0
+        // Changing the command can reveal a trailing slot (e.g. picking BT_SEL
+        // shows the profile index) — seed its default so the binding completes.
+        const vis = visibleSlots(slots, nextParams)
+        for (let i = 0; i < vis.length; i++) {
+            if (nextParams[i] === undefined) {
+                nextParams[i] = defaultForSlot(vis[i])
+            }
+        }
         setParams(nextParams)
+        if (activeSlotIndex > vis.length - 1) {
+            setActiveSlotIndex(Math.max(vis.length - 1, 0))
+        }
         dispatch(kind, nextParams)
-        if (!isHoldTap || value === undefined || value === 0) return
+        if (vis.length <= 1 || value === undefined || value === 0) return
 
-        const isLast = slotIndex === slots.length - 1
+        const isLast = slotIndex === vis.length - 1
         if (!isLast) {
-            if (slots[slotIndex].kind !== 'modifier') {
+            if (vis[slotIndex].kind !== 'modifier') {
                 setActiveSlotIndex(slotIndex + 1)
             }
             return
         }
 
-        const allValid = slots.every((s, i) =>
+        const allValid = vis.every((s, i) =>
             isSlotValid(s, nextParams[i], layerIds),
         )
         if (allValid) {
-            setActiveSlotIndex((slotIndex + 1) % slots.length)
+            setActiveSlotIndex((slotIndex + 1) % vis.length)
             return
         }
-        const missingIdx = slots.findIndex(
+        const missingIdx = vis.findIndex(
             (s, i) => !isSlotValid(s, nextParams[i], layerIds),
         )
         if (missingIdx >= 0 && missingIdx !== slotIndex) {
             toast.info(
-                `Select ${slots[missingIdx].label.toLowerCase()} to complete the binding`,
+                `Select ${vis[missingIdx].label.toLowerCase()} to complete the binding`,
             )
         }
     }
@@ -143,7 +173,7 @@ export const KeyActionPicker = ({
 
     const slotBarSlots = useMemo<SlotDescriptor[]>(() => {
         if (!isHoldTap) return []
-        return slots.map((slot, i) => ({
+        return visible.map((slot, i) => ({
             id: String(i),
             label: slot.label,
             value: params[i],
@@ -162,18 +192,18 @@ export const KeyActionPicker = ({
             },
         }))
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isHoldTap, slots, params, layers, kind, dispatch])
+    }, [isHoldTap, visible, params, layers, kind, dispatch])
 
     const highlightedKeys = useMemo<number[] | undefined>(() => {
         if (!isHoldTap) return undefined
-        if (slots[0]?.kind !== 'hid') return undefined
+        if (visible[0]?.kind !== 'hid') return undefined
         const out: number[] = []
         if (params[0] && params[0] !== 0) out.push(params[0])
-        if (params[1] && params[1] !== 0 && slots[1]?.kind === 'hid') {
+        if (params[1] && params[1] !== 0 && visible[1]?.kind === 'hid') {
             out.push(params[1])
         }
         return out
-    }, [isHoldTap, slots, params])
+    }, [isHoldTap, visible, params])
 
     return (
         <div className="flex flex-col w-full gap-3">
@@ -188,18 +218,18 @@ export const KeyActionPicker = ({
                 {isHoldTap && (
                     <SlotBar
                         slots={slotBarSlots}
-                        activeSlotId={String(activeSlotIndex)}
+                        activeSlotId={String(safeActive)}
                         onActivate={(id) => setActiveSlotIndex(parseInt(id))}
                     />
                 )}
             </div>
-            {slots.length > 0 && (
+            {visible.length > 0 && (
                 <div className="flex-1">
                     <ActionSlotsPicker
-                        slots={slots}
+                        slots={visible}
                         values={params}
                         layers={layers}
-                        activeSlotIndex={activeSlotIndex}
+                        activeSlotIndex={safeActive}
                         onSlotChanged={handleSlotChanged}
                         onActionChosen={handleTypeSelected}
                         highlightedKeys={highlightedKeys}
