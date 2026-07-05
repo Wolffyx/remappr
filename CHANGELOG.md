@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.12](https://github.com/Wolffyx/remappr/compare/v0.0.11...v0.0.12) (2026-07-05)
+
+
+### Bug Fixes
+
+* **deps:** add @noble/{ciphers,curves,hashes} for firmware auth.ts ([#151](https://github.com/Wolffyx/remappr/issues/151)) ([3ab2c00](https://github.com/Wolffyx/remappr/commit/3ab2c00afba56b4b9a6de45ebe2bef5c0f7a2df2))
+
 ## [0.0.11](https://github.com/Wolffyx/remappr/compare/v0.0.10...v0.0.11) (2026-06-10)
 
 
