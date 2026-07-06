@@ -178,6 +178,10 @@ export const KeyActionPicker = ({
             label: slot.label,
             value: params[i],
             kind: slotBarKind(slot),
+            valueLabel:
+                slot.kind === 'enum' || slot.kind === 'modifier'
+                    ? slot.values?.find((v) => v.value === params[i])?.label
+                    : undefined,
             layerName: layerNameFor(params[i]),
             inactiveBorderClass: i === 0 ? 'border-secondary' : 'border-accent',
             onRemove: (): void => {

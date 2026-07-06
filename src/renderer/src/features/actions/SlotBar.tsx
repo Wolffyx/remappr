@@ -7,9 +7,13 @@ import { X } from 'lucide-react'
 export type SlotKind = 'hid' | 'layer' | 'plain'
 
 export interface SlotDescriptor {
+    // pattern-check: skip additive optional field on existing descriptor
     id: string
     label: string
     value?: number
+    /** Text to show instead of the raw value — e.g. an enum command's label
+     *  ("BT_SEL") rather than its number (3). */
+    valueLabel?: string
     kind?: SlotKind
     layerName?: string
     inactiveBorderClass?: string
@@ -25,7 +29,12 @@ interface SlotBarProps {
 }
 
 function SlotValue({ slot }: { slot: SlotDescriptor }): JSX.Element {
-    if (slot.value === undefined || slot.value === 0) {
+    // Value 0 is "unset" for hid/layer slots (no key / layer 0), but a valid
+    // pick for an enum command with a label — show the label in that case.
+    if (
+        slot.value === undefined ||
+        (slot.value === 0 && slot.valueLabel === undefined)
+    ) {
         return <span className="text-xs text-muted-foreground italic">—</span>
     }
     if (slot.kind === 'layer') {
@@ -42,7 +51,7 @@ function SlotValue({ slot }: { slot: SlotDescriptor }): JSX.Element {
             </span>
         )
     }
-    return <span className="text-sm">{slot.value}</span>
+    return <span className="text-sm">{slot.valueLabel ?? slot.value}</span>
 }
 
 export function SlotBar({
