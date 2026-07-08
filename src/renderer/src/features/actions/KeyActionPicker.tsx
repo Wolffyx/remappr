@@ -181,7 +181,11 @@ export const KeyActionPicker = ({
             valueLabel:
                 slot.kind === 'enum' || slot.kind === 'modifier'
                     ? slot.values?.find((v) => v.value === params[i])?.label
-                    : undefined,
+                    : slot.kind === 'number' && slot.oneBased
+                      ? // Profile index is 0-based on the wire; the chip counts
+                        // from 1 to match the dropdown (and shows 0 → "1", not "—").
+                        String((params[i] ?? 0) + 1)
+                      : undefined,
             layerName: layerNameFor(params[i]),
             inactiveBorderClass: i === 0 ? 'border-secondary' : 'border-accent',
             onRemove: (): void => {
