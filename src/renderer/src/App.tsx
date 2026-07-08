@@ -36,6 +36,11 @@ const SIDEBAR_STYLE = {
     '--footer-height': 'calc(var(--spacing) * 8)',
 } as React.CSSProperties
 
+// Abort a connection attempt whose adapter handshake never answers (e.g. a
+// silent / half-flashed device) so the UI recovers instead of hanging on
+// "Connecting" forever. Generous enough not to trip a slow-but-valid BLE link.
+const CONNECT_TIMEOUT_MS = 15_000
+
 function App(): JSX.Element {
     // pattern-check: skip — UI sweep, replace store-connection with store-service
     const {
@@ -43,7 +48,7 @@ function App(): JSX.Element {
         setService,
         setDeviceName,
         setLockState,
-        connectionAbort,
+        setConnectionAbort,
         lockState,
     } = useConnectionStore()
     const { reset } = undoRedoStore()
@@ -86,16 +91,26 @@ function App(): JSX.Element {
     const onConnect = async (
         t: Transport,
         communication: 'serial' | 'ble' | 'hid',
-    ): Promise<void> => {
+    ): Promise<boolean> => {
         const adapter = await pickAdapter(t, { transportKind: communication })
         if (!adapter) {
             toast.error('Failed to connect to the selected device.', {
                 description: 'No firmware adapter handled the device.',
             })
-            return
+            return false
         }
+        // Fresh controller per attempt: the handshake below can hang on a silent
+        // device, so a timeout aborts it (adapter.connect honours the signal).
+        // A previously-aborted controller would poison the retry, so publish a
+        // new one to the store — disconnect still aborts whichever is live.
+        const abort = new AbortController()
+        setConnectionAbort(abort)
+        const timeout = setTimeout(
+            () => abort.abort(new Error('Connection timed out')),
+            CONNECT_TIMEOUT_MS,
+        )
         try {
-            const next = await adapter.connect(t, connectionAbort.signal)
+            const next = await adapter.connect(t, abort.signal)
             // Re-apply a previously imported QMK/VIA/Keychron layout BEFORE the
             // service is exposed, so the first keymap read (Drawer) already
             // reflects it. Doing it here — rather than in a sibling effect —
@@ -121,10 +136,14 @@ function App(): JSX.Element {
                 rememberConnectedDeviceName(next.deviceInfo.name)
             }
             setService(next, communication)
+            return true
         } catch (err) {
             toast.error('Failed to connect to the selected device.', {
                 description: err instanceof Error ? err.message : String(err),
             })
+            return false
+        } finally {
+            clearTimeout(timeout)
         }
     }
 

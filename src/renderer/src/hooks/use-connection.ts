@@ -37,7 +37,9 @@ export function useConnection(
     onTransportCreated: (
         t: Transport,
         communication: 'serial' | 'ble' | 'hid',
-    ) => void,
+        // Resolves true once the adapter handshake succeeds, false when it
+        // fails/times out — lets the caller clear a device's "connecting" state.
+    ) => Promise<boolean>,
 ): UseConnectionResult {
     const transports = useMemo(() => getTransports(), [])
 
@@ -147,7 +149,15 @@ export function useConnection(
                     id: device.id,
                     label: device.label,
                 })
-                onTransportCreated(rpc, transport.communication)
+                // The transport opened, but the adapter handshake still runs
+                // inside onTransportCreated and can fail or hang there. Await it
+                // and, if it doesn't reach a connected service, drop the card
+                // back to "available" so it never sticks on "Connecting".
+                const connected = await onTransportCreated(
+                    rpc,
+                    transport.communication,
+                )
+                if (!connected) setStatus(device.id, 'available')
             } catch (e) {
                 console.error('Connection error:', e)
                 reportConnectError(
@@ -171,7 +181,7 @@ export function useConnection(
             try {
                 const rpc = await transport.connect()
                 useConnectionStore.getState().setLastConnectedDevice(null)
-                if (rpc) onTransportCreated(rpc, transport.communication)
+                if (rpc) await onTransportCreated(rpc, transport.communication)
             } catch (e) {
                 reportConnectError(
                     e,
@@ -191,7 +201,7 @@ export function useConnection(
             try {
                 const rpc = await transport.request_new()
                 useConnectionStore.getState().setLastConnectedDevice(null)
-                if (rpc) onTransportCreated(rpc, transport.communication)
+                if (rpc) await onTransportCreated(rpc, transport.communication)
             } catch (e) {
                 if (
                     e instanceof UserCancelledError ||

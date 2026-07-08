@@ -23,11 +23,12 @@ import { TransportSection } from './TransportSection'
 import { FeatureCard } from './FeatureCard'
 import { BuilderCard } from './BuilderCard'
 
+// pattern-check: skip mechanical return-type change on an existing prop (void → Promise<boolean>)
 interface StartPageProps {
     onTransportCreated: (
         t: Transport,
         communication: 'serial' | 'ble' | 'hid',
-    ) => void
+    ) => Promise<boolean>
     onDemoConnect?: () => void | Promise<void>
 }
 
