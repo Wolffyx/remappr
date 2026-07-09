@@ -14,7 +14,11 @@
 // preload the secret once, cache it, and expose a sync facade over the cache with
 // async write-through. initRemapprIdentity() is awaited at the connect gate
 // (ensureFirmwareClientsLoaded) so the cache is warm before loadOrCreateIdentity().
-import { setRemapprIdentityStore } from '@firmware/remappr'
+// Narrow import (auth module, not the '@firmware/remappr' barrel): the barrel
+// registers the Remappr adapter as an import side effect, which would defeat
+// firmwareClients' lazy chunking (this file loads with it) and pre-seed the
+// adapter registry before ensureFirmwareClientsLoaded runs.
+import { setRemapprIdentityStore } from '@firmware/remappr/auth'
 import { getSecret, setSecret } from './secretStore'
 
 /** Secret-store key for the persisted host identity (32-byte X25519 secret, hex). */
