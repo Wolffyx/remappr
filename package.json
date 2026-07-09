@@ -92,7 +92,7 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
-        "electron": "^39.2.6",
+        "electron": "^42.5.0",
         "electron-builder": "^26.0.12",
         "electron-vite": "^5.0.0",
         "eslint": "^9.39.1",
@@ -150,7 +150,7 @@
             "node-addon-api": "^8.8.0"
         },
         "patchedDependencies": {
-            "usocket@0.3.0": "patches/usocket@0.3.0.patch"
+            "dbus-next@0.10.2": "patches/dbus-next@0.10.2.patch"
         },
         "onlyBuiltDependencies": [
             "electron",

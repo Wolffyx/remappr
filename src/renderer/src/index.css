@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import '../../../node_modules/tw-animate-css/dist/tw-animate.css';
+@import './themes.css';
 
 /* The `ui` and `features/builder` dirs are symlinks to the sibling @remappr/*
    repos and are git-ignored. Tailwind v4 auto-detection is gitignore-aware, so
@@ -7,9 +9,6 @@
    those components unstyled. Register them explicitly to force scanning. */
 @source './ui';
 @source './features/builder';
-
-@import '../../../node_modules/tw-animate-css/dist/tw-animate.css';
-@import './themes.css';
 
 /*---break---*/
 

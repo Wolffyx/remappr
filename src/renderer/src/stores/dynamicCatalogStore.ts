@@ -11,6 +11,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { CatalogEntry } from '@firmware/catalog/types'
 import type { KeyboardService } from '@firmware/service'
+import { REMAPPR_KIND_MACRO } from '@firmware/remappr/actions'
 
 interface DynamicLabel {
     label: string
@@ -177,6 +178,27 @@ async function fetchBehaviorEntries(svc: KeyboardService): Promise<{
     combos: CatalogEntry[]
 }> {
     try {
+        // Remappr §24: the config blob's named macros are key-assignable but
+        // aren't ZMK behaviors, so build one named tile per macro directly from
+        // the pool (bypassing classifyBehavior). The tile's behaviorRef carries
+        // the pool index, so a picker click binds REMAPPR_KIND_MACRO with
+        // params=[index] and the keycap shows the macro's real name. Other
+        // families don't implement listNames → fall through to the ZMK path.
+        const macroNames = svc.macros?.listNames?.()
+        if (macroNames && macroNames.length > 0) {
+            const macros = macroNames.map(
+                (name, index): CatalogEntry => ({
+                    id: `macro.remappr.${index}`,
+                    label: name,
+                    name,
+                    description: `Macro: ${name}`,
+                    kinds: ['hid'],
+                    behaviorRef: { kind: REMAPPR_KIND_MACRO, params: [index] },
+                }),
+            )
+            return { macros, combos: [] }
+        }
+
         const types = await svc.listActionTypes()
         const { classifyBehavior } =
             await import('@/lib/keymap/behaviorClassify')

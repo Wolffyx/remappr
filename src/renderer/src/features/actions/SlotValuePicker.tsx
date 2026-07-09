@@ -67,7 +67,7 @@ export interface SlotValuePickerProps {
     layers: { id: number; name: string }[]
     highlightedKeys?: number[]
     onChange: (value?: number) => void
-    onActionChosen?: (kind: string) => void
+    onActionChosen?: (kind: string, params?: number[]) => void
     codec?: KeycodeCodec
     catalog?: KeyCatalog
 }

@@ -1,25 +1,25 @@
 // pattern-check: skip — mechanical fs cleanup script, no abstraction/new logic
 //
-// usocket is a Unix-only native addon (uses sys/ioctl.h + unix sockets) pulled
-// in as an OPTIONAL dependency of dbus-next, which is itself Linux-only. The
-// `os: [linux, darwin]` patch on usocket is not honored by pnpm under a frozen
-// lockfile (the lockfile records os from registry metadata, not the patched
-// manifest) nor by @electron/rebuild, so usocket still lands in node_modules on
-// Windows and electron-builder's native rebuild fails compiling it.
+// usocket is an unmaintained Nan-era native addon, pulled in as an OPTIONAL
+// dependency of dbus-next as its Unix-socket transport. We no longer use it on
+// ANY platform: dbus-next is patched (patches/dbus-next@0.10.2.patch) to talk
+// to the D-Bus system bus over Node's built-in `net` instead. usocket is dead
+// weight that actively breaks the build — two independent reasons:
+//   1. Its read path wraps recv buffers in EXTERNAL ArrayBuffers, which aborts
+//      under Electron's V8 memory cage (v8_ArrayBuffer_NewBackingStore fatal).
+//   2. Its bundled Nan no longer compiles against Electron 42's V8 (the new
+//      3-arg v8::External::New), so electron-builder's native rebuild fails
+//      and the whole `pnpm install` exits non-zero.
 //
-// Since dbus-next is never used on Windows (src/main/bluez.ts loads it lazily
-// and returns early on non-Linux), strip usocket from the install tree on win32
-// BEFORE any electron rebuild runs (this script is the first half of the root
-// `postinstall`). No-op on Linux/macOS, where usocket builds fine and dbus-next
-// needs it. Handles both pnpm layouts: hoisted (node-linker=hoisted, real dir
-// at node_modules/usocket) and isolated (.pnpm store + symlinks).
+// So strip usocket from the install tree on EVERY platform BEFORE any electron
+// rebuild runs (this script is the first half of the root `postinstall`).
+// dbus-next's BlueZ access is path-socket only and needs no Unix-fd passing,
+// so the `net` transport is a full replacement. Handles both pnpm layouts:
+// hoisted (node-linker=hoisted, real dir at node_modules/usocket) and isolated
+// (.pnpm store + symlinks).
 
 const fs = require('fs')
 const path = require('path')
-
-if (process.platform !== 'win32') {
-    process.exit(0)
-}
 
 const nodeModulesDir = path.join(__dirname, '..', 'node_modules')
 

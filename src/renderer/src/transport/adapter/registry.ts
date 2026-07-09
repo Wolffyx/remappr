@@ -4,6 +4,7 @@ import type { Env } from './env'
 import {
     bleDiscovery,
     hidDiscovery,
+    hidDiscoveryAll,
     hidFilters,
     type BleDiscovery,
     type HidDiscovery,
@@ -18,6 +19,8 @@ export interface TransportContext {
     env: Env
     bleDiscovery: () => BleDiscovery | null
     hidDiscovery: () => HidDiscovery | null
+    /** Every registered adapter's HID filter (Electron match-any enumeration). */
+    hidDiscoveryAll: () => HidDiscovery[]
     hidFilters: () => HidFilter[]
 }
 
@@ -50,7 +53,7 @@ function matchesEnv(d: TransportDescriptor, env: Env): boolean {
 }
 
 export function buildContext(env: Env): TransportContext {
-    return { env, bleDiscovery, hidDiscovery, hidFilters }
+    return { env, bleDiscovery, hidDiscovery, hidDiscoveryAll, hidFilters }
 }
 
 export function getRegisteredTransports(env: Env): TransportFactory[] {

@@ -21,6 +21,14 @@ let defaultLayerUnsub: (() => void) | null = null
 
 interface ConnectionState {
     service: KeyboardService | null
+    /** When viewing a behind-dongle node, the dongle's own service — stashed so
+     *  the editor can return to it. The node view shares the dongle's RPC, so we
+     *  never disconnect this while swapping; `returnToParent` restores it and
+     *  `disconnect` tears it down (the node view's own disconnect is a no-op). */
+    parentService: KeyboardService | null
+    /** Short-id of the node currently being viewed (null on the dongle / a direct
+     *  device); drives the active-node check in the device menu. */
+    activeNodeId: number | null
     communication: 'serial' | 'ble' | 'hid' | null
     deviceName: string | null
     lockState: LockState
@@ -42,6 +50,11 @@ interface ConnectionState {
     resetConnection: () => void
     showConnectionModal: boolean
     setShowConnectionModal: (visible: boolean) => void
+    /** Open a read-only view of a behind-dongle node and make it the active
+     *  service, stashing the current (dongle) service as `parentService`. */
+    openNode: (id: number) => Promise<void>
+    /** Return from a node view to the stashed dongle service. No-op off a node. */
+    returnToParent: () => void
     disconnect: () => Promise<void>
 }
 
@@ -64,6 +77,8 @@ const useConnectionStore = create<ConnectionState>()(
     devtools(
         connectionMiddleware((set, get) => ({
             service: null,
+            parentService: null,
+            activeNodeId: null,
             communication: null,
             deviceName: null,
             lockState: 'locked' as LockState,
@@ -71,6 +86,11 @@ const useConnectionStore = create<ConnectionState>()(
             connectionAbort: new AbortController(),
             lastConnectedDevice: null,
             setService: (service, communication) => {
+                // Leaving every device (service → null, e.g. an onClosed from a
+                // dropped dongle transport) also drops any node-view back-pointer,
+                // so a later reconnect can't read a stale dongle as the node roster
+                // source. Swaps to a node view pass a non-null service and skip this.
+                if (!service) set({ parentService: null, activeNodeId: null })
                 // The deviceless mock has no switch matrix, so give it an
                 // OS-event-backed keyTest facade — Key Test then works in demo
                 // through the same path real hardware would, and the Header gate
@@ -189,12 +209,42 @@ const useConnectionStore = create<ConnectionState>()(
             setLockState: (state) => set({ lockState: state }),
             setKeyCatalog: (catalog) => set({ keyCatalog: catalog }),
             setConnectionAbort: (abort) => set({ connectionAbort: abort }),
+            openNode: async (id) => {
+                // The node roster lives on the dongle. When already viewing a node
+                // the dongle is the stashed parent; otherwise it's the live service.
+                const { service, parentService, communication } = get()
+                const dongle = parentService ?? service
+                if (!dongle?.nodes) return
+                // Relayed read of the node's device-info + active config (may throw
+                // on an offline node); only swap once it resolves. The returned view
+                // shares the dongle's RPC, so we keep the dongle alive as parent.
+                const view = await dongle.nodes.open(id)
+                set({
+                    parentService: dongle,
+                    activeNodeId: id,
+                    deviceName: view.deviceInfo.name,
+                })
+                get().setService(view, communication ?? undefined)
+            },
+            returnToParent: () => {
+                const { parentService, communication } = get()
+                if (!parentService) return
+                // Clear before the swap so setService's null-guard can't fight it.
+                set({
+                    parentService: null,
+                    activeNodeId: null,
+                    deviceName: parentService.deviceInfo.name,
+                })
+                get().setService(parentService, communication ?? undefined)
+            },
             resetConnection: () => {
                 defaultLayerUnsub?.()
                 defaultLayerUnsub = null
                 useLightingCatalogStore.getState().setCatalog(null)
                 set({
                     service: null,
+                    parentService: null,
+                    activeNodeId: null,
                     communication: null,
                     deviceName: null,
                     lockState: 'locked' as LockState,
@@ -211,7 +261,12 @@ const useConnectionStore = create<ConnectionState>()(
             setShowConnectionModal: (visible) =>
                 set({ showConnectionModal: visible }),
             disconnect: async () => {
-                const { service, connectionAbort, resetConnection } = get()
+                const {
+                    service,
+                    parentService,
+                    connectionAbort,
+                    resetConnection,
+                } = get()
                 if (!service) {
                     return
                 }
@@ -220,6 +275,19 @@ const useConnectionStore = create<ConnectionState>()(
                     await service.disconnect()
                 } catch (error) {
                     console.warn('Failed to disconnect service cleanly', error)
+                }
+
+                // On a node view, `service.disconnect()` is a no-op on the shared
+                // dongle transport — tear the dongle down too so it doesn't leak.
+                if (parentService && parentService !== service) {
+                    try {
+                        await parentService.disconnect()
+                    } catch (error) {
+                        console.warn(
+                            'Failed to disconnect parent service cleanly',
+                            error,
+                        )
+                    }
                 }
 
                 connectionAbort.abort('User disconnected')

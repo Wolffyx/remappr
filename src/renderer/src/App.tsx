@@ -3,6 +3,7 @@ import type { Transport } from '@firmware'
 import { connectMock, isUnlocked, pickAdapter } from '@firmware'
 import { rememberConnectedDeviceName } from '@/transport/web-serial'
 import { LockedOverlay } from '@/features/connection/LockedOverlay'
+import { DongleLanding } from '@/features/connection/DongleLanding'
 import useConnectionStore from '@/stores/connectionStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import undoRedoStore from '@/stores/undoRedoStore'
@@ -184,8 +185,13 @@ function App(): JSX.Element {
 
     const builderOpen = useBuilderStore((s) => s.open)
 
+    // A dongle has no keymap — it lands on the node roster (DongleLanding), which
+    // gets the standalone TitleBar like the locked/start states, not the editor
+    // chrome.
     const showEditor =
-        !!service && !(service.capabilities.lock && !isUnlocked(lockState))
+        !!service &&
+        service.kind !== 'dongle' &&
+        !(service.capabilities.lock && !isUnlocked(lockState))
 
     return (
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -204,6 +210,10 @@ function App(): JSX.Element {
                         service.capabilities.lock && !isUnlocked(lockState) ? (
                             <ErrorBoundary>
                                 <LockedOverlay />
+                            </ErrorBoundary>
+                        ) : service.kind === 'dongle' ? (
+                            <ErrorBoundary>
+                                <DongleLanding />
                             </ErrorBoundary>
                         ) : (
                             <ErrorBoundary>

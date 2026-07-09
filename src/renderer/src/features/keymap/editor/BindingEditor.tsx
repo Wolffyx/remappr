@@ -70,6 +70,9 @@ export function BindingEditor({
 }: BindingEditorProps): JSX.Element {
     const doIt = undoRedoStore((s) => s.doIt)
     const { service } = useConnectionStore()
+    // Read-only services (behind-dongle node views) serve reads but reject edits;
+    // the picker is replaced with a notice and doUpdateAction no-ops.
+    const readOnly = !!service?.capabilities.readOnly
     const { selectedLayerIndex } = useLayerSelectionStore()
     const [actionTypes, setActionTypes] = useState<ActionType[]>([])
 
@@ -99,7 +102,7 @@ export function BindingEditor({
 
     const doUpdateAction = useCallback(
         (draft: KeyActionDraft): void => {
-            if (!service || !keymap) return
+            if (!service || service.capabilities.readOnly || !keymap) return
 
             const layer = effectiveLayerIndex
             const layerId = keymap.layers[layer].id
@@ -282,17 +285,24 @@ export function BindingEditor({
                     {selectedEncoder.dir.toUpperCase()}
                 </div>
             )}
-            <div className="flex flex-row gap-4 w-full">
-                {selectedAction && (
-                    <KeyActionPicker
-                        action={selectedAction}
-                        actionTypes={actionTypes}
-                        layers={layerList}
-                        onChange={doUpdateAction}
-                    />
-                )}
-            </div>
-            {canEditTapDance && (
+            {readOnly ? (
+                <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                    This keyboard is read-only — it’s a node behind a dongle.
+                    Editing isn’t available yet.
+                </div>
+            ) : (
+                <div className="flex flex-row gap-4 w-full">
+                    {selectedAction && (
+                        <KeyActionPicker
+                            action={selectedAction}
+                            actionTypes={actionTypes}
+                            layers={layerList}
+                            onChange={doUpdateAction}
+                        />
+                    )}
+                </div>
+            )}
+            {!readOnly && canEditTapDance && (
                 <div className="mt-2">
                     <Button
                         variant="outline"

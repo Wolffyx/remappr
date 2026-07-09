@@ -115,14 +115,21 @@ function buildLabel(d: NodeHidDevice): string {
     return parts.join(' · ')
 }
 
+// pattern-check: skip — signature change (single filter → filter array) on an
+// existing function; match-any enumeration, no GoF abstraction.
 export async function listHidDevices(
-    filter: HidDiscoveryFilter,
+    filters: HidDiscoveryFilter[],
 ): Promise<HidDeviceInfo[]> {
     const mod = await loadNodeHid()
     if (!mod) return []
     try {
         const all = mod.devices()
-        const matched = all.filter((d) => matchesFilter(d, filter))
+        // Match-any across every registered firmware family's filter (an empty
+        // list means no firmware is registered, so surface nothing rather than
+        // every HID device on the machine).
+        const matched = all.filter((d) =>
+            filters.some((f) => matchesFilter(d, f)),
+        )
         const devices = matched
             .filter((d): d is NodeHidDevice & { path: string } => !!d.path)
             .map((d) => ({ id: d.path, label: buildLabel(d) }))

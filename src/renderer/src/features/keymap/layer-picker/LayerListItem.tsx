@@ -24,10 +24,13 @@ interface LayerItem {
     selected: boolean
 }
 
+// pattern-check: skip — additive optional `editable` prop on existing props
 interface LayerListItemProps {
     item: LayerItem
     selectedLayerIndex: number
     canRemove?: boolean
+    /** Read-only views hide the rename/duplicate/delete menu. Defaults true. */
+    editable?: boolean
     dragHandlers?: DragHandlers
     isDragSource?: boolean
     isDragOver?: boolean
@@ -45,6 +48,7 @@ export function LayerListItem({
     item,
     selectedLayerIndex,
     canRemove,
+    editable = true,
     dragHandlers,
     isDragSource,
     isDragOver,
@@ -109,49 +113,51 @@ export function LayerListItem({
                     </span>
                 </span>
             </SidebarMenuButton>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction
-                        showOnHover
-                        className="data-[state=open]:bg-accent rounded-sm"
-                    >
-                        <EllipsisVertical />{' '}
-                        <span className="sr-only">More</span>
-                    </SidebarMenuAction>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start">
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <LayerNameDialog
-                            onClose={() => {}}
-                            editLabelData={item}
-                            handleSaveNewLabel={onSaveNewLabel}
-                        />
-                    </DropdownMenuItem>
-                    {onDuplicate && (
+            {editable && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuAction
+                            showOnHover
+                            className="data-[state=open]:bg-accent rounded-sm"
+                        >
+                            <EllipsisVertical />{' '}
+                            <span className="sr-only">More</span>
+                        </SidebarMenuAction>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="right" align="start">
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <LayerNameDialog
+                                onClose={() => {}}
+                                editLabelData={item}
+                                handleSaveNewLabel={onSaveNewLabel}
+                            />
+                        </DropdownMenuItem>
+                        {onDuplicate && (
+                            <DropdownMenuItem
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onDuplicate(item.index)
+                                }}
+                            >
+                                <Copy />
+                                <span>Duplicate</span>
+                            </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
+                            variant="destructive"
+                            disabled={!canRemove}
                             onClick={(e) => {
                                 e.stopPropagation()
-                                onDuplicate(item.index)
+                                onRemove(item.index)
                             }}
                         >
-                            <Copy />
-                            <span>Duplicate</span>
+                            <Trash />
+                            <span>Delete</span>
                         </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        variant="destructive"
-                        disabled={!canRemove}
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            onRemove(item.index)
-                        }}
-                    >
-                        <Trash />
-                        <span>Delete</span>
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
         </SidebarMenuItem>
     )
 }

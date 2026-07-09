@@ -36,7 +36,7 @@ export function useKeymapMutations({
 
     const dispatchSetKey = useCallback(
         (position: number, action: KeyAction): void => {
-            if (!service || !keymap) return
+            if (!service || service.capabilities.readOnly || !keymap) return
             const layer = effectiveLayerIndex
             const layerEntry = keymap.layers[layer]
             if (!layerEntry) return
@@ -75,7 +75,13 @@ export function useKeymapMutations({
 
     const dispatchSetKeys = useCallback(
         (positions: number[], action: KeyAction): void => {
-            if (!service || !keymap || positions.length === 0) return
+            if (
+                !service ||
+                service.capabilities.readOnly ||
+                !keymap ||
+                positions.length === 0
+            )
+                return
             const layer = effectiveLayerIndex
             const layerEntry = keymap.layers[layer]
             if (!layerEntry) return

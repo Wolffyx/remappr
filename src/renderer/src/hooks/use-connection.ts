@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import type { Transport } from '@firmware'
 import { UserCancelledError } from '@firmware'
 import type { TransportFactory } from '@/transport/types'
+import { ensureFirmwareClientsLoaded } from '@/transport/adapter/firmwareClients'
 import { getTransports, subscribeToTransportChanges } from '@/lib/transports'
 import useConnectionStore from '@/stores/connectionStore'
 import type {
@@ -66,6 +67,9 @@ export function useConnection(
 
     const loadDevices = useCallback(async (): Promise<void> => {
         setRefreshing(true)
+        // Discovery filters (hidFilters/hidDiscovery) read the adapter registry,
+        // which is now populated lazily — ensure clients are loaded first.
+        await ensureFirmwareClientsLoaded()
         const listable = transports.filter((t): boolean => !!t.pick_and_connect)
         const results = await Promise.all(
             listable.map(async (t): Promise<DeviceWithTransport[]> => {
@@ -144,6 +148,7 @@ export function useConnection(
             setConnectingDeviceId(device.id)
             setStatus(device.id, 'connecting')
             try {
+                await ensureFirmwareClientsLoaded()
                 const rpc = await transport.pick_and_connect!.connect(device)
                 useConnectionStore.getState().setLastConnectedDevice({
                     id: device.id,
@@ -179,6 +184,7 @@ export function useConnection(
                 return
             }
             try {
+                await ensureFirmwareClientsLoaded()
                 const rpc = await transport.connect()
                 useConnectionStore.getState().setLastConnectedDevice(null)
                 if (rpc) await onTransportCreated(rpc, transport.communication)
@@ -199,6 +205,7 @@ export function useConnection(
                 return
             }
             try {
+                await ensureFirmwareClientsLoaded()
                 const rpc = await transport.request_new()
                 useConnectionStore.getState().setLastConnectedDevice(null)
                 if (rpc) await onTransportCreated(rpc, transport.communication)

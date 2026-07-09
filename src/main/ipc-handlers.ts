@@ -55,18 +55,28 @@ function parseDiscovery(
 }
 
 // pattern-check: skip — local IPC payload validator, no abstraction.
-function parseHidDiscovery(arg: unknown): HidDiscoveryFilter {
-    if (!arg || typeof arg !== 'object') return {}
-    const a = arg as Record<string, unknown>
+function parseHidFilter(raw: unknown): HidDiscoveryFilter | null {
+    if (!raw || typeof raw !== 'object') return null
+    const f = raw as Record<string, unknown>
     const out: HidDiscoveryFilter = {}
-    if (Array.isArray(a.vendorIds)) {
-        out.vendorIds = a.vendorIds.filter(
+    if (Array.isArray(f.vendorIds)) {
+        out.vendorIds = f.vendorIds.filter(
             (v): v is number => typeof v === 'number',
         )
     }
-    if (typeof a.usagePage === 'number') out.usagePage = a.usagePage
-    if (typeof a.usage === 'number') out.usage = a.usage
+    if (typeof f.usagePage === 'number') out.usagePage = f.usagePage
+    if (typeof f.usage === 'number') out.usage = f.usage
     return out
+}
+
+// pattern-check: skip — local IPC payload validator, no abstraction.
+function parseHidDiscovery(arg: unknown): HidDiscoveryFilter[] {
+    if (!arg || typeof arg !== 'object') return []
+    const a = arg as Record<string, unknown>
+    if (!Array.isArray(a.filters)) return []
+    return a.filters
+        .map(parseHidFilter)
+        .filter((f): f is HidDiscoveryFilter => f !== null)
 }
 
 // Tracks which transport currently owns send/close. Set when a transport
@@ -173,8 +183,8 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
     // --- HID handlers (raw USB HID via node-hid) ---
 
     ipcMain.handle(IpcChannels.HID_LIST_DEVICES, async (_, arg: unknown) => {
-        const filter = parseHidDiscovery(arg)
-        return await listHidDevices(filter)
+        const filters = parseHidDiscovery(arg)
+        return await listHidDevices(filters)
     })
 
     ipcMain.handle(IpcChannels.HID_CONNECT, async (_, arg: unknown) => {

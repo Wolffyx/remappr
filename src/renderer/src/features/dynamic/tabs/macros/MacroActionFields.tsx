@@ -4,7 +4,7 @@ import { assertNever } from '@/lib/assertNever'
 import { clampInt, parseIntSafe } from '@/lib/clampInt'
 import { Input } from '@/ui/input'
 
-import { NumField } from '../../_shared/NumField'
+import { KeycodeField } from '../../_shared/KeycodeField'
 
 export function MacroActionFields({
     action,
@@ -20,8 +20,7 @@ export function MacroActionFields({
         case 'down':
         case 'up':
             return (
-                <NumField
-                    label="Keycode"
+                <KeycodeField
                     value={action.keycode}
                     onChange={(v) => onChange({ ...action, keycode: v })}
                     disabled={readOnly}

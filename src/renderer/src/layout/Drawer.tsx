@@ -14,6 +14,7 @@ import {
     SidebarFooter,
 } from '@/ui/sidebar'
 import { DeviceMenu } from '@/features/connection/device-menu/DeviceMenu'
+import { useFeatureAvailable } from '@/features/firmware/useFeatureAvailable'
 // pattern-check: skip — drop dead lock guards now that App-shell render-gates locked state
 import type { Keymap } from '@firmware/types'
 import { produce } from 'immer'
@@ -21,6 +22,8 @@ import { produce } from 'immer'
 // pattern-check: skip — mechanical lock-guard removal
 export function Drawer(): JSX.Element {
     const { service } = useConnectionStore()
+    // Read-only (behind-dongle node) views disable every layer-editing affordance.
+    const editable = useFeatureAvailable('editable')
     const { setSelectedLayerIndex } = useLayerSelectionStore()
     const { keymap, setKeymap, resetKeymap } = useKeymapStore()
     const {
@@ -120,8 +123,13 @@ export function Drawer(): JSX.Element {
                             layers={keymap.layers}
                             keymap={keymap}
                             setKeymap={layerPickerSetKeymap}
-                            canAdd={(keymap.availableLayers || 0) > 0}
-                            canRemove={(keymap.layers?.length || 0) > 1}
+                            editable={editable}
+                            canAdd={
+                                editable && (keymap.availableLayers || 0) > 0
+                            }
+                            canRemove={
+                                editable && (keymap.layers?.length || 0) > 1
+                            }
                         />
                     )}
                 </SidebarGroup>

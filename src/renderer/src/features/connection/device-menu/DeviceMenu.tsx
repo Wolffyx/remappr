@@ -3,22 +3,78 @@ import { useCallback, useState } from 'react'
 import { RestoreStockModal } from './RestoreStockModal'
 import useConnectionStore from '@/stores/connectionStore'
 import undoRedoStore from '@/stores/undoRedoStore'
-import { Power, Settings as SettingsIcon } from 'lucide-react'
+import {
+    ArrowLeft,
+    Check,
+    Cpu,
+    Power,
+    Settings as SettingsIcon,
+} from 'lucide-react'
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/ui/dropdown-menu'
 import { Settings } from '@/components/modals/Settings'
 import { toast } from 'sonner'
+import type { NodeView } from '@firmware/service'
 
 export const DeviceMenu = (): JSX.Element => {
-    const { service, setService, communication, deviceName, disconnect } =
-        useConnectionStore()
+    const {
+        service,
+        parentService,
+        activeNodeId,
+        setService,
+        communication,
+        deviceName,
+        disconnect,
+        openNode,
+        returnToParent,
+    } = useConnectionStore()
     const { reset } = undoRedoStore()
     const [settingsOpen, setSettingsOpen] = useState(false)
+    const [nodes, setNodes] = useState<NodeView[]>([])
+    const [nodesLoading, setNodesLoading] = useState(false)
+
+    // The node roster lives on the dongle: when viewing a node that's the stashed
+    // parent, otherwise the live service. Empty for a direct (non-dongle) device,
+    // so the Mesh-nodes section stays hidden on ordinary keyboards.
+    const dongle = parentService ?? service
+    const nodesApi = dongle?.nodes
+    const viewingNode = !!parentService
+    const readOnly = !!service?.capabilities.readOnly
+
+    const loadNodes = useCallback(async (): Promise<void> => {
+        if (!nodesApi) {
+            setNodes([])
+            return
+        }
+        setNodesLoading(true)
+        try {
+            setNodes(await nodesApi.list())
+        } catch (e) {
+            console.warn('Failed to list nodes', e)
+            setNodes([])
+        } finally {
+            setNodesLoading(false)
+        }
+    }, [nodesApi])
+
+    const handleOpenNode = useCallback(
+        async (id: number): Promise<void> => {
+            try {
+                await openNode(id)
+            } catch (e) {
+                toast.error('Failed to open node', {
+                    description: e instanceof Error ? e.message : String(e),
+                })
+            }
+        },
+        [openNode],
+    )
 
     const resetSettings = useCallback(async (): Promise<void> => {
         if (!service) return
@@ -49,11 +105,20 @@ export const DeviceMenu = (): JSX.Element => {
     const displayName =
         deviceName?.trim() || service?.deviceInfo.name?.trim() || 'Keyboard'
     const connLabel = communication === 'ble' ? 'BLE' : 'USB'
+    const statusLabel = viewingNode
+        ? 'Node · read-only'
+        : connected
+          ? `Connected · ${connLabel}`
+          : 'Offline'
 
     return (
         <>
             {/* Device chip — card with status dot + name + connection, gear opens the menu. */}
-            <DropdownMenu>
+            <DropdownMenu
+                onOpenChange={(open): void => {
+                    if (open) void loadNodes()
+                }}
+            >
                 <div className="flex items-center gap-2.5 rounded-[10px] border border-border bg-card px-2.5 py-2">
                     <span
                         aria-hidden
@@ -72,7 +137,7 @@ export const DeviceMenu = (): JSX.Element => {
                             {connected ? displayName : 'No Device Connected'}
                         </div>
                         <div className="text-[10.5px] text-muted-foreground">
-                            {connected ? `Connected · ${connLabel}` : 'Offline'}
+                            {statusLabel}
                         </div>
                     </div>
                     <DropdownMenuTrigger asChild>
@@ -92,6 +157,60 @@ export const DeviceMenu = (): JSX.Element => {
                     align="end"
                     className="w-[220px]"
                 >
+                    {viewingNode && (
+                        <>
+                            <DropdownMenuItem onClick={returnToParent}>
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                <span className="flex-1 truncate">
+                                    Back to{' '}
+                                    {parentService?.deviceInfo.name?.trim() ||
+                                        'dongle'}
+                                </span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                        </>
+                    )}
+
+                    {(nodes.length > 0 || nodesLoading) && (
+                        <>
+                            <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">
+                                Mesh nodes
+                            </DropdownMenuLabel>
+                            {nodesLoading && nodes.length === 0 ? (
+                                <DropdownMenuItem disabled>
+                                    Scanning…
+                                </DropdownMenuItem>
+                            ) : (
+                                nodes.map((n) => (
+                                    <DropdownMenuItem
+                                        key={n.id}
+                                        disabled={
+                                            !n.online || n.id === activeNodeId
+                                        }
+                                        onClick={(): void => {
+                                            void handleOpenNode(n.id)
+                                        }}
+                                    >
+                                        <Cpu className="mr-2 h-4 w-4 shrink-0" />
+                                        <span className="flex-1 truncate">
+                                            {n.label}
+                                        </span>
+                                        {n.id === activeNodeId ? (
+                                            <Check className="h-4 w-4 shrink-0" />
+                                        ) : (
+                                            !n.online && (
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    offline
+                                                </span>
+                                            )
+                                        )}
+                                    </DropdownMenuItem>
+                                ))
+                            )}
+                            <DropdownMenuSeparator />
+                        </>
+                    )}
+
                     <DropdownMenuItem
                         onClick={disconnect}
                         className="text-destructive focus:text-destructive"
@@ -99,11 +218,13 @@ export const DeviceMenu = (): JSX.Element => {
                         <Power className="mr-2 h-4 w-4" />
                         Disconnect
                     </DropdownMenuItem>
-                    <RestoreStockModal
-                        onOk={(): void => {
-                            resetSettings()
-                        }}
-                    />
+                    {!readOnly && (
+                        <RestoreStockModal
+                            onOk={(): void => {
+                                resetSettings()
+                            }}
+                        />
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         onClick={(): void => setSettingsOpen(true)}

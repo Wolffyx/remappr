@@ -22,10 +22,14 @@ interface Layer {
 export type LayerClickCallback = (index: number) => void
 export type LayerMovedCallback = (index: number, destination: number) => void
 
+// pattern-check: skip — additive optional `editable` prop on existing props
 interface LayerPickerProps {
     layers: Array<Layer>
     canAdd?: boolean
     canRemove?: boolean
+    // Read-only (behind-dongle node) views pass false to hide every layer edit
+    // (drag-reorder, rename, duplicate, delete). Defaults to editable.
+    editable?: boolean
     onLayerClicked?: LayerClickCallback
     setKeymap?: (updater: (draft: Keymap) => void) => void
     keymap?: Keymap
@@ -36,6 +40,7 @@ export const LayerPicker = ({
     layers,
     canAdd,
     canRemove,
+    editable = true,
     onLayerClicked,
     setKeymap,
     keymap,
@@ -109,7 +114,10 @@ export const LayerPicker = ({
                         item={item}
                         selectedLayerIndex={selectedLayerIndex}
                         canRemove={canRemove}
-                        dragHandlers={handlersFor(item.index)}
+                        editable={editable}
+                        dragHandlers={
+                            editable ? handlersFor(item.index) : undefined
+                        }
                         isDragSource={dragSourceIndex === item.index}
                         isDragOver={dragOverIndex === item.index}
                         onSelect={(idx) => {

@@ -1,0 +1,45 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+deleted file mode 100644
+index a89691bec87b69ae600f4feb67b88b900ab799de..0000000000000000000000000000000000000000
+diff --git a/lib/connection.js b/lib/connection.js
+index 780dc041c58e83ebfcd84434e500ec471020813a..e032e064596d57f7ba6f3baa24c74021018b6150 100644
+--- a/lib/connection.js
++++ b/lib/connection.js
+@@ -51,15 +51,13 @@ function createStream (opts) {
+             return sock;
+           }
+           if (params.path) {
+-            try {
+-              const usocket = require('usocket');
+-              const sock = new usocket.USocket({ path: params.path });
+-              sock.supportsUnixFd = negotiateUnixFd;
+-              return sock;
+-            } catch (err) {
+-              // TODO: maybe emit warning?
+-              return net.createConnection(params.path);
+-            }
++            // Path sockets (e.g. the D-Bus system bus,
++            // /run/dbus/system_bus_socket) connect over Node's native `net`
++            // — no `usocket` native addon, so no V8-memory-cage abort and no
++            // dependency on Nan (which no longer compiles against Electron
++            // 42's V8). BlueZ GATT needs no Unix-fd passing, so dropping
++            // usocket's supportsUnixFd path is safe.
++            return net.createConnection(params.path);
+           }
+           throw new Error(
+             "not enough parameters for 'unix' connection - you need to specify 'socket' or 'abstract' or 'path' parameter"
+diff --git a/package.json b/package.json
+index a396df1298b9c3d2f2faad33563c3cdded50281e..a6ea5d99cb490e5c1230175168d2b76e3757da5e 100644
+--- a/package.json
++++ b/package.json
+@@ -43,9 +43,7 @@
+     "safe-buffer": "^5.1.1",
+     "xml2js": "^0.4.17"
+   },
+-  "optionalDependencies": {
+-    "usocket": "^0.3.0"
+-  },
++  "optionalDependencies": {},
+   "devDependencies": {
+     "@babel/core": "^7.1.5",
+     "@babel/plugin-proposal-class-properties": "^7.1.0",

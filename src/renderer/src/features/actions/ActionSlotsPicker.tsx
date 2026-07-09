@@ -11,7 +11,7 @@ export interface ActionSlotsPickerProps {
     layers: { id: number; name: string }[]
     activeSlotIndex: number
     onSlotChanged: (slotIndex: number, value?: number) => void
-    onActionChosen?: (kind: string) => void
+    onActionChosen?: (kind: string, params?: number[]) => void
     highlightedKeys?: number[]
     holdInvalidHint?: string
     codec?: KeycodeCodec

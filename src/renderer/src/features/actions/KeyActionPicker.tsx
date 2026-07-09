@@ -113,9 +113,17 @@ export const KeyActionPicker = ({
         [action, actionTypes, layerIds, onChange],
     )
 
-    const handleTypeSelected = (selectedId: string): void => {
+    // `providedParams` is set when the pick came from a behaviorRef tile
+    // (a Remappr §24 named macro carries its pool index) — bind those verbatim
+    // instead of seeding empty slot defaults. A normal action-type pick (from
+    // the dropdown) omits them and falls back to slot defaults, unchanged.
+    const handleTypeSelected = (
+        selectedId: string,
+        providedParams?: number[],
+    ): void => {
         const target = actionTypes.find((t) => t.id === selectedId)
-        const nextParams = paramsForSlots([], target?.slots ?? [])
+        const nextParams =
+            providedParams ?? paramsForSlots([], target?.slots ?? [])
         setKind(selectedId)
         setParams(nextParams)
         setActiveSlotIndex(0)

@@ -7,8 +7,9 @@ import { Button } from '@/ui/button'
 
 import { saveWithToast } from '@/lib/saveWithToast'
 
-import { EntryCard, HexChip, NumChip, Pair } from '../_shared/EntryCard'
+import { EntryCard, NumChip, Pair } from '../_shared/EntryCard'
 import { IndexInput } from '../_shared/IndexInput'
+import { KeycodeField } from '../_shared/KeycodeField'
 import { useDynamicEntry } from '../_shared/useDynamicEntry'
 
 // pattern-check: skip optional defaultIndex prop add to existing component — mechanical extension
@@ -61,7 +62,7 @@ export function TapDanceTab({
                 <>
                     <EntryCard index={idx} accentHue={286}>
                         <Pair label="Tap">
-                            <HexChip
+                            <KeycodeField
                                 value={entry.onTap}
                                 onChange={(v) =>
                                     setEntry({ ...entry, onTap: v })
@@ -70,7 +71,7 @@ export function TapDanceTab({
                         </Pair>
                         <ArrowRight className="mb-2 size-3.5 text-muted-foreground" />
                         <Pair label="Hold">
-                            <HexChip
+                            <KeycodeField
                                 value={entry.onHold}
                                 onChange={(v) =>
                                     setEntry({ ...entry, onHold: v })
@@ -78,7 +79,7 @@ export function TapDanceTab({
                             />
                         </Pair>
                         <Pair label="Double tap">
-                            <HexChip
+                            <KeycodeField
                                 value={entry.onDoubleTap}
                                 onChange={(v) =>
                                     setEntry({ ...entry, onDoubleTap: v })
@@ -86,7 +87,7 @@ export function TapDanceTab({
                             />
                         </Pair>
                         <Pair label="Tap + Hold">
-                            <HexChip
+                            <KeycodeField
                                 value={entry.onTapHold}
                                 onChange={(v) =>
                                     setEntry({ ...entry, onTapHold: v })

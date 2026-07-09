@@ -17,6 +17,9 @@ export const FEATURE_PROBES = {
     reorderLayers: (s) => s.capabilities.reorderLayers,
     variableLayerCount: (s) => s.capabilities.variableLayerCount,
     layoutSideloadable: (s) => s.capabilities.layoutSideloadable,
+    // Inverse of capabilities.readOnly: a behind-dongle node view is read-only,
+    // so every keymap-editing affordance gates on `editable`.
+    editable: (s) => !s.capabilities.readOnly,
 } satisfies Record<string, ServiceProbe>
 
 export type Feature = keyof typeof FEATURE_PROBES

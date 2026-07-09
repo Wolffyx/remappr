@@ -43,13 +43,16 @@ registerTransport({
     id: 'electron:hid',
     envs: 'electron',
     create(ctx) {
-        const hid = ctx.hidDiscovery()
-        if (!hid) return null
+        // Enumerate against EVERY registered firmware family's filter (match-any),
+        // not just the primary one, so QMK/VIA and Keychron devices also surface
+        // in the Electron HID chooser.
+        const filters = ctx.hidDiscoveryAll()
+        if (filters.length === 0) return null
         return {
             label: 'HID',
             communication: 'hid',
             pick_and_connect: {
-                list: () => list_devices(hid),
+                list: () => list_devices({ filters }),
                 connect: (dev) => new ElectronHidAdapter(dev).connect(),
             },
         }

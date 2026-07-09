@@ -20,10 +20,18 @@ export interface BleDiscoveryPayload {
 }
 
 // pattern-check: skip — flat IPC DTO, no behavior
-export interface HidDiscoveryPayload {
+/** One firmware family's HID match criteria. */
+export interface HidDiscoveryFilter {
     vendorIds?: number[]
     usagePage?: number
     usage?: number
+}
+
+// pattern-check: skip — flat IPC DTO, no behavior
+/** HID enumeration request: a device matches if it satisfies ANY filter, so all
+ *  registered firmware families (Remappr, QMK/VIA, Keychron, …) surface at once. */
+export interface HidDiscoveryPayload {
+    filters: HidDiscoveryFilter[]
 }
 
 // --- IPC Channel Names ---
@@ -145,7 +153,7 @@ export interface IpcInvokeMap {
         result: AvailableDevice[]
     }
     [IpcChannels.HID_CONNECT]: {
-        params: { device: AvailableDevice } & HidDiscoveryPayload
+        params: { device: AvailableDevice }
         result: { ok: boolean; label?: string; error?: string }
     }
     [IpcChannels.GET_PLATFORM]: {

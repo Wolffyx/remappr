@@ -26,10 +26,12 @@ interface KeycodePickerGridProps {
     highlightedKeys?: number[]
     onValueChanged?: (value?: number) => void
     // Fired when the user clicks a tile carrying entry.behaviorRef
-    // (ZMK runtime &macro_* / &combo_* tiles). The picker bypasses
-    // the slot/value flow and emits the behavior id directly so the
-    // caller can switch the bound action type wholesale.
-    onActionChosen?: (kind: string) => void
+    // (ZMK runtime &macro_* / &combo_* tiles, Remappr §24 named macros).
+    // The picker bypasses the slot/value flow and emits the behavior id
+    // directly so the caller can switch the bound action type wholesale.
+    // `params` carries the composite pool index for Remappr macros; ZMK
+    // behaviors omit it (the caller fills slot defaults).
+    onActionChosen?: (kind: string, params?: number[]) => void
     // Optional codec override. The editor leaves this unset and the grid
     // reads the connected device's codec from the store; the deviceless
     // Keyboard Builder injects a codec (the HID-usage mockCodec) so the
@@ -217,7 +219,11 @@ export function KeycodePickerGrid({
                     const overrideClick =
                         displayOnlyClick ??
                         (behaviorKind
-                            ? () => onActionChosen?.(behaviorKind)
+                            ? () =>
+                                  onActionChosen?.(
+                                      behaviorKind,
+                                      entry.behaviorRef?.params,
+                                  )
                             : undefined)
                     return (
                         <KeycodeButton
