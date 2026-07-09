@@ -4,6 +4,8 @@ import { resolveBindingLabels, type ResolvedHoldTapDescriptor } from '@firmware'
 import { PhysicalLayoutCanvas, type KeyPosition } from './PhysicalLayoutCanvas'
 import { HidUsageLabel } from './HidUsageLabel'
 import { ParamLegend } from './ParamLegend'
+import { LegendParts } from './LegendParts'
+import { hasResolvableIcon } from './legendIcons'
 import type { HoldTapLabels } from './KeyButton'
 import { categoryForBinding } from '@/lib/keymap/keyCategory'
 import { useLayout } from '@/hooks/use-layouts'
@@ -72,6 +74,8 @@ export function LayerKeyboardPreview({
                 ry: p.ry,
                 children: p.outOfRange ? (
                     <span />
+                ) : hasResolvableIcon(p.paramParts) ? (
+                    <LegendParts parts={p.paramParts!} title={p.paramTitle} />
                 ) : p.bindingParam1 == null && p.paramText ? (
                     <ParamLegend text={p.paramText} title={p.paramTitle} />
                 ) : (

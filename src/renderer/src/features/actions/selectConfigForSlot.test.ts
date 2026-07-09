@@ -31,6 +31,24 @@ describe('selectConfigForSlot', () => {
         const cfg = selectConfigForSlot(slot, layers)
         expect(cfg?.options).toEqual([{ value: 3, label: 'BT_SEL' }])
         expect(cfg?.label).toBeUndefined()
+        expect(cfg?.typeIcon).toBeUndefined()
+    })
+
+    it('forwards the behavior icon and per-option enum icons (issue #147)', () => {
+        const slot: ActionSlot = {
+            label: 'Command',
+            kind: 'enum',
+            values: [
+                { value: 1, label: 'BT_NXT', icon: 'next' },
+                { value: 0, label: 'BT_CLR' },
+            ],
+        }
+        const cfg = selectConfigForSlot(slot, layers, 'bluetooth')
+        expect(cfg?.typeIcon).toBe('bluetooth')
+        expect(cfg?.options).toEqual([
+            { value: 1, label: 'BT_NXT', icon: 'next' },
+            { value: 0, label: 'BT_CLR' },
+        ])
     })
 
     it('numbers a small range from range.min (0-based by default)', () => {

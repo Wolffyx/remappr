@@ -27,6 +27,7 @@ import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
 import { cacheKey, loadCached } from '@firmware/qmk/layoutSideload'
+import { withSaveMode } from '@/lib/saveMode'
 
 // Hoisted so it's a stable reference — an inline object here makes a fresh ref every
 // App render, forcing the whole editor subtree (Drawer + KeymapEditor + canvas) to
@@ -136,7 +137,16 @@ function App(): JSX.Element {
             if (communication === 'serial') {
                 rememberConnectedDeviceName(next.deviceInfo.name)
             }
-            setService(next, communication)
+            // Attach the save-mode controller (Settings → Communication →
+            // Auto-save, default off): automatic firmwares stage keymap edits
+            // until Save in manual mode; manual firmwares (ZMK/Remappr)
+            // auto-commit debounced in auto mode. Toggling later just flips
+            // the wrapper's flag — the service is never swapped.
+            const svc = withSaveMode(
+                next,
+                useUserSettingsStore.getState().autosave,
+            )
+            setService(svc, communication)
             return true
         } catch (err) {
             toast.error('Failed to connect to the selected device.', {

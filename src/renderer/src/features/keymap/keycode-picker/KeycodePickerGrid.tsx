@@ -231,6 +231,7 @@ export function KeycodePickerGrid({
                             value={entryValue ?? 0}
                             label={entry.label}
                             name={entry.name}
+                            icon={entry.icon}
                             aliases={entry.aliases}
                             notes={entry.notes}
                             colorMode={colorMode}

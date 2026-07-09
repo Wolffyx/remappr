@@ -8,10 +8,14 @@ import { ActionTypeSelector } from './ActionTypeSelector'
 import { ActionSlotsPicker } from './ActionSlotsPicker'
 import { SlotBar, type SlotDescriptor } from './SlotBar'
 import {
+    behaviorRefFor,
     defaultForSlot,
     isSlotValid,
     paramsForSlots,
+    resolveSelection,
+    sameParams,
     slotBarKind,
+    subsumedBehaviorIds,
     visibleSlots,
 } from './keyActionPickerUtils'
 import { isMacroOrCombo } from '@/lib/keymap/behaviorClassify'
@@ -44,8 +48,14 @@ export const KeyActionPicker = ({
     codec,
     catalog,
 }: KeyActionPickerProps): JSX.Element => {
-    const [kind, setKind] = useState<string>(action.kind)
-    const [params, setParams] = useState<number[]>([...action.params])
+    // Reverse-map the committed action to a (possibly composite) selection: a key
+    // bound to &mkp / &mmv / &msc re-selects the unified Mouse type + its command.
+    const resolved = useMemo(
+        () => resolveSelection(actionTypes, action),
+        [actionTypes, action],
+    )
+    const [kind, setKind] = useState<string>(resolved.kind)
+    const [params, setParams] = useState<number[]>([...resolved.params])
     const [activeSlotIndex, setActiveSlotIndex] = useState<number>(0)
 
     const actionType = useMemo(
@@ -71,10 +81,10 @@ export const KeyActionPicker = ({
 
     useEffect((): void => {
         /* eslint-disable react-hooks/set-state-in-effect */
-        setKind(action.kind)
-        setParams([...action.params])
+        setKind(resolved.kind)
+        setParams([...resolved.params])
         /* eslint-enable react-hooks/set-state-in-effect */
-    }, [action])
+    }, [resolved])
 
     const layerIds = useMemo(() => layers.map((l) => l.id), [layers])
 
@@ -82,11 +92,16 @@ export const KeyActionPicker = ({
     // hide them from the action-type dropdown so each behavior has
     // exactly one pick path. Resolution by id stays intact since the
     // unfiltered actionTypes list still feeds the lookup.
-    const dropdownHidden = useMemo(
-        (): Set<string> =>
-            new Set(actionTypes.filter(isMacroOrCombo).map((t) => t.id)),
-        [actionTypes],
-    )
+    const dropdownHidden = useMemo((): Set<string> => {
+        // Macros / combos are catalog tiles; a behavior subsumed by a composite
+        // (unified Mouse folds &mkp / &mmv / &msc + /mouse/i macros) is hidden too,
+        // so each behavior keeps exactly one pick path.
+        const hidden = new Set(
+            actionTypes.filter(isMacroOrCombo).map((t) => t.id),
+        )
+        for (const id of subsumedBehaviorIds(actionTypes)) hidden.add(id)
+        return hidden
+    }, [actionTypes])
 
     const dispatch = useCallback(
         (nextKind: string, nextParams: number[]): void => {
@@ -97,18 +112,23 @@ export const KeyActionPicker = ({
             // stored action is `[command]`, not `[command, staleProfile]`.
             const vis = visibleSlots(targetSlots, nextParams)
             const trimmed = nextParams.slice(0, vis.length)
-            if (
-                nextKind === action.kind &&
-                trimmed.length === action.params.length &&
-                trimmed.every((v, i) => v === action.params[i])
-            ) {
-                return
-            }
             const allValid = vis.every((slot, i) =>
                 isSlotValid(slot, trimmed[i], layerIds),
             )
             if (!allValid) return
-            onChange({ kind: nextKind, params: trimmed })
+            // A composite value (unified Mouse → &mkp / &mmv / &msc) emits its own
+            // behavior id + params; a normal slot emits { type id, slot params }.
+            const ref = behaviorRefFor(target, trimmed)
+            const emitted = ref
+                ? { kind: ref.kind, params: [...(ref.params ?? [])] }
+                : { kind: nextKind, params: trimmed }
+            if (
+                emitted.kind === action.kind &&
+                sameParams(emitted.params, action.params)
+            ) {
+                return
+            }
+            onChange(emitted)
         },
         [action, actionTypes, layerIds, onChange],
     )
@@ -251,6 +271,7 @@ export const KeyActionPicker = ({
                         highlightedKeys={highlightedKeys}
                         codec={codec}
                         catalog={catalog}
+                        typeIcon={actionType?.icon}
                     />
                 </div>
             )}

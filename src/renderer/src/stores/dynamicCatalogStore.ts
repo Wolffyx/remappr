@@ -202,9 +202,15 @@ async function fetchBehaviorEntries(svc: KeyboardService): Promise<{
         const types = await svc.listActionTypes()
         const { classifyBehavior } =
             await import('@/lib/keymap/behaviorClassify')
+        const { subsumedBehaviorIds } =
+            await import('@/features/actions/keyActionPickerUtils')
+        // Skip behaviors a composite type folds in (e.g. a /mouse/i macro the
+        // unified Mouse dropdown already lists) so they don't double-list as tiles.
+        const subsumed = subsumedBehaviorIds(types)
         const macros: CatalogEntry[] = []
         const combos: CatalogEntry[] = []
         for (const at of types) {
+            if (subsumed.has(at.id)) continue
             const cls = classifyBehavior(at)
             if (cls === 'other') continue
             const entry: CatalogEntry = {
@@ -214,6 +220,7 @@ async function fetchBehaviorEntries(svc: KeyboardService): Promise<{
                 description: at.description,
                 kinds: ['hid'],
                 behaviorRef: { kind: at.id },
+                ...(at.icon ? { icon: at.icon } : {}),
             }
             if (cls === 'macro') macros.push(entry)
             else combos.push(entry)

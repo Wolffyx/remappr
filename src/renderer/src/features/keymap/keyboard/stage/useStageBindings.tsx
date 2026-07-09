@@ -15,7 +15,17 @@ import { HidUsageLabel } from '../HidUsageLabel'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
 import type { KeypressDetectionConfig } from '@/lib/keypress/keypressDetector'
 import { ParamLegend } from '../ParamLegend'
+import { LegendParts } from '../LegendParts'
+import { hasResolvableIcon } from '../legendIcons'
 import { holdTapToLabels } from './helpers'
+
+/** Readable text join of legend parts (skips empty parts) — used as the sizing
+ *  proxy + tooltip fallback when a cap renders composite icon parts. */
+const partsText = (parts: { text: string }[]): string =>
+    parts
+        .map((p) => p.text)
+        .filter(Boolean)
+        .join(' ')
 
 interface Inputs {
     layouts: KeypressDetectionConfig['layouts'] | undefined
@@ -56,13 +66,16 @@ export function useStageBindings({
                 ? ''
                 : p.bindingParam1 != null
                   ? usageGlyph(p.bindingParam1)
-                  : (p.paramText ?? ''),
-            // Full value for the tooltip when the cap glyph is abbreviated
-            // (HID keys). Param legends already carry their full text in tapText.
+                  : (p.paramText ??
+                    (p.paramParts ? partsText(p.paramParts) : '')),
+            // Full value for the tooltip when the cap glyph is abbreviated: HID
+            // keys use the long usage label; enum/number params carry the full
+            // friendly value name (e.g. "Select Profile 1") — the cap shows the
+            // short "Sel 1" but the tooltip should read in full.
             valueTitle:
                 !p.outOfRange && p.bindingParam1 != null
                     ? hidUsageLongLabel(p.bindingParam1)
-                    : undefined,
+                    : p.valueLong,
             actionLabel: p.actionLabel,
             holdTap: p.holdTap ? holdTapToLabels(p.holdTap) : undefined,
             // Chord modifiers (Ctrl/Shift/…) packed in the tap usage's high byte
@@ -101,6 +114,8 @@ export function useStageBindings({
             ry: p.ry,
             children: p.outOfRange ? (
                 <span></span>
+            ) : hasResolvableIcon(p.paramParts) ? (
+                <LegendParts parts={p.paramParts!} title={p.paramTitle} />
             ) : p.bindingParam1 == null && p.paramText ? (
                 <ParamLegend text={p.paramText} title={p.paramTitle} />
             ) : (

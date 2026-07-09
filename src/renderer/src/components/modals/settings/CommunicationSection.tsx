@@ -47,6 +47,8 @@ export function CommunicationSection(): JSX.Element {
     )
     const autoLoadLayout = useUserSettingsStore((s) => s.autoLoadLayout)
     const setAutoLoadLayout = useUserSettingsStore((s) => s.setAutoLoadLayout)
+    const autosave = useUserSettingsStore((s) => s.autosave)
+    const setAutosave = useUserSettingsStore((s) => s.setAutosave)
     // Adapters register lazily; recompute once they're loaded so the picker fills.
     const ready = useFirmwareClientsReady()
     const adapters = ready ? adaptersInCategory(category) : []
@@ -94,6 +96,29 @@ export function CommunicationSection(): JSX.Element {
                         ))}
                     </div>
                 )}
+                <FieldGroup>
+                    <FieldLabel htmlFor="auto-save">
+                        <Field orientation="horizontal">
+                            <FieldContent>
+                                <FieldTitle>Auto-save</FieldTitle>
+                                <FieldDescription>
+                                    Save every change to the keyboard
+                                    automatically. QMK/VIA/Keychron write each
+                                    edit immediately; ZMK/Remappr commit about a
+                                    second after your last edit. When off,
+                                    changes wait until you press Save. The
+                                    header Save button pulses while auto-save is
+                                    on.
+                                </FieldDescription>
+                            </FieldContent>
+                            <Switch
+                                id="auto-save"
+                                checked={autosave}
+                                onCheckedChange={setAutosave}
+                            />
+                        </Field>
+                    </FieldLabel>
+                </FieldGroup>
             </div>
 
             <div className="space-y-4">

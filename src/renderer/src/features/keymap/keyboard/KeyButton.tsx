@@ -12,6 +12,8 @@ import { type HoldTapLabels, type KeyCapLegend } from './keyCapLegend'
 import { KeyLight } from '@/features/lighting/KeyLight'
 import type { KeyLightInput } from '@/features/lighting/engine'
 import { glyphNode } from './keyGlyph'
+import { LegendParts } from './LegendParts'
+import { hasResolvableIcon, legendPartsLength } from './legendIcons'
 import useUserSettingsStore, {
     type CapStyle,
     type KeyDisplayMode,
@@ -308,6 +310,7 @@ const KeyButtonViewImpl = ({
     seen = false,
     header,
     tapText,
+    tapParts,
     valueTitle,
     actionLabel,
     oneU,
@@ -336,11 +339,14 @@ const KeyButtonViewImpl = ({
     // a 2–3 char tap shrinks to 0.34U, longer to 0.24U. A tap that shares the cap
     // with a HOLD zone or modifier chips uses the reference's 0.30U key (0.22U for
     // longer text) — small enough to clear the divider, matching the mockup.
-    const tapLen = tapText
-        ? tapText.length
-        : typeof props.children === 'string'
-          ? props.children.length
-          : 1
+    const iconParts = hasResolvableIcon(tapParts) ? tapParts : undefined
+    const tapLen = iconParts
+        ? legendPartsLength(iconParts)
+        : tapText
+          ? tapText.length
+          : typeof props.children === 'string'
+            ? props.children.length
+            : 1
     const crowded = !!holdTap || !!(mods && mods.length)
     const mainSize = Math.max(
         11,
@@ -484,7 +490,13 @@ const KeyButtonViewImpl = ({
 
     // pattern-check: skip — render-body restructure (compose chips + tap-hold), no new abstraction
     const tapTop = tapPos !== 'bottom'
-    const tapNode = holdTap ? holdTap.tap : props.children
+    const tapNode = holdTap ? (
+        holdTap.tap
+    ) : iconParts ? (
+        <LegendParts parts={iconParts} title={valueTitle ?? tapText} />
+    ) : (
+        props.children
+    )
     const hasChips = !!(mods && mods.length)
 
     // Modifier chips (chord) — rendered ABOVE the tap legend, joined by "+".

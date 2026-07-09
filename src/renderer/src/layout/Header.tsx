@@ -20,12 +20,14 @@ import {
     Wifi,
     Zap,
 } from 'lucide-react'
+import { applySaveMode, isSaveModeManaged } from '@/lib/saveMode'
 import { LoadStatsModal } from '@/features/keymap/keyboard/LoadStatsModal'
 import { WirelessSettingsModal } from '@/features/firmware/WirelessSettingsModal'
 import { AdvancedSettingsModal } from '@/features/firmware/AdvancedSettingsModal'
 import useRgbSheetStore from '@/stores/rgbSheetStore'
 import useAdvancedSheetStore from '@/stores/advancedSheetStore'
 import useConfigStore from '@/stores/configStore'
+import useUserSettingsStore from '@/stores/userSettingsStore'
 import useBuilderStore from '@/stores/builderStore'
 import { GitHubIcon } from '@/components/GitHubIcon'
 import { DiscordIcon } from '@/components/DiscordIcon'
@@ -74,6 +76,19 @@ export function Header(): JSX.Element {
     const setLoadOpen = useLoadStatsStore((s) => s.setOpen)
 
     const [unsaved, setUnsaved] = useState<boolean>(false)
+    // One Save button for every saveable firmware, driven by the Auto-save
+    // setting via the save-mode controller (lib/saveMode.ts — attached to
+    // every saveable service at connect; mock 'none' and read-only views stay
+    // unmanaged and get no save UI). Manual mode → Save/Discard (QMK-family
+    // stages client-side, ZMK stages on-device); auto mode → the same button
+    // is a pulsing Auto-save indicator (QMK-family writes through, ZMK
+    // auto-commits debounced). Derived from the SETTING, not the service
+    // proxy, so the UI flips in the same render as the switch. Undo/redo stay
+    // for all (client-side edit history).
+    const autosave = useUserSettingsStore((s) => s.autosave)
+    const saveManaged = !!service && isSaveModeManaged(service)
+    const showSaveControls = saveManaged && !autosave
+    const autoSaveActive = saveManaged && autosave
     const [wirelessOpen, setWirelessOpen] = useState(false)
     const [advancedOpen, setAdvancedOpen] = useState(false)
     const rgbSheetOpen = useRgbSheetStore((s) => s.open)
@@ -143,7 +158,11 @@ export function Header(): JSX.Element {
             await service.commit()
         } catch (e) {
             console.error('Failed to save changes', e)
-            toast.error(`Failed to save changes`)
+            // Adapters throw a descriptive reason (e.g. ZMK maps its
+            // SaveChangesErrorCode); surface it so the user knows WHY.
+            toast.error(
+                e instanceof Error ? e.message : 'Failed to save changes',
+            )
         }
     }, [service])
 
@@ -159,6 +178,22 @@ export function Header(): JSX.Element {
         reset()
         setService(service, communication ?? undefined)
     }, [service, communication, reset, setService])
+
+    // Sync the live service's save-mode flag with the setting. No service
+    // swap, no reconnect work — the controller flips in place. Turning auto ON
+    // flushes staged edits first; on flush failure the setting reverts and the
+    // edits stay staged.
+    useEffect(() => {
+        if (!service || !isSaveModeManaged(service)) return
+        applySaveMode(service, autosave).catch((e: unknown) => {
+            toast.error(
+                e instanceof Error
+                    ? e.message
+                    : 'Failed to save staged changes',
+            )
+            useUserSettingsStore.getState().setAutosave(false)
+        })
+    }, [autosave, service])
 
     return (
         <header
@@ -511,43 +546,58 @@ export function Header(): JSX.Element {
                         <p>Redo</p>
                     </TooltipContent>
                 </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <span>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                disabled={!unsaved}
-                                onClick={discard}
+                {showSaveControls && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    disabled={!unsaved}
+                                    onClick={discard}
+                                >
+                                    <Trash2 aria-label="Discard" />
+                                </Button>
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Discard changes</p>
+                        </TooltipContent>
+                    </Tooltip>
+                )}
+                {(showSaveControls || autoSaveActive) && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                type="button"
+                                disabled={
+                                    autoSaveActive || !unsaved || !service
+                                }
+                                onClick={save}
+                                data-dirty={unsaved && !autoSaveActive}
+                                data-autosave={autoSaveActive}
+                                className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-semibold transition-colors data-[dirty=false]:border-border data-[dirty=false]:bg-secondary data-[dirty=false]:text-muted-foreground data-[dirty=true]:border-transparent data-[dirty=true]:bg-primary data-[dirty=true]:text-primary-foreground data-[autosave=true]:animate-pulse data-[autosave=true]:border-primary/40 data-[autosave=true]:bg-primary/10 data-[autosave=true]:text-primary disabled:cursor-default disabled:opacity-100"
                             >
-                                <Trash2 aria-label="Discard" />
-                            </Button>
-                        </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Discard changes</p>
-                    </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            type="button"
-                            disabled={!unsaved || !service}
-                            onClick={save}
-                            data-dirty={unsaved}
-                            className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-semibold transition-colors data-[dirty=false]:border-border data-[dirty=false]:bg-secondary data-[dirty=false]:text-muted-foreground data-[dirty=true]:border-transparent data-[dirty=true]:bg-primary data-[dirty=true]:text-primary-foreground disabled:cursor-default disabled:opacity-100"
-                        >
-                            <Save className="size-3.5" />
-                            {unsaved ? 'Save' : 'Saved'}
-                            {unsaved && (
-                                <span className="size-1.5 rounded-full bg-current" />
-                            )}
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Save keymap to keyboard</p>
-                    </TooltipContent>
-                </Tooltip>
+                                <Save className="size-3.5" />
+                                {autoSaveActive
+                                    ? 'Auto-save'
+                                    : unsaved
+                                      ? 'Save'
+                                      : 'Saved'}
+                                {unsaved && !autoSaveActive && (
+                                    <span className="size-1.5 rounded-full bg-current" />
+                                )}
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>
+                                {autoSaveActive
+                                    ? 'Auto-save is on — every change is written to the keyboard immediately. Toggle it in Settings → Communication.'
+                                    : 'Save keymap to keyboard'}
+                            </p>
+                        </TooltipContent>
+                    </Tooltip>
+                )}
             </div>
 
             {/* native window controls (Electron, non-mac) merged into the bar */}

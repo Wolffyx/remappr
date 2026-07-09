@@ -4,11 +4,15 @@ import { CSSProperties, useState } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import type { ColorMode } from '@/lib/keymap/keyCategory'
 import { categoryForUsage, catStyle } from '@/lib/keymap/keyCategory'
+import { LegendGlyph } from '@/features/keymap/keyboard/LegendGlyph'
 
+// pattern-check: skip — additive optional icon prop + presentational glyph render
 interface KeycodeButtonProps {
     value?: number
     label: string
     name?: string
+    /** Neutral icon id shown before the label (e.g. a mouse-cursor arrow). */
+    icon?: string
     aliases?: string[]
     notes?: string
     baseKeyValue?: number
@@ -25,6 +29,7 @@ export default function KeycodeButton({
     value,
     label,
     name,
+    icon,
     aliases,
     notes,
     baseKeyValue,
@@ -100,7 +105,15 @@ export default function KeycodeButton({
                     onMouseLeave={() => setHovered(false)}
                     onClick={handleClick}
                 >
-                    {label}
+                    <span className="inline-flex items-center gap-1.5">
+                        {icon && (
+                            <LegendGlyph
+                                id={icon}
+                                className="h-4 w-4 shrink-0"
+                            />
+                        )}
+                        {label}
+                    </span>
                 </button>
             </TooltipTrigger>
             <TooltipContent>

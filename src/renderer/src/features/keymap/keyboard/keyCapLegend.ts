@@ -11,6 +11,7 @@
 // data model (see builderCapProps + lib/keymap/keyCategory).
 import type { HoldTapLabels } from './HoldTapKeyLabel'
 import type { KeyCategory } from '@/lib/keymap/keyCategory'
+import type { LegendPart } from '@firmware/paramLabel'
 
 export type { HoldTapLabels }
 
@@ -20,6 +21,11 @@ export interface KeyCapLegend {
     /** The tap glyph text (e.g. "Q", "Vol+") — also sizes the main legend
      * (≤1 char → 0.46U, ≤3 → 0.34U, else 0.24U). Distinct from {@link header}. */
     tapText?: string
+    /** Composite icon+text legend parts (behavior icon [+ command]). When set
+     * with a resolvable icon, KeyButton renders these as the main legend instead
+     * of {@link tapText}/children; {@link tapText} still drives cap sizing. Used
+     * by the builder feeder; the editor feeds the same via `children`. */
+    tapParts?: LegendPart[]
     /** Full, untruncated value for the hover tooltip (e.g. "ErrorUndefined"
      *  when {@link tapText} is the abbreviated glyph). Falls back to tapText. */
     valueTitle?: string

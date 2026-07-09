@@ -5,12 +5,37 @@ import { registerTransport } from '@/transport/adapter/registry'
 
 const BAUD_RATE = 12500
 
-const portRegistry = new Map<string, SerialPort>()
+// One id per physical device identity (vid:pid). Several SerialPort objects can
+// share a vid:pid — a device that exposes multiple CDC ACM interfaces, or stale
+// grants Chrome accumulates across replugs — so the registry maps an id to ALL
+// of them; the list shows one card and connect tries each in turn.
+const portRegistry = new Map<string, SerialPort[]>()
 
-function makeId(info: SerialPortInfo, fallbackIndex: number): string {
+// Backstop for a hung port.open(): a bad/busy CDC port (or flaky USB) can leave
+// open() pending forever with no cancel API, stranding the connect flow on
+// "Connecting". Bounded below the 15s handshake timeout in App.tsx.
+const OPEN_TIMEOUT_MS = 8_000
+
+// pattern-check: skip — pure id/grouping utilities, no abstraction
+export function makeId(info: SerialPortInfo): string {
     const vid = info.usbVendorId?.toString(16) ?? 'novid'
     const pid = info.usbProductId?.toString(16) ?? 'nopid'
-    return `web-serial:${vid}:${pid}:${fallbackIndex}`
+    return `web-serial:${vid}:${pid}`
+}
+
+// Group granted ports by vid:pid, preserving first-seen order. Exported for
+// unit tests.
+export function groupPortsByVidPid(
+    ports: SerialPort[],
+): Map<string, SerialPort[]> {
+    const groups = new Map<string, SerialPort[]>()
+    for (const port of ports) {
+        const id = makeId(port.getInfo())
+        const existing = groups.get(id)
+        if (existing) existing.push(port)
+        else groups.set(id, [port])
+    }
+    return groups
 }
 
 // Fallback labels when WebUSB cannot supply a productName.
@@ -185,18 +210,45 @@ export async function listGrantedPorts(): Promise<AvailableDevice[]> {
         buildUsbNameMap(),
     ])
     portRegistry.clear()
-    return ports.map((port, i) => {
-        const info = port.getInfo()
-        const id = makeId(info, i)
-        const label = resolveLabel(info, usbNames)
-        portRegistry.set(id, port)
-        return { id, label }
+    // Collapse ports sharing a vid:pid into one card. Without this, a device
+    // that exposes several CDC ACM interfaces (or Chrome's accumulated stale
+    // grants) shows up as a growing pile of identically-labelled entries.
+    const out: AvailableDevice[] = []
+    for (const [id, groupPorts] of groupPortsByVidPid(ports)) {
+        portRegistry.set(id, groupPorts)
+        const label = resolveLabel(groupPorts[0].getInfo(), usbNames)
+        out.push({ id, label })
+    }
+    return out
+}
+
+// Race port.open() against a timeout. Web Serial cannot cancel an in-flight
+// open(), so on timeout we best-effort close the (possibly half-open) port and
+// reject — freeing the connect flow to try another port or surface an error
+// instead of hanging on "Connecting". Exported for unit tests.
+// pattern-check: skip — local timeout-race helper, no abstraction
+export async function openWithTimeout(port: SerialPort): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => {
+            port.close?.().catch(() => undefined)
+            reject(
+                new Error(
+                    `Timed out opening the serial port after ${OPEN_TIMEOUT_MS}ms.`,
+                ),
+            )
+        }, OPEN_TIMEOUT_MS)
     })
+    try {
+        await Promise.race([port.open({ baudRate: BAUD_RATE }), timeout])
+    } finally {
+        if (timer) clearTimeout(timer)
+    }
 }
 
 async function openTransport(port: SerialPort): Promise<Transport> {
     if (!port.readable || !port.writable) {
-        await port.open({ baudRate: BAUD_RATE }).catch((e: unknown) => {
+        await openWithTimeout(port).catch((e: unknown) => {
             if (e instanceof DOMException && e.name === 'NetworkError') {
                 throw new Error(
                     'Failed to open the serial port. Check the permissions of the device and verify it is not in use by another process.',
@@ -233,13 +285,26 @@ async function openTransport(port: SerialPort): Promise<Transport> {
 export async function connectToGrantedPort(
     device: AvailableDevice,
 ): Promise<Transport> {
-    const port = portRegistry.get(device.id)
-    if (!port) {
+    const ports = portRegistry.get(device.id)
+    if (!ports || ports.length === 0) {
         throw new Error(
             'Selected serial port is no longer available. Refresh the list.',
         )
     }
-    return openTransport(port)
+    // A vid:pid can map to several ports (multiple CDC ACM interfaces, or stale
+    // grants) where only some are live / speak RPC. Try each until one opens;
+    // dead ports reject fast, hung ones hit the open timeout.
+    let lastErr: unknown
+    for (const port of ports) {
+        try {
+            return await openTransport(port)
+        } catch (e) {
+            lastErr = e
+        }
+    }
+    throw lastErr instanceof Error
+        ? lastErr
+        : new Error('Failed to open the selected serial port.')
 }
 
 // Set by openTransport; read by rememberConnectedDeviceName after the
@@ -260,8 +325,13 @@ export async function requestAndConnect(): Promise<Transport> {
     // persist it keyed by vid:pid, so future sessions resolve the name
     // silently from cache.
     const info = port.getInfo()
-    const id = makeId(info, portRegistry.size)
-    portRegistry.set(id, port)
+    const id = makeId(info)
+    const existing = portRegistry.get(id)
+    if (existing) {
+        if (!existing.includes(port)) existing.push(port)
+    } else {
+        portRegistry.set(id, [port])
+    }
     return openTransport(port)
 }
 
@@ -298,7 +368,8 @@ export function onPortsChanged(cb: () => void): () => void {
 // the vendor-id fallback.
 // pattern-check: skip — adding sibling utility forgetGrantedPort, no abstraction
 export function setUserDeviceName(deviceId: string, name: string): void {
-    const port = portRegistry.get(deviceId)
+    // pattern-check: skip — array-valued registry read, no new logic
+    const port = portRegistry.get(deviceId)?.[0]
     if (!port) return
     const info = port.getInfo()
     const vid = info.usbVendorId
@@ -319,16 +390,21 @@ export function setUserDeviceName(deviceId: string, name: string): void {
 // Revoke browser permission for a previously granted port and clear any
 // per-id user-name override so a re-pair starts fresh.
 export async function forgetGrantedPort(deviceId: string): Promise<void> {
-    const port = portRegistry.get(deviceId)
-    if (!port) return
-    const info = port.getInfo()
+    // pattern-check: skip — array-valued registry loop, no new logic
+    const ports = portRegistry.get(deviceId)
+    if (!ports || ports.length === 0) return
+    const info = ports[0].getInfo()
     const vid = info.usbVendorId
     const pid = info.usbProductId
 
-    const forget = (port as SerialPort & { forget?: () => Promise<void> })
-        .forget
-    if (typeof forget === 'function') {
-        await forget.call(port).catch(() => undefined)
+    // Revoke every port sharing this identity (all CDC interfaces + stale
+    // grants) so a re-pair starts clean.
+    for (const port of ports) {
+        const forget = (port as SerialPort & { forget?: () => Promise<void> })
+            .forget
+        if (typeof forget === 'function') {
+            await forget.call(port).catch(() => undefined)
+        }
     }
     portRegistry.delete(deviceId)
 

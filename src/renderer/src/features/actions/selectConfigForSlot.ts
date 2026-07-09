@@ -6,6 +6,8 @@ import type { ActionSlot } from '@firmware/types'
 export interface SelectOption {
     value: number
     label: ReactNode
+    /** Neutral icon id for this option (enum commands, e.g. BT_NXT → "next"). */
+    icon?: string
 }
 
 export interface SelectConfig {
@@ -14,14 +16,20 @@ export interface SelectConfig {
     /** Trigger id / htmlFor target; its presence also draws a leading Label. */
     id?: string
     label?: string
+    /** Behavior-level icon id (e.g. "bluetooth") shown before every option so a
+     *  command dropdown reads as behavior-icon + command-icon + text. */
+    typeIcon?: string
 }
 
 // The dropdown a slot renders as, or null when the slot is not a value list
 // (HID grid, wide numeric range, nested action). Centralising the per-kind
-// option lists here keeps the picker a single, shared Select.
+// option lists here keeps the picker a single, shared Select. `typeIcon` is the
+// owning behavior's icon id, forwarded onto enum/modifier configs so each option
+// row can lead with it (issue #147).
 export function selectConfigForSlot(
     slot: ActionSlot,
     layers: { id: number; name: string }[],
+    typeIcon?: string,
 ): SelectConfig | null {
     if (slot.kind === 'layer') {
         return {
@@ -38,9 +46,11 @@ export function selectConfigForSlot(
     ) {
         return {
             placeholder: slot.label,
+            ...(typeIcon ? { typeIcon } : {}),
             options: slot.values.map((v) => ({
                 value: v.value,
                 label: v.label,
+                ...(v.icon ? { icon: v.icon } : {}),
             })),
         }
     }

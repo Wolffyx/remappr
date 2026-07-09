@@ -4,7 +4,7 @@ import type { KeycodeCodec } from '@firmware/codec'
 import type { KeyCatalog } from '@firmware/catalog/types'
 import { SlotValuePicker } from './SlotValuePicker'
 
-// pattern-check: skip optional onActionChosen/codec pass-through props — mechanical prop forwarding to SlotValuePicker
+// pattern-check: skip optional onActionChosen/codec/typeIcon pass-through props — mechanical prop forwarding to SlotValuePicker
 export interface ActionSlotsPickerProps {
     slots: ActionSlot[]
     values: number[]
@@ -16,6 +16,7 @@ export interface ActionSlotsPickerProps {
     holdInvalidHint?: string
     codec?: KeycodeCodec
     catalog?: KeyCatalog
+    typeIcon?: string
 }
 
 export const ActionSlotsPicker = ({
@@ -29,6 +30,7 @@ export const ActionSlotsPicker = ({
     holdInvalidHint,
     codec,
     catalog,
+    typeIcon,
 }: ActionSlotsPickerProps): JSX.Element | null => {
     if (slots.length === 0) return null
 
@@ -49,6 +51,7 @@ export const ActionSlotsPicker = ({
                     onActionChosen={onActionChosen}
                     codec={codec}
                     catalog={catalog}
+                    typeIcon={typeIcon}
                 />
             </div>
         )
@@ -72,6 +75,7 @@ export const ActionSlotsPicker = ({
                     onActionChosen={onActionChosen}
                     codec={codec}
                     catalog={catalog}
+                    typeIcon={typeIcon}
                 />
             </div>
         </div>
