@@ -94,6 +94,26 @@ jobs:
                   while IFS= read -r -d '' f; do
                     FOUND=1
                     case "$f" in
+                      # Prebuilds for other OSes are never Mach-O and never
+                      # load on macOS. Packaging excludes them (electron-builder
+                      # files patterns); warn on stragglers instead of failing
+                      # lipo on non-Mach-O files.
+                      */prebuilds/*linux*|*/prebuilds/*win32*|*/prebuilds/*android*|*/prebuilds/*freebsd*)
+                        echo "::warning::non-darwin prebuild packaged (should be excluded): $f"
+                        ;;
+                      # A darwin-x64+arm64 prebuild dir holds one fat binary —
+                      # verify it with lipo like any regular file.
+                      *darwin-x64+arm64*|*darwin-arm64+x64*|*darwin-universal*)
+                        ARCHS=$(lipo -archs "$f" 2>/dev/null || echo "unreadable")
+                        echo "$f -> $ARCHS"
+                        case "$ARCHS" in
+                          *x86_64*arm64*|*arm64*x86_64*) ;;
+                          *)
+                            echo "::error::not universal: $f ($ARCHS)"
+                            FAIL=1
+                            ;;
+                        esac
+                        ;;
                       # Per-arch prebuild dirs are single-arch by design —
                       # require the sibling arch to exist instead.
                       *darwin-x64*)

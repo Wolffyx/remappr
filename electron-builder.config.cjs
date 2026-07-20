@@ -69,10 +69,15 @@ module.exports = {
         '!**/{.editorconfig,.eslintrc*,.prettierrc*,.npmignore,.travis.yml,.gitattributes,tsconfig*.json,.nycrc,karma.conf.js}',
         '!**/{.github,.idea,.vscode}/**',
         '!**/*.{ts.map,js.map,css.map}',
+        // Native-module prebuilds for platforms no desktop build targets.
+        '!**/prebuilds/*android*/**',
+        '!**/prebuilds/*freebsd*/**',
     ],
     asarUnpack: ['resources/**'],
     win: {
         executableName: 'app',
+        // Other-OS prebuilds are dead weight in the Windows package.
+        files: ['!**/prebuilds/*darwin*/**', '!**/prebuilds/*linux*/**'],
     },
     nsis: {
         artifactName: '${name}-electron-${version}-setup.${ext}',
@@ -128,6 +133,10 @@ module.exports = {
                 'Remappr uses Bluetooth to connect to keyboards over BLE.',
         },
         notarize: false,
+        // Other-OS prebuilds are not Mach-O: they can never load on macOS and
+        // they break the CI universal-lipo assertion (lipo reads them as
+        // "unreadable"). Strip them from the mac package.
+        files: ['!**/prebuilds/*linux*/**', '!**/prebuilds/*win32*/**'],
     },
     dmg: {
         artifactName: '${name}-electron-${version}.${ext}',
@@ -136,6 +145,8 @@ module.exports = {
         target: ['AppImage', 'deb', 'rpm', 'pacman', 'tar.gz'],
         maintainer: 'Wolffyx <wolffyx@wolffyx.com>',
         category: 'Utility',
+        // Other-OS prebuilds are dead weight in the Linux package.
+        files: ['!**/prebuilds/*darwin*/**', '!**/prebuilds/*win32*/**'],
     },
     appImage: {
         artifactName: '${name}-electron-${version}.${ext}',
