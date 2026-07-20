@@ -146,6 +146,43 @@ jobs:
                     echo "No electron artifacts found in dist/"
                   fi
 
+    # Announce AFTER the installers are attached, so the Discord post links a
+    # release people can actually download. Skipped silently when the
+    # DISCORD_RELEASE_WEBHOOK secret isn't configured.
+    announce-discord:
+        name: Announce release on Discord
+        needs: [electron]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Post release to Discord
+              env:
+                  WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+                  TAG: ${{ github.event.release.tag_name }}
+                  TITLE: ${{ github.event.release.name }}
+                  URL: ${{ github.event.release.html_url }}
+                  BODY: ${{ github.event.release.body }}
+              run: |
+                  if [ -z "$WEBHOOK" ]; then
+                    echo "DISCORD_RELEASE_WEBHOOK not set — skipping announce"
+                    exit 0
+                  fi
+                  # Discord embed descriptions cap at 4096 chars; keep headroom.
+                  jq -n \
+                    --arg title "Remappr ${TITLE:-$TAG} is out" \
+                    --arg url "$URL" \
+                    --arg desc "$(printf '%s' "$BODY" | head -c 3500)" \
+                    --arg footer "Downloads for Linux / Windows / macOS are attached to the release." \
+                    '{
+                      embeds: [{
+                        title: $title,
+                        url: $url,
+                        description: $desc,
+                        color: 5793266,
+                        footer: { text: $footer }
+                      }]
+                    }' \
+                  | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK"
+
     cleanup-old-binaries:
         name: Prune binaries from older releases
         needs: [electron]
