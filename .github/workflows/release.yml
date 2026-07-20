@@ -3,6 +3,9 @@ name: release
 on:
     push:
         branches: [main]
+    # Manual trigger: re-evaluates release-please on demand — opens/updates the
+    # release PR, or publishes the release if a merged release PR is pending.
+    workflow_dispatch:
 
 permissions:
     contents: write
