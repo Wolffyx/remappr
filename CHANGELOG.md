@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.14](https://github.com/Wolffyx/remappr/compare/v0.0.13...v0.0.14) (2026-07-20)
+
+
+### Bug Fixes
+
+* **build:** add -linux suffix to the linux tarball artifact ([95afd2a](https://github.com/Wolffyx/remappr/commit/95afd2a0c4772825c776e5d73268988c4e94bc7c))
+* **build:** don't package other-OS native prebuilds; fix universal check ([c5a9280](https://github.com/Wolffyx/remappr/commit/c5a9280b80ead01488425fbac2db128fafdb94fc))
+* **build:** don't package other-OS native prebuilds; fix universal check ([2437be3](https://github.com/Wolffyx/remappr/commit/2437be321e161584fa7ff0b87d5822c640ad9aae))
+* **build:** exclude .remappr clone cache from packaged app ([#171](https://github.com/Wolffyx/remappr/issues/171)) ([aa993cb](https://github.com/Wolffyx/remappr/commit/aa993cb56589e23196c462fdf72e1909e7569cd1))
+* **build:** move platform prebuild excludes to top-level files list ([25416bb](https://github.com/Wolffyx/remappr/commit/25416bb2006a0ba10d541e68fc7196150f0bcf25))
+* **build:** move platform prebuild excludes to top-level files list ([2de248a](https://github.com/Wolffyx/remappr/commit/2de248a7f7ecb204727cac289181f444f5110b2a))
+* **build:** repair broken desktop packages (missing asar deps) + mac download UX ([afe06ad](https://github.com/Wolffyx/remappr/commit/afe06ad4f6e454b1adfe20b2ac7888980f0ca018))
+* **build:** restore missing transitive deps in app.asar (Cannot find module 'ms') ([31f972f](https://github.com/Wolffyx/remappr/commit/31f972f5d4c2484754b2694859d729b5d3e8778a))
+* **mac:** ship Gatekeeper unblock instructions in the DMG and docs ([369896d](https://github.com/Wolffyx/remappr/commit/369896d8f3ac0d6ba0a12b1be5e842090a721f93))
+
 ## [0.0.13](https://github.com/Wolffyx/remappr/compare/v0.0.12...v0.0.13) (2026-07-20)
 
 ### Features
