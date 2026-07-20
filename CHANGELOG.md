@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.15](https://github.com/Wolffyx/remappr/compare/v0.0.14...v0.0.15) (2026-07-20)
+
+
+### Bug Fixes
+
+* **build:** don't package other-OS native prebuilds; fix universal check ([c5a9280](https://github.com/Wolffyx/remappr/commit/c5a9280b80ead01488425fbac2db128fafdb94fc))
+* **build:** don't package other-OS native prebuilds; fix universal check ([2437be3](https://github.com/Wolffyx/remappr/commit/2437be321e161584fa7ff0b87d5822c640ad9aae))
+
 ## [0.0.14](https://github.com/Wolffyx/remappr/compare/v0.0.13...v0.0.14) (2026-07-20)
 
 
