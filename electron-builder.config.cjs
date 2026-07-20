@@ -27,6 +27,10 @@ module.exports = {
     files: [
         '!**/.vscode/*',
         '!src/**',
+        // Build-time source cache from link-remappr.cjs — contains cloned repos
+        // whose committed symlinks dangle outside the app root; packaging them
+        // breaks the mac universal asar merge.
+        '!.remappr/**',
         '!.claude/**',
         '!.flowpatch/**',
         '!**/.flowpatch/**',
