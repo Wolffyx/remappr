@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.14](https://github.com/Wolffyx/remappr/compare/v0.0.13...v0.0.14) (2026-07-20)
+
+
+### Bug Fixes
+
+* **build:** exclude .remappr clone cache from packaged app ([#171](https://github.com/Wolffyx/remappr/issues/171)) ([aa993cb](https://github.com/Wolffyx/remappr/commit/aa993cb56589e23196c462fdf72e1909e7569cd1))
+
 ## [0.0.13](https://github.com/Wolffyx/remappr/compare/v0.0.12...v0.0.13) (2026-07-20)
 
 
