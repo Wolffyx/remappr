@@ -1,5 +1,66 @@
 # Changelog
 
+## [0.0.13](https://github.com/Wolffyx/remappr/compare/v0.0.12...v0.0.13) (2026-07-20)
+
+
+### Features
+
+* **actions:** behavior icons in the action and command dropdowns ([42b4b34](https://github.com/Wolffyx/remappr/commit/42b4b34a88c5c1871afbc97e5892f1de0d448f01))
+* **actions:** dropdown tables, tooltips, picker icons ([9f6cef1](https://github.com/Wolffyx/remappr/commit/9f6cef11422e463e4b25a71acf5d82e122a6be65))
+* **actions:** hide non-settable mouse actions from the picker ([ae1fbaa](https://github.com/Wolffyx/remappr/commit/ae1fbaa1bba4b4268c0100f0be8b7661a3552cc6))
+* **actions:** show numeric param slots one-based when flagged; unify slot dropdowns ([7a869e8](https://github.com/Wolffyx/remappr/commit/7a869e836fc58e3f9b3f45a787caa241ac8d04b8))
+* **behaviors:** config-blob conditional (tri-)layers editor ([581bcfb](https://github.com/Wolffyx/remappr/commit/581bcfb7b7d15ce56845c69bbb401ba534728917))
+* **behaviors:** config-blob hold-tap + mod-morph editor ([ee8b71a](https://github.com/Wolffyx/remappr/commit/ee8b71a08a978c7d93d9e5e38fada4a1891b83c8))
+* **builder:** binding-picker target for mod-morph def bindings ([dcb28a5](https://github.com/Wolffyx/remappr/commit/dcb28a5ac355e16f8cf8327eeffe31df45c3ca67))
+* **builder:** surface Remappr firmware in Communication + export ([a5b03b7](https://github.com/Wolffyx/remappr/commit/a5b03b76107f854df2d58b742d2379bc45909f80))
+* **cluster:** cluster-diagnostics panel + live role feed (N4b-3) ([b42ef16](https://github.com/Wolffyx/remappr/commit/b42ef1663714a3436e8166f286ecc2cbd6ebd184))
+* **dongle:** NKRO routing toggle on the dongle landing ([11e76b4](https://github.com/Wolffyx/remappr/commit/11e76b4e70739051cdaa65d3c1c96faec5c2316a))
+* **firmware:** show the config-blob editors in demo mode ([5cc833f](https://github.com/Wolffyx/remappr/commit/5cc833fb3883273e53bf6d5edc530734898bab8c))
+* **header:** warn when firmware ignores configured features (§7.4.1) ([cf81819](https://github.com/Wolffyx/remappr/commit/cf81819fd73d72f082525b130a9beab24502acfd))
+* **keymap:** full key details in the cap hover tooltip ([62f1c96](https://github.com/Wolffyx/remappr/commit/62f1c9616f4e9ccb6a7c166cd5f9fc07b927ae29))
+* **keymap:** render composite icon legends on keycaps ([4a7d798](https://github.com/Wolffyx/remappr/commit/4a7d7982dcb0311b440dca7e90ebfe9799001668))
+* **keymap:** render composite icon parts as the cap glyph ([49f8328](https://github.com/Wolffyx/remappr/commit/49f83286aaafd8b17cca47284134ce1c7bb5eb16))
+* **keymap:** render param legends on advanced keycode caps ([dbcfe8a](https://github.com/Wolffyx/remappr/commit/dbcfe8a1cbca11dbabc62144a52cd611333dad55))
+* **keymap:** render param legends on advanced keycode caps ([5912a53](https://github.com/Wolffyx/remappr/commit/5912a538aad3d2bdc5533b6b1db33b9a2953f2dd))
+* **mouse:** unify mouse behaviors in the action picker ([68f0f77](https://github.com/Wolffyx/remappr/commit/68f0f775146bdddef65b8a3f707f4f829205518c))
+* **save:** auto-save setting driven by a save-mode controller ([f0aba55](https://github.com/Wolffyx/remappr/commit/f0aba5592ea5d62db854b62b56c70ca143ad69dc))
+* **timing:** config-blob timing/defaults editor (§7.4.1) ([300b9ce](https://github.com/Wolffyx/remappr/commit/300b9ce431aff5c13b2542a3f5fa7d563b328b06))
+
+
+### Bug Fixes
+
+* **actions:** don't show the keycode grid for zero-slot behaviors ([7e1bddf](https://github.com/Wolffyx/remappr/commit/7e1bddf32a0b2d145de618d09c7feeb3dee761da))
+* **actions:** make zero-slot behaviors assignable from the picker ([d8abe1a](https://github.com/Wolffyx/remappr/commit/d8abe1af2253eefcfe833997f897fa2e4c0c249e)), closes [#149](https://github.com/Wolffyx/remappr/issues/149)
+* **actions:** render selected value in param dropdown trigger ([de73ea0](https://github.com/Wolffyx/remappr/commit/de73ea04d348dccb602b77475396489c40b4b761))
+* add &bt BT_SEL profile selection ([#148](https://github.com/Wolffyx/remappr/issues/148)) ([#150](https://github.com/Wolffyx/remappr/issues/150)) ([d85c76f](https://github.com/Wolffyx/remappr/commit/d85c76f2464756ee26f4563598adf632db38fb8c))
+* **build:** ad-hoc sign the macOS app to stop the Bluetooth TCC crash ([87641e6](https://github.com/Wolffyx/remappr/commit/87641e65e862bee118b3b89f3bdd1f06fff9129b))
+* **builder:** label the remappr meta.target family ([f0561e4](https://github.com/Wolffyx/remappr/commit/f0561e47bc165d3d0d446773f6335357fc5be972))
+* **build:** ship universal macOS DMG for Intel + Apple Silicon ([63a240e](https://github.com/Wolffyx/remappr/commit/63a240ef4b0d47f9089816953d7c341a13245638))
+* **build:** source the macOS icon from resources/icon.png ([04d30e6](https://github.com/Wolffyx/remappr/commit/04d30e6bb0032556e97ac71d43e642220b9c6b3d))
+* clear mac traffic lights in the editor sidebar, drop broken KDE Wayland color protocol ([efee244](https://github.com/Wolffyx/remappr/commit/efee2448b5de4cb8bd1d4ef204f4e4c1cd4d3978))
+* **config:** re-seed config store after every commit / discard ([78dacb0](https://github.com/Wolffyx/remappr/commit/78dacb0ca63cba00410c3af99d8f842c6949c6ae))
+* **connection:** clear the stuck "Connecting" state on a failed or hung connect ([257ade0](https://github.com/Wolffyx/remappr/commit/257ade0daf258334c12a497849fcf135a535477d))
+* **connection:** dedup serial ports by vid:pid + timeout hung opens ([26189b9](https://github.com/Wolffyx/remappr/commit/26189b93ff2d7de3390820f589fba4a981a89b89))
+* **deps:** add @noble/{ciphers,curves,hashes} for firmware auth.ts ([1e1006b](https://github.com/Wolffyx/remappr/commit/1e1006bf4b6355722b7b41b02325c401120a761a))
+* **deps:** bump js-yaml to 4.3.0 (GHSA-h67p-54hq-rp68) ([e623048](https://github.com/Wolffyx/remappr/commit/e62304834579e4ed96a332d63813def84982ed69))
+* **keymap:** ellipsis-truncate long param/macro cap legends ([83cff92](https://github.com/Wolffyx/remappr/commit/83cff924e86a9a69ad9b23c1757867c035f4cc02))
+* **keymap:** show full key name in tooltip for abbreviated cap glyphs ([a1cc293](https://github.com/Wolffyx/remappr/commit/a1cc293448187ec3c77b6bc522d0a3d3c70c3c8a))
+* **mac:** narrow the BLE chooser to OS-connected devices ([79a2673](https://github.com/Wolffyx/remappr/commit/79a26730bc1a836634a4ee4be5740af466608a70))
+* **mac:** window controls, pairing dialogs, universal-build guard ([1539e94](https://github.com/Wolffyx/remappr/commit/1539e9400e4e553d3d841eab4c8d89f505aa65b6))
+* **picker:** show unsettable macro tiles as display-only with explanatory toast ([3ec1df9](https://github.com/Wolffyx/remappr/commit/3ec1df917e3e02e92c13c88d3f2f0f8005f727df))
+* **remappr:** import identity seam from auth module, not the barrel ([e405ab0](https://github.com/Wolffyx/remappr/commit/e405ab0010f7c254003dcede22415f44e81e4371))
+* revert "fix(mac): narrow the BLE chooser to OS-connected devices" ([8d5f87d](https://github.com/Wolffyx/remappr/commit/8d5f87d2eb5ae7fa90904c5a2e023d3a459ab1fb))
+* self-heal the electron binary, inset headers past macOS traffic lights ([a8bf95f](https://github.com/Wolffyx/remappr/commit/a8bf95fbe158b7283a2a4f203f9120e954fc5abf))
+* **start-page:** pin the top bar instead of scrolling it away ([8c43242](https://github.com/Wolffyx/remappr/commit/8c43242bd766067022f2310ded3dc2dc8d826055))
+
+
+### Performance Improvements
+
+* **canvas:** debounce board refits during continuous resizes ([ad0e3a8](https://github.com/Wolffyx/remappr/commit/ad0e3a84ab88bfe80b41c81c8f20f46ab1723440))
+* **config:** mark config stale on save, re-seed on demand ([c1cc794](https://github.com/Wolffyx/remappr/commit/c1cc7943ca52f2f06130a130d414608d5af6336a))
+* **edit:** optimistic key edits + queued undo/redo ([c20c5fd](https://github.com/Wolffyx/remappr/commit/c20c5fd03b3219997bc768e76825146b0b0e0ed0))
+* **renderer:** code-split heavy chunks, scope store selectors, fix hot paths ([ab97835](https://github.com/Wolffyx/remappr/commit/ab97835a0531c8a7aa421dc1f8343faf40523605))
+
 ## [0.0.12](https://github.com/Wolffyx/remappr/compare/v0.0.11...v0.0.12) (2026-07-05)
 
 ### Bug Fixes
