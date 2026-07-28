@@ -7,10 +7,16 @@ import type { TransportFactory } from '@/transport/types'
 import { ensureFirmwareClientsLoaded } from '@/transport/adapter/firmwareClients'
 import { getTransports, subscribeToTransportChanges } from '@/lib/transports'
 import useConnectionStore from '@/stores/connectionStore'
+import useUserSettingsStore from '@/stores/userSettingsStore'
 import type {
     DeviceStatus,
     DeviceWithTransport,
 } from '@/features/connection/types'
+
+// One-shot per app process: StartPage (and this hook) unmount on connect and
+// remount on disconnect, so a per-mount ref would auto-reconnect right after a
+// manual disconnect. A module-level flag keeps auto-connect to the launch window.
+let autoConnectAttempted = false
 
 interface UseConnectionResult {
     transports: TransportFactory[]
@@ -63,6 +69,9 @@ export function useConnection(
     const [refreshing, setRefreshing] = useState(false)
     const [connectingDeviceId, setConnectingDeviceId] = useState<string | null>(
         null,
+    )
+    const autoConnectDeviceId = useUserSettingsStore(
+        (s) => s.autoConnectDeviceId,
     )
 
     // Scan generation counter: mount, transport changes, auto-scan events and
@@ -229,6 +238,27 @@ export function useConnection(
         },
         [onTransportCreated],
     )
+
+    // Auto-connect on launch: once the granted-device list arrives, connect the
+    // flagged device if it's present and nothing is connected. Fires at most once
+    // per app process (module flag) so a manual disconnect never triggers a
+    // reconnect. Reconnecting a granted device needs no permission prompt.
+    useEffect(() => {
+        if (autoConnectAttempted) return
+        // Already connected (manual or a prior auto-connect) — disarm.
+        if (useConnectionStore.getState().service) {
+            autoConnectAttempted = true
+            return
+        }
+        if (!autoConnectDeviceId) return
+        if (connectingDeviceIdRef.current !== null) return
+        const match = devices.find((d) => d.device.id === autoConnectDeviceId)
+        if (!match) return
+        autoConnectAttempted = true
+        // Defer out of the effect body so the connect's setState doesn't
+        // cascade a render synchronously (react-hooks/set-state-in-effect).
+        queueMicrotask(() => void connect(match))
+    }, [devices, autoConnectDeviceId, connect])
 
     return {
         transports,

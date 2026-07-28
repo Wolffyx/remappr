@@ -55,6 +55,10 @@ export function CommunicationSection(): JSX.Element {
     const setAutoLoadLayout = useUserSettingsStore((s) => s.setAutoLoadLayout)
     const autosave = useUserSettingsStore((s) => s.autosave)
     const setAutosave = useUserSettingsStore((s) => s.setAutosave)
+    const autoRestoreProfile = useUserSettingsStore((s) => s.autoRestoreProfile)
+    const setAutoRestoreProfile = useUserSettingsStore(
+        (s) => s.setAutoRestoreProfile,
+    )
     // Adapters register lazily; recompute once they're loaded so the picker fills.
     const ready = useFirmwareClientsReady()
     const adapters = ready ? adaptersInCategory(category) : []
@@ -124,6 +128,27 @@ export function CommunicationSection(): JSX.Element {
                                 id="auto-save"
                                 checked={autosave}
                                 onCheckedChange={setAutosave}
+                            />
+                        </Field>
+                    </FieldLabel>
+                </FieldGroup>
+                <FieldGroup>
+                    <FieldLabel htmlFor="auto-restore-profile">
+                        <Field orientation="horizontal">
+                            <FieldContent>
+                                <FieldTitle>Auto-restore profile</FieldTitle>
+                                <FieldDescription>
+                                    Keep a backup of each keyboard&apos;s layout
+                                    and, when a keyboard reconnects wiped or
+                                    reset, restore it automatically instead of
+                                    asking. When off, Remappr prompts you before
+                                    restoring. Supported on ZMK today.
+                                </FieldDescription>
+                            </FieldContent>
+                            <Switch
+                                id="auto-restore-profile"
+                                checked={autoRestoreProfile}
+                                onCheckedChange={setAutoRestoreProfile}
                             />
                         </Field>
                     </FieldLabel>

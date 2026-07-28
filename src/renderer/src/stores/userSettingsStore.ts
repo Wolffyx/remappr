@@ -15,6 +15,11 @@ interface UserSettingsState {
     theme: 'dark' | 'light'
     autosave: boolean
     autoLoadLayout: boolean
+    /** When on, a wiped-but-known keyboard is silently restored from its backup
+     *  on reconnect instead of prompting. See profileBackupStore / restoreProfile. */
+    autoRestoreProfile: boolean
+    /** Transport id of the device flagged to auto-connect on launch, or null. */
+    autoConnectDeviceId: string | null
     keyDisplayMode: Record<string, KeyDisplayMode>
     preferredAdapterCategory: AdapterCategory
     capStyle: CapStyle
@@ -28,6 +33,8 @@ interface UserSettingsState {
     setTheme: (theme: 'dark' | 'light') => void
     setAutosave: (enabled: boolean) => void
     setAutoLoadLayout: (enabled: boolean) => void
+    setAutoRestoreProfile: (enabled: boolean) => void
+    setAutoConnectDeviceId: (id: string | null) => void
     setKeyDisplayMode: (
         firmware: string | undefined,
         mode: KeyDisplayMode,
@@ -43,6 +50,8 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 theme: 'light',
                 autosave: false,
                 autoLoadLayout: false,
+                autoRestoreProfile: false,
+                autoConnectDeviceId: null,
                 keyDisplayMode: {},
                 preferredAdapterCategory: 'zmk',
                 capStyle: 'sculpted',
@@ -58,6 +67,10 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 setAutosave: (enabled) => set({ autosave: enabled }),
                 setAutoLoadLayout: (enabled) =>
                     set({ autoLoadLayout: enabled }),
+                setAutoRestoreProfile: (enabled) =>
+                    set({ autoRestoreProfile: enabled }),
+                setAutoConnectDeviceId: (id) =>
+                    set({ autoConnectDeviceId: id }),
                 setKeyDisplayMode: (firmware, mode) =>
                     set((s) => ({
                         keyDisplayMode: {
@@ -79,7 +92,7 @@ const useUserSettingsStore = create<UserSettingsState>()(
             {
                 name: 'user-settings-store',
                 storage: createJSONStorage(() => localStorage),
-                version: 7,
+                version: 8,
                 migrate: (persisted: unknown, version: number) => {
                     if (!persisted || typeof persisted !== 'object') {
                         return persisted as Partial<UserSettingsState>
@@ -144,6 +157,16 @@ const useUserSettingsStore = create<UserSettingsState>()(
                         // explored the builder, so don't surface it to them.
                         if (typeof p.seenBuilderTour !== 'boolean') {
                             p.seenBuilderTour = true
+                        }
+                    }
+                    if (version < 8) {
+                        // Profile auto-restore + per-device auto-connect. Both
+                        // default off / unset for existing users.
+                        if (typeof p.autoRestoreProfile !== 'boolean') {
+                            p.autoRestoreProfile = false
+                        }
+                        if (typeof p.autoConnectDeviceId !== 'string') {
+                            p.autoConnectDeviceId = null
                         }
                     }
                     return p as Partial<UserSettingsState>
