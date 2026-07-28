@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { Transport } from '@firmware'
 import { UserCancelledError } from '@firmware'
-import type { TransportFactory } from '@/transport/types'
+import type { AvailableDevice, TransportFactory } from '@/transport/types'
 import { ensureFirmwareClientsLoaded } from '@/transport/adapter/firmwareClients'
 import { getTransports, subscribeToTransportChanges } from '@/lib/transports'
 import useConnectionStore from '@/stores/connectionStore'
@@ -160,6 +160,10 @@ export function useConnection(
 
     const connect = useCallback(
         async (target: DeviceWithTransport): Promise<void> => {
+            // Any connection this session disarms launch auto-connect, so a later
+            // manual disconnect can't trigger a reconnect (covers the auto-connect
+            // effect's own call too).
+            autoConnectAttempted = true
             const { device, transport } = target
             setConnectingDeviceId(device.id)
             setStatus(device.id, 'connecting')
@@ -199,6 +203,7 @@ export function useConnection(
                 toast.error('Transport not available')
                 return
             }
+            autoConnectAttempted = true
             try {
                 await ensureFirmwareClientsLoaded()
                 const rpc = await transport.connect()
@@ -220,10 +225,37 @@ export function useConnection(
                 toast.error('Pairing not supported for this transport')
                 return
             }
+            autoConnectAttempted = true
             try {
                 await ensureFirmwareClientsLoaded()
+                // Snapshot the granted list so we can identify the device the
+                // browser chooser just granted — pairing (request_new) otherwise
+                // yields no device id, which would hide the auto-connect toggle
+                // until the next reconnect.
+                const grantedBefore = transport.pick_and_connect
+                    ? new Set(
+                          (
+                              await transport.pick_and_connect
+                                  .list()
+                                  .catch(() => [])
+                          ).map((d) => d.id),
+                      )
+                    : null
                 const rpc = await transport.request_new()
-                useConnectionStore.getState().setLastConnectedDevice(null)
+                let paired: AvailableDevice | null = null
+                if (transport.pick_and_connect && grantedBefore) {
+                    const after = await transport.pick_and_connect
+                        .list()
+                        .catch(() => [])
+                    paired =
+                        after.find((d) => !grantedBefore.has(d.id)) ??
+                        (after.length === 1 ? after[0] : null)
+                }
+                useConnectionStore
+                    .getState()
+                    .setLastConnectedDevice(
+                        paired ? { id: paired.id, label: paired.label } : null,
+                    )
                 if (rpc) await onTransportCreated(rpc, transport.communication)
             } catch (e) {
                 if (
