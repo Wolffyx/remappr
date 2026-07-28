@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.15](https://github.com/Wolffyx/remappr/compare/v0.0.14...v0.0.15) (2026-07-28)
+
+
+### Features
+
+* **profile:** generalized backup/restore (ZMK) + per-device auto-connect ([5352ef6](https://github.com/Wolffyx/remappr/commit/5352ef6b00f979028d6e707be08dadf50968f18c))
+* support dialog, Discord release workflow, profile restore, auto-connect ([9addfd5](https://github.com/Wolffyx/remappr/commit/9addfd570813f5544b25dc5d6d2b44b4669add3d))
+* **support:** add "Support this project" dialog with sponsor links ([585712f](https://github.com/Wolffyx/remappr/commit/585712f2d37d80a3afdb80429fbb88d777ef5a67))
+
+
+### Bug Fixes
+
+* **auto-connect:** show toggle on first pair, stop reconnect after manual disconnect ([6e89abc](https://github.com/Wolffyx/remappr/commit/6e89abca5b4bd2e474e5891c8144891e8a4e1e6e))
+
 ## [0.0.14](https://github.com/Wolffyx/remappr/compare/v0.0.13...v0.0.14) (2026-07-20)
 
 
