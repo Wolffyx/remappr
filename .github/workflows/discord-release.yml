@@ -1,0 +1,71 @@
+name: discord-release
+
+# Announce every published (non-prerelease) GitHub Release to Discord.
+# release-please cuts the release on push to main, which fires this event —
+# same trigger build-release.yml uses.
+on:
+    release:
+        types: [published]
+
+permissions:
+    contents: read
+
+jobs:
+    announce:
+        name: Post release to Discord
+        runs-on: ubuntu-latest
+        # Webhook lives under the `remappr` environment (same as build-release);
+        # move it to a repo secret and drop this line if you prefer.
+        environment: remappr
+        if: ${{ !github.event.release.prerelease }}
+        steps:
+            - name: Post announcement
+              # Payload is built with jq (--arg) so the release body can never
+              # break out of the JSON, and the body is passed via env rather than
+              # interpolated into the shell.
+              env:
+                  DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+                  RELEASE_NAME: ${{ github.event.release.name }}
+                  RELEASE_URL: ${{ github.event.release.html_url }}
+                  RELEASE_BODY: ${{ github.event.release.body }}
+                  RELEASE_TIME: ${{ github.event.release.published_at }}
+              run: |
+                  set -euo pipefail
+
+                  if [ -z "${DISCORD_WEBHOOK_URL}" ]; then
+                    echo "::warning::DISCORD_WEBHOOK_URL is not set — skipping Discord announcement."
+                    exit 0
+                  fi
+
+                  TITLE="🚀 Remappr ${RELEASE_NAME:-$RELEASE_TAG} released"
+
+                  # Discord caps an embed description at 4096 chars; truncate with
+                  # a marker well under the limit.
+                  BODY="${RELEASE_BODY:-No release notes provided.}"
+                  if [ "${#BODY}" -gt 3900 ]; then
+                    BODY="${BODY:0:3900}"$'\n\n…truncated — see the full changelog on GitHub.'
+                  fi
+
+                  PAYLOAD=$(jq -n \
+                    --arg title "$TITLE" \
+                    --arg url "$RELEASE_URL" \
+                    --arg desc "$BODY" \
+                    --arg ts "$RELEASE_TIME" \
+                    '{
+                      username: "Remappr Releases",
+                      embeds: [ {
+                        title: $title,
+                        url: $url,
+                        description: $desc,
+                        color: 5793266,
+                        timestamp: $ts,
+                        footer: { text: "Remappr" }
+                      } ]
+                    }')
+
+                  # Fail the job on a non-2xx so a broken webhook is visible.
+                  curl -sS -f -X POST \
+                    -H "Content-Type: application/json" \
+                    -d "$PAYLOAD" \
+                    "$DISCORD_WEBHOOK_URL"
