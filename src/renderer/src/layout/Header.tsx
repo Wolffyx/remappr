@@ -40,6 +40,7 @@ import useLiveViewStore from '@/stores/liveViewStore'
 import useKeyTestStore from '@/stores/keyTestStore'
 import useLoadStatsStore from '@/stores/loadStatsStore'
 import { Settings } from '../components/modals/Settings.tsx'
+import { SupportModal } from '../components/modals/SupportModal.tsx'
 import { Download as DownloadModal } from '../components/modals/Download.tsx'
 import { SidebarTrigger, useSidebar } from '@/ui/sidebar'
 import { Button } from '@/ui/button'
@@ -679,6 +680,16 @@ export function Header(): JSX.Element {
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>Documentation</p>
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div>
+                            <SupportModal />
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Support this project</p>
                     </TooltipContent>
                 </Tooltip>
 

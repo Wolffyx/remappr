@@ -15,6 +15,7 @@ import { Toaster } from '@/ui/sonner'
 import { Header } from '@/layout/Header'
 import { AutoLayoutResolver } from '@/features/firmware/AutoLayoutResolver'
 import { DevicePreviewCapture } from '@/features/connection/DevicePreviewCapture'
+import { ProfileRestoreManager } from '@/features/connection/ProfileRestoreManager'
 // import { Footer } from '@/layout/Footer'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
 import { toast } from 'sonner'
@@ -243,6 +244,7 @@ function App(): JSX.Element {
                                         <Header />
                                         <AutoLayoutResolver />
                                         <DevicePreviewCapture />
+                                        <ProfileRestoreManager />
                                         <ErrorBoundary>
                                             <KeymapEditor />
                                         </ErrorBoundary>

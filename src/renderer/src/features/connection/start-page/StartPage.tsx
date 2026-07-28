@@ -11,6 +11,7 @@ import { DownloadLatestButton } from '@/components/DownloadLatestButton'
 import { APP_VERSION, DISCORD_URL, DOCS_URL, REPO_URL } from '@/lib/constants'
 import { LicenseNoticeModal } from '@/components/modals/LicenseNoticeModal'
 import { Settings } from '@/components/modals/Settings'
+import { SupportModal } from '@/components/modals/SupportModal'
 import { WindowControls } from '@/layout/WindowControls'
 import { TrafficLightInset } from '@/layout/TrafficLightInset'
 import { useConnection } from '@/hooks/use-connection'
@@ -128,6 +129,16 @@ export function StartPage({
                         </TooltipTrigger>
                         <TooltipContent>
                             <p>Documentation</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div>
+                                <SupportModal />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Support this project</p>
                         </TooltipContent>
                     </Tooltip>
                     {/* native window controls (Electron, non-mac) merged into

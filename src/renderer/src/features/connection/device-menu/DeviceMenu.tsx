@@ -9,10 +9,13 @@ import {
     Check,
     Cpu,
     Power,
+    RotateCcw,
     Settings as SettingsIcon,
+    Zap,
 } from 'lucide-react'
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
@@ -21,6 +24,9 @@ import {
 } from '@/ui/dropdown-menu'
 import { Settings } from '@/components/modals/Settings'
 import { toast } from 'sonner'
+import useUserSettingsStore from '@/stores/userSettingsStore'
+import useProfileBackupStore, { backupKey } from '@/stores/profileBackupStore'
+import { applyRestore } from '@/features/connection/applyRestore'
 import type { NodeView } from '@firmware/service'
 
 export const DeviceMenu = (): JSX.Element => {
@@ -36,6 +42,7 @@ export const DeviceMenu = (): JSX.Element => {
         disconnect,
         openNode,
         returnToParent,
+        lastConnectedDevice,
     } = useConnectionStore(
         useShallow((s) => ({
             service: s.service,
@@ -47,6 +54,7 @@ export const DeviceMenu = (): JSX.Element => {
             disconnect: s.disconnect,
             openNode: s.openNode,
             returnToParent: s.returnToParent,
+            lastConnectedDevice: s.lastConnectedDevice,
         })),
     )
     const reset = undoRedoStore((s) => s.reset)
@@ -61,6 +69,26 @@ export const DeviceMenu = (): JSX.Element => {
     const nodesApi = dongle?.nodes
     const viewingNode = !!parentService
     const readOnly = !!service?.capabilities.readOnly
+
+    // Profile restore (manual entry point) + auto-connect toggle state.
+    const autoConnectDeviceId = useUserSettingsStore(
+        (s) => s.autoConnectDeviceId,
+    )
+    const setAutoConnectDeviceId = useUserSettingsStore(
+        (s) => s.setAutoConnectDeviceId,
+    )
+    const backups = useProfileBackupStore((s) => s.backups)
+    const deviceKey = service
+        ? backupKey(service, lastConnectedDevice?.id)
+        : null
+    const backup = deviceKey ? backups[deviceKey] : undefined
+    const canRestore =
+        !readOnly && !!service?.capabilities.profileRestore && !!backup
+    // Only pick-and-connect devices carry an id we can auto-reconnect to; web
+    // simple-connect transports leave lastConnectedDevice null.
+    const autoConnectId = lastConnectedDevice?.id ?? null
+    const autoConnectOn =
+        !!autoConnectId && autoConnectDeviceId === autoConnectId
 
     const loadNodes = useCallback(async (): Promise<void> => {
         if (!nodesApi) {
@@ -226,6 +254,20 @@ export const DeviceMenu = (): JSX.Element => {
                         </>
                     )}
 
+                    {autoConnectId && (
+                        <DropdownMenuCheckboxItem
+                            checked={autoConnectOn}
+                            onCheckedChange={(checked): void =>
+                                setAutoConnectDeviceId(
+                                    checked ? autoConnectId : null,
+                                )
+                            }
+                            onSelect={(e): void => e.preventDefault()}
+                        >
+                            <Zap className="mr-2 h-4 w-4" />
+                            Auto-connect on launch
+                        </DropdownMenuCheckboxItem>
+                    )}
                     <DropdownMenuItem
                         onClick={disconnect}
                         className="text-destructive focus:text-destructive"
@@ -233,6 +275,21 @@ export const DeviceMenu = (): JSX.Element => {
                         <Power className="mr-2 h-4 w-4" />
                         Disconnect
                     </DropdownMenuItem>
+                    {canRestore && (
+                        <DropdownMenuItem
+                            onClick={(): void => {
+                                if (service && backup && deviceKey)
+                                    void applyRestore(
+                                        service,
+                                        backup,
+                                        deviceKey,
+                                    )
+                            }}
+                        >
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Restore backup
+                        </DropdownMenuItem>
+                    )}
                     {!readOnly && (
                         <RestoreStockModal
                             onOk={(): void => {
