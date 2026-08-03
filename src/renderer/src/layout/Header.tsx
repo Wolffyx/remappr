@@ -20,6 +20,7 @@ import {
     Timer,
     Trash2,
     Undo2,
+    Waypoints,
     Wifi,
     Zap,
 } from 'lucide-react'
@@ -93,6 +94,11 @@ const ConditionalLayersModal = lazy(() =>
         default: m.ConditionalLayersModal,
     })),
 )
+const NodeConfigModal = lazy(() =>
+    import('@/features/firmware/NodeConfigModal').then((m) => ({
+        default: m.NodeConfigModal,
+    })),
+)
 
 // pattern-check: skip — wrap toolbar buttons in capability gate, no abstraction
 export function Header(): JSX.Element {
@@ -149,6 +155,7 @@ export function Header(): JSX.Element {
     const [timingOpen, setTimingOpen] = useState(false)
     const [behaviorsOpen, setBehaviorsOpen] = useState(false)
     const [condLayersOpen, setCondLayersOpen] = useState(false)
+    const [nodeConfigOpen, setNodeConfigOpen] = useState(false)
     const rgbSheetOpen = useRgbSheetStore((s) => s.open)
     const toggleRgbSheet = useRgbSheetStore((s) => s.toggle)
     const setRgbSheetOpen = useRgbSheetStore((s) => s.setOpen)
@@ -590,6 +597,29 @@ export function Header(): JSX.Element {
                     <ConditionalLayersModal
                         opened={condLayersOpen}
                         onClose={(): void => setCondLayersOpen(false)}
+                    />
+                </MountOnDemand>
+                <FeatureGate feature="limits">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={!service}
+                                onClick={(): void => setNodeConfigOpen(true)}
+                            >
+                                <Waypoints aria-label="Node & cluster" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Node &amp; Cluster</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </FeatureGate>
+                <MountOnDemand when={nodeConfigOpen}>
+                    <NodeConfigModal
+                        opened={nodeConfigOpen}
+                        onClose={(): void => setNodeConfigOpen(false)}
                     />
                 </MountOnDemand>
                 {/* RGB lighting — opens the board-visible bottom sheet (device
