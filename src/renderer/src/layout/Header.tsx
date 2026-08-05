@@ -100,6 +100,12 @@ const NodeConfigModal = lazy(() =>
     })),
 )
 
+const LinkProfileModal = lazy(() =>
+    import('@/features/firmware/LinkProfileModal').then((m) => ({
+        default: m.LinkProfileModal,
+    })),
+)
+
 // pattern-check: skip — wrap toolbar buttons in capability gate, no abstraction
 export function Header(): JSX.Element {
     // Field-scoped selectors: a bare useXStore() subscribes to the whole store,
@@ -156,6 +162,7 @@ export function Header(): JSX.Element {
     const [behaviorsOpen, setBehaviorsOpen] = useState(false)
     const [condLayersOpen, setCondLayersOpen] = useState(false)
     const [nodeConfigOpen, setNodeConfigOpen] = useState(false)
+    const [linkProfileOpen, setLinkProfileOpen] = useState(false)
     const rgbSheetOpen = useRgbSheetStore((s) => s.open)
     const toggleRgbSheet = useRgbSheetStore((s) => s.toggle)
     const setRgbSheetOpen = useRgbSheetStore((s) => s.setOpen)
@@ -620,6 +627,29 @@ export function Header(): JSX.Element {
                     <NodeConfigModal
                         opened={nodeConfigOpen}
                         onClose={(): void => setNodeConfigOpen(false)}
+                    />
+                </MountOnDemand>
+                <FeatureGate feature="limits">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={!service}
+                                onClick={(): void => setLinkProfileOpen(true)}
+                            >
+                                <Gauge aria-label="Link profile" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Link Profile</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </FeatureGate>
+                <MountOnDemand when={linkProfileOpen}>
+                    <LinkProfileModal
+                        opened={linkProfileOpen}
+                        onClose={(): void => setLinkProfileOpen(false)}
                     />
                 </MountOnDemand>
                 {/* RGB lighting — opens the board-visible bottom sheet (device
