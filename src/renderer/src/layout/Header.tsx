@@ -8,6 +8,7 @@ import {
     Flame,
     Gauge,
     Keyboard,
+    Languages,
     Layers,
     Lightbulb,
     Network,
@@ -71,6 +72,11 @@ const WirelessSettingsModal = lazy(() =>
 const ClusterDiagnosticsModal = lazy(() =>
     import('@/features/firmware/ClusterDiagnosticsModal').then((m) => ({
         default: m.ClusterDiagnosticsModal,
+    })),
+)
+const UnicodeInputModal = lazy(() =>
+    import('@/features/firmware/UnicodeInputModal').then((m) => ({
+        default: m.UnicodeInputModal,
     })),
 )
 const AdvancedSettingsModal = lazy(() =>
@@ -145,6 +151,7 @@ export function Header(): JSX.Element {
     const autoSaveActive = saveManaged && autosave
     const [wirelessOpen, setWirelessOpen] = useState(false)
     const [clusterOpen, setClusterOpen] = useState(false)
+    const [unicodeOpen, setUnicodeOpen] = useState(false)
     const [advancedOpen, setAdvancedOpen] = useState(false)
     const [timingOpen, setTimingOpen] = useState(false)
     const [behaviorsOpen, setBehaviorsOpen] = useState(false)
@@ -498,6 +505,29 @@ export function Header(): JSX.Element {
                     <ClusterDiagnosticsModal
                         opened={clusterOpen}
                         onClose={(): void => setClusterOpen(false)}
+                    />
+                </MountOnDemand>
+                <FeatureGate feature="unicode">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={!service}
+                                onClick={(): void => setUnicodeOpen(true)}
+                            >
+                                <Languages aria-label="Unicode input method" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Unicode input</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </FeatureGate>
+                <MountOnDemand when={unicodeOpen}>
+                    <UnicodeInputModal
+                        opened={unicodeOpen}
+                        onClose={(): void => setUnicodeOpen(false)}
                     />
                 </MountOnDemand>
                 <FeatureGate feature="advanced">

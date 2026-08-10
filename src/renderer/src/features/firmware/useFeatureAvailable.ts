@@ -15,6 +15,9 @@ export const FEATURE_PROBES = {
     // §N4b-3: cluster-diag + role-event facade — present only on a node whose
     // firmware wired a cluster-diag source (Cap.CLUSTER_DIAG).
     cluster: (s) => s.cluster,
+    // §5.2-E: host input method for &unicode bindings — present only on a node
+    // whose firmware wired unicode ops (Cap.UNICODE).
+    unicode: (s) => s.unicode,
     // remappr-only: GET_LIMITS answered → config-blob timing/defaults editable.
     limits: (s) => s.limits,
     lock: (s) => s.capabilities.lock,
