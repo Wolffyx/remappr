@@ -141,6 +141,10 @@ export function categoryForUsage(usage: number | undefined): KeyCategory {
     return 'system'
 }
 
+// Transparent / empty bindings — ZMK behaviour references plus the QMK-family
+// keycode tokens (bindingPrefix carries the wire token there).
+const TRANS_PREFIXES = new Set(['&trans', '&none', 'kc_trns', 'kc_no'])
+
 // Binding-prefix groups (ZMK behaviour references).
 const LAYER_PREFIXES = new Set([
     '&mo',
@@ -173,7 +177,7 @@ export interface BindingCategoryInput {
 export function categoryForBinding(b: BindingCategoryInput): KeyCategory {
     if (b.outOfRange) return 'trans'
     const prefix = b.actionLabel?.trim().toLowerCase()
-    if (prefix === '&trans' || prefix === '&none') return 'trans'
+    if (TRANS_PREFIXES.has(prefix ?? '')) return 'trans'
 
     if (b.isHoldTap || prefix === '&mt' || prefix === '&lt') {
         // Layer-tap / momentary-layer-style holds read as layer keys.
@@ -200,7 +204,7 @@ export function categoryForBinding(b: BindingCategoryInput): KeyCategory {
 export function faceCategoryForBinding(b: BindingCategoryInput): KeyCategory {
     if (b.outOfRange) return 'trans'
     const prefix = b.actionLabel?.trim().toLowerCase()
-    if (prefix === '&trans' || prefix === '&none') return 'trans'
+    if (TRANS_PREFIXES.has(prefix ?? '')) return 'trans'
     // Tap-hold: classify by the tap key alone, leaving the face neutral when the
     // tap is an alpha/space cap.
     if (b.isHoldTap || prefix === '&mt' || prefix === '&lt') {
