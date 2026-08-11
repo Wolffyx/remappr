@@ -18,6 +18,7 @@ import {
     Sliders,
     SlidersHorizontal,
     Sparkles,
+    SpellCheck,
     Timer,
     Trash2,
     Undo2,
@@ -100,6 +101,11 @@ const ConditionalLayersModal = lazy(() =>
         default: m.ConditionalLayersModal,
     })),
 )
+const AutocorrectModal = lazy(() =>
+    import('@/features/firmware/AutocorrectModal').then((m) => ({
+        default: m.AutocorrectModal,
+    })),
+)
 const NodeConfigModal = lazy(() =>
     import('@/features/firmware/NodeConfigModal').then((m) => ({
         default: m.NodeConfigModal,
@@ -168,6 +174,7 @@ export function Header(): JSX.Element {
     const [timingOpen, setTimingOpen] = useState(false)
     const [behaviorsOpen, setBehaviorsOpen] = useState(false)
     const [condLayersOpen, setCondLayersOpen] = useState(false)
+    const [autocorrectOpen, setAutocorrectOpen] = useState(false)
     const [nodeConfigOpen, setNodeConfigOpen] = useState(false)
     const [linkProfileOpen, setLinkProfileOpen] = useState(false)
     const rgbSheetOpen = useRgbSheetStore((s) => s.open)
@@ -634,6 +641,29 @@ export function Header(): JSX.Element {
                     <ConditionalLayersModal
                         opened={condLayersOpen}
                         onClose={(): void => setCondLayersOpen(false)}
+                    />
+                </MountOnDemand>
+                <FeatureGate feature="limits">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={!service}
+                                onClick={(): void => setAutocorrectOpen(true)}
+                            >
+                                <SpellCheck aria-label="Autocorrect" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Autocorrect</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </FeatureGate>
+                <MountOnDemand when={autocorrectOpen}>
+                    <AutocorrectModal
+                        opened={autocorrectOpen}
+                        onClose={(): void => setAutocorrectOpen(false)}
                     />
                 </MountOnDemand>
                 <FeatureGate feature="limits">
