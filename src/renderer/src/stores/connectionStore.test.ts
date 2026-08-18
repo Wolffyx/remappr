@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import useConnectionStore from './connectionStore'
 import useConfigStore from './configStore'
+import useLayerSelectionStore from './layerSelectionStore'
 import type { KeyboardService, NodeView } from '@firmware/service'
 
 /* A behind-dongle node view: read-only, shares the dongle RPC, so its own
@@ -318,5 +319,81 @@ describe('connectionStore config re-seed', () => {
         useConnectionStore.getState().reseedConfigIfStale()
         await Promise.resolve()
         expect(useConfigStore.getState().config).toBeNull()
+    })
+})
+
+describe('connectionStore hardware default layer', () => {
+    function makeLayerService(initial: number): {
+        service: KeyboardService
+        push: (layer: number) => void
+    } {
+        const listeners = new Set<(n: number) => void>()
+        const service = {
+            deviceInfo: {
+                name: 'Keychron K5',
+                firmware: 'keychron-qmk',
+                firmwareVersion: 'kc-1',
+                vid: 0x3434,
+                pid: 0x0100,
+            },
+            capabilities: {
+                lock: false,
+                rename: false,
+                notifications: true,
+                reorderLayers: false,
+                variableLayerCount: false,
+                exportFormats: [],
+            },
+            listActionTypes: async () => [],
+            disconnect: vi.fn(async () => undefined),
+            layerControl: {
+                getDefaultLayer: async () => initial,
+                onDefaultLayerChanged: (cb: (n: number) => void) => {
+                    listeners.add(cb)
+                    return () => listeners.delete(cb)
+                },
+            },
+        } as unknown as KeyboardService
+        return {
+            service,
+            push: (layer: number) => {
+                for (const cb of listeners) cb(layer)
+            },
+        }
+    }
+
+    const selected = (): number =>
+        useLayerSelectionStore.getState().selectedLayerIndex
+
+    beforeEach(() => {
+        useConnectionStore.getState().resetConnection()
+        useLayerSelectionStore.getState().setSelectedLayerIndex(0)
+    })
+
+    it('selects the hardware default layer on connect', async () => {
+        const h = makeLayerService(2)
+        useConnectionStore.getState().setService(h.service)
+        await vi.waitFor(() => expect(selected()).toBe(2))
+    })
+
+    it('keeps the user selection when the board re-pushes the same layer', async () => {
+        const h = makeLayerService(2)
+        useConnectionStore.getState().setService(h.service)
+        await vi.waitFor(() => expect(selected()).toBe(2))
+
+        useLayerSelectionStore.getState().setSelectedLayerIndex(1)
+        h.push(2)
+        h.push(2)
+        expect(selected()).toBe(1)
+    })
+
+    it('follows a genuine hardware layer change (Mac/Win switch)', async () => {
+        const h = makeLayerService(2)
+        useConnectionStore.getState().setService(h.service)
+        await vi.waitFor(() => expect(selected()).toBe(2))
+
+        useLayerSelectionStore.getState().setSelectedLayerIndex(1)
+        h.push(0)
+        expect(selected()).toBe(0)
     })
 })

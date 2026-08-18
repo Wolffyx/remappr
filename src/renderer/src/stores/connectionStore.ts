@@ -19,6 +19,13 @@ import { parseLightingMenu } from '@firmware/via/lightingMenu'
 // the public ConnectionState surface.
 let defaultLayerUnsub: (() => void) | null = null
 
+// Last hardware default layer we applied to the editor selection. Keychron
+// boards re-push the same `default-layer` frame (it rides the state-notify
+// stream, not just DIP toggles), and blindly following every push yanked the
+// user back to the hardware layer whenever they picked another one. Only an
+// actual change of the hardware value moves the selection.
+let lastHwDefaultLayer: number | null = null
+
 // Teardown for the config-store re-seed subscription. Module-scoped like
 // defaultLayerUnsub, for the same reason.
 let configReseedUnsub: (() => void) | null = null
@@ -188,19 +195,25 @@ const useConnectionStore = create<ConnectionState>()(
                         console.warn('lighting-menu seed failed', err)
                     }
                 }
+                lastHwDefaultLayer = null
                 if (service?.layerControl) {
-                    const setLayer =
-                        useLayerSelectionStore.getState().setSelectedLayerIndex
+                    const applyHwLayer = (n: number): void => {
+                        if (n === lastHwDefaultLayer) return
+                        lastHwDefaultLayer = n
+                        useLayerSelectionStore
+                            .getState()
+                            .setSelectedLayerIndex(n)
+                    }
                     service.layerControl
                         .getDefaultLayer()
                         .then((n) => {
-                            if (isCurrent()) setLayer(n)
+                            if (isCurrent()) applyHwLayer(n)
                         })
                         .catch((err) =>
                             console.warn('getDefaultLayer failed', err),
                         )
                     defaultLayerUnsub =
-                        service.layerControl.onDefaultLayerChanged(setLayer)
+                        service.layerControl.onDefaultLayerChanged(applyHwLayer)
                 }
                 if (service?.listKeyCatalog) {
                     service
@@ -295,6 +308,7 @@ const useConnectionStore = create<ConnectionState>()(
             resetConnection: () => {
                 defaultLayerUnsub?.()
                 defaultLayerUnsub = null
+                lastHwDefaultLayer = null
                 configReseedUnsub?.()
                 configReseedUnsub = null
                 useLightingCatalogStore.getState().setCatalog(null)
