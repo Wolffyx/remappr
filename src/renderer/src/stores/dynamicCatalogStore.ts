@@ -11,7 +11,6 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { CatalogEntry } from '@firmware/catalog/types'
 import type { KeyboardService } from '@firmware/service'
-import { REMAPPR_KIND_MACRO } from '@firmware/remappr/actions'
 
 interface DynamicLabel {
     label: string
@@ -206,22 +205,23 @@ async function fetchBehaviorEntries(svc: KeyboardService): Promise<{
     combos: CatalogEntry[]
 }> {
     try {
-        // Remappr §24: the config blob's named macros are key-assignable but
-        // aren't ZMK behaviors, so build one named tile per macro directly from
-        // the pool (bypassing classifyBehavior). The tile's behaviorRef carries
-        // the pool index, so a picker click binds REMAPPR_KIND_MACRO with
-        // params=[index] and the keycap shows the macro's real name. Other
-        // families don't implement listNames → fall through to the ZMK path.
+        // A firmware whose macro pool is key-assignable reports its macro NAMES
+        // and, per index, the exact binding a click should emit (macroRef). Then
+        // one named tile per macro is built straight from the pool, bypassing
+        // behavior classification, and the keycap shows the macro's real name.
+        // Firmwares whose macros are behaviors (ZMK) implement neither and fall
+        // through to the listActionTypes path below.
         const macroNames = svc.macros?.listNames?.()
-        if (macroNames && macroNames.length > 0) {
+        const macroRef = svc.macros?.macroRef
+        if (macroNames && macroNames.length > 0 && macroRef) {
             const macros = macroNames.map(
                 (name, index): CatalogEntry => ({
-                    id: `macro.remappr.${index}`,
+                    id: `macro.pool.${index}`,
                     label: name,
                     name,
                     description: `Macro: ${name}`,
                     kinds: ['hid'],
-                    behaviorRef: { kind: REMAPPR_KIND_MACRO, params: [index] },
+                    behaviorRef: macroRef.call(svc.macros, index),
                 }),
             )
             return { macros, combos: [] }

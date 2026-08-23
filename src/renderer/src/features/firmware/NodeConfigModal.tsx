@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Waypoints, Plus, Trash2 } from 'lucide-react'
 
 import type { ConfigClusterNode, ConfigNode } from '@firmware/config'
-import { supportsConfigEditing } from '@firmware/remappr/configEditing'
+import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
@@ -54,7 +54,7 @@ const sameCluster = (
 
 export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
-    const remappr = supportsConfigEditing(service) ? service : null
+    const configEditing = supportsConfigEditing(service) ? service : null
 
     const [form, setForm] = useState<Form>({
         role: '',
@@ -65,8 +65,8 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
-        if (!opened || !remappr) return
-        const node = remappr.getNode()
+        if (!opened || !configEditing) return
+        const node = configEditing.getNode()
         orig.current = node
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm({
@@ -74,9 +74,9 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
             forwardMode: node.forwardMode ?? 'resolved',
             cluster: (node.cluster ?? []).map((n) => ({ ...n })),
         })
-    }, [opened, remappr])
+    }, [opened, configEditing])
 
-    if (!remappr) return <></>
+    if (!configEditing) return <></>
 
     const patchNode = (i: number, patch: Partial<ConfigClusterNode>): void =>
         setForm((f) => ({
@@ -113,7 +113,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
             onClose()
             return
         }
-        remappr.setNode(patch)
+        configEditing.setNode(patch)
         setSaving(true)
         const r = await saveWithToast(
             () => service.commit(),

@@ -80,6 +80,48 @@ export default defineConfig(
         },
     },
     {
+        // The app consumes the GENERALIZED firmware system only. Every firmware
+        // CLIENT lives under @firmware/clients/* and is off-limits here: its
+        // parsers, protocol constants and behavior-kind values belong behind the
+        // neutral seams (Capabilities, the optional service facades,
+        // FirmwareAdapter + registry). Importing one re-couples the app to a
+        // single firmware and defeats the adapter layer.
+        //
+        // One pattern covers every client, present and future, because the
+        // firmware package keeps clients in their own namespace.
+        files: ['src/renderer/**/*.{ts,tsx}', 'src/main/**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            group: [
+                                '@firmware/clients',
+                                '@firmware/clients/**',
+                            ],
+                            message:
+                                "Firmware-client internals are off-limits to the app. Import the neutral firmware system instead ('@firmware' barrel, or a neutral module such as @firmware/service, @firmware/types, @firmware/config). If the app needs firmware-specific behaviour, expose it through a capability flag or an optional service facade owned by the adapter.",
+                        },
+                    ],
+                },
+            ],
+        },
+    },
+    {
+        // Tests are the one place app code may name a concrete firmware client:
+        // a contract test that asserts "the demo mock satisfies this neutral
+        // gate" needs BOTH sides of the contract by definition. The ban above is
+        // about the app's RUNTIME coupling, which a test does not create.
+        files: [
+            'src/renderer/**/*.test.{ts,tsx}',
+            'src/main/**/*.test.{ts,tsx}',
+        ],
+        rules: {
+            'no-restricted-imports': 'off',
+        },
+    },
+    {
         // App CommonJS scripts (postinstall helpers) legitimately use require().
         files: ['**/*.cjs'],
         rules: {

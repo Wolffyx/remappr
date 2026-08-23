@@ -34,9 +34,9 @@ export function DevicePreviewCapture(): null {
         // narrower baseLayer/layerCount subscriptions above.
         const keymap = useKeymapStore.getState().keymap
         if (!service || !layouts || !keymap || !baseLayer) return
-        // Demo/mock keyboards never appear in the discovered-device list, so their
+        // Demo keyboards never appear in the discovered-device list, so their
         // snapshots can't be shown — capturing one only risks clobbering a real slot.
-        if (service.deviceInfo.firmware === 'mock') return
+        if (service.capabilities.demo) return
         const layout = layouts[selectedPhysicalLayoutIndex]
         if (!layout || keymap.layers.length === 0) return
 

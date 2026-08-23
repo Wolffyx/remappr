@@ -24,26 +24,23 @@ import {
     buildProjectBundle,
     checkCompleteness,
     preferredSourceJson,
+    targetCovers,
+    targetLabel,
 } from '@firmware/config'
 import { createLogger } from '@shared/logger'
 
 const log = createLogger('ExportPanel')
 
-const TARGET_LABELS: Record<Target, string> = {
-    zmk: 'ZMK',
-    qmk: 'QMK',
-    keychron: 'Keychron',
-    remappr: 'Remappr',
-    'remappr-board': 'Remappr',
-}
-
 /** Firmwares (other than the obvious one) a compiler target also covers, for a
- *  small "· covers VIA · Vial" hint so the qmk→via/vial collapse is visible. */
+ *  small "· covers VIA · Vial" hint so a target→family collapse is visible.
+ *  Which ids a target covers is declared with the target (CAPABILITY_MATRIX),
+ *  not decided here — this only intersects that with what the board declares. */
 function alsoCovers(config: ConfigKeymap, target: Target): string[] {
-    if (target !== 'qmk') return []
+    const covered = targetCovers(target)
+    if (covered.length === 0) return []
     return (config.keyboard.firmware ?? [])
-        .filter((f) => f === 'via' || f === 'vial')
-        .map((f) => (f === 'via' ? 'VIA' : 'Vial'))
+        .filter((f) => covered.includes(f))
+        .map((f) => targetLabel(f))
 }
 
 const configId = (config: ConfigKeymap): string =>
@@ -115,7 +112,7 @@ export function ExportPanel({
                     content: zip,
                 },
             ])
-            toast.success(`${TARGET_LABELS[target]} project downloaded`)
+            toast.success(`${targetLabel(target)} project downloaded`)
         } catch (e) {
             log.error('bundle failed', e)
             toast.error('Failed to build project bundle')
@@ -162,10 +159,10 @@ export function ExportPanel({
                                 variant="secondary"
                                 onClick={() => handleDownloadProject(t)}
                                 className="flex items-center gap-2"
-                                title={`Buildable ${TARGET_LABELS[t]} project (.zip) with a GitHub Actions workflow`}
+                                title={`Buildable ${targetLabel(t)} project (.zip) with a GitHub Actions workflow`}
                             >
                                 <Package className="size-4" />
-                                {TARGET_LABELS[t]}
+                                {targetLabel(t)}
                                 <span className="text-muted-foreground">
                                     .zip
                                 </span>

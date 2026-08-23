@@ -15,8 +15,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Gauge, RotateCcw } from 'lucide-react'
 
 import type { ConfigLinkProfile } from '@firmware/config'
-import { supportsConfigEditing } from '@firmware/remappr/configEditing'
-import type { LinkLimitKnob } from '@firmware/remappr/protocol'
+import {
+    supportsConfigEditing,
+    type LinkLimitKnob,
+} from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
@@ -57,7 +59,7 @@ const cloneProfile = (lp: ConfigLinkProfile): ConfigLinkProfile => ({
 
 export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
-    const remappr = supportsConfigEditing(service) ? service : null
+    const configEditing = supportsConfigEditing(service) ? service : null
 
     const [form, setForm] = useState<ConfigLinkProfile>(emptyLinkProfile())
     // Live GET_LINK_LIMITS ranges; null until the read resolves (or on a pre-N6
@@ -68,15 +70,15 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
-        if (!opened || !remappr) return
-        const lp = remappr.getNode().linkProfile ?? emptyLinkProfile()
+        if (!opened || !configEditing) return
+        const lp = configEditing.getNode().linkProfile ?? emptyLinkProfile()
         orig.current = lp
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm(cloneProfile(lp))
         setLimits(null)
         setLiveLimits(false)
         let cancelled = false
-        remappr
+        configEditing
             .getLinkLimits()
             .then((l) => {
                 if (cancelled) return
@@ -90,9 +92,9 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
         return () => {
             cancelled = true
         }
-    }, [opened, remappr])
+    }, [opened, configEditing])
 
-    if (!remappr) return <></>
+    if (!configEditing) return <></>
 
     const liveOrUndef = limits ?? undefined
     const error = linkProfileError(form, liveOrUndef)
@@ -109,7 +111,7 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
             onClose()
             return
         }
-        remappr.setNode({ linkProfile: form })
+        configEditing.setNode({ linkProfile: form })
         setSaving(true)
         const r = await saveWithToast(
             () => service.commit(),

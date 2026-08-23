@@ -3,8 +3,8 @@
 // capability guard). The .tsx render itself is node-untestable (no jsdom).
 import { describe, expect, it } from 'vitest'
 
-import { MockKeyboardService } from '@firmware/mock/service'
-import { supportsConfigEditing } from '@firmware/remappr/configEditing'
+import { MockKeyboardService } from '@firmware/clients/mock/service'
+import { supportsConfigEditing } from '@firmware/configEditing'
 
 import { FEATURE_PROBES } from './useFeatureAvailable'
 

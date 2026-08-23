@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 // Pattern check: no GoF pattern (-) — rejected — one-shot QMK keycodes.h
 // scrape utility; reports drift between authoritative header and
-// src/firmware/qmk/keycodes-hex.ts. Run when bumping QMK version.
+// src/firmware/clients/qmk/keycodes-hex.ts. Run when bumping QMK version.
 //
 // Usage:
 //   pnpm tsx scripts/sync-qmk-keycodes.ts /path/to/qmk_firmware/quantum/keycodes.h
@@ -12,7 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { QMK_HEX_BY_CANONICAL } from '../src/firmware/qmk/keycodes-hex'
+import { QMK_HEX_BY_CANONICAL } from '../src/firmware/clients/qmk/keycodes-hex'
 
 const headerPath = process.argv[2]
 if (!headerPath) {

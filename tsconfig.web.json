@@ -41,7 +41,7 @@
         "src/shared/*"
       ],
       "lzma1": [
-        "src/firmware/qmk-vial/lzma1.d.ts"
+        "src/firmware/clients/qmk-vial/lzma1.d.ts"
       ]
     }
   }

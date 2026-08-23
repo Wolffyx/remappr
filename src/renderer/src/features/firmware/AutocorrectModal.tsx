@@ -16,7 +16,7 @@ import {
     emptyAutocorrectEntry,
     withDefaultAutocorrect,
 } from '@firmware/config'
-import { supportsConfigEditing } from '@firmware/remappr/configEditing'
+import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
@@ -40,21 +40,21 @@ const unchanged = (
 
 export function AutocorrectModal({ opened, onClose }: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
-    const remappr = supportsConfigEditing(service) ? service : null
+    const configEditing = supportsConfigEditing(service) ? service : null
 
     const [entries, setEntries] = useState<CanonAutocorrectEntry[]>([])
     const orig = useRef<CanonAutocorrectEntry[]>([])
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
-        if (!opened || !remappr) return
-        const dict = remappr.getAutocorrect()
+        if (!opened || !configEditing) return
+        const dict = configEditing.getAutocorrect()
         orig.current = dict
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setEntries(dict.map((e) => ({ ...e })))
-    }, [opened, remappr])
+    }, [opened, configEditing])
 
-    if (!remappr) return <></>
+    if (!configEditing) return <></>
 
     const patchRow = (i: number, patch: Partial<CanonAutocorrectEntry>): void =>
         setEntries((prev) =>
@@ -84,7 +84,7 @@ export function AutocorrectModal({ opened, onClose }: Props): JSX.Element {
             onClose()
             return
         }
-        remappr.setAutocorrect(staged)
+        configEditing.setAutocorrect(staged)
         setSaving(true)
         const r = await saveWithToast(
             () => service.commit(),

@@ -49,11 +49,11 @@ import { SidebarTrigger, useSidebar } from '@/ui/sidebar'
 import { Button } from '@/ui/button'
 import { Separator } from '@/ui/separator'
 import { toast } from 'sonner'
-import { capabilityWarnings } from '@firmware/config'
+import { capabilityWarnings, supportsRuntimeLighting } from '@firmware/config'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import { FeatureGate } from '@/features/firmware/FeatureGate'
 import { useFeatureAvailable } from '@/features/firmware/useFeatureAvailable'
-import { LayoutSideloadAction } from '@/features/firmware/LayoutSideloadAction'
+import { SideloadAction } from '@/features/firmware/SideloadAction'
 import { WindowControls } from '@/layout/WindowControls'
 import { TrafficLightInset } from '@/layout/TrafficLightInset'
 
@@ -181,12 +181,13 @@ export function Header(): JSX.Element {
     const toggleRgbSheet = useRgbSheetStore((s) => s.toggle)
     const setRgbSheetOpen = useRgbSheetStore((s) => s.setOpen)
 
-    // ZMK has no runtime RGB-settings protocol — underglow/backlight are
-    // compile-time only. Gate the toolbar trigger (and force the sheet shut)
-    // when the active firmware target is ZMK. Other targets keep the button.
-    const rgbUnsupported = useConfigStore(
-        (s) => s.config?.meta.target === 'zmk',
-    )
+    // Some firmwares drive lighting at compile time only — they expose no
+    // runtime RGB-settings protocol, so the live controls cannot work against
+    // them. Gated on the target's declared capability, never on its name.
+    const rgbUnsupported = useConfigStore((s) => {
+        const target = s.config?.meta.target
+        return target ? !supportsRuntimeLighting(target) : false
+    })
 
     // Only when the editor was reached via the builder's "Editor" handoff do we
     // offer a way back. A directly-connected device never shows this.
@@ -738,9 +739,7 @@ export function Header(): JSX.Element {
                         </p>
                     </TooltipContent>
                 </Tooltip>
-                <FeatureGate feature="layoutSideloadable">
-                    <LayoutSideloadAction />
-                </FeatureGate>
+                <SideloadAction />
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <div>
