@@ -6,15 +6,13 @@ import { getAdapters } from '@firmware/registry'
 import type { FirmwareAdapter } from '@firmware/adapter'
 
 // Single-filter discovery (the Electron HID path) uses the FIRST adapter that
-// declares a filter. With lazy/parallel client loading the registration order
-// is nondeterministic, so we can't rely on "import Remappr first" anymore — pin
-// the winner by priority instead. Remappr is this app's primary firmware and
-// must own the HID vendor filter (0x1209 / usage page 0xFF00).
-const ADAPTER_PRIORITY: Record<string, number> = { remappr: 100 }
-
+// declares a filter. With lazy/parallel client loading the registration order is
+// nondeterministic, so it can't rely on which client imported first — each
+// adapter declares its own weight (Discovery.priority) and the winner is pinned
+// by that. No firmware is named here.
 function adaptersByPriority(): readonly FirmwareAdapter[] {
     return [...getAdapters()].sort(
-        (a, b) => (ADAPTER_PRIORITY[b.id] ?? 0) - (ADAPTER_PRIORITY[a.id] ?? 0),
+        (a, b) => (b.discovery.priority ?? 0) - (a.discovery.priority ?? 0),
     )
 }
 

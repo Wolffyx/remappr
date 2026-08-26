@@ -15,36 +15,14 @@ import {
     FieldLabel,
     FieldTitle,
 } from '@/ui/field'
-import useUserSettingsStore, {
-    type AdapterCategory,
-} from '@/stores/userSettingsStore'
-import { getAdapters } from '@firmware'
+import useUserSettingsStore from '@/stores/userSettingsStore'
+import {
+    adapterCategories,
+    adaptersInCategory,
+    categoryInfo,
+    resolveCategory,
+} from '@/lib/adapterCategories'
 import { useFirmwareClientsReady } from '@/hooks/use-firmware-clients-ready'
-
-const CATEGORY_LABEL: Record<AdapterCategory, string> = {
-    zmk: 'ZMK',
-    qmk: 'QMK',
-    remappr: 'Remappr',
-}
-
-function adaptersInCategory(
-    category: AdapterCategory,
-): { id: string; displayName: string }[] {
-    const all = getAdapters()
-    if (category === 'zmk') {
-        return all
-            .filter((a) => a.id === 'zmk')
-            .map((a) => ({ id: a.id, displayName: a.displayName }))
-    }
-    if (category === 'remappr') {
-        return all
-            .filter((a) => a.id === 'remappr')
-            .map((a) => ({ id: a.id, displayName: a.displayName }))
-    }
-    return all
-        .filter((a) => /^(qmk-|keychron-)/.test(a.id))
-        .map((a) => ({ id: a.id, displayName: a.displayName }))
-}
 
 export function CommunicationSection(): JSX.Element {
     const category = useUserSettingsStore((s) => s.preferredAdapterCategory)
@@ -59,9 +37,15 @@ export function CommunicationSection(): JSX.Element {
     const setAutoRestoreProfile = useUserSettingsStore(
         (s) => s.setAutoRestoreProfile,
     )
-    // Adapters register lazily; recompute once they're loaded so the picker fills.
+    // Adapters register lazily; recompute once they're loaded so the picker
+    // fills. Every family shown here is declared by an adapter — this screen
+    // names no firmware of its own.
     const ready = useFirmwareClientsReady()
-    const adapters = ready ? adaptersInCategory(category) : []
+    const categories = ready ? adapterCategories() : []
+    const selected = ready ? resolveCategory(category) : null
+    const adapters = ready ? adaptersInCategory(selected) : []
+    const info = categoryInfo(selected)
+    const familyLabel = info?.label ?? 'Firmware'
 
     return (
         <div className="space-y-6">
@@ -78,22 +62,19 @@ export function CommunicationSection(): JSX.Element {
                         </p>
                     </div>
                     <Select
-                        value={category}
-                        onValueChange={(v) => setCategory(v as AdapterCategory)}
+                        value={selected ?? undefined}
+                        onValueChange={setCategory}
+                        disabled={categories.length === 0}
                     >
                         <SelectTrigger id="adapter-category" className="w-48">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="zmk">
-                                {CATEGORY_LABEL.zmk}
-                            </SelectItem>
-                            <SelectItem value="qmk">
-                                {CATEGORY_LABEL.qmk}
-                            </SelectItem>
-                            <SelectItem value="remappr">
-                                {CATEGORY_LABEL.remappr}
-                            </SelectItem>
+                            {categories.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                    {c.label}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
@@ -157,9 +138,9 @@ export function CommunicationSection(): JSX.Element {
 
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold">
-                    {CATEGORY_LABEL[category]} settings
+                    {familyLabel} settings
                 </h3>
-                {category === 'qmk' ? (
+                {info?.layoutRegistry ? (
                     <FieldGroup>
                         <FieldLabel htmlFor="auto-load-layout">
                             <Field orientation="horizontal">
@@ -168,9 +149,10 @@ export function CommunicationSection(): JSX.Element {
                                         Auto-load layout from registry
                                     </FieldTitle>
                                     <FieldDescription>
-                                        Search the-via and Keychron repos on
-                                        connect. When off, use the Load layout
-                                        JSON button to upload manually.
+                                        Look this board up in an online layout
+                                        registry on connect. When off, use the
+                                        toolbar&apos;s load button to upload a
+                                        definition manually.
                                     </FieldDescription>
                                 </FieldContent>
                                 <Switch
@@ -183,7 +165,7 @@ export function CommunicationSection(): JSX.Element {
                     </FieldGroup>
                 ) : (
                     <p className="text-sm text-muted-foreground">
-                        No {CATEGORY_LABEL[category]}-specific settings yet.
+                        No {familyLabel}-specific settings yet.
                     </p>
                 )}
             </div>

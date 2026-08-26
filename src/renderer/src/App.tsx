@@ -26,8 +26,8 @@ import { UpdateNotification } from '@/components/UpdateNotification'
 import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
-import { cacheKey, loadCached } from '@firmware/qmk/layoutSideload'
 import { withSaveMode } from '@/lib/saveMode'
+import { categoryForFirmware } from '@/lib/adapterCategories'
 
 // Code-split the full-screen builder: it drags in Monaco (multi-MB), which
 // otherwise lands in the entry chunk for users who never open the builder.
@@ -87,13 +87,17 @@ function App(): JSX.Element {
     const setPreferredAdapterCategory = useUserSettingsStore(
         (s) => s.setPreferredAdapterCategory,
     )
+    // Follow the connected device: point the settings screen at whichever family
+    // this firmware belongs to, resolved against the adapter registry rather than
+    // a name table. A device with no declared family (the demo mock) leaves the
+    // user's choice alone; disconnecting clears it back to "not chosen".
     useEffect(() => {
         if (!service) {
-            setPreferredAdapterCategory('zmk')
+            setPreferredAdapterCategory(null)
             return
         }
-        const fw = service.deviceInfo.firmware
-        setPreferredAdapterCategory(fw === 'zmk' ? 'zmk' : 'qmk')
+        const category = categoryForFirmware(service.deviceInfo.firmware)
+        if (category) setPreferredAdapterCategory(category)
     }, [service, setPreferredAdapterCategory])
 
     const onConnect = async (
@@ -124,16 +128,10 @@ function App(): JSX.Element {
             // reflects it. Doing it here — rather than in a sibling effect —
             // keeps it off the same transport at the same time as the initial
             // getKeymap, avoiding a last-writer-wins race on the keymap store.
-            if (next.capabilities.layoutSideloadable && next.applyLayout) {
-                const key = cacheKey(next.deviceInfo)
-                const def = key ? loadCached(key) : null
-                if (def) {
-                    try {
-                        await next.applyLayout(def)
-                    } catch (err) {
-                        console.warn('Failed to restore cached layout', err)
-                    }
-                }
+            try {
+                await next.sideload?.restoreCached?.()
+            } catch (err) {
+                console.warn('Failed to restore cached layout', err)
             }
             next.onClosed((): void => {
                 setDeviceName(null)

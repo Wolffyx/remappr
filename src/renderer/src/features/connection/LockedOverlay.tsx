@@ -4,9 +4,10 @@ import useConnectionStore from '@/stores/connectionStore'
 import { Lock } from 'lucide-react'
 
 export const LockedOverlay = (): JSX.Element => {
-    const isZmk = useConnectionStore(
-        (s) => s.service?.deviceInfo.firmware === 'zmk',
-    )
+    // Firmwares whose unlock has a prerequisite the user must set up themselves
+    // supply the extra guidance (see Capabilities.unlockHint). The app renders
+    // whatever it is given and knows no firmware's documentation.
+    const hint = useConnectionStore((s) => s.service?.capabilities.unlockHint)
 
     return (
         <div className="flex h-full w-full items-center justify-center bg-background p-6">
@@ -18,18 +19,20 @@ export const LockedOverlay = (): JSX.Element => {
                     </h2>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                    For security reasons, your keyboard requires unlocking
-                    before using Remappr.
+                    For security reasons, your device requires unlocking before
+                    using Remappr.
                 </p>
-                {isZmk && (
-                    <p className="text-sm text-muted-foreground">
-                        If studio unlocking hasn&apos;t been added to your
-                        keymap or a combo, see the{' '}
-                        <ExternalLink href="https://zmk.dev/docs/keymaps/behaviors/studio-unlock">
-                            Studio Unlock Behavior
-                        </ExternalLink>{' '}
-                        documentation for more information.
-                    </p>
+                {hint && (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>{hint.message}</p>
+                        {hint.docsUrl && (
+                            <p>
+                                <ExternalLink href={hint.docsUrl}>
+                                    {hint.docsLabel ?? 'Documentation'}
+                                </ExternalLink>
+                            </p>
+                        )}
+                    </div>
                 )}
             </div>
         </div>

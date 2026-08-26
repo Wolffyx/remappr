@@ -15,13 +15,19 @@ export const FEATURE_PROBES = {
     // §N4b-3: cluster-diag + role-event facade — present only on a node whose
     // firmware wired a cluster-diag source (Cap.CLUSTER_DIAG).
     cluster: (s) => s.cluster,
+    // §5.2-E: host input method for &unicode bindings — present only on a node
+    // whose firmware wired unicode ops (Cap.UNICODE).
+    unicode: (s) => s.unicode,
     // remappr-only: GET_LIMITS answered → config-blob timing/defaults editable.
     limits: (s) => s.limits,
     lock: (s) => s.capabilities.lock,
     rename: (s) => s.capabilities.rename,
     reorderLayers: (s) => s.capabilities.reorderLayers,
     variableLayerCount: (s) => s.capabilities.variableLayerCount,
-    layoutSideloadable: (s) => s.capabilities.layoutSideloadable,
+    // Neutral sideload gate: true when the adapter declares at least one
+    // source it can ingest. Supersedes the raw capabilities.layoutSideloadable
+    // flag, which said nothing about WHAT could be loaded.
+    sideload: (s) => s.sideload?.formats.length,
     // Inverse of capabilities.readOnly: a behind-dongle node view is read-only,
     // so every keymap-editing affordance gates on `editable`.
     editable: (s) => !s.capabilities.readOnly,

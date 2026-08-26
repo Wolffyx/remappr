@@ -26,31 +26,46 @@ toolbar, and the binding inspector on the right.
 
 ## Header toolbar
 
-Left → right (each button shows the tooltip in quotes; many are
-**capability-gated** — hidden or disabled unless the connected firmware supports
-them):
+The brand button and the **Builder** hand-off sit on the left; the tools sit on
+the right in three clusters — **view**, **config**, **history** — separated by
+thin rules. Many buttons are **capability-gated**: hidden or disabled unless the
+connected firmware supports them.
 
-| Button   | Tooltip                     | Does                                                                                                    |
-| -------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Remappr  | **Back to devices**         | Disconnect, return to the Start Page.                                                                   |
-| Builder  | **Back to Builder**         | Only when you came from the builder.                                                                    |
-| 🔥       | **Heatmap**                 | Toggle a key-press heatmap.                                                                             |
-| ⚡       | **Live view**               | Highlight keys as you press them.                                                                       |
-| ▥        | **Key test**                | Hardware matrix test mode _(gated: `keyTest`)_.                                                         |
-| 📊       | **Typing load stats**       | Open the load-stats modal.                                                                              |
-| ⤓        | **Flash & export config**   | Open the [export modal](/guide/app/export-flash).                                                       |
-| ⇄        | **Dynamic Entries**         | Open the Advanced sheet at Tap Dance _(gated: `dynamic`)_.                                              |
-| ✦        | **Macros**                  | Open the Advanced sheet at Macros _(gated: `macros`)_.                                                  |
-| 📶       | **Wireless**                | Wireless settings _(gated: `wireless`)_.                                                                |
-| ⓘ        | **Advanced Mode**           | Debounce / report-rate settings _(gated: `advanced`)_.                                                  |
-| 💡       | **RGB lighting**            | Open the [RGB sheet](/guide/app/rgb-lighting). Disabled on ZMK (_"RGB lighting not supported on ZMK"_). |
-| ⚙        | **Settings**                | App settings.                                                                                           |
-| ↶ ↷      | **Undo** / **Redo**         | History.                                                                                                |
-| 🗑       | **Discard changes**         | Revert all pending changes.                                                                             |
-| **Save** | **Save keymap to keyboard** | Commit changes to the device. Shows **Saved** with a dot when there are unsaved edits.                  |
+**View tools**
 
-See [Advanced features](/guide/app/advanced) for Macros, Tap Dance, Combos, Key
-Overrides, Wireless and Advanced Mode.
+| Button | Tooltip               | Does                                            |
+| ------ | --------------------- | ----------------------------------------------- |
+| 🔥     | **Heatmap**           | Toggle a key-press heatmap.                     |
+| ⚡     | **Live view**         | Highlight keys as you press them.               |
+| ▥      | **Key test**          | Hardware matrix test mode _(gated: `keyTest`)_. |
+| 📊     | **Typing load stats** | Open the load-stats modal.                      |
+
+**Config tools**
+
+| Button | Tooltip                    | Does                                                                                                                                                                                                                           |
+| ------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ⤓      | **Flash & export config**  | Open the [export modal](/guide/app/export-flash).                                                                                                                                                                              |
+| ⇄      | **Dynamic Entries**        | Open the Advanced sheet at Tap Dance _(gated: `dynamic`)_.                                                                                                                                                                     |
+| ✦      | **Macros**                 | Open the Advanced sheet at Macros _(gated: `macros`)_.                                                                                                                                                                         |
+| …      | _capability-gated dialogs_ | Wireless · Cluster · Unicode input · Advanced Mode · Timing & Defaults · Behaviors · Conditional Layers · Autocorrect · Node & Cluster · Link Profile — see [Advanced features](/guide/app/advanced#capability-gated-dialogs). |
+| 💡     | **RGB lighting**           | Open the [RGB sheet](/guide/app/rgb-lighting). Disabled when the firmware drives lighting at compile time only.                                                                                                                |
+| ⇧      | _load a definition_        | One button per source the connected adapter accepts (e.g. a VIA/Vial layout JSON, a ZMK combo file).                                                                                                                           |
+| ⚙      | **Settings**               | [App settings](/guide/app/settings).                                                                                                                                                                                           |
+|        | **GitHub Repository**      | Open the source repo.                                                                                                                                                                                                          |
+|        | **Discord Community**      | Open the Discord invite.                                                                                                                                                                                                       |
+| 📖     | **Documentation**          | Open these docs.                                                                                                                                                                                                               |
+| ♥      | **Support this project**   | Sponsor links — see [Support this project](/guide/app/connecting#support-this-project).                                                                                                                                        |
+
+**History tools**
+
+| Button   | Tooltip                     | Does                                                                                                                                   |
+| -------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| ↶ ↷      | **Undo** / **Redo**         | History.                                                                                                                               |
+| 🗑       | **Discard changes**         | Revert all pending changes.                                                                                                            |
+| **Save** | **Save keymap to keyboard** | Commit changes to the device. With [Auto-save](/guide/app/settings#communication) on it becomes a pulsing auto-save indicator instead. |
+
+See [Advanced features](/guide/app/advanced) for the dialogs and the Advanced
+sheet (Macros, Tap Dance, Combos, Key Overrides, Wireless, Advanced Mode).
 
 ## Layers
 

@@ -3,8 +3,8 @@ layout: home
 
 hero:
     name: Remappr
-    text: One universal keyboard manager.
-    tagline: Connect, remap, light up and build keyboards across firmwares — ZMK, QMK, VIA, Vial and Keychron today, more to come. One visual builder, one JSON config, every target.
+    text: One universal device manager.
+    tagline: Connect, remap, light up and build your devices across firmwares — ZMK, QMK, VIA, Vial and Keychron today, more to come. One visual builder, one JSON config, every target.
     image:
         src: /remappr.webp
         alt: Remappr
