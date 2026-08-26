@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.16](https://github.com/Wolffyx/remappr/compare/v0.0.15...v0.0.16) (2026-08-26)
+
+
+### Features
+
+* **firmware:** autocorrect dictionary editor ([ad82925](https://github.com/Wolffyx/remappr/commit/ad82925825fb8d4bccc2c8f1e62ccf749204940d))
+* **firmware:** link-profile editor consuming GET_LINK_LIMITS (N6) ([27fa4e0](https://github.com/Wolffyx/remappr/commit/27fa4e050ebff83fdfe2885cdcba4a18598b5d93))
+* **firmware:** node & cluster editor modal (§N4b role / §N4c mode-A) ([b11345e](https://github.com/Wolffyx/remappr/commit/b11345e10c55bfc875712867c3f2fe92326978bf))
+* **firmware:** node & cluster editor modal (§N4b role / §N4c mode-A) ([0cc2546](https://github.com/Wolffyx/remappr/commit/0cc25460e1917ae578d7266d376810855b6df2b0))
+* **firmware:** unicode input-method picker ([8414ecb](https://github.com/Wolffyx/remappr/commit/8414ecb5180c558300c6436bb74a0fde6364cee3))
+* **firmware:** unicode input-method picker ([5036bc3](https://github.com/Wolffyx/remappr/commit/5036bc321330b1fd6595428251f1a9481a0489ca))
+
+
+### Bug Fixes
+
+* **connection:** only follow real hardware default-layer changes ([fc676c9](https://github.com/Wolffyx/remappr/commit/fc676c945bf518b0cb37ed80b2935db8682b8c5d))
+* **keymap:** match key legends after the label-slot split ([37c98a7](https://github.com/Wolffyx/remappr/commit/37c98a729713f88238d630b6d8500f8939e640de))
+
 ## [0.0.15](https://github.com/Wolffyx/remappr/compare/v0.0.14...v0.0.15) (2026-07-28)
 
 
