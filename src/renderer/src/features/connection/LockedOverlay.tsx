@@ -19,8 +19,8 @@ export const LockedOverlay = (): JSX.Element => {
                     </h2>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                    For security reasons, your keyboard requires unlocking
-                    before using Remappr.
+                    For security reasons, your device requires unlocking before
+                    using Remappr.
                 </p>
                 {hint && (
                     <div className="space-y-1 text-sm text-muted-foreground">

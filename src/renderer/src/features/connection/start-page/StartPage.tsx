@@ -167,10 +167,10 @@ export function StartPage({
                             QMK · VIA · ZMK compatible
                         </div>
                         <h1 className="mb-3 text-[40px] font-extrabold leading-[1.05] tracking-tight">
-                            Configure Your Keyboard
+                            Configure Your Device
                         </h1>
                         <p className="text-[16px] leading-normal text-muted-foreground">
-                            Connect your keyboard to customize keymaps and
+                            Connect your device to customize keymaps and
                             settings.
                         </p>
                     </div>
