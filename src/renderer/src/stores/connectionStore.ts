@@ -11,13 +11,18 @@ import useLayerSelectionStore from '@/stores/layerSelectionStore'
 import useKeymapStore from '@/stores/keymapStore'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
 import { createOsBackedKeyTest } from '@/features/keymap/keyboard/stage/osBackedKeyTest'
-import { cacheKey, loadCached } from '@firmware/qmk/layoutSideload'
-import { parseLightingMenu } from '@firmware/via/lightingMenu'
 
 // Teardown for the connected keyboard's default-layer subscription (Feature 1).
 // Module-scoped: the store is a singleton, and this keeps the internal handle off
 // the public ConnectionState surface.
 let defaultLayerUnsub: (() => void) | null = null
+
+// Last hardware default layer we applied to the editor selection. Keychron
+// boards re-push the same `default-layer` frame (it rides the state-notify
+// stream, not just DIP toggles), and blindly following every push yanked the
+// user back to the hardware layer whenever they picked another one. Only an
+// actual change of the hardware value moves the selection.
+let lastHwDefaultLayer: number | null = null
 
 // Teardown for the config-store re-seed subscription. Module-scoped like
 // defaultLayerUnsub, for the same reason.
@@ -127,16 +132,12 @@ const useConnectionStore = create<ConnectionState>()(
                 // so a later reconnect can't read a stale dongle as the node roster
                 // source. Swaps to a node view pass a non-null service and skip this.
                 if (!service) set({ parentService: null, activeNodeId: null })
-                // The deviceless mock has no switch matrix, so give it an
+                // A demo device has no switch matrix, so give it an
                 // OS-event-backed keyTest facade — Key Test then works in demo
                 // through the same path real hardware would, and the Header gate
                 // (service.keyTest) shows the button only here, not on firmwares
                 // that lack a matrix channel.
-                if (
-                    service &&
-                    service.deviceInfo.firmware === 'mock' &&
-                    !service.keyTest
-                ) {
+                if (service && service.capabilities.demo && !service.keyTest) {
                     service.keyTest = createOsBackedKeyTest(() => {
                         const keymap = useKeymapStore.getState().keymap
                         if (!keymap) return null
@@ -178,29 +179,34 @@ const useConnectionStore = create<ConnectionState>()(
                 useLightingCatalogStore.getState().setCatalog(null)
                 if (service) {
                     try {
-                        const k = cacheKey(service.deviceInfo)
-                        const def = k ? loadCached(k) : null
-                        if (def)
+                        const cached = service.sideload?.readCached?.()
+                        if (cached?.lightingCatalog !== undefined)
                             useLightingCatalogStore
                                 .getState()
-                                .setCatalog(parseLightingMenu(def.raw.menus))
+                                .setCatalog(cached.lightingCatalog)
                     } catch (err) {
                         console.warn('lighting-menu seed failed', err)
                     }
                 }
+                lastHwDefaultLayer = null
                 if (service?.layerControl) {
-                    const setLayer =
-                        useLayerSelectionStore.getState().setSelectedLayerIndex
+                    const applyHwLayer = (n: number): void => {
+                        if (n === lastHwDefaultLayer) return
+                        lastHwDefaultLayer = n
+                        useLayerSelectionStore
+                            .getState()
+                            .setSelectedLayerIndex(n)
+                    }
                     service.layerControl
                         .getDefaultLayer()
                         .then((n) => {
-                            if (isCurrent()) setLayer(n)
+                            if (isCurrent()) applyHwLayer(n)
                         })
                         .catch((err) =>
                             console.warn('getDefaultLayer failed', err),
                         )
                     defaultLayerUnsub =
-                        service.layerControl.onDefaultLayerChanged(setLayer)
+                        service.layerControl.onDefaultLayerChanged(applyHwLayer)
                 }
                 if (service?.listKeyCatalog) {
                     service
@@ -295,6 +301,7 @@ const useConnectionStore = create<ConnectionState>()(
             resetConnection: () => {
                 defaultLayerUnsub?.()
                 defaultLayerUnsub = null
+                lastHwDefaultLayer = null
                 configReseedUnsub?.()
                 configReseedUnsub = null
                 useLightingCatalogStore.getState().setCatalog(null)

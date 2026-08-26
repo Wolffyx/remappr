@@ -1,7 +1,7 @@
 # Roadmap
 
-Remappr is a **universal keyboard manager**: one app to connect, remap, light up,
-and build keyboards — across firmwares. Today it speaks **ZMK, QMK, VIA, Vial and
+Remappr is a **universal device manager**: one app to connect, remap, light up,
+and build your devices — across firmwares. Today it speaks **ZMK, QMK, VIA, Vial and
 Keychron**; the architecture is deliberately pluggable so **more firmwares** can
 join (see [Future firmwares](#future-firmwares)).
 
@@ -147,6 +147,11 @@ behaviors is limited by the ZMK Studio protocol.
 | Firmware adapter abstraction (plug-in per vendor) | <Badge type="tip" text="✅" />  |
 | Capability-gated UI                               | <Badge type="tip" text="✅" />  |
 | Keymap import / export (Remappr JSON config)      | <Badge type="tip" text="✅" />  |
+| Auto-save ⇄ manual save, per firmware family      | <Badge type="tip" text="✅" />  |
+| Per-device auto-connect on launch                 | <Badge type="tip" text="✅" />  |
+| Local profile backup & restore (ZMK)              | <Badge type="tip" text="✅" />  |
+| Read-only view of nodes behind a dongle           | <Badge type="tip" text="✅" />  |
+| Editing a node behind a dongle                    | <Badge type="info" text="🗓️" /> |
 | Cloud sync / backup · profile sharing             | <Badge type="info" text="🗓️" /> |
 
 ---

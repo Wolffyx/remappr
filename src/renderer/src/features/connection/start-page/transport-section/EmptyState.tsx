@@ -30,7 +30,7 @@ export function EmptyState({
             <p className="mb-4 max-w-sm text-sm text-muted-foreground">
                 {hasPairable
                     ? 'Browsers only show keyboards you have paired with this site. Click below to pick yours from the system chooser — it stays remembered for next time.'
-                    : 'Make sure your keyboard is connected.'}
+                    : 'Make sure your device is connected.'}
             </p>
             <div className="flex flex-wrap justify-center gap-2">
                 {hasPairable ? (

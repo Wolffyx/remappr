@@ -3,7 +3,11 @@ import { create } from 'zustand'
 import { createJSONStorage, devtools, persist } from 'zustand/middleware'
 
 export type KeyDisplayMode = 'displayName' | 'binding' | 'hidden'
-export type AdapterCategory = 'zmk' | 'qmk' | 'remappr'
+/** A firmware-family id declared by an adapter (FirmwareAdapter.category).
+ *  Open by design — the set is whatever is registered, so adding a firmware
+ *  needs no change here. `null` = the user hasn't chosen; the UI then falls
+ *  back to the first registered family (see lib/adapterCategories). */
+export type AdapterCategory = string
 export type CapStyle = 'flat' | 'sculpted' | 'mono' | 'glass'
 export type ColorCodingMode = 'off' | 'subtle' | 'vivid'
 export type WorkspaceMode = 'workbench' | 'inspector' | 'command'
@@ -21,7 +25,7 @@ interface UserSettingsState {
     /** Transport id of the device flagged to auto-connect on launch, or null. */
     autoConnectDeviceId: string | null
     keyDisplayMode: Record<string, KeyDisplayMode>
-    preferredAdapterCategory: AdapterCategory
+    preferredAdapterCategory: AdapterCategory | null
     capStyle: CapStyle
     colorMode: ColorCodingMode
     workspace: WorkspaceMode
@@ -40,7 +44,7 @@ interface UserSettingsState {
         mode: KeyDisplayMode,
     ) => void
     getKeyDisplayMode: (firmware: string | undefined) => KeyDisplayMode
-    setPreferredAdapterCategory: (category: AdapterCategory) => void
+    setPreferredAdapterCategory: (category: AdapterCategory | null) => void
 }
 
 const useUserSettingsStore = create<UserSettingsState>()(
@@ -53,7 +57,7 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 autoRestoreProfile: false,
                 autoConnectDeviceId: null,
                 keyDisplayMode: {},
-                preferredAdapterCategory: 'zmk',
+                preferredAdapterCategory: null,
                 capStyle: 'sculpted',
                 colorMode: 'subtle',
                 workspace: 'workbench',
@@ -110,13 +114,19 @@ const useUserSettingsStore = create<UserSettingsState>()(
                         }
                     }
                     if (version < 3) {
+                        // Historical cleanup: v<3 could hold junk here. The
+                        // literals are the families that existed AT THAT TIME —
+                        // a migration describes the past and is frozen, so this
+                        // is not a live firmware-name dependency. Anything else
+                        // becomes null: "not chosen", resolved against the live
+                        // registry on read.
                         const cat = p.preferredAdapterCategory
                         if (
                             cat !== 'zmk' &&
                             cat !== 'qmk' &&
                             cat !== 'remappr'
                         ) {
-                            p.preferredAdapterCategory = 'zmk'
+                            p.preferredAdapterCategory = null
                         }
                     }
                     if (version < 4) {

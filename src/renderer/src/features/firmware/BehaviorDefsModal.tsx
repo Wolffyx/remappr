@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 
 import type { CanonHoldTapDef, CanonModMorph } from '@firmware/config'
-import { supportsConfigEditing } from '@firmware/remappr/configEditing'
+import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
@@ -48,7 +48,7 @@ interface Props {
 
 export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
-    const remappr = supportsConfigEditing(service) ? service : null
+    const configEditing = supportsConfigEditing(service) ? service : null
     const featureBitmask = service?.limits?.featureBitmask ?? 0
 
     const [holdTaps, setHoldTaps] = useState<CanonHoldTapDef[]>([])
@@ -58,9 +58,9 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
-        if (!opened || !remappr) return
-        const ht = remappr.getHoldTaps()
-        const mm = remappr.getModMorphs()
+        if (!opened || !configEditing) return
+        const ht = configEditing.getHoldTaps()
+        const mm = configEditing.getModMorphs()
         origHT.current = ht
         origMM.current = mm
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -72,9 +72,9 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                 keepMods: [...(m.keepMods ?? [])],
             })),
         )
-    }, [opened, remappr])
+    }, [opened, configEditing])
 
-    if (!remappr) return <></>
+    if (!configEditing) return <></>
 
     const patchHT = (i: number, patch: Partial<CanonHoldTapDef>): void =>
         setHoldTaps((prev) =>
@@ -100,14 +100,14 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
         holdTaps.forEach((h, i) => {
             const p = holdTapPatch(origHT.current[i], h)
             if (p) {
-                remappr.setHoldTap(i, p)
+                configEditing.setHoldTap(i, p)
                 staged++
             }
         })
         modMorphs.forEach((m, i) => {
             const p = modMorphPatch(origMM.current[i], m.mods, m.keepMods ?? [])
             if (p) {
-                remappr.setModMorph(i, p)
+                configEditing.setModMorph(i, p)
                 staged++
             }
         })

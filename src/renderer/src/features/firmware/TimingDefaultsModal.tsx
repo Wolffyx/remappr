@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Timer } from 'lucide-react'
 
 import type { ConfigDefaults } from '@firmware/config'
-import { supportsConfigEditing } from '@firmware/remappr/configEditing'
+import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
@@ -41,7 +41,7 @@ function zeroSeed(): Record<TimingFieldKey, number> {
 
 export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
-    const remappr = supportsConfigEditing(service) ? service : null
+    const configEditing = supportsConfigEditing(service) ? service : null
     const featureBitmask = service?.limits?.featureBitmask ?? 0
 
     const [values, setValues] =
@@ -52,16 +52,16 @@ export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
     // Seed the editable fields from the device's committed + staged defaults each
     // time the modal opens (0 = firmware default).
     useEffect(() => {
-        if (!opened || !remappr) return
-        const d = remappr.getConfigDefaults()
+        if (!opened || !configEditing) return
+        const d = configEditing.getConfigDefaults()
         const seeded = zeroSeed()
         for (const f of TIMING_FIELDS) seeded[f.key] = d[f.key] ?? 0
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setValues(seeded)
         initialRef.current = seeded
-    }, [opened, remappr])
+    }, [opened, configEditing])
 
-    if (!remappr) return <></>
+    if (!configEditing) return <></>
 
     const handleSave = async (): Promise<void> => {
         if (!service) return
@@ -75,7 +75,7 @@ export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
         }
         setSaving(true)
         // Stage onto the concrete service, then push the whole config via commit.
-        remappr.setConfigDefaults(patch)
+        configEditing.setConfigDefaults(patch)
         const r = await saveWithToast(
             () => service.commit(),
             'Timing defaults saved',

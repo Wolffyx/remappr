@@ -9,7 +9,7 @@ export default defineConfig({
     lang: 'en-US',
     title: 'Remappr',
     description:
-        'Remappr — a universal keyboard manager. Connect, remap, light up and build keyboards across firmwares (ZMK, QMK, VIA, Vial, Keychron, more to come). Docs for the Builder, the editor and the JSON keymap config.',
+        'Remappr — a universal device manager. Connect, remap, light up and build your devices across firmwares (ZMK, QMK, VIA, Vial, Keychron, more to come). Docs for the Builder, the editor and the JSON keymap config.',
     base: '/',
     cleanUrls: true,
     lastUpdated: true,
@@ -96,6 +96,10 @@ export default defineConfig({
                         {
                             text: 'Advanced features',
                             link: '/guide/app/advanced',
+                        },
+                        {
+                            text: 'App settings',
+                            link: '/guide/app/settings',
                         },
                         {
                             text: 'Export & flash',

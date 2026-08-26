@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Layers, Plus, Trash2 } from 'lucide-react'
 
 import type { CanonConditionalLayer } from '@firmware/config'
-import { supportsConfigEditing } from '@firmware/remappr/configEditing'
+import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import useKeymapStore from '@/stores/keymapStore'
@@ -42,7 +42,7 @@ export function ConditionalLayersModal({
     onClose,
 }: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
-    const remappr = supportsConfigEditing(service) ? service : null
+    const configEditing = supportsConfigEditing(service) ? service : null
     // Live layer names for the if/then pickers — the keymap buffer commit() raises
     // from, so a pending rename is reflected before it is saved.
     const keymap = useKeymapStore((s) => s.keymap)
@@ -53,8 +53,8 @@ export function ConditionalLayersModal({
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
-        if (!opened || !remappr) return
-        const cl = remappr.getConditionalLayers()
+        if (!opened || !configEditing) return
+        const cl = configEditing.getConditionalLayers()
         orig.current = cl
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setEntries(
@@ -63,9 +63,9 @@ export function ConditionalLayersModal({
                 thenLayer: c.thenLayer,
             })),
         )
-    }, [opened, remappr])
+    }, [opened, configEditing])
 
-    if (!remappr) return <></>
+    if (!configEditing) return <></>
 
     const patchEntry = (
         i: number,
@@ -99,7 +99,7 @@ export function ConditionalLayersModal({
             onClose()
             return
         }
-        remappr.setConditionalLayers(patch)
+        configEditing.setConditionalLayers(patch)
         setSaving(true)
         const r = await saveWithToast(
             () => service.commit(),

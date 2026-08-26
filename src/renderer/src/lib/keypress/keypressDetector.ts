@@ -31,8 +31,16 @@ export function findKeyPositionForDomKey(
     const expectedName = DOM_KEY_TO_DISPLAY_NAME[domKeyCode]
     if (!expectedName) return null
 
+    // `primary` is the action-type tag on firmwares that split the label slots
+    // (ZMK/Remappr, and now the QMK family), so match the value legend too.
     for (let i = 0; i < max; i++) {
-        if (layer.keys[i].label.primary === expectedName) return i
+        const label = layer.keys[i].label
+        if (
+            label.primary === expectedName ||
+            label.paramText === expectedName
+        ) {
+            return i
+        }
     }
 
     return null

@@ -53,10 +53,10 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
         }
     }, [opened, stale])
 
-    // The mock is a demo device — treat its 'mock' firmware as "no device pinned"
-    // so the user can compile for any target. Real adapters report their family.
     const fw = service?.deviceInfo.firmware ?? null
-    const connectedFirmware = fw && fw !== 'mock' ? fw : null
+    // A demo device pins no compile target — the user can build for anything.
+    // Real hardware reports its family and pins it.
+    const connectedFirmware = service?.capabilities.demo ? null : fw
 
     const allowed = useMemo<Target[]>(() => {
         const byDevice = resolveAllowedTargets(connectedFirmware)
@@ -122,7 +122,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
         // so the user sees the board they just loaded, no disconnect needed.
         const conn = useConnectionStore.getState()
         const cfg = useConfigStore.getState().config
-        if (cfg && conn.service?.deviceInfo.firmware === 'mock') {
+        if (cfg && conn.service?.capabilities.demo) {
             const next = connectMockWithConfig(cfg)
             next.onClosed((): void => {
                 useConnectionStore.getState().setDeviceName(null)

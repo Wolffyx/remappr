@@ -1,7 +1,7 @@
 # Remappr
 
-A **universal keyboard manager** — one app to connect, remap, light up and build
-keyboards across firmwares. Supports **ZMK, QMK, VIA, Vial and Keychron** today,
+A **universal device manager** — one app to connect, remap, light up and build
+your devices across firmwares. Supports **ZMK, QMK, VIA, Vial and Keychron** today,
 with a pluggable adapter + compiler architecture built to add more firmwares over
 time — including a planned first-party **Remappr Firmware**. Built on Electron,
 with a single React UI driving the firmware adapters.
