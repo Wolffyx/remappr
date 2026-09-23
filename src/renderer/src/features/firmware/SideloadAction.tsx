@@ -12,6 +12,7 @@ import type { SideloadFormat, SideloadKind } from '@firmware/sideload'
 import { Button } from '@/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import useConnectionStore from '@/stores/connectionStore'
+import useConfigStore from '@/stores/configStore'
 import useKeymapStore from '@/stores/keymapStore'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
 import useDynamicCatalogStore from '@/stores/dynamicCatalogStore'
@@ -52,8 +53,16 @@ function SideloadButton({ format }: { format: SideloadFormat }): JSX.Element {
                         setLightingCatalog(result.lightingCatalog)
                     if (result.catalogEntries)
                         setComboEntries([...result.catalogEntries])
-                    if (result.keymapChanged)
+                    if (result.keymapChanged) {
                         setKeymap(await service.getKeymap())
+                        // A new layout can change the board itself (key count,
+                        // knobs), so a config the device serves is out of date:
+                        // re-read it now, before further edits raise into it.
+                        if (service.getConfigSource) {
+                            useConfigStore.getState().markStale()
+                            useConnectionStore.getState().reseedConfigIfStale()
+                        }
+                    }
                     return result.name
                 },
                 null,
