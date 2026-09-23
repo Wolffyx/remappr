@@ -1,14 +1,15 @@
-// Pattern check: no GoF pattern (-) — rejected — presentational component reusing KeyButton's exported capSurface/selectionRing helpers.
+// Pattern check: no GoF pattern (-) — rejected — presentational component reusing the shared capSurface/selectionRing helpers.
 //
 // A rotary encoder on the board — the Keycap System "REncoder" anatomy on the
 // SAME cap as the keys around it (cap style, face tint, selection ring all come
-// from KeyButton's capSurface), so a knob reads as part of the board rather than
-// a separate widget. HEADER (binding type) on top like a key, the knob where a
-// key's legend sits, and the turn values at the rim they turn toward (↺ left,
-// ↻ right), tinted by function. The raised knob keeps the design's look.
+// from capChrome's capSurface), so a knob reads as part of the board rather than
+// a separate widget. HEADER (binding type) on top like a key, the raised knob
+// where a key's legend sits, and the turn values — icon when the action has one,
+// else text — at the rim they turn toward (counter-clockwise left, clockwise
+// right), tinted by function. The arcs carry the direction, so no ↺/↻ glyphs.
 //
-// Editing: the cap is split into two invisible hit zones (↺ left half, ↻ right
-// half) carrying `data-encoder="slot:dir"`, so the board's delegated click
+// Editing: the cap is split into two invisible hit zones (counter-clockwise left
+// half, clockwise right half) carrying `data-encoder="slot:dir"`, so the board's delegated click
 // handler picks a direction exactly as it did for the old half-width caps. The
 // selected direction lights its arc + value and turns the pointer toward it.
 import { memo } from 'react'
@@ -19,11 +20,16 @@ import {
     type KeyCategory,
 } from '@/lib/keymap/keyCategory'
 import type { CapStyle, KeyDisplayMode } from '@/stores/userSettingsStore'
+import type { LegendPart } from '@firmware/paramLabel'
 import { capSurface, selectionRing } from './capChrome'
+import { LegendParts } from './LegendParts'
+import { legendIcon } from './legendIcons'
 
 export interface KnobSide {
     /** Short value text ("Vol+", "PgDn"); empty = unbound. */
     text: string
+    /** Icon legend, shown instead of `text` when present (media, bluetooth…). */
+    parts?: LegendPart[]
     /** Full value, for the hover title. */
     title?: string
     category: KeyCategory
@@ -106,6 +112,8 @@ const EncoderCapImpl = ({
     // Key type scale (KeyButton): header 0.098U, rim values at the hold size.
     const headerSize = Math.max(8, Math.round(S * 0.098))
     const lblSize = Math.max(8, Math.round(S * 0.108))
+    // An icon reads at the knob's rim values' cap height, a touch larger.
+    const iconSize = Math.max(10, Math.round(S * 0.15))
     const headerHidden = !showHeaderTag || keyDisplayMode === 'hidden'
     const isBindingMode = keyDisplayMode === 'binding'
     const headerColor = accent
@@ -126,8 +134,6 @@ const EncoderCapImpl = ({
                 style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: S * 0.02,
-                    flexDirection: d === 'cw' ? 'row-reverse' : 'row',
                     minWidth: 0,
                     maxWidth: '50%',
                     fontSize: lblSize,
@@ -140,8 +146,28 @@ const EncoderCapImpl = ({
                     transition: 'opacity .15s',
                 }}
             >
-                <span style={{ opacity: 0.75 }}>{d === 'cw' ? '↻' : '↺'}</span>
-                <span style={{ overflow: 'hidden' }}>{side.text || '—'}</span>
+                {side.parts ? (
+                    <span
+                        style={{
+                            // Icon-only reads larger; icon + text shares the
+                            // rim size so both fit the half-cap.
+                            fontSize: side.parts.every(
+                                (p) => legendIcon(p.icon) || !p.text,
+                            )
+                                ? iconSize
+                                : lblSize,
+                            lineHeight: 1,
+                            minWidth: 0,
+                            overflow: 'hidden',
+                        }}
+                    >
+                        <LegendParts parts={side.parts} title={side.title} />
+                    </span>
+                ) : (
+                    <span style={{ overflow: 'hidden' }}>
+                        {side.text || '—'}
+                    </span>
+                )}
             </span>
         )
     }

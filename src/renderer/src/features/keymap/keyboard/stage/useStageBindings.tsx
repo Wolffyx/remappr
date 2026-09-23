@@ -1,6 +1,7 @@
 // pattern-check: skip — position/label resolution + heatmap inject extracted from KeyboardView
 import { useMemo } from 'react'
 import type { KeyLabel, Keymap } from '@firmware/types'
+import type { LegendPart } from '@firmware/paramLabel'
 import { resolveBindingLabels } from '@firmware'
 import {
     hidUsageLongLabel,
@@ -17,7 +18,7 @@ import type { KnobSide } from '../EncoderCap'
 import type { KeypressDetectionConfig } from '@/lib/keypress/keypressDetector'
 import { ParamLegend } from '../ParamLegend'
 import { LegendParts } from '../LegendParts'
-import { hasResolvableIcon } from '../legendIcons'
+import { hasResolvableIcon, hidUsageIcon } from '../legendIcons'
 import { holdTapToLabels } from './helpers'
 
 /** Readable text join of legend parts (skips empty parts) — used as the sizing
@@ -33,6 +34,14 @@ const knobText = (label: KeyLabel): string =>
     (label.primaryUsage != null ? usageGlyph(label.primaryUsage) : '') ||
     label.paramText ||
     label.primary
+
+/** Icon legend for a knob direction: the firmware's own icon parts (bluetooth,
+ *  underglow, mouse scroll…), else a media icon for a plain HID usage. */
+const knobParts = (label: KeyLabel): LegendPart[] | undefined => {
+    if (hasResolvableIcon(label.paramParts)) return label.paramParts
+    const icon = hidUsageIcon(label.primaryUsage)
+    return icon ? [{ icon, text: knobText(label) }] : undefined
+}
 
 interface Inputs {
     layouts: KeypressDetectionConfig['layouts'] | undefined
@@ -147,6 +156,7 @@ export function useStageBindings({
             if (!action) return
             const side = (label: KeyLabel): KnobSide => ({
                 text: knobText(label),
+                parts: knobParts(label),
                 title:
                     (label.primaryUsage != null
                         ? hidUsageLongLabel(label.primaryUsage)
