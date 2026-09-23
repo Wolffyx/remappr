@@ -92,3 +92,14 @@ describe('formatMomentaryLayer', () => {
         expect(formatMomentaryLayer(15)).toBe('MO(15)')
     })
 })
+
+describe('abbreviateKeyName — media', () => {
+    it('keeps up/down distinguishable at cap width (knob CCW/CW pairs)', () => {
+        expect(abbreviateKeyName('Volume Increment', 5)).toBe('Vol+')
+        expect(abbreviateKeyName('Volume Decrement', 5)).toBe('Vol-')
+        expect(abbreviateKeyName('Volume Up', 5)).toBe('Vol+')
+        expect(abbreviateKeyName('Display Brightness Decrement', 5)).toBe(
+            'Bri-',
+        )
+    })
+})

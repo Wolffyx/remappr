@@ -1,6 +1,6 @@
 // pattern-check: skip — position/label resolution + heatmap inject extracted from KeyboardView
 import { useMemo } from 'react'
-import type { Keymap } from '@firmware/types'
+import type { KeyLabel, Keymap } from '@firmware/types'
 import { resolveBindingLabels } from '@firmware'
 import {
     hidUsageLongLabel,
@@ -26,6 +26,12 @@ const partsText = (parts: { text: string }[]): string =>
         .map((p) => p.text)
         .filter(Boolean)
         .join(' ')
+
+/** The text a half-width knob cap can hold for one direction's action. */
+const knobText = (label: KeyLabel): string =>
+    (label.primaryUsage != null ? usageGlyph(label.primaryUsage) : '') ||
+    label.paramText ||
+    label.primary
 
 interface Inputs {
     layouts: KeypressDetectionConfig['layouts'] | undefined
@@ -135,32 +141,38 @@ export function useStageBindings({
         encoderSlots.forEach((slot, i) => {
             const action = encoderActions[i]
             if (!action) return
-            // Two half-unit buttons side by side: ccw left, cw right. Prefer the
-            // short param text (e.g. "FN1", "BT 0") over the action-type name.
-            const ccwText =
-                action.ccw.label.paramText ?? action.ccw.label.primary
-            const cwText = action.cw.label.paramText ?? action.cw.label.primary
+            // Slots are centi-units like PhysicalLayoutKey (labels.ts divides
+            // keys the same way); the stage works in key units.
+            const x = slot.x / 100
+            const y = slot.y / 100
+            // Two half-unit buttons side by side: ccw left, cw right. Same
+            // glyph a key shows ("Vol+", "PgDn"), else the short param text
+            // ("FN1", "BT 0"), and only then the action-type name.
+            const ccwText = knobText(action.ccw.label)
+            const cwText = knobText(action.cw.label)
             encoderPositions.push({
                 id: `enc-${i}-ccw`,
                 header: 'CCW',
                 actionLabel: ccwText,
-                x: slot.x,
-                y: slot.y,
+                x,
+                y,
                 width: 0.5,
                 height: 1,
                 encoder: { slot: i, dir: 'ccw' },
-                children: <span>{ccwText}</span>,
+                tapText: ccwText,
+                children: ccwText,
             })
             encoderPositions.push({
                 id: `enc-${i}-cw`,
                 header: 'CW',
                 actionLabel: cwText,
-                x: slot.x + 0.5,
-                y: slot.y,
+                x: x + 0.5,
+                y,
                 width: 0.5,
                 height: 1,
                 encoder: { slot: i, dir: 'cw' },
-                children: <span>{cwText}</span>,
+                tapText: cwText,
+                children: cwText,
             })
         })
         return [...keyPositions, ...encoderPositions]

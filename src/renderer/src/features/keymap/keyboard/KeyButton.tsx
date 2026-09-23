@@ -348,10 +348,14 @@ const KeyButtonViewImpl = ({
             ? props.children.length
             : 1
     const crowded = !!holdTap || !!(mods && mods.length)
+    // The ramp is per 1U; a cap narrower than that (an encoder's half-width
+    // CCW/CW pair) scales it down so the legend stays inside the cap.
+    const fit = Math.min(1, props.width)
     const mainSize = Math.max(
         11,
         Math.round(
             S *
+                fit *
                 (crowded
                     ? tapLen > 2
                         ? 0.22
