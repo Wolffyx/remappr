@@ -151,6 +151,13 @@ function App(): JSX.Element {
                 useUserSettingsStore.getState().autosave,
             )
             setService(svc, communication)
+            // The client's own notes on how this connection was made (e.g. it
+            // had to fall back to a reduced mode) — shown once, never silent.
+            for (const notice of next.connectNotices ?? []) {
+                toast[notice.level](notice.title, {
+                    description: notice.description,
+                })
+            }
             return true
         } catch (err) {
             toast.error('Failed to connect to the selected device.', {
