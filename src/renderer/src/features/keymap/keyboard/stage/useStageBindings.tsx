@@ -13,6 +13,7 @@ import {
 } from '@/lib/keymap/keyCategory'
 import { HidUsageLabel } from '../HidUsageLabel'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
+import type { KnobSide } from '../EncoderCap'
 import type { KeypressDetectionConfig } from '@/lib/keypress/keypressDetector'
 import { ParamLegend } from '../ParamLegend'
 import { LegendParts } from '../LegendParts'
@@ -137,42 +138,40 @@ export function useStageBindings({
         const encoderSlots = layout.encoders ?? []
         if (!encoderActions || encoderSlots.length === 0) return keyPositions
 
+        // One 1U knob per encoder (the Keycap System REncoder). `encoder`
+        // keeps the guards that skip encoders (nav, heatmap, paint) working;
+        // the cap itself exposes one hit zone per turn direction.
         const encoderPositions: KeyPosition[] = []
         encoderSlots.forEach((slot, i) => {
             const action = encoderActions[i]
             if (!action) return
-            // Slots are centi-units like PhysicalLayoutKey (labels.ts divides
-            // keys the same way); the stage works in key units.
-            const x = slot.x / 100
-            const y = slot.y / 100
-            // Two half-unit buttons side by side: ccw left, cw right. Same
-            // glyph a key shows ("Vol+", "PgDn"), else the short param text
-            // ("FN1", "BT 0"), and only then the action-type name.
-            const ccwText = knobText(action.ccw.label)
-            const cwText = knobText(action.cw.label)
-            encoderPositions.push({
-                id: `enc-${i}-ccw`,
-                header: 'CCW',
-                actionLabel: ccwText,
-                x,
-                y,
-                width: 0.5,
-                height: 1,
-                encoder: { slot: i, dir: 'ccw' },
-                tapText: ccwText,
-                children: ccwText,
+            const side = (label: KeyLabel): KnobSide => ({
+                text: knobText(label),
+                title:
+                    (label.primaryUsage != null
+                        ? hidUsageLongLabel(label.primaryUsage)
+                        : undefined) ??
+                    label.valueLong ??
+                    label.description,
+                category: categoryForBinding({
+                    actionLabel: label.bindingPrefix,
+                    bindingParam1: label.primaryUsage,
+                    actionTypeName: label.primary,
+                }),
             })
             encoderPositions.push({
-                id: `enc-${i}-cw`,
-                header: 'CW',
-                actionLabel: cwText,
-                x: x + 0.5,
-                y,
-                width: 0.5,
+                id: `enc-${i}`,
+                header: 'Encoder',
+                x: slot.x / 100,
+                y: slot.y / 100,
+                width: 1,
                 height: 1,
                 encoder: { slot: i, dir: 'cw' },
-                tapText: cwText,
-                children: cwText,
+                knob: {
+                    slot: i,
+                    ccw: side(action.ccw.label),
+                    cw: side(action.cw.label),
+                },
             })
         })
         return [...keyPositions, ...encoderPositions]

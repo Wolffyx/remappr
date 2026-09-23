@@ -10,6 +10,7 @@ import React, {
 } from 'react'
 import { Maximize2, Minus, Plus } from 'lucide-react'
 import { HoldTapLabels, KeyButtonView } from './KeyButton.tsx'
+import { EncoderCap, type KnobLegend } from './EncoderCap'
 import { clamp } from '@/lib/clampInt'
 import { scalePosition } from '@/lib/scalePosition'
 import { LayoutZoom } from '@/lib/helpers'
@@ -56,8 +57,10 @@ export type KeyPosition = PropsWithChildren<{
     r?: number
     rx?: number
     ry?: number
-    // Encoder marker (when present, KeyButton is rendered as a small dial half).
+    // Encoder marker: this position is a knob, not a key (skipped by key-only
+    // paths — nav, heatmap, paint). `knob` carries its cap legend.
     encoder?: { slot: number; dir: 'cw' | 'ccw' }
+    knob?: KnobLegend
 }>
 
 // Pattern check: no GoF pattern (-) — rejected — plain prop/callback shape additions for
@@ -642,6 +645,34 @@ const PhysicalLayoutCanvasImpl = ({
                     !isEncoder && !!selectedPositions?.has(idx)
                 const lightInput =
                     isEncoder || !lightInputs ? null : lightInputs[idx]
+                if (p.knob) {
+                    // A knob: one cap, whose own hit zones carry
+                    // data-encoder per turn direction.
+                    const selectedDir =
+                        selectedEncoder?.slot === p.knob.slot
+                            ? selectedEncoder.dir
+                            : null
+                    return (
+                        <div
+                            key={p.id}
+                            data-idx={idx}
+                            className="absolute leading-[0]"
+                            style={posStyle as React.CSSProperties}
+                        >
+                            <EncoderCap
+                                knob={p.knob}
+                                width={p.width}
+                                height={p.height}
+                                oneU={effOneU}
+                                selectedDir={selectedDir}
+                                capStyle={capStyle}
+                                colorMode={colorMode}
+                                keyDisplayMode={keyDisplayMode}
+                                showHeaderTag={showHeaderTag}
+                            />
+                        </div>
+                    )
+                }
                 return (
                     <div
                         key={p.id}
