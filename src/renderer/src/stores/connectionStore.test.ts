@@ -19,7 +19,7 @@ function makeNodeView(id: number): KeyboardService {
             pid: 0,
         },
         capabilities: {
-            lock: false,
+            lock: 'none',
             rename: false,
             notifications: false,
             reorderLayers: false,
@@ -51,7 +51,7 @@ function makeDongle(roster: NodeView[]): {
             pid: 0x5678,
         },
         capabilities: {
-            lock: false,
+            lock: 'none',
             rename: true,
             notifications: false,
             reorderLayers: true,
@@ -121,7 +121,7 @@ describe('connectionStore node views', () => {
     it('openNode is a no-op on a direct (non-dongle) device', async () => {
         const directService = {
             deviceInfo: { name: 'Plain KB', firmware: 'zmk' },
-            capabilities: { lock: false },
+            capabilities: { lock: 'none' },
             listActionTypes: async () => [],
             disconnect: async () => undefined,
             // no `nodes` facade
@@ -227,7 +227,7 @@ function makeConfigService(initial: string): {
             firmware: 'remappr',
             firmwareVersion: '1.0.0',
         },
-        capabilities: { lock: false },
+        capabilities: { lock: 'none' },
         listActionTypes: async () => [],
         disconnect: async () => undefined,
         getConfigSource: async () => committed,
@@ -337,7 +337,7 @@ describe('connectionStore hardware default layer', () => {
                 pid: 0x0100,
             },
             capabilities: {
-                lock: false,
+                lock: 'none',
                 rename: false,
                 notifications: true,
                 reorderLayers: false,

@@ -2,7 +2,7 @@ import React, { JSX, Suspense, lazy, useCallback, useEffect } from 'react'
 import type { Transport } from '@firmware'
 import { connectMock, isUnlocked, pickAdapter } from '@firmware'
 import { rememberConnectedDeviceName } from '@/transport/web-serial'
-import { LockedOverlay } from '@/features/connection/LockedOverlay'
+import { UnlockPanel } from '@/features/connection/UnlockPanel'
 import { DongleLanding } from '@/features/connection/DongleLanding'
 import useConnectionStore from '@/stores/connectionStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
@@ -27,6 +27,7 @@ import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
 import { withSaveMode } from '@/lib/saveMode'
+import { withUnlockPrompt } from '@/lib/unlockPrompt'
 import { categoryForFirmware } from '@/lib/adapterCategories'
 
 // Code-split the full-screen builder: it drags in Monaco (multi-MB), which
@@ -146,9 +147,10 @@ function App(): JSX.Element {
             // until Save in manual mode; manual firmwares (ZMK/Remappr)
             // auto-commit debounced in auto mode. Toggling later just flips
             // the wrapper's flag — the service is never swapped.
-            const svc = withSaveMode(
-                next,
-                useUserSettingsStore.getState().autosave,
+            // An 'actions' lock (Vial) refuses some operations while the
+            // board is locked; the unlock prompt catches those and retries.
+            const svc = withUnlockPrompt(
+                withSaveMode(next, useUserSettingsStore.getState().autosave),
             )
             setService(svc, communication)
             // The client's own notes on how this connection was made (e.g. it
@@ -212,7 +214,7 @@ function App(): JSX.Element {
     const showEditor =
         !!service &&
         service.kind !== 'dongle' &&
-        !(service.capabilities.lock && !isUnlocked(lockState))
+        !(service.capabilities.lock === 'editor' && !isUnlocked(lockState))
 
     return (
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -230,9 +232,10 @@ function App(): JSX.Element {
                             </Suspense>
                         </ErrorBoundary>
                     ) : service ? (
-                        service.capabilities.lock && !isUnlocked(lockState) ? (
+                        service.capabilities.lock === 'editor' &&
+                        !isUnlocked(lockState) ? (
                             <ErrorBoundary>
-                                <LockedOverlay />
+                                <UnlockPanel layout="screen" />
                             </ErrorBoundary>
                         ) : service.kind === 'dongle' ? (
                             <ErrorBoundary>
@@ -271,6 +274,7 @@ function App(): JSX.Element {
             </div>
             <UpdateNotification />
             <Toaster richColors position="top-center" />
+            <UnlockPanel layout="card" />
         </ThemeProvider>
     )
 }
