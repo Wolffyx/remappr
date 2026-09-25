@@ -1,7 +1,6 @@
 // pattern-check: skip — position/label resolution + heatmap inject extracted from KeyboardView
 import { useMemo } from 'react'
-import type { KeyLabel, Keymap } from '@firmware/types'
-import type { LegendPart } from '@firmware/paramLabel'
+import type { Keymap } from '@firmware/types'
 import { resolveBindingLabels } from '@firmware'
 import {
     hidUsageLongLabel,
@@ -14,11 +13,11 @@ import {
 } from '@/lib/keymap/keyCategory'
 import { HidUsageLabel } from '../HidUsageLabel'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
-import type { KnobSide } from '../EncoderCap'
+import { knobLegend } from '@/features/encoders/knobLegend'
 import type { KeypressDetectionConfig } from '@/lib/keypress/keypressDetector'
 import { ParamLegend } from '../ParamLegend'
 import { LegendParts } from '../LegendParts'
-import { hasResolvableIcon, hidUsageIcon } from '../legendIcons'
+import { hasResolvableIcon } from '../legendIcons'
 import { holdTapToLabels } from './helpers'
 
 /** Readable text join of legend parts (skips empty parts) — used as the sizing
@@ -28,20 +27,6 @@ const partsText = (parts: { text: string }[]): string =>
         .map((p) => p.text)
         .filter(Boolean)
         .join(' ')
-
-/** The text a half-width knob cap can hold for one direction's action. */
-const knobText = (label: KeyLabel): string =>
-    (label.primaryUsage != null ? usageGlyph(label.primaryUsage) : '') ||
-    label.paramText ||
-    label.primary
-
-/** Icon legend for a knob direction: the firmware's own icon parts (bluetooth,
- *  underglow, mouse scroll…), else a media icon for a plain HID usage. */
-const knobParts = (label: KeyLabel): LegendPart[] | undefined => {
-    if (hasResolvableIcon(label.paramParts)) return label.paramParts
-    const icon = hidUsageIcon(label.primaryUsage)
-    return icon ? [{ icon, text: knobText(label) }] : undefined
-}
 
 interface Inputs {
     layouts: KeypressDetectionConfig['layouts'] | undefined
@@ -147,28 +132,13 @@ export function useStageBindings({
         const encoderSlots = layout.encoders ?? []
         if (!encoderActions || encoderSlots.length === 0) return keyPositions
 
-        // One 1U knob per encoder (the Keycap System REncoder). `encoder`
-        // keeps the guards that skip encoders (nav, heatmap, paint) working;
-        // the cap itself exposes one hit zone per turn direction.
+        // One 1U knob per encoder (the Keycap System REncoder). `knob` marks
+        // it for the guards that skip encoders (nav, heatmap, paint); the cap
+        // exposes one hit zone per turn direction.
         const encoderPositions: KeyPosition[] = []
         encoderSlots.forEach((slot, i) => {
             const action = encoderActions[i]
             if (!action) return
-            const side = (label: KeyLabel): KnobSide => ({
-                text: knobText(label),
-                parts: knobParts(label),
-                title:
-                    (label.primaryUsage != null
-                        ? hidUsageLongLabel(label.primaryUsage)
-                        : undefined) ??
-                    label.valueLong ??
-                    label.description,
-                category: categoryForBinding({
-                    actionLabel: label.bindingPrefix,
-                    bindingParam1: label.primaryUsage,
-                    actionTypeName: label.primary,
-                }),
-            })
             encoderPositions.push({
                 id: `enc-${i}`,
                 header: 'Encoder',
@@ -176,12 +146,7 @@ export function useStageBindings({
                 y: slot.y / 100,
                 width: 1,
                 height: 1,
-                encoder: { slot: i, dir: 'cw' },
-                knob: {
-                    slot: i,
-                    ccw: side(action.ccw.label),
-                    cw: side(action.cw.label),
-                },
+                knob: knobLegend(i, action),
             })
         })
         return [...keyPositions, ...encoderPositions]
@@ -192,13 +157,13 @@ export function useStageBindings({
         if (!heatmapEnabled) return basePositions
         let max = 0
         basePositions.forEach((p, idx) => {
-            if (p.encoder) return
+            if (p.knob) return
             const c =
                 heatmapCounts[`${selectedPhysicalLayoutIndex}:${idx}`] ?? 0
             if (c > max) max = c
         })
         return basePositions.map((p, idx) => {
-            if (p.encoder) return p
+            if (p.knob) return p
             const c =
                 heatmapCounts[`${selectedPhysicalLayoutIndex}:${idx}`] ?? 0
             return {

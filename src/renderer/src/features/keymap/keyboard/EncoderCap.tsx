@@ -8,11 +8,11 @@
 // else text — at the rim they turn toward (counter-clockwise left, clockwise
 // right), tinted by function. The arcs carry the direction, so no ↺/↻ glyphs.
 //
-// Editing: the cap is split into two invisible hit zones (counter-clockwise left
-// half, clockwise right half) carrying `data-encoder="slot:dir"`, so the board's delegated click
-// handler picks a direction exactly as it did for the old half-width caps. The
+// Editing: the cap is split into one invisible hit zone per direction (the
+// side each sits on comes from ENCODER_DIRS), each carrying `data-encoder`
+// (encoderHitId), so the board's delegated click handler picks a direction. The
 // selected direction lights its arc + value and turns the pointer toward it.
-import { memo } from 'react'
+import { Fragment, memo } from 'react'
 import {
     CATEGORY_META,
     catStyle,
@@ -20,26 +20,16 @@ import {
     type KeyCategory,
 } from '@/lib/keymap/keyCategory'
 import type { CapStyle, KeyDisplayMode } from '@/stores/userSettingsStore'
-import type { LegendPart } from '@firmware/paramLabel'
+import type { KnobLegend } from '@/features/encoders/knobLegend'
+import {
+    dirInfo,
+    ENCODER_DIRS,
+    type EncoderDir,
+    encoderHitId,
+} from '@/features/encoders/model'
 import { capSurface, selectionRing } from './capChrome'
 import { LegendParts } from './LegendParts'
 import { legendIcon } from './legendIcons'
-
-export interface KnobSide {
-    /** Short value text ("Vol+", "PgDn"); empty = unbound. */
-    text: string
-    /** Icon legend, shown instead of `text` when present (media, bluetooth…). */
-    parts?: LegendPart[]
-    /** Full value, for the hover title. */
-    title?: string
-    category: KeyCategory
-}
-
-export interface KnobLegend {
-    slot: number
-    ccw: KnobSide
-    cw: KnobSide
-}
 
 interface EncoderCapProps {
     knob: KnobLegend
@@ -48,11 +38,17 @@ interface EncoderCapProps {
     height: number
     oneU: number
     /** Which direction is selected for editing, if this knob is selected. */
-    selectedDir: 'cw' | 'ccw' | null
+    selectedDir: EncoderDir | null
     capStyle: CapStyle
     colorMode: ColorMode
     keyDisplayMode: KeyDisplayMode
     showHeaderTag?: boolean
+}
+
+/** Rim arc per cap side, in degrees: [from, to, SVG sweep flag]. */
+const ARC: Record<'left' | 'right', [number, number, 0 | 1]> = {
+    left: [205, 150, 0],
+    right: [-25, 30, 1],
 }
 
 /** Pointer tilt toward the direction being edited, in degrees. */
@@ -73,11 +69,14 @@ const EncoderCapImpl = ({
     // Same footprint rule as a key (makeSize): 2px gutter.
     const W = width * S - 2
     const H = height * S - 2
-    // The knob's function colour follows its turn actions (cw first).
-    const kind: KeyCategory =
-        knob.cw.text && knob.cw.category !== 'alpha'
-            ? knob.cw.category
-            : knob.ccw.category
+    // The knob's function colour follows its turn actions: the right-most
+    // bound, non-alpha one wins (cw first), else the left-most.
+    const sides = ENCODER_DIRS.map(({ dir }) => knob[dir])
+    const kind: KeyCategory = (
+        [...sides]
+            .reverse()
+            .find((side) => side.text && side.category !== 'alpha') ?? sides[0]
+    ).category
     const { F, chrome } = capSurface(capStyle, kind, colorMode, S)
     const accent =
         colorMode !== 'off' && CATEGORY_META[kind]?.hue != null
@@ -101,13 +100,16 @@ const EncoderCapImpl = ({
         return `M${x1} ${y1} A${r} ${r} 0 0 ${sweep} ${x2} ${y2}`
     }
     const selected = selectedDir !== null
-    const lit = (d: 'cw' | 'ccw'): boolean => selectedDir === d
-    const arrowCol = (d: 'cw' | 'ccw'): string =>
+    const lit = (d: EncoderDir): boolean => selectedDir === d
+    const arrowCol = (d: EncoderDir): string =>
         lit(d) ? ink : `color-mix(in oklch, ${edge} 55%, transparent)`
     const marker = `enc-arr-${knob.slot}`
     const stroke = Math.max(1.5, S * 0.016)
-    const angle =
-        selectedDir === 'cw' ? TILT : selectedDir === 'ccw' ? -TILT : 0
+    const angle = !selectedDir
+        ? 0
+        : dirInfo(selectedDir).side === 'right'
+          ? TILT
+          : -TILT
 
     // Key type scale (KeyButton): header 0.098U, rim values at the hold size.
     const headerSize = Math.max(8, Math.round(S * 0.098))
@@ -120,7 +122,7 @@ const EncoderCapImpl = ({
         ? `color-mix(in oklch, ${accent.legend} 92%, transparent)`
         : 'color-mix(in oklch, var(--foreground) 44%, transparent)'
 
-    const dirLabel = (d: 'cw' | 'ccw'): JSX.Element => {
+    const dirLabel = (d: EncoderDir): JSX.Element => {
         const side = knob[d]
         const on = lit(d)
         const sideInk =
@@ -228,8 +230,9 @@ const EncoderCapImpl = ({
                     className="flex items-center justify-between"
                     style={{ gap: S * 0.04 }}
                 >
-                    {dirLabel('ccw')}
-                    {dirLabel('cw')}
+                    {ENCODER_DIRS.map(({ dir }) => (
+                        <Fragment key={dir}>{dirLabel(dir)}</Fragment>
+                    ))}
                 </div>
             </div>
             <svg
@@ -243,7 +246,7 @@ const EncoderCapImpl = ({
                 }}
             >
                 <defs>
-                    {(['ccw', 'cw'] as const).map((d) => (
+                    {ENCODER_DIRS.map(({ dir: d }) => (
                         <marker
                             key={d}
                             id={`${marker}-${d}`}
@@ -258,22 +261,17 @@ const EncoderCapImpl = ({
                         </marker>
                     ))}
                 </defs>
-                <path
-                    d={arc(205, 150, 0)}
-                    fill="none"
-                    stroke={arrowCol('ccw')}
-                    strokeWidth={stroke}
-                    strokeLinecap="round"
-                    markerEnd={`url(#${marker}-ccw)`}
-                />
-                <path
-                    d={arc(-25, 30, 1)}
-                    fill="none"
-                    stroke={arrowCol('cw')}
-                    strokeWidth={stroke}
-                    strokeLinecap="round"
-                    markerEnd={`url(#${marker}-cw)`}
-                />
+                {ENCODER_DIRS.map(({ dir, side }) => (
+                    <path
+                        key={dir}
+                        d={arc(...ARC[side])}
+                        fill="none"
+                        stroke={arrowCol(dir)}
+                        strokeWidth={stroke}
+                        strokeLinecap="round"
+                        markerEnd={`url(#${marker}-${dir})`}
+                    />
+                ))}
             </svg>
             {/* knob — the design's raised knob (ridged grip, lit dome,
                 glowing pointer), coloured from the cap so it sits on the key */}
@@ -353,20 +351,20 @@ const EncoderCapImpl = ({
                 </div>
             </div>
             {/* Hit zones — the board's delegated click reads data-encoder. */}
-            {(['ccw', 'cw'] as const).map((d) => (
+            {ENCODER_DIRS.map(({ dir, long, side }) => (
                 <div
-                    key={d}
+                    key={dir}
                     role="button"
                     tabIndex={0}
                     data-key="true"
-                    data-encoder={`${knob.slot}:${d}`}
-                    aria-label={`Encoder ${knob.slot + 1} ${d === 'cw' ? 'clockwise' : 'counter-clockwise'}: ${knob[d].title || knob[d].text || 'unbound'}`}
+                    data-encoder={encoderHitId({ slot: knob.slot, dir })}
+                    aria-label={`Encoder ${knob.slot + 1} ${long.toLowerCase()}: ${knob[dir].title || knob[dir].text || 'unbound'}`}
                     style={{
                         position: 'absolute',
                         top: 0,
                         bottom: 0,
-                        left: d === 'ccw' ? 0 : '50%',
-                        right: d === 'ccw' ? '50%' : 0,
+                        left: side === 'left' ? 0 : '50%',
+                        right: side === 'left' ? '50%' : 0,
                         cursor: 'pointer',
                     }}
                 />

@@ -4,11 +4,6 @@ import type { KeyPosition } from '../PhysicalLayoutCanvas'
 import type { HoldTapLabels } from '../KeyButton'
 import type { ResolvedHoldTapDescriptor } from '@firmware'
 
-export interface EncoderSelection {
-    slot: number
-    dir: 'cw' | 'ccw'
-}
-
 type Direction = 'left' | 'right' | 'up' | 'down'
 
 // Per-direction proximity metric. Given the delta to a candidate key it returns
@@ -35,14 +30,14 @@ export function neighborInDirection(
     dir: Direction,
 ): number | null {
     const a = positions[from]
-    if (!a || a.encoder) return null
+    if (!a || a.knob) return null
     const acx = a.x + a.width / 2
     const acy = a.y + a.height / 2
     const metric = DIR_METRIC[dir]
     let best: number | null = null
     let bestScore = Infinity
     positions.forEach((p, i) => {
-        if (i === from || p.encoder) return
+        if (i === from || p.knob) return
         const m = metric(p.x + p.width / 2 - acx, p.y + p.height / 2 - acy)
         if (!m) return
         const score = m.primary + m.cross * 2

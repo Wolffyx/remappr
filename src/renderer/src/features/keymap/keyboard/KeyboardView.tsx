@@ -19,7 +19,7 @@ import useHeatmapStore from '@/stores/heatmapStore'
 import useLiveViewStore from '@/stores/liveViewStore'
 import useKeyTestStore from '@/stores/keyTestStore'
 import useLayerPeekStore from '@/stores/layerPeekStore'
-import type { EncoderSelection } from './stage/helpers'
+import type { EncoderSelection } from '@/features/encoders/model'
 import { useActionTypes } from './stage/useActionTypes'
 import { useStageLighting } from './stage/useStageLighting'
 import { useStageBindings } from './stage/useStageBindings'
@@ -171,8 +171,8 @@ export default function KeyboardView({
     // Stable encoder-click handler so PhysicalLayoutCanvas (memoized) isn't re-rendered
     // by a fresh closure on every KeyboardView render.
     const handleEncoderClicked = useCallback(
-        (slot: number, dir: 'cw' | 'ccw'): void => {
-            setSelectedEncoder?.({ slot, dir })
+        (sel: EncoderSelection): void => {
+            setSelectedEncoder?.(sel)
             if (workspace === 'command') setPaletteOpen(true)
             else setPickerOpen?.(true)
         },
