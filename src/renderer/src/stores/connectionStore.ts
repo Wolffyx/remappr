@@ -359,6 +359,16 @@ const useConnectionStore = create<ConnectionState>()(
                 set({ connectionAbort: new AbortController() })
             },
         })),
+        {
+            // The live service sits in this state and the Redux DevTools
+            // extension JSON-serializes it on every set. A Vial service holds a
+            // 64-bit keyboard id as a bigint, which JSON.stringify rejects —
+            // the throw escapes set() and fails the connect.
+            serialize: {
+                replacer: (_key: string, value: unknown) =>
+                    typeof value === 'bigint' ? value.toString() : value,
+            },
+        },
     ),
 )
 
