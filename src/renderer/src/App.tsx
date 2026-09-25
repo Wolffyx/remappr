@@ -72,6 +72,7 @@ function App(): JSX.Element {
     // shell (and the whole editor subtree) on every unrelated field change.
     const service = useConnectionStore((s) => s.service)
     const setService = useConnectionStore((s) => s.setService)
+    const publishService = useConnectionStore((s) => s.publishService)
     const setDeviceName = useConnectionStore((s) => s.setDeviceName)
     const setLockState = useConnectionStore((s) => s.setLockState)
     const setConnectionAbort = useConnectionStore((s) => s.setConnectionAbort)
@@ -168,7 +169,7 @@ function App(): JSX.Element {
             const svc = withUnlockPrompt(
                 withSaveMode(next, useUserSettingsStore.getState().autosave),
             )
-            setService(svc, communication)
+            await publishService(svc, communication)
             // The client's own notes on how this connection was made (e.g. it
             // had to fall back to a reduced mode) — shown once, never silent.
             for (const notice of next.connectNotices ?? []) {
@@ -195,7 +196,7 @@ function App(): JSX.Element {
                 setService(null)
             })
             setDeviceName(next.deviceInfo.name)
-            setService(next)
+            await publishService(next)
         } catch (err) {
             toast.error('Failed to start demo mode.', {
                 description: err instanceof Error ? err.message : String(err),

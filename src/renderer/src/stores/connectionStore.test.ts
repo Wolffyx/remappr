@@ -397,3 +397,44 @@ describe('connectionStore hardware default layer', () => {
         expect(selected()).toBe(0)
     })
 })
+
+describe('publishService', () => {
+    beforeEach(() => {
+        useConnectionStore.getState().resetConnection()
+    })
+
+    function lockedBoard(read: () => Promise<string>): KeyboardService {
+        return {
+            deviceInfo: { name: 'ZMK board', firmware: 'zmk' },
+            capabilities: { lock: 'editor', exportFormats: [] },
+            getLockState: read,
+            listActionTypes: async () => [],
+        } as unknown as KeyboardService
+    }
+
+    it('shows the service with its lock state already read (no locked flash)', async () => {
+        const seen: [boolean, string][] = []
+        const off = useConnectionStore.subscribe((s) =>
+            seen.push([!!s.service, s.lockState]),
+        )
+        await useConnectionStore.getState().publishService(
+            lockedBoard(async () => 'unlocked'),
+            'serial',
+        )
+        off()
+        // The first state with a service in it already says 'unlocked'.
+        expect(seen.find(([hasService]) => hasService)?.[1]).toBe('unlocked')
+        expect(useConnectionStore.getState().communication).toBe('serial')
+    })
+
+    it('falls back to locked when the read fails', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {})
+        await useConnectionStore.getState().publishService(
+            lockedBoard(async () => {
+                throw new Error('rpc down')
+            }),
+        )
+        expect(useConnectionStore.getState().lockState).toBe('locked')
+        expect(useConnectionStore.getState().service).not.toBeNull()
+    })
+})
