@@ -27,6 +27,7 @@ export function PerKeyColorEditor({
     // active/commit on every colour-drag frame.
     const {
         available,
+        volatile,
         brush,
         setActive,
         commitPaint,
@@ -89,6 +90,12 @@ export function PerKeyColorEditor({
                 Select one or more keys on the keyboard, then pick a colour.
                 Cmd/Ctrl-click adds keys; Shift-click selects a range.
             </p>
+            {volatile && (
+                <p className="rounded-lg border border-dashed p-2 text-[11.5px] leading-relaxed text-muted-foreground">
+                    This keyboard can&apos;t store per-key colours. They stay
+                    until it&apos;s unplugged.
+                </p>
+            )}
             {targets.length === 0 ? (
                 <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
                     No key selected — click a key on the board to colour it.

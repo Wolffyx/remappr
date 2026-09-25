@@ -21,6 +21,7 @@ import type { PaintApi } from '@/features/keymap/keyboard/stage/usePerKeyPaint'
 import { DeviceRgbControls } from './DeviceRgbControls'
 import { SimulationPanel } from './SimulationPanel'
 import { IndicatorPanel } from './IndicatorPanel'
+import { hasIndicators } from './indicators'
 import { ComingSoon } from './ComingSoonSection'
 import { PerKeyColorEditor } from './PerKeyColorEditor'
 import { AdvancedPanels } from './AdvancedRgbPanels'
@@ -116,12 +117,16 @@ export function RgbSheet({
                             />
                         )}
                         {activeSection === 'indicator' &&
-                            (rgb ? (
+                            (rgb && hasIndicators(rgb) ? (
                                 <IndicatorPanel rgb={rgb} />
                             ) : (
                                 <ComingSoon
                                     title="Indicator Light"
-                                    note="Connect a keyboard to edit its OS-lock indicators."
+                                    note={
+                                        rgb
+                                            ? "This keyboard's firmware doesn't expose its indicator lights."
+                                            : 'Connect a keyboard to edit its OS-lock indicators.'
+                                    }
                                 />
                             ))}
                         {activeSection === 'advanced' && <AdvancedPanels />}
