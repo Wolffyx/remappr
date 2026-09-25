@@ -1,5 +1,5 @@
 import React, { JSX, Suspense, lazy, useCallback, useEffect } from 'react'
-import type { Transport } from '@firmware'
+import type { MockServiceOptions, Transport } from '@firmware'
 import { connectMock, isUnlocked, pickAdapter } from '@firmware'
 import { rememberConnectedDeviceName } from '@/transport/web-serial'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
@@ -49,6 +49,22 @@ const SIDEBAR_STYLE = {
 // silent / half-flashed device) so the UI recovers instead of hanging on
 // "Connecting" forever. Generous enough not to trip a slow-but-valid BLE link.
 const CONNECT_TIMEOUT_MS = 15_000
+
+// Dev only: `?demoLock=actions` (Vial-style) or `?demoLock=editor` (ZMK-style)
+// starts the demo board locked, to try the unlock UI without a keyboard.
+function demoLockOptions(): MockServiceOptions | undefined {
+    if (!import.meta.env.DEV) return undefined
+    const kind = new URLSearchParams(window.location.search).get('demoLock')
+    if (kind === 'actions') return { lock: 'actions', initiallyLocked: true }
+    if (kind === 'editor') {
+        return {
+            lock: 'editor',
+            initiallyLocked: true,
+            deviceUnlockAfterMs: 5_000,
+        }
+    }
+    return undefined
+}
 
 function App(): JSX.Element {
     // pattern-check: skip — UI sweep, replace store-connection with store-service
@@ -173,7 +189,7 @@ function App(): JSX.Element {
 
     const onDemoConnect = async (): Promise<void> => {
         try {
-            const next = await connectMock()
+            const next = withUnlockPrompt(await connectMock(demoLockOptions()))
             next.onClosed((): void => {
                 setDeviceName(null)
                 setService(null)
