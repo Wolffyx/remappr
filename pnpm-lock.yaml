@@ -218,9 +218,6 @@ importers:
       lucide-react:
         specifier: ^1.11.0
         version: 1.11.0(react@19.2.5)
-      lzma1:
-        specifier: ^0.3.0
-        version: 0.3.0
       monaco-editor:
         specifier: ^0.55.1
         version: 0.55.1
@@ -275,6 +272,9 @@ importers:
       wrangler:
         specifier: ^4.126.0
         version: 4.126.0
+      xz-decompress:
+        specifier: ^0.2.3
+        version: 0.2.3
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -4684,10 +4684,6 @@ packages:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
 
-  lzma1@0.3.0:
-    resolution: {integrity: sha512-ETg5CT6Ojybzjx2YG48NuPcN7kGzhLO6FfKbkvUwt0bxIEOq+wXykCZBoNBrkGq66zwJT1ZdUI71F0wC6pP9TQ==}
-    engines: {bun: '>=1.0.0', node: '>=18.0.0'}
-
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -6128,6 +6124,10 @@ packages:
   xmlbuilder@15.1.1:
     resolution: {integrity: sha512-yMqGBqtXyeN1e3TGYvgNgDVZ3j84W4cwkOXQswghol6APgZWaff9lnbvN7MHYJOiXsvGPXtjTYJEiC9J2wv9Eg==}
     engines: {node: '>=8.0'}
+
+  xz-decompress@0.2.3:
+    resolution: {integrity: sha512-O8v6HG8T0PrKBcpyWA13GkSYWFvncwzuzcLx5A7++l3HsE3atmoetXjIxrZ/JV/nbvSZ7WS4+3XvREZuVn+rEA==}
+    engines: {node: '>=16'}
 
   y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
@@ -10674,8 +10674,6 @@ snapshots:
 
   lz-string@1.5.0: {}
 
-  lzma1@0.3.0: {}
-
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -12396,6 +12394,8 @@ snapshots:
     optional: true
 
   xmlbuilder@15.1.1: {}
+
+  xz-decompress@0.2.3: {}
 
   y18n@5.0.8: {}
 
