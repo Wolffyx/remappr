@@ -13,6 +13,7 @@ import {
 } from '@/lib/keymap/keyCategory'
 import { HidUsageLabel } from '../HidUsageLabel'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
+import { knobLegend } from '@/features/encoders/knobLegend'
 import type { KeypressDetectionConfig } from '@/lib/keypress/keypressDetector'
 import { ParamLegend } from '../ParamLegend'
 import { LegendParts } from '../LegendParts'
@@ -131,36 +132,21 @@ export function useStageBindings({
         const encoderSlots = layout.encoders ?? []
         if (!encoderActions || encoderSlots.length === 0) return keyPositions
 
+        // One 1U knob per encoder (the Keycap System REncoder). `knob` marks
+        // it for the guards that skip encoders (nav, heatmap, paint); the cap
+        // exposes one hit zone per turn direction.
         const encoderPositions: KeyPosition[] = []
         encoderSlots.forEach((slot, i) => {
             const action = encoderActions[i]
             if (!action) return
-            // Two half-unit buttons side by side: ccw left, cw right. Prefer the
-            // short param text (e.g. "FN1", "BT 0") over the action-type name.
-            const ccwText =
-                action.ccw.label.paramText ?? action.ccw.label.primary
-            const cwText = action.cw.label.paramText ?? action.cw.label.primary
             encoderPositions.push({
-                id: `enc-${i}-ccw`,
-                header: 'CCW',
-                actionLabel: ccwText,
-                x: slot.x,
-                y: slot.y,
-                width: 0.5,
+                id: `enc-${i}`,
+                header: 'Encoder',
+                x: slot.x / 100,
+                y: slot.y / 100,
+                width: 1,
                 height: 1,
-                encoder: { slot: i, dir: 'ccw' },
-                children: <span>{ccwText}</span>,
-            })
-            encoderPositions.push({
-                id: `enc-${i}-cw`,
-                header: 'CW',
-                actionLabel: cwText,
-                x: slot.x + 0.5,
-                y: slot.y,
-                width: 0.5,
-                height: 1,
-                encoder: { slot: i, dir: 'cw' },
-                children: <span>{cwText}</span>,
+                knob: knobLegend(i, action),
             })
         })
         return [...keyPositions, ...encoderPositions]
@@ -171,13 +157,13 @@ export function useStageBindings({
         if (!heatmapEnabled) return basePositions
         let max = 0
         basePositions.forEach((p, idx) => {
-            if (p.encoder) return
+            if (p.knob) return
             const c =
                 heatmapCounts[`${selectedPhysicalLayoutIndex}:${idx}`] ?? 0
             if (c > max) max = c
         })
         return basePositions.map((p, idx) => {
-            if (p.encoder) return p
+            if (p.knob) return p
             const c =
                 heatmapCounts[`${selectedPhysicalLayoutIndex}:${idx}`] ?? 0
             return {

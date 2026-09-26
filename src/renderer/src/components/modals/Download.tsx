@@ -129,7 +129,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                 useConnectionStore.getState().setService(null)
             })
             conn.setDeviceName(next.deviceInfo.name)
-            conn.setService(next)
+            await conn.publishService(next)
             onClose?.()
         }
     }

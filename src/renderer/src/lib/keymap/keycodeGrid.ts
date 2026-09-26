@@ -44,7 +44,7 @@ const SCORE_FIELDS: ReadonlyArray<{
     contains: number
 }> = [
     {
-        values: (e) => [e.label.replace(/<[^>]*>/g, '')],
+        values: (e) => [e.label],
         exact: 100,
         prefix: 50,
         contains: 20,

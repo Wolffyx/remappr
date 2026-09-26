@@ -19,7 +19,7 @@ function makeNodeView(id: number): KeyboardService {
             pid: 0,
         },
         capabilities: {
-            lock: false,
+            lock: 'none',
             rename: false,
             notifications: false,
             reorderLayers: false,
@@ -51,7 +51,7 @@ function makeDongle(roster: NodeView[]): {
             pid: 0x5678,
         },
         capabilities: {
-            lock: false,
+            lock: 'none',
             rename: true,
             notifications: false,
             reorderLayers: true,
@@ -121,7 +121,7 @@ describe('connectionStore node views', () => {
     it('openNode is a no-op on a direct (non-dongle) device', async () => {
         const directService = {
             deviceInfo: { name: 'Plain KB', firmware: 'zmk' },
-            capabilities: { lock: false },
+            capabilities: { lock: 'none' },
             listActionTypes: async () => [],
             disconnect: async () => undefined,
             // no `nodes` facade
@@ -227,7 +227,7 @@ function makeConfigService(initial: string): {
             firmware: 'remappr',
             firmwareVersion: '1.0.0',
         },
-        capabilities: { lock: false },
+        capabilities: { lock: 'none' },
         listActionTypes: async () => [],
         disconnect: async () => undefined,
         getConfigSource: async () => committed,
@@ -337,7 +337,7 @@ describe('connectionStore hardware default layer', () => {
                 pid: 0x0100,
             },
             capabilities: {
-                lock: false,
+                lock: 'none',
                 rename: false,
                 notifications: true,
                 reorderLayers: false,
@@ -395,5 +395,46 @@ describe('connectionStore hardware default layer', () => {
         useLayerSelectionStore.getState().setSelectedLayerIndex(1)
         h.push(0)
         expect(selected()).toBe(0)
+    })
+})
+
+describe('publishService', () => {
+    beforeEach(() => {
+        useConnectionStore.getState().resetConnection()
+    })
+
+    function lockedBoard(read: () => Promise<string>): KeyboardService {
+        return {
+            deviceInfo: { name: 'ZMK board', firmware: 'zmk' },
+            capabilities: { lock: 'editor', exportFormats: [] },
+            getLockState: read,
+            listActionTypes: async () => [],
+        } as unknown as KeyboardService
+    }
+
+    it('shows the service with its lock state already read (no locked flash)', async () => {
+        const seen: [boolean, string][] = []
+        const off = useConnectionStore.subscribe((s) =>
+            seen.push([!!s.service, s.lockState]),
+        )
+        await useConnectionStore.getState().publishService(
+            lockedBoard(async () => 'unlocked'),
+            'serial',
+        )
+        off()
+        // The first state with a service in it already says 'unlocked'.
+        expect(seen.find(([hasService]) => hasService)?.[1]).toBe('unlocked')
+        expect(useConnectionStore.getState().communication).toBe('serial')
+    })
+
+    it('falls back to locked when the read fails', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {})
+        await useConnectionStore.getState().publishService(
+            lockedBoard(async () => {
+                throw new Error('rpc down')
+            }),
+        )
+        expect(useConnectionStore.getState().lockState).toBe('locked')
+        expect(useConnectionStore.getState().service).not.toBeNull()
     })
 })

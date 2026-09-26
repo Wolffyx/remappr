@@ -1,8 +1,46 @@
 {
-    "name": "ZMK Development",
-    "dockerFile": "Dockerfile",
+    "name": "Remappr",
+    "build": { "dockerfile": "Dockerfile" },
+
+    // scripts/link-remappr.cjs wires the firmware, ui and builder repos in
+    // from <app>/../../Remappr. Keep that layout in the container so the
+    // same relative symlinks resolve on both sides. With no umbrella folder
+    // on the host, the (empty) mount makes the script clone the public repos
+    // into .remappr instead, and stub the builder.
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/app/${localWorkspaceFolderBasename},type=bind",
+    "workspaceFolder": "/workspaces/app/${localWorkspaceFolderBasename}",
+    "initializeCommand": "mkdir -p \"${localWorkspaceFolder}/../../Remappr\"",
+    "mounts": [
+        "source=${localWorkspaceFolder}/../../Remappr,target=/workspaces/Remappr,type=bind",
+        // node_modules holds native addons built for this container, so keep
+        // it off the host checkout.
+        "source=remappr-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+    ],
     "runArgs": ["--security-opt", "label=disable"],
-    "mounts": ["type=bind,source=../zmk,target=/opt/zmk"],
-    "containerEnv": {},
-    "forwardPorts": [5174, 6006]
+    // With node_modules on its own volume, pnpm would otherwise put its store
+    // in the checkout (.pnpm-store/) on the host.
+    "containerEnv": {
+        "npm_config_store_dir": "/home/node/.local/share/pnpm/store"
+    },
+
+    "remoteUser": "node",
+    "postCreateCommand": "sudo chown node node_modules && pnpm install",
+
+    "forwardPorts": [5173, 5174, 6006],
+    "portsAttributes": {
+        "5173": { "label": "vite dev (app)" },
+        "5174": { "label": "vite dev (docs, when 5173 is taken)" },
+        "6006": { "label": "Storybook" }
+    },
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "bradlc.vscode-tailwindcss",
+                "vitest.explorer"
+            ]
+        }
+    }
 }

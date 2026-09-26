@@ -1,7 +1,7 @@
 // pattern-check: skip — test fixtures + mock service for restoreProfile, no abstraction
 import { describe, it, expect } from 'vitest'
 import type { Capabilities, KeyboardService } from '@firmware/service'
-import type { Keymap, KeyAction, KeyUpdate, Layer } from '@firmware/types'
+import type { ActionType, Keymap, KeyAction, Layer } from '@firmware/types'
 import { restoreProfile } from './restoreProfile'
 import type { ProfileBackup } from '@/stores/profileBackupStore'
 
@@ -29,14 +29,23 @@ const backupOf = (keymap: Keymap): ProfileBackup => ({
     savedAt: 0,
 })
 
+interface MockOptions {
+    caps?: Partial<Capabilities>
+    actionTypes?: ActionType[]
+    /** Kinds the mock device rejects on setKey, as ZMK does for INVALID_PARAMETERS. */
+    rejectKinds?: string[]
+    /** Kinds the adapter reports as unbindable through `canSetAction`. */
+    unsettableKinds?: string[]
+}
+
 /** Stateful mock KeyboardService covering only what restoreProfile touches. */
 function makeService(
     initial: Layer[],
-    caps?: Partial<Capabilities>,
+    opts: MockOptions = {},
 ): {
     service: KeyboardService
     calls: string[]
-    setKeysBatches: KeyUpdate[][]
+    writes: Array<{ layerId: number; position: number; action: KeyAction }>
     renamed: Array<[number, string]>
 } {
     const state = {
@@ -44,7 +53,11 @@ function makeService(
         activeLayoutId: 0,
     }
     const calls: string[] = []
-    const setKeysBatches: KeyUpdate[][] = []
+    const writes: Array<{
+        layerId: number
+        position: number
+        action: KeyAction
+    }> = []
     const renamed: Array<[number, string]> = []
     let nextId = 100
 
@@ -61,12 +74,23 @@ function makeService(
         capabilities: {
             variableLayerCount: true,
             rename: true,
-            ...caps,
+            ...opts.caps,
         } as Capabilities,
         getKeymap: async () => {
             calls.push('getKeymap')
             return snapshot()
         },
+        listActionTypes: async () => {
+            calls.push('listActionTypes')
+            return opts.actionTypes ?? []
+        },
+        buildKeyAction: (kind: string, params: number[]) => ka(kind, params),
+        ...(opts.unsettableKinds
+            ? {
+                  canSetAction: (action: KeyAction): boolean =>
+                      !opts.unsettableKinds?.includes(action.kind),
+              }
+            : {}),
         addLayer: async () => {
             calls.push('addLayer')
             const l = {
@@ -95,9 +119,23 @@ function makeService(
             state.activeLayoutId = layoutId
             return snapshot()
         },
-        setKeys: async (u: KeyUpdate[]) => {
+        setKey: async (
+            layerId: number,
+            position: number,
+            action: KeyAction,
+        ) => {
+            calls.push('setKey')
+            if (opts.rejectKinds?.includes(action.kind)) {
+                throw new Error(
+                    `Failed to set key (layer ${layerId}, key ${position}): the keyboard rejected the binding parameters`,
+                )
+            }
+            writes.push({ layerId, position, action })
+            const l = state.layers.find((x) => x.id === layerId)
+            if (l) l.keys[position] = action
+        },
+        setKeys: async () => {
             calls.push('setKeys')
-            setKeysBatches.push(u)
         },
         commit: async () => {
             calls.push('commit')
@@ -106,34 +144,209 @@ function makeService(
     return {
         service: svc as unknown as KeyboardService,
         calls,
-        setKeysBatches,
+        writes,
         renamed,
     }
 }
 
+const actionType = (id: string, over: Partial<ActionType> = {}): ActionType =>
+    ({ id, displayName: id, slots: [], ...over }) as unknown as ActionType
+
 describe('restoreProfile', () => {
-    it('batches every binding then commits, in that order', async () => {
-        const { service, calls, setKeysBatches } = makeService([
+    it('writes every differing binding then commits, in that order', async () => {
+        const { service, calls, writes } = makeService([
             layer(0, 'Base', [ka('kp', [4]), ka('kp', [5])]),
         ])
         const backup = backupOf(
             km([layer(7, 'Base', [ka('kp', [20]), ka('kp', [21])])]),
         )
 
-        await restoreProfile(service, backup)
+        const result = await restoreProfile(service, backup)
 
-        expect(setKeysBatches).toHaveLength(1)
-        expect(setKeysBatches[0]).toEqual([
+        expect(writes).toEqual([
             { layerId: 0, position: 0, action: ka('kp', [20]) },
             { layerId: 0, position: 1, action: ka('kp', [21]) },
         ])
-        // setKeys must precede commit.
-        expect(calls.indexOf('setKeys')).toBeLessThan(calls.indexOf('commit'))
+        expect(result.written).toBe(2)
+        // Writes must precede commit.
+        expect(calls.indexOf('setKey')).toBeLessThan(calls.indexOf('commit'))
         expect(calls.filter((c) => c === 'commit')).toHaveLength(1)
     })
 
+    it('skips keys already matching the backup', async () => {
+        const { service, calls, writes } = makeService([
+            layer(0, 'Base', [ka('kp', [4]), ka('kp', [5])]),
+        ])
+        const backup = backupOf(
+            km([layer(0, 'Base', [ka('kp', [4]), ka('kp', [99])])]),
+        )
+
+        const result = await restoreProfile(service, backup)
+
+        expect(writes).toEqual([
+            { layerId: 0, position: 1, action: ka('kp', [99]) },
+        ])
+        expect(result).toMatchObject({ written: 1, unchanged: 1 })
+        expect(calls.filter((c) => c === 'setKey')).toHaveLength(1)
+    })
+
+    it('does not commit when every key already matches', async () => {
+        const { service, calls } = makeService([
+            layer(0, 'Base', [ka('kp', [4])]),
+        ])
+        const backup = backupOf(km([layer(0, 'Base', [ka('kp', [4])])]))
+
+        const result = await restoreProfile(service, backup)
+
+        expect(calls).not.toContain('commit')
+        expect(result).toMatchObject({ written: 0, unchanged: 1 })
+    })
+
+    it('skips a binding the adapter reports as unsettable, without an RPC', async () => {
+        // &ext_power reports no parameter metadata; ZMK rejects any non-zero param.
+        const { service, calls, writes } = makeService(
+            [layer(0, 'Base', [ka('kp', [4]), ka('trans', [0])])],
+            {
+                actionTypes: [actionType('ext_power', { settable: false })],
+            },
+        )
+        const backup = backupOf(
+            km([layer(0, 'Base', [ka('kp', [20]), ka('ext_power', [2])])]),
+        )
+
+        const result = await restoreProfile(service, backup)
+
+        expect(writes).toEqual([
+            { layerId: 0, position: 0, action: ka('kp', [20]) },
+        ])
+        expect(calls.filter((c) => c === 'setKey')).toHaveLength(1)
+        expect(result.skipped).toEqual([
+            expect.objectContaining({
+                layerIndex: 0,
+                layerName: 'Base',
+                position: 1,
+                reason: 'unsettable',
+            }),
+        ])
+        expect(calls).toContain('commit')
+    })
+
+    it('skips a binding rejected by canSetAction', async () => {
+        const { service, calls, writes } = makeService(
+            [layer(0, 'Base', [ka('trans', [0])])],
+            { unsettableKinds: ['mmv'] },
+        )
+        const backup = backupOf(km([layer(0, 'Base', [ka('mmv', [1])])]))
+
+        const result = await restoreProfile(service, backup)
+
+        expect(writes).toEqual([])
+        expect(calls).not.toContain('setKey')
+        expect(calls).not.toContain('commit')
+        expect(result.skipped).toHaveLength(1)
+    })
+
+    it('lets canSetAction override the coarser settable flag', async () => {
+        // ZMK marks &trans unsettable (no parameter metadata) yet accepts its
+        // zero binding — skipping it would silently drop a real key on restore.
+        const { service, writes } = makeService(
+            [layer(0, 'Base', [ka('kp', [4])])],
+            {
+                actionTypes: [actionType('trans', { settable: false })],
+                unsettableKinds: ['mmv'],
+            },
+        )
+        const backup = backupOf(km([layer(0, 'Base', [ka('trans', [0])])]))
+
+        const result = await restoreProfile(service, backup)
+
+        expect(writes).toEqual([
+            { layerId: 0, position: 0, action: ka('trans', [0]) },
+        ])
+        expect(result.skipped).toEqual([])
+    })
+
+    it('continues past a rejected key and still commits the rest', async () => {
+        const { service, calls, writes } = makeService(
+            [layer(0, 'Base', [ka('kp', [4]), ka('kp', [5]), ka('kp', [6])])],
+            { rejectKinds: ['ext_power'] },
+        )
+        const backup = backupOf(
+            km([
+                layer(0, 'Base', [
+                    ka('kp', [20]),
+                    ka('ext_power', [2]),
+                    ka('kp', [22]),
+                ]),
+            ]),
+        )
+
+        const result = await restoreProfile(service, backup)
+
+        expect(writes).toEqual([
+            { layerId: 0, position: 0, action: ka('kp', [20]) },
+            { layerId: 0, position: 2, action: ka('kp', [22]) },
+        ])
+        expect(result.written).toBe(2)
+        expect(result.failed).toEqual([
+            expect.objectContaining({ position: 1, reason: 'rejected' }),
+        ])
+        expect(result.failed[0].message).toContain('rejected the binding')
+        expect(calls).toContain('commit')
+    })
+
+    it('remaps layer-ref params to the live layer ids', async () => {
+        const { service, writes } = makeService(
+            [
+                layer(0, 'Base', [ka('trans', [0])]),
+                layer(1, 'Fn', [ka('trans', [0])]),
+            ],
+            {
+                actionTypes: [
+                    actionType('mo', {
+                        slots: [{ label: 'Layer', kind: 'layer' }],
+                    }),
+                ],
+            },
+        )
+        // Saved ids (40/41) differ from live ids (0/1); index 1 is the Fn layer.
+        const backup = backupOf(
+            km([
+                layer(40, 'Base', [ka('mo', [41])]),
+                layer(41, 'Fn', [ka('trans', [0])]),
+            ]),
+        )
+
+        await restoreProfile(service, backup)
+
+        expect(writes).toEqual([
+            { layerId: 0, position: 0, action: ka('mo', [1]) },
+        ])
+    })
+
+    it('leaves an unmappable layer param alone', async () => {
+        const { service, writes } = makeService(
+            [layer(0, 'Base', [ka('trans', [0])])],
+            {
+                actionTypes: [
+                    actionType('mo', {
+                        slots: [{ label: 'Layer', kind: 'layer' }],
+                    }),
+                ],
+                caps: { variableLayerCount: false },
+            },
+        )
+        const backup = backupOf(km([layer(40, 'Base', [ka('mo', [99])])]))
+
+        await restoreProfile(service, backup)
+
+        expect(writes).toEqual([
+            { layerId: 0, position: 0, action: ka('mo', [99]) },
+        ])
+    })
+
     it('adds missing layers and renames them to the backup', async () => {
-        const { service, calls, setKeysBatches, renamed } = makeService([
+        const { service, calls, writes, renamed } = makeService([
             layer(0, 'Base', [ka('kp', [4]), ka('kp', [5])]),
         ])
         const backup = backupOf(
@@ -146,11 +359,11 @@ describe('restoreProfile', () => {
         await restoreProfile(service, backup)
 
         expect(calls).toContain('addLayer')
-        // One flat batch, two layers × two keys.
-        expect(setKeysBatches[0]).toHaveLength(4)
+        // Two layers × two keys.
+        expect(writes).toHaveLength(4)
         // The freshly-added layer (id 100) is renamed to the saved name.
         expect(renamed).toContainEqual([100, 'Fn'])
-        expect(setKeysBatches[0]).toContainEqual({
+        expect(writes).toContainEqual({
             layerId: 100,
             position: 0,
             action: ka('kp', [30]),
@@ -158,7 +371,7 @@ describe('restoreProfile', () => {
     })
 
     it('removes extra layers to match the backup', async () => {
-        const { service, calls, setKeysBatches } = makeService([
+        const { service, calls, writes } = makeService([
             layer(0, 'Base', [ka('kp', [4])]),
             layer(1, 'Fn', [ka('kp', [9])]),
         ])
@@ -168,7 +381,7 @@ describe('restoreProfile', () => {
 
         expect(calls).toContain('removeLayer')
         // Only the single remaining layer's key is written.
-        expect(setKeysBatches[0]).toEqual([
+        expect(writes).toEqual([
             { layerId: 0, position: 0, action: ka('kp', [20]) },
         ])
     })
@@ -176,7 +389,7 @@ describe('restoreProfile', () => {
     it('does not add/remove layers when the firmware lacks variableLayerCount', async () => {
         const { service, calls } = makeService(
             [layer(0, 'Base', [ka('kp', [4])])],
-            { variableLayerCount: false },
+            { caps: { variableLayerCount: false } },
         )
         const backup = backupOf(
             km([
@@ -189,5 +402,23 @@ describe('restoreProfile', () => {
 
         expect(calls).not.toContain('addLayer')
         expect(calls).not.toContain('removeLayer')
+    })
+
+    it('restores even when the action-type list is unavailable', async () => {
+        const { service, writes } = makeService([
+            layer(0, 'Base', [ka('kp', [4])]),
+        ])
+        const svc = service as unknown as {
+            listActionTypes: () => Promise<never>
+        }
+        svc.listActionTypes = async (): Promise<never> => {
+            throw new Error('nope')
+        }
+        const backup = backupOf(km([layer(0, 'Base', [ka('kp', [20])])]))
+
+        const result = await restoreProfile(service, backup)
+
+        expect(writes).toHaveLength(1)
+        expect(result.written).toBe(1)
     })
 })

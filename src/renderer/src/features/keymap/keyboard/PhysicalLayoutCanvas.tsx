@@ -10,6 +10,12 @@ import React, {
 } from 'react'
 import { Maximize2, Minus, Plus } from 'lucide-react'
 import { HoldTapLabels, KeyButtonView } from './KeyButton.tsx'
+import { EncoderCap } from './EncoderCap'
+import type { KnobLegend } from '@/features/encoders/knobLegend'
+import {
+    type EncoderSelection,
+    parseEncoderHitId,
+} from '@/features/encoders/model'
 import { clamp } from '@/lib/clampInt'
 import { scalePosition } from '@/lib/scalePosition'
 import { LayoutZoom } from '@/lib/helpers'
@@ -56,8 +62,9 @@ export type KeyPosition = PropsWithChildren<{
     r?: number
     rx?: number
     ry?: number
-    // Encoder marker (when present, KeyButton is rendered as a small dial half).
-    encoder?: { slot: number; dir: 'cw' | 'ccw' }
+    // A knob, not a key: skipped by key-only paths (nav, heatmap, paint), and
+    // carries the legend its cap shows per turn direction.
+    knob?: KnobLegend
 }>
 
 // Pattern check: no GoF pattern (-) — rejected — plain prop/callback shape additions for
@@ -74,7 +81,7 @@ interface PhysicalLayoutCanvasProps {
     selectedPosition?: number
     // Additional positions highlighted as part of a multi-selection.
     selectedPositions?: Set<number>
-    selectedEncoder?: { slot: number; dir: 'cw' | 'ccw' }
+    selectedEncoder?: EncoderSelection
     oneU?: number
     hoverZoom?: boolean
     // Presentational forwards for small/clean previews (e.g. start-page device card).
@@ -100,7 +107,7 @@ interface PhysicalLayoutCanvasProps {
     // Paint gesture ended (pointerup) → flush coalesced writes to the device.
     onPaintCommit?: () => void
     onPositionClicked?: (position: number, mods?: ClickModifiers) => void
-    onEncoderClicked?: (slot: number, dir: 'cw' | 'ccw') => void
+    onEncoderClicked?: (sel: EncoderSelection) => void
     // Right-click on a key (not encoder) → host shows a context menu at the
     // viewport coords. Skipped silently when undefined so callers that
     // don't want the menu don't pay for the wiring.
@@ -506,22 +513,16 @@ const PhysicalLayoutCanvasImpl = ({
         e: React.SyntheticEvent,
     ): {
         idx: number
-        encoder?: { slot: number; dir: 'cw' | 'ccw' }
+        encoder?: EncoderSelection
     } | null => {
         const el = (e.target as HTMLElement).closest(
             '[data-key="true"]',
         ) as HTMLElement | null
         if (!el) return null
         const idx = Number(el.dataset.idx)
-        const enc = el.dataset.encoder
-        if (enc) {
-            const [slot, dir] = enc.split(':')
-            return {
-                idx,
-                encoder: { slot: Number(slot), dir: dir as 'cw' | 'ccw' },
-            }
-        }
-        return { idx }
+        const hitId = el.dataset.encoder
+        const encoder = hitId ? parseEncoderHitId(hitId) : null
+        return encoder ? { idx, encoder } : { idx }
     }
     // pattern-check: skip — event-delegation paint handlers, plain callbacks, no abstraction
     const handleBoardClick = useCallback(
@@ -529,7 +530,7 @@ const PhysicalLayoutCanvasImpl = ({
             const hit = keyFromEvent(e)
             if (!hit) return
             if (hit.encoder) {
-                onEncoderClicked?.(hit.encoder.slot, hit.encoder.dir)
+                onEncoderClicked?.(hit.encoder)
                 return
             }
             // Paint mode: pointerdown/over already paints (and commits on
@@ -599,8 +600,7 @@ const PhysicalLayoutCanvasImpl = ({
             const hit = keyFromEvent(e)
             if (!hit) return
             e.preventDefault()
-            if (hit.encoder)
-                onEncoderClicked?.(hit.encoder.slot, hit.encoder.dir)
+            if (hit.encoder) onEncoderClicked?.(hit.encoder)
             else onPositionClicked?.(hit.idx)
         },
         [onEncoderClicked, onPositionClicked],
@@ -615,7 +615,7 @@ const PhysicalLayoutCanvasImpl = ({
         const anyColor = !!perKeyColors && perKeyColors.some(Boolean)
         if (!lighting?.enabled && !anyColor) return null
         return positions.map((p, idx) => {
-            if (p.encoder) return null
+            if (p.knob) return null
             const color = perKeyColors?.[idx] ?? undefined
             // No effect glow and no per-key colour → nothing to render for this key.
             if (!lighting?.enabled && !color) return null
@@ -633,15 +633,34 @@ const PhysicalLayoutCanvasImpl = ({
         () =>
             positions.map((p, idx) => {
                 const posStyle = scalePosition(p, effOneU)
-                const isEncoder = !!p.encoder
-                const isSelected = isEncoder
-                    ? selectedEncoder?.slot === p.encoder!.slot &&
-                      selectedEncoder?.dir === p.encoder!.dir
-                    : idx === selectedPosition
-                const isMultiSelected =
-                    !isEncoder && !!selectedPositions?.has(idx)
-                const lightInput =
-                    isEncoder || !lightInputs ? null : lightInputs[idx]
+                if (p.knob) {
+                    // A knob: one cap, whose own hit zones carry
+                    // data-encoder per turn direction.
+                    const selectedDir =
+                        selectedEncoder?.slot === p.knob.slot
+                            ? selectedEncoder.dir
+                            : null
+                    return (
+                        <div
+                            key={p.id}
+                            data-idx={idx}
+                            className="absolute leading-[0]"
+                            style={posStyle as React.CSSProperties}
+                        >
+                            <EncoderCap
+                                knob={p.knob}
+                                width={p.width}
+                                height={p.height}
+                                oneU={effOneU}
+                                selectedDir={selectedDir}
+                                capStyle={capStyle}
+                                colorMode={colorMode}
+                                keyDisplayMode={keyDisplayMode}
+                                showHeaderTag={showHeaderTag}
+                            />
+                        </div>
+                    )
+                }
                 return (
                     <div
                         key={p.id}
@@ -649,11 +668,6 @@ const PhysicalLayoutCanvasImpl = ({
                         tabIndex={0}
                         data-key="true"
                         data-idx={idx}
-                        data-encoder={
-                            isEncoder
-                                ? `${p.encoder!.slot}:${p.encoder!.dir}`
-                                : undefined
-                        }
                         className="absolute data-[zoomer=true]:hover:z-[1000] leading-[0]"
                         data-zoomer={hoverZoom}
                         style={posStyle as React.CSSProperties}
@@ -661,17 +675,17 @@ const PhysicalLayoutCanvasImpl = ({
                         <KeyButtonView
                             hoverZoom={hoverZoom}
                             oneU={effOneU}
-                            selected={isSelected}
-                            multiSelected={isMultiSelected}
-                            pressed={!isEncoder && pressedKeys.has(idx)}
-                            seen={!isEncoder && seenKeys.has(idx)}
-                            richTooltip={tooltips && !isEncoder}
+                            selected={idx === selectedPosition}
+                            multiSelected={!!selectedPositions?.has(idx)}
+                            pressed={pressedKeys.has(idx)}
+                            seen={seenKeys.has(idx)}
+                            richTooltip={tooltips}
                             capStyle={capStyle}
                             colorMode={colorMode}
                             keyDisplayMode={keyDisplayMode}
                             showHeaderTag={showHeaderTag}
                             showCategoryDot={showCategoryDot}
-                            light={lightInput}
+                            light={lightInputs?.[idx] ?? null}
                             {...p}
                         />
                     </div>

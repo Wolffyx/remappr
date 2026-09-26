@@ -20,7 +20,7 @@ export const FEATURE_PROBES = {
     unicode: (s) => s.unicode,
     // remappr-only: GET_LIMITS answered → config-blob timing/defaults editable.
     limits: (s) => s.limits,
-    lock: (s) => s.capabilities.lock,
+    lock: (s) => s.capabilities.lock !== 'none',
     rename: (s) => s.capabilities.rename,
     reorderLayers: (s) => s.capabilities.reorderLayers,
     variableLayerCount: (s) => s.capabilities.variableLayerCount,
