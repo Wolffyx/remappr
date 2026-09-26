@@ -120,7 +120,7 @@
         "typescript": "^5.9.3",
         "vite": "^7.2.6",
         "vitepress": "^1.6.4",
-        "vitest": "^3.2.4",
+        "vitest": "^3.2.7",
         "wrangler": "^4.126.0",
         "xz-decompress": "^0.2.3",
         "zod": "^4.4.3",
