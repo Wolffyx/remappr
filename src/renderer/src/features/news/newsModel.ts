@@ -26,7 +26,9 @@
 // An item that doesn't match is skipped; the rest still show.
 import { z } from 'zod'
 import type { Release } from '@/lib/github'
-import { compareVersions } from '@shared/semver'
+// Relative, not @shared: the docs' release loader imports this file too, and
+// VitePress doesn't know the app's aliases.
+import { compareVersions } from '../../../../shared/semver'
 
 export const NEWS_TAG_IDS = [
     'announcement',
