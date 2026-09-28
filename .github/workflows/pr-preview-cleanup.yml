@@ -1,16 +1,17 @@
 name: PR preview cleanup (Cloudflare Pages)
 
-# Removes PR previews from the remappr-preview Pages project, which otherwise
-# keeps every deployment of every PR (and its pr-N.remappr-preview.pages.dev
-# alias) forever:
-#   - when a PR closes (merged or not), its pr-<number> deployments;
-#   - on a manual run, the deployments of every pr-<number> whose PR is no
-#     longer open — a one-off sweep of the backlog.
-# Deletion is permanent; open PRs are never touched.
+# Prunes the remappr-preview Pages project, which otherwise keeps every
+# deployment of every PR forever. It always keeps:
+#   - the newest KEEP (30) preview deployments, whatever their PR's state;
+#   - the latest deployment of every open PR (its pr-N alias keeps working).
+# Everything older is deleted (permanently); only pr-<number> deployments are
+# ever touched. Runs when a PR closes, weekly, and by hand.
 on:
     pull_request:
         branches: [main, dev]
         types: [closed]
+    schedule:
+        - cron: '17 4 * * 1'
     workflow_dispatch:
 
 permissions:
@@ -28,7 +29,7 @@ jobs:
             CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
             CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
             PROJECT: remappr-preview
-            PR_NUMBER: ${{ github.event.pull_request.number }}
+            KEEP: 30
             GH_TOKEN: ${{ github.token }}
         steps:
             - name: Delete preview deployments
@@ -41,27 +42,34 @@ jobs:
                   api="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/$PROJECT/deployments"
                   auth=(-H "Authorization: Bearer $CF_API_TOKEN")
 
-                  # Which PR branches to clear: this PR, or every closed one.
-                  if [ -n "$PR_NUMBER" ]; then
-                    keep() { [ "$1" != "pr-$PR_NUMBER" ]; }
-                  else
-                    OPEN=" $(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 500 --json number -q '.[].number' | tr '\n' ' ') "
-                    keep() { [[ ! "$1" =~ ^pr-([0-9]+)$ ]] || [[ "$OPEN" == *" ${BASH_REMATCH[1]} "* ]]; }
-                  fi
+                  OPEN=" $(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 500 --json number -q '.[].number' | tr '\n' ' ') "
 
-                  # Collect first, delete after, so deleting doesn't shift the
-                  # pages being listed.
-                  targets=()
+                  # Every deployment as "created<TAB>id<TAB>branch".
+                  all=$(mktemp)
                   page=1
                   while :; do
                     res=$(curl -sS -f "${auth[@]}" "$api?page=$page&per_page=25")
-                    count=$(jq '.result | length' <<< "$res")
-                    [ "$count" -eq 0 ] && break
-                    while IFS=$'\t' read -r id branch; do
-                      keep "$branch" || targets+=("$id $branch")
-                    done < <(jq -r '.result[] | [.id, (.deployment_trigger.metadata.branch // "")] | @tsv' <<< "$res")
+                    [ "$(jq '.result | length' <<< "$res")" -eq 0 ] && break
+                    jq -r '.result[] | [.created_on, .id, (.deployment_trigger.metadata.branch // "")] | @tsv' <<< "$res" >> "$all"
                     page=$((page + 1))
                   done
+
+                  # Newest first: keep the first KEEP previews and each open
+                  # PR's newest one; collect the rest.
+                  targets=()
+                  seen=" "
+                  n=0
+                  while IFS=$'\t' read -r _ id branch; do
+                    [[ "$branch" =~ ^pr-([0-9]+)$ ]] || continue
+                    pr=${BASH_REMATCH[1]}
+                    n=$((n + 1))
+                    if [ "$n" -le "$KEEP" ]; then seen+="$pr "; continue; fi
+                    if [[ "$OPEN" == *" $pr "* && "$seen" != *" $pr "* ]]; then
+                      seen+="$pr "
+                      continue
+                    fi
+                    targets+=("$id $branch")
+                  done < <(sort -r "$all")
 
                   echo "${#targets[@]} deployment(s) to delete"
                   for t in "${targets[@]}"; do
