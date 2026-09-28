@@ -59,7 +59,9 @@ jobs:
 
             - name: Guard against daisyUI re-introduction
               run: |
-                  if grep -rEn 'btn-|bg-base-|text-base-content|primary-content|\bnavbar\b|rounded-box|badge-' src/; then
+                  # btn-/badge- only as class names: a preceding "-" is a CSS
+                  # custom property (the UI kit's Badge reads --badge-tone).
+                  if grep -rEn '(^|[^-])(btn|badge)-|bg-base-|text-base-content|primary-content|\bnavbar\b|rounded-box' src/; then
                     echo "::error::daisyUI tokens or class names detected. Migrate to shadcn equivalents (see chore/shadcn-update branch history)."
                     exit 1
                   fi
