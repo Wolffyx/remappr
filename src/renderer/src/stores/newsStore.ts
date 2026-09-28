@@ -35,14 +35,22 @@ interface NewsState {
     dismissedBannerIds: string[]
     /** Item whose release notes dialog is open (not persisted). */
     notesItemId: string | null
+    /** Release notes shown app-wide, outside the start page: the post-update
+     *  "what's new" popup, or a release opened from the update toast (not
+     *  persisted). */
+    whatsNew: NewsItem | null
     /** Fetch both sources unless the cache is under half an hour old. A source
      *  that fails keeps its cached items. */
     refresh: () => Promise<void>
+    /** Fetch both sources now, however fresh the cache is. */
+    refetch: () => Promise<void>
     markRead: (ids: string[]) => void
     dismissBanner: (ids: string[]) => void
     resetBanner: () => void
     openNotes: (id: string) => void
     closeNotes: () => void
+    openWhatsNew: (item: NewsItem) => void
+    closeWhatsNew: () => void
 }
 
 async function fetchCurated(): Promise<NewsItem[]> {
@@ -71,10 +79,14 @@ const useNewsStore = create<NewsState>()(
             readIds: [],
             dismissedBannerIds: [],
             notesItemId: null,
+            whatsNew: null,
             refresh: () => {
                 if (Date.now() - get().fetchedAt < STALE_MS) {
                     return Promise.resolve()
                 }
+                return get().refetch()
+            },
+            refetch: () => {
                 inFlight ??= (async () => {
                     const [curated, releases] = await Promise.allSettled([
                         fetchCurated(),
@@ -119,6 +131,8 @@ const useNewsStore = create<NewsState>()(
             resetBanner: () => set({ dismissedBannerIds: [] }),
             openNotes: (id) => set({ notesItemId: id }),
             closeNotes: () => set({ notesItemId: null }),
+            openWhatsNew: (item) => set({ whatsNew: item }),
+            closeWhatsNew: () => set({ whatsNew: null }),
         }),
         {
             name: 'news-store',

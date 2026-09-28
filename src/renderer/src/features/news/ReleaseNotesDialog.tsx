@@ -14,7 +14,12 @@ import { Separator } from '@/ui/separator'
 import { CHANGELOG_URL } from '@/lib/constants'
 import useNewsStore from '@/stores/newsStore'
 import { NewsTag, NewsTextLink } from './NewsParts'
-import { formatNewsDate, NEWS_TAGS, type NewsView } from './newsModel'
+import {
+    formatNewsDate,
+    NEWS_TAGS,
+    type NewsItem,
+    type NewsView,
+} from './newsModel'
 
 const SECTION_TONE: Record<string, string> = {
     Features: NEWS_TAGS.release.tone,
@@ -29,11 +34,23 @@ export function ReleaseNotesDialog({ pinned, latest }: NewsView): JSX.Element {
     const notesItemId = useNewsStore((s) => s.notesItemId)
     const closeNotes = useNewsStore((s) => s.closeNotes)
     const item = [...pinned, ...latest].find((n) => n.id === notesItemId)
+    return <ReleaseNotesView item={item} onClose={closeNotes} />
+}
+
+/** The release notes dialog for `item`; closed while it's undefined. A
+ *  release item is titled by its version, anything else by its title. */
+export function ReleaseNotesView({
+    item,
+    onClose,
+}: {
+    item: NewsItem | null | undefined
+    onClose: () => void
+}): JSX.Element {
     const sections = item?.notes ?? []
     const version = item?.version?.replace(/^v/, '')
 
     return (
-        <Dialog open={!!item} onOpenChange={(open) => !open && closeNotes()}>
+        <Dialog open={!!item} onOpenChange={(open) => !open && onClose()}>
             {item && (
                 <DialogContent className="flex max-h-[85vh] max-w-xl flex-col gap-0 p-0">
                     <DialogHeader className="gap-1.5 px-6 pb-4 pt-5 text-left">

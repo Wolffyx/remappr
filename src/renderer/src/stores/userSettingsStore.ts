@@ -44,6 +44,10 @@ interface UserSettingsState {
     /** Show the pinned-news banner on top of whichever layout is picked. */
     newsPinnedBanner: boolean
     seenBuilderTour: boolean
+    /** Version of the last launch; a newer one on start opens "what's new".
+     *  null until the first launch records it. */
+    lastRunVersion: string | null
+    setLastRunVersion: (version: string) => void
     setSeenBuilderTour: (seen: boolean) => void
     setCapStyle: (style: CapStyle) => void
     setColorMode: (mode: ColorCodingMode) => void
@@ -80,6 +84,8 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 newsStyle: 'rail',
                 newsPinnedBanner: false,
                 seenBuilderTour: false,
+                lastRunVersion: null,
+                setLastRunVersion: (lastRunVersion) => set({ lastRunVersion }),
                 setSeenBuilderTour: (seenBuilderTour) =>
                     set({ seenBuilderTour }),
                 setCapStyle: (capStyle) => set({ capStyle }),

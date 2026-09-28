@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/ui/button'
 import { DownloadLatestButton } from '@/components/DownloadLatestButton'
@@ -8,6 +8,7 @@ import { isElectron as isElectronEnv } from '@/transport'
 import type { UpdateCheckResultPayload } from '../../../../../shared/ipc-types'
 import { IpcChannels } from '../../../../../shared/ipc-types'
 import { getApi } from '@/electron/api'
+import { openCurrentReleaseNotes } from '@/features/news/whatsNew'
 
 export function AboutSection(): JSX.Element {
     const [checking, setChecking] = useState(false)
@@ -54,6 +55,13 @@ export function AboutSection(): JSX.Element {
             </p>
             <div className="flex flex-wrap gap-2">
                 <DownloadLatestButton />
+                <Button
+                    variant="ghost"
+                    onClick={(): void => void openCurrentReleaseNotes()}
+                >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    What’s new
+                </Button>
                 {isElectron && (
                     <Button
                         variant="ghost"

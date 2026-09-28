@@ -26,6 +26,7 @@
 // An item that doesn't match is skipped; the rest still show.
 import { z } from 'zod'
 import type { Release } from '@/lib/github'
+import { compareVersions } from '@shared/semver'
 
 export const NEWS_TAG_IDS = [
     'announcement',
@@ -182,6 +183,8 @@ const SECTION_NOUN: Record<string, [one: string, many: string]> = {
     ],
 }
 
+const SECTION_ORDER = Object.keys(SECTION_NOUN)
+
 /** "5 features · 3 fixes · 1 other change" */
 export function summarizeReleaseNotes(sections: ReleaseNoteSection[]): string {
     const counts = new Map<string, number>()
@@ -218,6 +221,84 @@ export function releaseToNewsItem(release: Release): NewsItem | null {
         url: release.html_url,
         version: release.tag_name,
         notes,
+    }
+}
+
+/** Several releases' notes as one: sections merged by heading (in
+ *  release-please order, unknown headings last), an entry listed once even
+ *  when two releases carry it. */
+export function mergeReleaseNotes(
+    lists: ReleaseNoteSection[][],
+): ReleaseNoteSection[] {
+    const byTitle = new Map<string, ReleaseNoteSection>()
+    const seen = new Set<string>()
+    for (const { title, entries } of lists.flat()) {
+        const section = byTitle.get(title) ?? { title, entries: [] }
+        byTitle.set(title, section)
+        for (const entry of entries) {
+            const key = `${title}|${entry.scope ?? ''}|${entry.text}`
+            if (seen.has(key)) continue
+            seen.add(key)
+            section.entries.push(entry)
+        }
+    }
+    const rank = (title: string): number => {
+        const i = SECTION_ORDER.indexOf(title)
+        return i < 0 ? SECTION_ORDER.length : i
+    }
+    return [...byTitle.values()].sort((a, b) => rank(a.title) - rank(b.title))
+}
+
+// Sections worth a popup on launch. A release with only fixes still shows on
+// the start page, but doesn't interrupt: with a release cut for every merge,
+// a popup per patch would be noise.
+const HIGHLIGHT_SECTIONS = new Set(['Features', 'Performance Improvements'])
+
+/** What the post-update popup should do:
+ *  - pending: the running version's release isn't in the list (yet)
+ *  - quiet:   nothing since `since` is worth interrupting for
+ *  - show:    one item with the notes of every release after `since` up to
+ *             and including `current` */
+export type WhatsNew =
+    | { kind: 'pending' }
+    | { kind: 'quiet' }
+    | { kind: 'show'; item: NewsItem }
+
+export function whatsNewSince(
+    releases: NewsItem[],
+    since: string,
+    current: string,
+): WhatsNew {
+    const versionOf = (n: NewsItem): string => n.version ?? ''
+    const latest = releases.find(
+        (n) => compareVersions(versionOf(n), current) === 0,
+    )
+    if (!latest) return { kind: 'pending' }
+    const range = releases.filter(
+        (n) =>
+            (compareVersions(versionOf(n), since) ?? 0) > 0 &&
+            (compareVersions(versionOf(n), current) ?? 1) <= 0,
+    )
+    const notes = mergeReleaseNotes(range.map((n) => n.notes ?? []))
+    if (!notes.some((n) => HIGHLIGHT_SECTIONS.has(n.title))) {
+        return { kind: 'quiet' }
+    }
+    const summary = summarizeReleaseNotes(notes)
+    return {
+        kind: 'show',
+        item: {
+            ...latest,
+            id: `whats-new-${current}`,
+            // No version: the dialog then titles it by `title`, not
+            // "Version X", and links to all releases.
+            version: undefined,
+            title: `What’s new in Remappr ${current}`,
+            body:
+                range.length > 1
+                    ? `Everything since ${since.replace(/^v/, '')}: ${summary}`
+                    : summary,
+            notes,
+        },
     }
 }
 

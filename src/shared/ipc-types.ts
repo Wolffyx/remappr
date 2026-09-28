@@ -99,6 +99,8 @@ export interface UpdateAvailablePayload {
     version: string
     url: string
     notes: string
+    /** ISO date-time the release was published. */
+    publishedAt: string
 }
 
 // pattern-check: skip — flat IPC DTO, no behavior

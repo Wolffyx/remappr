@@ -23,6 +23,7 @@ import { StartPage } from '@/features/connection/start-page/StartPage'
 import useBuilderStore from '@/stores/builderStore'
 import { CoachmarkTour } from '@/features/onboarding/CoachmarkTour'
 import { UpdateNotification } from '@/components/UpdateNotification'
+import { WhatsNewDialog } from '@/features/news/WhatsNewDialog'
 import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
@@ -290,6 +291,7 @@ function App(): JSX.Element {
                 </div>
             </div>
             <UpdateNotification />
+            <WhatsNewDialog />
             <Toaster richColors position="top-center" />
             <UnlockPanel layout="card" />
         </ThemeProvider>

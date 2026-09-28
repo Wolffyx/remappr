@@ -6,12 +6,14 @@ import {
     formatNewsDate,
     isUnread,
     mergeNews,
+    mergeReleaseNotes,
     NEWS_LATEST_LIMIT,
     type NewsItem,
     parseNewsFile,
     parseReleaseNotes,
     releaseToNewsItem,
     summarizeReleaseNotes,
+    whatsNewSince,
 } from './newsModel'
 
 const item = (over: Partial<NewsItem> & { id: string }): NewsItem => ({
@@ -268,5 +270,81 @@ describe('isUnread', () => {
         expect(isUnread(fresh, new Set(), now)).toBe(true)
         expect(isUnread(fresh, new Set(['fresh']), now)).toBe(false)
         expect(isUnread(old, new Set(), now)).toBe(false)
+    })
+})
+
+describe('mergeReleaseNotes', () => {
+    it('merges sections by heading and lists a shared entry once', () => {
+        const merged = mergeReleaseNotes([
+            [{ title: 'Features', entries: [{ text: 'B' }] }],
+            [
+                { title: 'Bug Fixes', entries: [{ text: 'X' }] },
+                { title: 'Features', entries: [{ text: 'A' }, { text: 'B' }] },
+            ],
+        ])
+        expect(merged).toEqual([
+            { title: 'Features', entries: [{ text: 'B' }, { text: 'A' }] },
+            { title: 'Bug Fixes', entries: [{ text: 'X' }] },
+        ])
+    })
+
+    it('puts sections in release-please order', () => {
+        const merged = mergeReleaseNotes([
+            [{ title: 'Miscellaneous', entries: [{ text: 'M' }] }],
+            [{ title: 'Bug Fixes', entries: [{ text: 'X' }] }],
+            [{ title: 'Features', entries: [{ text: 'A' }] }],
+        ])
+        expect(merged.map((n) => n.title)).toEqual([
+            'Features',
+            'Bug Fixes',
+            'Miscellaneous',
+        ])
+    })
+})
+
+describe('whatsNewSince', () => {
+    const rel = (version: string, body: string): NewsItem =>
+        releaseToNewsItem(
+            release({ tag_name: `v${version}`, name: `v${version}`, body }),
+        )!
+    const feat = (text: string): string => `### Features\n\n* ${text}\n`
+    const fix = (text: string): string => `### Bug Fixes\n\n* ${text}\n`
+    const releases = [
+        rel('0.0.20', fix('fix twenty')),
+        rel('0.0.19', feat('feat nineteen')),
+        rel('0.0.18', feat('feat eighteen')),
+        rel('0.0.17', feat('feat seventeen')),
+    ]
+
+    it('collects every release after the last run up to the current one', () => {
+        const result = whatsNewSince(releases, '0.0.17', '0.0.20')
+        expect(result.kind).toBe('show')
+        if (result.kind !== 'show') return
+        expect(result.item.title).toBe('What’s new in Remappr 0.0.20')
+        expect(result.item.body).toBe(
+            'Everything since 0.0.17: 2 features · 1 fix',
+        )
+        expect(result.item.notes?.map((n) => n.title)).toEqual([
+            'Features',
+            'Bug Fixes',
+        ])
+        expect(result.item.url).toBe(releases[0].url)
+    })
+
+    it('stays quiet when only fixes landed', () => {
+        expect(whatsNewSince(releases, '0.0.19', '0.0.20')).toEqual({
+            kind: 'quiet',
+        })
+    })
+
+    it('is pending until the running version has a release', () => {
+        expect(whatsNewSince(releases, '0.0.20', '0.0.21')).toEqual({
+            kind: 'pending',
+        })
+    })
+
+    it('uses the single release summary when one version was skipped', () => {
+        const result = whatsNewSince(releases, '0.0.18', '0.0.19')
+        expect(result.kind === 'show' && result.item.body).toBe('1 feature')
     })
 })
