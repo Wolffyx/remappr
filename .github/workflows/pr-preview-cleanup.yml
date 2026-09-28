@@ -1,0 +1,83 @@
+name: PR preview cleanup (Cloudflare Pages)
+
+# Prunes the remappr-preview Pages project, which otherwise keeps every
+# deployment of every PR forever. It always keeps:
+#   - the newest KEEP (30) preview deployments, whatever their PR's state;
+#   - the latest deployment of every open PR (its pr-N alias keeps working).
+# Everything older is deleted (permanently); only pr-<number> deployments are
+# ever touched. Runs when a PR closes, weekly, and by hand.
+on:
+    pull_request:
+        branches: [main, dev]
+        types: [closed]
+    schedule:
+        - cron: '17 4 * * 1'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    pull-requests: read
+
+concurrency:
+    group: pr-preview-cleanup
+    cancel-in-progress: false
+
+jobs:
+    cleanup:
+        runs-on: ubuntu-latest
+        env:
+            CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+            PROJECT: remappr-preview
+            KEEP: 30
+            GH_TOKEN: ${{ github.token }}
+        steps:
+            - name: Delete preview deployments
+              run: |
+                  set -euo pipefail
+                  if [ -z "$CF_API_TOKEN" ]; then
+                    echo "::warning::No Cloudflare token (Dependabot/fork PR) — nothing cleaned."
+                    exit 0
+                  fi
+                  api="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/$PROJECT/deployments"
+                  auth=(-H "Authorization: Bearer $CF_API_TOKEN")
+
+                  OPEN=" $(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 500 --json number -q '.[].number' | tr '\n' ' ') "
+
+                  # Every deployment as "created<TAB>id<TAB>branch".
+                  all=$(mktemp)
+                  page=1
+                  while :; do
+                    res=$(curl -sS -f "${auth[@]}" "$api?page=$page&per_page=25")
+                    [ "$(jq '.result | length' <<< "$res")" -eq 0 ] && break
+                    jq -r '.result[] | [.created_on, .id, (.deployment_trigger.metadata.branch // "")] | @tsv' <<< "$res" >> "$all"
+                    page=$((page + 1))
+                  done
+
+                  # Newest first: keep the first KEEP previews and each open
+                  # PR's newest one; collect the rest.
+                  targets=()
+                  seen=" "
+                  n=0
+                  while IFS=$'\t' read -r _ id branch; do
+                    [[ "$branch" =~ ^pr-([0-9]+)$ ]] || continue
+                    pr=${BASH_REMATCH[1]}
+                    n=$((n + 1))
+                    if [ "$n" -le "$KEEP" ]; then seen+="$pr "; continue; fi
+                    if [[ "$OPEN" == *" $pr "* && "$seen" != *" $pr "* ]]; then
+                      seen+="$pr "
+                      continue
+                    fi
+                    targets+=("$id $branch")
+                  done < <(sort -r "$all")
+
+                  echo "${#targets[@]} deployment(s) to delete"
+                  for t in "${targets[@]}"; do
+                    read -r id branch <<< "$t"
+                    # force: also removes a branch's aliased (latest) deployment.
+                    if curl -sS -f -X DELETE "${auth[@]}" "$api/$id?force=true" > /dev/null; then
+                      echo "deleted $branch $id"
+                    else
+                      echo "::warning::could not delete $branch $id"
+                    fi
+                  done

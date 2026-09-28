@@ -56,6 +56,8 @@
 /*}*/
 
 :root {
+    /* lightness of the start-page news tag colours (features/news) */
+    --news-tone-l: 0.56;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -124,6 +126,7 @@
 }
 
 .dark {
+    --news-tone-l: 0.74;
     --background: oklch(0.21 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

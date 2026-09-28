@@ -4,14 +4,22 @@ When you open Remappr you land on the **Start Page** — _"Configure Your Device
 — connect your device to customize keymaps and settings."_ It is where you
 connect hardware, open the builder, or try the demo.
 
-::: info 📷 Screenshot slot — `docs/public/images/app/start-page.png`
-The Start Page: the **Available Devices** card, the **Create a keyboard**
-builder card, and the **Try Demo Mode** / **Get the desktop app** cards.
-:::
+![The Start Page: Available Devices, the news rail, the Create a keyboard card, and the Try Demo Mode / Get the desktop app cards](/images/app/start-page.webp)
+
+The top bar holds the logo and version on the left, the project links
+(GitHub, Discord, documentation, ♥ support) in the middle, and **Settings** on
+the right. The right-hand column is the news rail — releases and
+announcements; pick another layout, or turn it off, in
+[Settings → Start page](/guide/app/settings#start-page).
 
 ## Connect to a keyboard
 
-The **Available Devices** card lists detected devices.
+The **Available Devices** card lists detected devices. Until a board has been
+paired it reads _"No Paired Devices"_: browsers only show keyboards you have
+already allowed for this site, so **Pair new device** opens the system chooser
+to pick one. Paired boards come back as cards with a small preview of their
+layout (shape and key colours only — never your bindings) and a **Connect**
+button.
 
 - _"Select a device to connect"_ (or _"Select a connection type"_ for
   simple-connect transports).
@@ -34,8 +42,12 @@ a key or combo and pressing it.
 
 ## The device menu
 
-Once connected, the device menu shows the device name and **Connected · USB**
-(or **BLE**). Its dropdown has:
+Once connected, the device card at the bottom of the sidebar shows the device
+name and **Connected · USB** (or **BLE**). Its gear opens the device menu:
+
+![The device menu open from the device card: Disconnect, Restore Stock Settings, App settings](/images/app/device-menu.webp)
+
+Entries depend on the device and the firmware:
 
 - **Mesh nodes** — only on devices that report other nodes behind them (a dongle
   or a split coordinator). Lists each node, marks the one you are viewing with a
@@ -82,9 +94,14 @@ builder**; at GA it becomes premium (**🔒 Premium**).
 ## Try Demo Mode
 
 **Try Demo Mode** — _"Explore Remappr with a simulated keyboard — no device
-required."_ Opens the editor against a simulated 36-key Corne, the same
-config-driven flow as a real device. Good for learning before you connect
+required."_ Opens the editor against a simulated 36-key Corne with a rotary
+encoder, the same config-driven flow as a real device. Every screenshot in this
+section of the docs was taken in demo mode, so you can follow along without
 hardware.
+
+The demo keeps nothing: there is no **Save** button (there is no device to
+write to), and **Disconnect** returns to the Start Page with the board as it
+was.
 
 ## Get the desktop app
 

@@ -1,0 +1,24 @@
+{
+    "items": [
+        {
+            "id": "discord",
+            "tag": "community",
+            "pinned": true,
+            "date": "2026-09-28",
+            "title": "Join the Remappr Discord",
+            "body": "Ask questions, share your layouts and hear about new releases first.",
+            "cta": "Join the Discord",
+            "url": "https://discord.gg/asJ7bCCMzW"
+        },
+        {
+            "id": "docs",
+            "tag": "announcement",
+            "pinned": true,
+            "date": "2026-09-28",
+            "title": "The Remappr docs are live",
+            "body": "Guides for the builder, the editor and the JSON keymap config, plus a reference for every firmware target.",
+            "cta": "Open the docs",
+            "url": "https://docs.remappr.com"
+        }
+    ]
+}

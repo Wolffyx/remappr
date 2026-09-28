@@ -19,9 +19,13 @@ const PER_KEY_STATIC_TYPE = 0
 // catalog — see keychron/rgb.ts).
 const PER_KEY_EFFECT_RE = /per[\s-]?key/i
 
+// pattern-check: skip one field added to the existing PaintApi shape
 export interface PaintApi {
     /** Per-key RGB write is supported by the connected firmware. */
     available: boolean
+    /** The keyboard holds painted colours in RAM only (RgbApi.perKeyVolatile):
+     *  they are lost on unplug, and nothing is saved after a paint. */
+    volatile: boolean
     active: boolean
     setActive: (active: boolean) => void
     brush: HsvColor
@@ -41,7 +45,13 @@ export function usePerKeyPaint(
     keyCount: number,
 ): PaintApi {
     const rgb = service?.rgb
-    const available = !!(rgb?.getPerKeyColors && rgb?.setPerKeyColors)
+    const available = !!rgb?.setPerKeyColors
+    const volatile = !!rgb?.perKeyVolatile
+    // Persist after a paint, unless the colours live in RAM only: then a save
+    // would only store the per-key effect over an empty buffer.
+    const persist = useCallback(async (): Promise<void> => {
+        if (!rgb?.perKeyVolatile) await rgb?.save?.()
+    }, [rgb])
 
     const active = usePerKeyPaintStore((s) => s.active)
     const brush = usePerKeyPaintStore((s) => s.brush)
@@ -60,6 +70,10 @@ export function usePerKeyPaint(
     // sweep collapse to one entry; flushed as contiguous batches at gesture end
     // (one save() total) instead of a write+save per painted key.
     const pendingRef = useRef<Map<number, HsvColor>>(new Map())
+    // Write-only firmware: the connection whose colours the store holds. The
+    // store is the only record of what was painted, so keep it across visits
+    // to paint mode and clear it only for a new connection.
+    const blankSeededFor = useRef<typeof rgb>(undefined)
 
     // On entering paint mode: resolve the LED map, activate the device's per-key
     // mode, and seed the store with the keyboard's current per-key colours.
@@ -114,6 +128,15 @@ export function usePerKeyPaint(
                 )
             }
             // Seed from device colours (read sequentially, map LED → canvas idx).
+            // Write-only firmware can't report them: start a new connection
+            // from a blank board, then keep what this session painted.
+            if (!rgb.getPerKeyColors) {
+                if (blankSeededFor.current !== rgb) {
+                    blankSeededFor.current = rgb
+                    load({})
+                }
+                return
+            }
             const result = await saveWithToast(
                 async () => {
                     const ledColors: HsvColor[] = []
@@ -179,12 +202,12 @@ export function usePerKeyPaint(
                     await rgb.setPerKeyColors!(startLed, batch)
                     i = j
                 }
-                await rgb.save?.()
+                await persist()
             },
             null,
             'Per-key write failed',
         )
-    }, [rgb])
+    }, [rgb, persist])
 
     const onKeyEyedrop = useCallback(
         (idx: number): void => eyedrop(idx),
@@ -224,12 +247,12 @@ export function usePerKeyPaint(
                         }
                     }
                 }
-                await rgb.save?.()
+                await persist()
             },
             'Filled all keys',
             'Fill all failed',
         )
-    }, [keyCount, fillAllStore, rgb])
+    }, [keyCount, fillAllStore, rgb, persist])
 
     const clearAll = useCallback((): void => reset(), [reset])
 
@@ -240,6 +263,7 @@ export function usePerKeyPaint(
 
     return {
         available,
+        volatile,
         active,
         setActive,
         brush,

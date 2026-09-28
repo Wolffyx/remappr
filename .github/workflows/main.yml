@@ -1,12 +1,11 @@
-# Simple workflow for deploying static content to GitHub Pages
+# remappr.com (GitHub Pages) ships with each release, so the site always runs
+# the version the installers do (RELEASING.md). A manual run redeploys the
+# latest release; there is no deploy from a branch.
 name: Deploy static content to Pages
 
 on:
-    # Runs on pushes targeting the default branch
-    push:
-        branches: ['main']
-
-    # Allows you to run this workflow manually from the Actions tab
+    release:
+        types: [published]
     workflow_dispatch:
 
 # Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
@@ -31,8 +30,21 @@ jobs:
         environment: remappr
         runs-on: ubuntu-latest
         steps:
+            # The published release, or the latest one on a manual run; the
+            # build checks out its tag and its pinned sibling commits.
+            - name: Resolve release
+              id: release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  EVENT_TAG: ${{ github.event.release.tag_name }}
+              run: |
+                  TAG="${EVENT_TAG:-$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)}"
+                  echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+                  echo "Deploying $TAG"
             - name: Checkout
               uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              with:
+                  ref: ${{ steps.release.outputs.tag }}
             - name: Set up pnpm
               uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
             - name: Set up Node
@@ -40,6 +52,13 @@ jobs:
               with:
                   node-version-file: '.nvmrc'
                   cache: 'pnpm'
+            - name: Pin @remappr projects to the release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  TAG: ${{ steps.release.outputs.tag }}
+              run: |
+                  RELEASE_BODY="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body -q .body)" \
+                    node scripts/release/lock-env.ts >> "$GITHUB_ENV"
             - name: Install dependencies
               # --ignore-scripts skips the electron-builder install-app-deps
               # postinstall, which tries to rebuild native modules (usb,

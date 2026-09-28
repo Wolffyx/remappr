@@ -38,6 +38,16 @@ jobs:
                   sudo apt-get update
                   sudo apt-get install -y libudev-dev libusb-1.0-0-dev rpm libarchive-tools
 
+            # Build the sibling commits this release recorded (the remappr-lock
+            # line scripts/release/ writes into the body), so the installers and
+            # remappr.com ship the same sources. Must precede Install: its
+            # postinstall links the projects too.
+            - name: Pin @remappr projects to the release
+              shell: bash
+              env:
+                  RELEASE_BODY: ${{ github.event.release.body }}
+              run: node scripts/release/lock-env.ts >> "$GITHUB_ENV"
+
             # usocket (Linux-only native, pulled by dbus-next) is patched to
             # declare os:[linux,darwin], so pnpm skips it on Windows as a
             # platform-mismatched optional dep — no need to drop ALL optionals
@@ -47,6 +57,7 @@ jobs:
 
             # Ensure the @remappr/* projects are fetched + linked before packaging
             # (postinstall also does this, but be explicit for the release build).
+            # REMAPPR_*_REF from the pin step above select the commits.
             - name: Fetch @remappr projects
               run: node scripts/link-remappr.cjs
               env:

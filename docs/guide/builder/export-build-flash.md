@@ -3,19 +3,30 @@
 When the design is ready, click **Export & build** in the toolbar. The export
 modal (titled **Export & build**, subtitled with your keyboard name) turns your
 [JSON config](/reference/config/overview) into downloadable artifacts and tells
-you what is still missing for each firmware. An **Open in editor** button hands
-the same config to the [keymap editor](/guide/editor).
+you what is still missing for each firmware.
 
-::: info 📷 Screenshot slot — `docs/public/images/builder/export.png`
-The **Export & build** modal — the readiness checklist and the per-firmware
-download tabs.
-:::
+![Export & build: Download / Copy, Build projects chips for ZMK and Remappr, Firmware readiness per target, and the config preview](/images/builder/export.webp)
+
+From the top:
+
+1. **Download _name_.keymap.json** and **Copy** — the Remappr config.
+2. **Build projects** — one chip per selected target (**ZMK .zip**, **QMK .zip**,
+   **Remappr .zip**…), each a ready-to-build project (see below).
+3. **Firmware readiness** — the per-target check (see [Readiness](#readiness)).
+4. The config itself, as a read-only preview — _"The source-of-truth remappr
+   config. Firmware projects build from it — download each as a ready-to-push .zip
+   above."_
+5. **Open in editor** (at the bottom) — hands the same config to the
+   [keymap editor](/guide/editor), on a simulated device.
 
 ## Readiness {#readiness}
 
 The modal runs a per-firmware **readiness check** and shows a checklist. Each
-selected firmware gets a verdict — _ready_ (no blocking errors) or a list of
-**errors** (must fix) and **warnings** (should check).
+selected firmware gets a verdict — **ready to build** (✓, no blocking errors) or
+**needs setup** (⚠) — with its **errors** in red (must fix) and **warnings** in
+grey (should check). The same check drives the
+[Readiness strip](/guide/builder/identity-and-hardware#readiness) at the bottom of
+the Identity panel.
 
 Typical checks:
 

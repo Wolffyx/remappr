@@ -274,7 +274,11 @@ export function DeviceCard({
                     </div>
 
                     <div className="flex min-h-[132px] items-center justify-center overflow-hidden py-2">
-                        <MiniKeyboardPreview keys={preview.keys} oneU={20} />
+                        <MiniKeyboardPreview
+                            keys={preview.keys}
+                            encoders={preview.encoders}
+                            oneU={20}
+                        />
                     </div>
 
                     <div className="flex items-center justify-between gap-3">

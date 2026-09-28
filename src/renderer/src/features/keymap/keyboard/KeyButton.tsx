@@ -14,6 +14,7 @@ import type { KeyLightInput } from '@/features/lighting/engine'
 import { glyphNode } from './keyGlyph'
 import { LegendParts } from './LegendParts'
 import { hasResolvableIcon, legendPartsLength } from './legendIcons'
+import { capSurface, selectionRing } from './capChrome'
 import useUserSettingsStore, {
     type CapStyle,
     type KeyDisplayMode,
@@ -24,8 +25,6 @@ import {
     CATEGORY_META,
     catStyle,
     type ColorMode,
-    heatColor,
-    type KeyCategory,
 } from '@/lib/keymap/keyCategory'
 
 export type { HoldTapLabels }
@@ -105,191 +104,6 @@ function makeSize(
     } as CSSProperties
 }
 
-// pattern-check: skip — verbatim port of the design's face/chrome helpers, pure mappers
-// Resolved cap-surface colours: every style consumes the same concrete set (skirt
-// + face gradients, legend, edge, dot). Neutral keys use a theme-driven set so
-// caps follow the active theme + light/dark mode.
-interface FaceColors {
-    skirtTop: string
-    skirtBot: string
-    faceTop: string
-    face: string
-    legend: string
-    edge: string
-    dot: string | null
-    heat: boolean
-}
-
-// Shift the lightness channel of an `oklch(L C H)` string by `delta`, clamped.
-function shiftLightness(
-    color: string,
-    delta: number,
-    lo: number,
-    hi = 1,
-): string {
-    return color.replace(
-        /oklch\(([\d.]+)/,
-        (_m, l: string) =>
-            `oklch(${Math.min(hi, Math.max(lo, parseFloat(l) + delta))}`,
-    )
-}
-
-// Neutral (no-category) caps follow the active theme + light/dark mode via the
-// CARD surface pair: `--card`/`--card-foreground` always track the mode (light
-// caps in light themes, dark in dark) AND are a guaranteed-contrasting pair in
-// every theme. The face is nudged toward the foreground so caps still stand out
-// from the workbench background; faceTop goes toward white for the top highlight,
-// skirtBot toward black for depth.
-const NEUTRAL_FACES: Omit<FaceColors, 'heat'> = {
-    skirtTop: 'color-mix(in oklch, var(--card) 90%, var(--foreground))',
-    skirtBot: 'color-mix(in oklch, var(--card) 88%, #000)',
-    faceTop: 'color-mix(in oklch, var(--card) 86%, #fff)',
-    face: 'color-mix(in oklch, var(--card) 90%, var(--foreground))',
-    legend: 'var(--card-foreground)',
-    edge: 'var(--border)',
-    dot: null,
-}
-
-function resolveFaceColors(
-    category: KeyCategory,
-    colorMode: ColorMode,
-    heat: number | null | undefined,
-): FaceColors {
-    if (heat != null) {
-        const hc = heatColor(heat)
-        return {
-            skirtTop: hc.face,
-            skirtBot: shiftLightness(hc.face, -0.06, 0.12),
-            faceTop: shiftLightness(hc.face, 0.05, 0, 0.8),
-            face: hc.face,
-            legend: 'oklch(0.98 0 0)',
-            edge: hc.edge,
-            dot: null,
-            heat: true,
-        }
-    }
-    const cs = catStyle(category, colorMode)
-    if (!cs.face) return { ...NEUTRAL_FACES, heat: false }
-    return {
-        skirtTop: cs.face,
-        // color-mix (not shiftLightness) so it still darkens when the face is a
-        // CSS-var-based oklch (its lightness isn't a literal to regex-shift).
-        skirtBot: `color-mix(in oklch, ${cs.face} 88%, #000)`,
-        faceTop: cs.faceTop ?? cs.face,
-        face: cs.face,
-        legend: cs.legend,
-        edge: cs.edge ?? NEUTRAL_FACES.edge,
-        dot: cs.dot,
-        heat: false,
-    }
-}
-
-interface CapChrome {
-    /** Tailwind classes applied to the cap button. */
-    className: string
-    /** Inline style for the skirt surface. */
-    style: CSSProperties
-    /** Sculpted "lit face" element rendered above the skirt. */
-    face?: CSSProperties
-    /** Left accent bar (mono style). */
-    accentBar?: CSSProperties
-    /** Position/padding for the content layer (header + body). */
-    content: CSSProperties
-    mono: boolean
-}
-
-// One builder per cap style. Geometry follows the RKey design (rad = 0.16U,
-// faceRad = 0.115U, inner face inset, content padding); surfaces stay theme-aware
-// through the FaceColors above.
-const CAP_CHROME: Record<
-    'flat' | 'sculpted' | 'mono' | 'glass',
-    (F: FaceColors, oneU: number) => CapChrome
-> = {
-    flat: (F, oneU) => ({
-        className: '',
-        style: {
-            borderRadius: Math.max(5, Math.round(oneU * 0.16)),
-            background: F.heat
-                ? F.face
-                : `linear-gradient(180deg, ${F.faceTop}, ${F.face})`,
-            border: `1px solid ${F.heat ? F.edge : 'var(--border)'}`,
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.05)',
-        },
-        content: { inset: 0, padding: oneU * 0.115 },
-        mono: false,
-    }),
-    sculpted: (F, oneU) => {
-        const rad = Math.max(5, Math.round(oneU * 0.16))
-        const faceRad = Math.max(4, Math.round(oneU * 0.115))
-        return {
-            className: '',
-            style: {
-                borderRadius: rad,
-                background: `linear-gradient(180deg, ${F.skirtTop}, ${F.skirtBot})`,
-                boxShadow: `0 ${oneU * 0.05}px ${oneU * 0.11}px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06)`,
-            },
-            face: {
-                position: 'absolute',
-                top: oneU * 0.05,
-                left: oneU * 0.055,
-                right: oneU * 0.055,
-                bottom: oneU * 0.11,
-                borderRadius: faceRad,
-                background: F.heat
-                    ? F.face
-                    : `linear-gradient(180deg, ${F.faceTop}, ${F.face})`,
-                boxShadow:
-                    'inset 0 1px 0 rgba(255,255,255,.07), 0 1px 2px rgba(0,0,0,.3)',
-            },
-            content: {
-                top: oneU * 0.065,
-                left: oneU * 0.085,
-                right: oneU * 0.085,
-                bottom: oneU * 0.125,
-            },
-            mono: false,
-        }
-    },
-    mono: (F, oneU) => ({
-        className: '',
-        style: {
-            borderRadius: Math.max(4, Math.round(oneU * 0.12)),
-            background: F.heat ? F.face : 'oklch(0.245 0 0)',
-            border: '1px solid var(--border)',
-            overflow: 'hidden',
-        },
-        accentBar:
-            F.heat || !F.dot
-                ? undefined
-                : {
-                      position: 'absolute',
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: Math.max(2, oneU * 0.06),
-                      background: F.edge,
-                      borderRadius: '3px 0 0 3px',
-                  },
-        content: { inset: 0, padding: oneU * 0.1, paddingLeft: oneU * 0.2 },
-        mono: true,
-    }),
-    glass: (F, oneU) => ({
-        className: '',
-        style: {
-            borderRadius: Math.max(5, Math.round(oneU * 0.16)),
-            background: F.heat
-                ? F.face
-                : `linear-gradient(160deg, color-mix(in oklch, ${F.faceTop} 70%, transparent), color-mix(in oklch, ${F.face} 46%, transparent))`,
-            border: `1px solid color-mix(in oklch, ${F.edge} 60%, transparent)`,
-            backdropFilter: 'blur(6px)',
-            boxShadow:
-                'inset 0 1px 0 rgba(255,255,255,.18), 0 6px 18px rgba(0,0,0,.32)',
-        },
-        content: { inset: 0, padding: oneU * 0.11 },
-        mono: false,
-    }),
-}
-
 // View props: the four store-derived values (capStyle/colorMode/keyDisplayMode) arrive
 // resolved from the caller instead of being read per-key, so 100 keys don't each
 // subscribe to the connection + user-settings stores. The thin `KeyButton` wrapper
@@ -348,10 +162,14 @@ const KeyButtonViewImpl = ({
             ? props.children.length
             : 1
     const crowded = !!holdTap || !!(mods && mods.length)
+    // The ramp is per 1U; a cap narrower than that (an encoder's half-width
+    // CCW/CW pair) scales it down so the legend stays inside the cap.
+    const fit = Math.min(1, props.width)
     const mainSize = Math.max(
         11,
         Math.round(
             S *
+                fit *
                 (crowded
                     ? tapLen > 2
                         ? 0.22
@@ -413,8 +231,7 @@ const KeyButtonViewImpl = ({
     if (typeLabel) tipRows.push(['Type', typeLabel])
     if (pressCount != null) tipRows.push(['Presses', String(pressCount)])
 
-    const F = resolveFaceColors(category, colorMode, heat)
-    const chrome = CAP_CHROME[capStyle](F, oneU)
+    const { F, chrome } = capSurface(capStyle, category, colorMode, oneU, heat)
     const sculpted = capStyle === 'sculpted'
 
     // Outer border-radius for the underglow layer, matched per cap style so the
@@ -453,9 +270,7 @@ const KeyButtonViewImpl = ({
 
     // Selected ring + pressed (live) state stack on top of the cap chrome.
     const ringStyle: CSSProperties = selected
-        ? {
-              boxShadow: `0 0 0 2px var(--background), 0 0 0 4px var(--primary), 0 0 ${oneU * 0.5}px color-mix(in oklch, var(--primary) 55%, transparent)`,
-          }
+        ? selectionRing(oneU)
         : multiSelected
           ? {
                 boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in oklch, var(--primary) 70%, transparent)`,

@@ -5,6 +5,7 @@ import {
     Info,
     Keyboard,
     LayoutPanelLeft,
+    Newspaper,
     Palette,
     Radio,
     Settings as SettingsIcon,
@@ -16,12 +17,14 @@ import useUserSettingsStore, {
     type CapStyle,
     type ColorCodingMode,
     type KeyDisplayMode,
+    type NewsStyle,
     type WorkspaceMode,
 } from '@/stores/userSettingsStore'
 import { type Theme, type ThemeName, useTheme } from '@/providers/ThemeProvider'
 import { GeneralSection } from './settings/GeneralSection'
 import { KeycapsSection } from './settings/KeycapsSection'
 import { WorkspaceSection } from './settings/WorkspaceSection'
+import { StartPageSection } from './settings/StartPageSection'
 import { CommunicationSection } from './settings/CommunicationSection'
 import { AboutSection } from './settings/AboutSection'
 
@@ -30,6 +33,8 @@ interface SettingsSnapshot {
     capStyle: CapStyle
     colorMode: ColorCodingMode
     workspace: WorkspaceMode
+    newsStyle: NewsStyle
+    newsPinnedBanner: boolean
     keyDisplayMode: Record<string, KeyDisplayMode>
     theme: Theme
     themeName: ThemeName
@@ -51,7 +56,12 @@ interface SettingsProps {
     /** Limit which sections show (builder hides device-only "communication").
      *  Defaults to all. */
     sections?: Array<
-        'general' | 'keycaps' | 'workspace' | 'communication' | 'about'
+        | 'general'
+        | 'keycaps'
+        | 'workspace'
+        | 'start'
+        | 'communication'
+        | 'about'
     >
 }
 
@@ -59,6 +69,7 @@ type SettingsSection =
     | 'general'
     | 'keycaps'
     | 'workspace'
+    | 'start'
     | 'communication'
     | 'about'
 
@@ -70,6 +81,7 @@ const SECTIONS: {
     { id: 'general', label: 'General', icon: Palette },
     { id: 'keycaps', label: 'Keycaps', icon: Keyboard },
     { id: 'workspace', label: 'Workspace', icon: LayoutPanelLeft },
+    { id: 'start', label: 'Start page', icon: Newspaper },
     { id: 'communication', label: 'Communication', icon: Radio },
     { id: 'about', label: 'About', icon: Info },
 ]
@@ -96,6 +108,8 @@ export function Settings({
             capStyle: s.capStyle,
             colorMode: s.colorMode,
             workspace: s.workspace,
+            newsStyle: s.newsStyle,
+            newsPinnedBanner: s.newsPinnedBanner,
             keyDisplayMode: { ...s.keyDisplayMode },
             theme,
             themeName,
@@ -110,6 +124,8 @@ export function Settings({
             capStyle: snap.capStyle,
             colorMode: snap.colorMode,
             workspace: snap.workspace,
+            newsStyle: snap.newsStyle,
+            newsPinnedBanner: snap.newsPinnedBanner,
             keyDisplayMode: snap.keyDisplayMode,
         })
         setTheme(snap.theme)
@@ -131,7 +147,7 @@ export function Settings({
             success="Done"
             close="Cancel"
             title="Settings"
-            subtitle="Appearance, keycaps, workspace & device"
+            subtitle="Appearance, keycaps, workspace, start page & device"
             headerIcon={<SettingsIcon />}
             customModalBoxClass="w-11/14 max-w-4xl"
             type="icon"
@@ -168,6 +184,7 @@ export function Settings({
                     {section === 'general' && <GeneralSection />}
                     {section === 'keycaps' && <KeycapsSection />}
                     {section === 'workspace' && <WorkspaceSection />}
+                    {section === 'start' && <StartPageSection />}
                     {section === 'communication' && <CommunicationSection />}
                     {section === 'about' && <AboutSection />}
                 </ScrollArea>

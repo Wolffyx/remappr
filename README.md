@@ -16,7 +16,7 @@ Source lives in [`docs/`](docs) (VitePress); run it with `pnpm docs:dev`.
 - **Shell:** Electron 39
 - **State:** Zustand, Immer
 - **Firmware adapters:** ZMK (BLE/serial), QMK (raw HID via VIA), Vial, Keychron
-- **Testing:** Vitest, Storybook 10
+- **Testing:** Vitest
 
 ## Prerequisites
 
@@ -38,11 +38,10 @@ ABI.
 
 ## Development
 
-| Command          | Purpose                                                    |
-| ---------------- | ---------------------------------------------------------- |
-| `pnpm edev`      | Electron dev (renderer + main + preload, hot reload)       |
-| `pnpm dev`       | Renderer-only Vite dev server (port 5174, browser preview) |
-| `pnpm storybook` | Storybook on port 6006                                     |
+| Command     | Purpose                                                    |
+| ----------- | ---------------------------------------------------------- |
+| `pnpm edev` | Electron dev (renderer + main + preload, hot reload)       |
+| `pnpm dev`  | Renderer-only Vite dev server (port 5174, browser preview) |
 
 ## Quality gates
 
@@ -367,8 +366,14 @@ See [Adding a firmware target](https://docs.remappr.com/dev/adding-a-firmware-ta
 Licensed under the [Apache License 2.0](LICENSE) — see [NOTICE](NOTICE) for
 copyright and third-party attributions.
 
-> Remappr originated as a fork of [ZMK Studio](https://github.com/zmkfirmware/zmk-studio)
-> (Apache 2.0) and has since been substantially rewritten. Its firmware support
-> interoperates with ZMK, QMK, VIA, Vial and Keychron via their public protocols
-> and keycode numbering — it does not include or link their source. See
-> [NOTICE](NOTICE) for the full attribution list.
+> Remappr talks to ZMK keyboards through the ZMK Studio RPC client
+> [`@zmkfirmware/zmk-studio-ts-client`](https://github.com/zmkfirmware/zmk-studio-ts-client)
+> (MIT). Its firmware support interoperates with ZMK, QMK, VIA, Vial and
+> Keychron via their public protocols and keycode numbering — it does not
+> include or link their source. See [NOTICE](NOTICE) for the full attribution
+> list.
+>
+> Key names for the Keyboard and Consumer usages come from the USB-IF
+> [HID Usage Tables 1.5](https://usb.org/document-library/hid-usage-tables-15);
+> Remappr bundles those two pages of the published tables and adds its own cap
+> labels.

@@ -51,13 +51,28 @@ Identity of the keymap.
 
 ## `defaults`
 
-Global behavior timings, in milliseconds. Per-action overrides win over these.
+Global behavior timings, in milliseconds. Per-action overrides win over these;
+an absent field keeps the firmware's own default. The builder's
+[Timing & defaults](/guide/builder/identity-and-hardware#timing-defaults) section
+and the editor's [Timing & Defaults](/guide/app/advanced#timing-defaults) dialog
+edit them.
 
-| Field            | Type   |
-| ---------------- | ------ |
-| `tappingTermMs`  | number |
-| `quickTapMs`     | number |
-| `comboTimeoutMs` | number |
+| Field                     | Type   | Meaning                                             |
+| ------------------------- | ------ | --------------------------------------------------- |
+| `tappingTermMs`           | number | Hold-vs-tap decision window.                        |
+| `quickTapMs`              | number | Tap-then-hold within this window repeats the tap.   |
+| `comboTimeoutMs`          | number | Max time between the keys of a combo.               |
+| `releaseDebounceMs`       | number | Key-release debounce; 0 keeps the firmware value.   |
+| `pressDebounceMs`         | number | Key-press debounce; 0 keeps the firmware value.     |
+| `matrixPressDebounceMs`   | number | Matrix-scan press debounce.                         |
+| `matrixReleaseDebounceMs` | number | Matrix-scan release debounce.                       |
+| `capsWordIdleMs`          | number | Leave caps-word after this idle time; 0 = never.    |
+| `stickyReleaseDefaultMs`  | number | Sticky-key lifetime; 0 = until the next key.        |
+| `macroDefaultWaitMs`      | number | Default gap between macro steps.                    |
+| `macroDefaultTapMs`       | number | Default tap hold-time inside a macro.               |
+| `matrixPollPeriodMs`      | number | Matrix scan interval; 0 keeps the devicetree value. |
+
+The last five apply on Remappr Firmware.
 
 ## `keyboard`
 

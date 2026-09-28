@@ -15,6 +15,8 @@ export interface Release {
     html_url: string
     body: string
     published_at: string
+    prerelease?: boolean
+    draft?: boolean
     assets: ReleaseAsset[]
 }
 
@@ -68,6 +70,19 @@ export async function getLatestRelease(): Promise<Release | null> {
         }
     })
     return promise
+}
+
+// Pattern check: Facade (Tier 1) — extended — recent-releases read added to this GitHub Releases facade for the start-page news
+const RELEASES_LIST = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases`
+
+/** The newest `count` releases, newest first. Throws on a network or HTTP
+ *  error so the caller can keep what it already has. */
+export async function getRecentReleases(count: number): Promise<Release[]> {
+    const res = await fetch(`${RELEASES_LIST}?per_page=${count}`, {
+        headers: { Accept: 'application/vnd.github+json' },
+    })
+    if (!res.ok) throw new Error(`GitHub releases: HTTP ${res.status}`)
+    return (await res.json()) as Release[]
 }
 
 export function getAssetForPlatform(

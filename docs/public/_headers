@@ -3,6 +3,12 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# The news feed the app's start page and the What's new page read; open to
+# other sites, short cache.
+/news.json
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300
+
 # Sensible defaults for every page.
 /*
   X-Content-Type-Options: nosniff

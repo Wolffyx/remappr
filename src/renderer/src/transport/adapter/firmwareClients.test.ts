@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { FirmwareAdapter } from '@firmware/adapter'
 import { getAdapters, registerAdapter } from '@firmware/registry'
-import { discoverableClientDirs } from './firmwareClients'
+import { discoverableClientDirs, loadClientModules } from './firmwareClients'
 import { hidDiscovery, hidDiscoveryAll } from './discovery'
 
 // NOTE: these tests deliberately avoid the '@firmware' barrel and never execute
@@ -28,6 +28,25 @@ describe('firmware client auto-discovery', () => {
         // no hand-maintained exclusion list to drift.
         expect(dirs).not.toContain('catalog')
         expect(dirs).not.toContain('config')
+    })
+})
+
+describe('client load isolation', () => {
+    it('loads the other clients when one chunk fails', async () => {
+        const loaded: string[] = []
+        const ok = (dir: string) => async () => {
+            loaded.push(dir)
+        }
+        const failed = await loadClientModules([
+            ['@firmware/clients/zmk/index.ts', ok('zmk')],
+            [
+                '@firmware/clients/qmk-vial/index.ts',
+                () => Promise.reject(new Error('504 (Outdated Optimize Dep)')),
+            ],
+            ['@firmware/clients/qmk/index.ts', ok('qmk')],
+        ])
+        expect(loaded).toEqual(['zmk', 'qmk'])
+        expect(failed).toEqual(['@firmware/clients/qmk-vial/index.ts'])
     })
 })
 

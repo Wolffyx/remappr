@@ -116,7 +116,8 @@ function createWindow(): void {
     // packaged file:// build has none of that.
     // style-src 'unsafe-inline' is required for Radix / Tailwind runtime
     // style injection. img-src data: covers icon/svg inlining. connect-src
-    // https://api.github.com matches update-checker.
+    // https://api.github.com matches update-checker and the start-page release
+    // news; raw.githubusercontent.com serves news.json and its cover images.
     if (!is.dev) {
         sess.webRequest.onHeadersReceived((details, cb) => {
             cb({
@@ -126,9 +127,9 @@ function createWindow(): void {
                         "default-src 'self'; " +
                             "script-src 'self' 'wasm-unsafe-eval'; " +
                             "style-src 'self' 'unsafe-inline'; " +
-                            "img-src 'self' data: blob:; " +
+                            "img-src 'self' data: blob: https://raw.githubusercontent.com; " +
                             "font-src 'self' data:; " +
-                            "connect-src 'self' https://api.github.com; " +
+                            "connect-src 'self' https://api.github.com https://raw.githubusercontent.com; " +
                             "frame-src 'none'; " +
                             "object-src 'none'; " +
                             "base-uri 'self'; " +

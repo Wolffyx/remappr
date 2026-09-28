@@ -17,7 +17,7 @@ build/          Electron-builder assets (icons, entitlements)
 ```
 
 Stack: React 19 · Vite 7 · Tailwind 4 · shadcn/ui · Zustand + Immer · Electron 39
-· Vitest · Storybook. Package manager pnpm 10; Node ≥ 20 (`.nvmrc`).
+· Vitest. Package manager pnpm 10; Node ≥ 20 (`.nvmrc`).
 
 ## `src/`
 
@@ -142,7 +142,6 @@ pnpm dev           # renderer-only Vite (browser preview)
 pnpm typecheck     # tsc (node + web projects)
 pnpm lint          # eslint
 pnpm test          # vitest
-pnpm storybook     # component workshop
 pnpm docs:dev      # these docs
 ```
 

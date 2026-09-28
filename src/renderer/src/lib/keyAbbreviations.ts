@@ -61,6 +61,19 @@ const KEY_ABBREVIATIONS: Readonly<Record<string, string>> = {
     // square-cup glyph reads the same and sizes normally. Matches the design.
     space: '⊔',
     tab: 'Tab',
+    // Media (consumer page; "Keyboard Volume Up" arrives with the "Keyboard "
+    // noun already stripped). Truncating these kept only "Volu…", which reads
+    // the same for up and down — ambiguous on a knob's CCW/CW pair.
+    'volume increment': 'Vol+',
+    'volume decrement': 'Vol-',
+    'volume up': 'Vol+',
+    'volume down': 'Vol-',
+    mute: 'Mute',
+    'play/pause': 'Play',
+    'scan next track': 'Next',
+    'scan previous track': 'Prev',
+    'display brightness increment': 'Bri+',
+    'display brightness decrement': 'Bri-',
 }
 
 function truncateWithEllipsis(value: string, maxLength: number): string {

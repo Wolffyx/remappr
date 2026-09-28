@@ -2,7 +2,7 @@
 import { useCallback, useMemo, useRef } from 'react'
 import type { WorkspaceMode } from '@/stores/userSettingsStore'
 import type { ClickModifiers } from '../PhysicalLayoutCanvas'
-import type { EncoderSelection } from './helpers'
+import type { EncoderSelection } from '@/features/encoders/model'
 
 interface Inputs {
     keyCount: number
