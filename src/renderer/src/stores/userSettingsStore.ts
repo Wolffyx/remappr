@@ -11,6 +11,17 @@ export type AdapterCategory = string
 export type CapStyle = 'flat' | 'sculpted' | 'mono' | 'glass'
 export type ColorCodingMode = 'off' | 'subtle' | 'vivid'
 export type WorkspaceMode = 'workbench' | 'inspector' | 'command'
+/** How the start page shows news; see features/news. */
+export const NEWS_STYLES = [
+    'feed',
+    'rail',
+    'spotlight',
+    'banner',
+    'chip',
+    'inbox',
+    'none',
+] as const
+export type NewsStyle = (typeof NEWS_STYLES)[number]
 
 const DEFAULT_FIRMWARE_KEY = '_default'
 
@@ -29,11 +40,16 @@ interface UserSettingsState {
     capStyle: CapStyle
     colorMode: ColorCodingMode
     workspace: WorkspaceMode
+    newsStyle: NewsStyle
+    /** Show the pinned-news banner on top of whichever layout is picked. */
+    newsPinnedBanner: boolean
     seenBuilderTour: boolean
     setSeenBuilderTour: (seen: boolean) => void
     setCapStyle: (style: CapStyle) => void
     setColorMode: (mode: ColorCodingMode) => void
     setWorkspace: (workspace: WorkspaceMode) => void
+    setNewsStyle: (style: NewsStyle) => void
+    setNewsPinnedBanner: (enabled: boolean) => void
     setTheme: (theme: 'dark' | 'light') => void
     setAutosave: (enabled: boolean) => void
     setAutoLoadLayout: (enabled: boolean) => void
@@ -61,12 +77,17 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 capStyle: 'sculpted',
                 colorMode: 'subtle',
                 workspace: 'workbench',
+                newsStyle: 'rail',
+                newsPinnedBanner: false,
                 seenBuilderTour: false,
                 setSeenBuilderTour: (seenBuilderTour) =>
                     set({ seenBuilderTour }),
                 setCapStyle: (capStyle) => set({ capStyle }),
                 setColorMode: (colorMode) => set({ colorMode }),
                 setWorkspace: (workspace) => set({ workspace }),
+                setNewsStyle: (newsStyle) => set({ newsStyle }),
+                setNewsPinnedBanner: (newsPinnedBanner) =>
+                    set({ newsPinnedBanner }),
                 setTheme: (theme) => set({ theme }),
                 setAutosave: (enabled) => set({ autosave: enabled }),
                 setAutoLoadLayout: (enabled) =>
@@ -96,7 +117,7 @@ const useUserSettingsStore = create<UserSettingsState>()(
             {
                 name: 'user-settings-store',
                 storage: createJSONStorage(() => localStorage),
-                version: 8,
+                version: 9,
                 migrate: (persisted: unknown, version: number) => {
                     if (!persisted || typeof persisted !== 'object') {
                         return persisted as Partial<UserSettingsState>
@@ -177,6 +198,16 @@ const useUserSettingsStore = create<UserSettingsState>()(
                         }
                         if (typeof p.autoConnectDeviceId !== 'string') {
                             p.autoConnectDeviceId = null
+                        }
+                    }
+                    if (version < 9) {
+                        // Start-page news layouts. Everyone starts on the rail.
+                        const style = p.newsStyle
+                        if (!NEWS_STYLES.includes(style as NewsStyle)) {
+                            p.newsStyle = 'rail'
+                        }
+                        if (typeof p.newsPinnedBanner !== 'boolean') {
+                            p.newsPinnedBanner = false
                         }
                     }
                     return p as Partial<UserSettingsState>

@@ -1,4 +1,6 @@
 // pattern-check: skip — UI shell, restyled to the design prototype; delegates to useConnection
+// Pattern check: no GoF pattern (-) — rejected — news layouts slot into fixed spots on the page, one layout per spot; a lookup table would still need the per-spot placement.
+import { useEffect } from 'react'
 import { BookOpen, Download, Keyboard, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Transport } from '@firmware'
@@ -15,6 +17,17 @@ import { SupportModal } from '@/components/modals/SupportModal'
 import { WindowControls } from '@/layout/WindowControls'
 import { TrafficLightInset } from '@/layout/TrafficLightInset'
 import { useConnection } from '@/hooks/use-connection'
+import { cn } from '@/lib/cn'
+import useUserSettingsStore from '@/stores/userSettingsStore'
+import useNewsStore from '@/stores/newsStore'
+import { useNews } from '@/features/news/newsUi'
+import { NewsBanner } from '@/features/news/NewsBanner'
+import { NewsBell } from '@/features/news/NewsBell'
+import { NewsChip } from '@/features/news/NewsChip'
+import { NewsFeed } from '@/features/news/NewsFeed'
+import { NewsRail } from '@/features/news/NewsRail'
+import { NewsSpotlight } from '@/features/news/NewsSpotlight'
+import { ReleaseNotesDialog } from '@/features/news/ReleaseNotesDialog'
 
 const DRAG_REGION = { WebkitAppRegion: 'drag' } as React.CSSProperties
 const NO_DRAG = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
@@ -24,6 +37,20 @@ import { ConfigReadyBanner } from './ConfigReadyBanner'
 import { TransportSection } from './TransportSection'
 import { FeatureCard } from './FeatureCard'
 import { BuilderCard } from './BuilderCard'
+
+// The hero's "works with" pill; the chip news layout takes its place.
+const COMPAT_BADGE = (
+    <div
+        className="mb-5 inline-flex items-center gap-[7px] rounded-full border px-3 py-[5px] text-[12px] font-semibold text-primary"
+        style={{
+            background: 'color-mix(in oklch, var(--primary) 14%, transparent)',
+            borderColor: 'color-mix(in oklch, var(--primary) 30%, transparent)',
+        }}
+    >
+        <span className="size-[7px] rounded-full bg-primary" />
+        QMK · VIA · ZMK compatible
+    </div>
+)
 
 // pattern-check: skip mechanical return-type change on an existing prop (void → Promise<boolean>)
 interface StartPageProps {
@@ -51,6 +78,17 @@ export function StartPage({
         simpleConnect,
         requestNew,
     } = useConnection(onTransportCreated)
+
+    // Start-page news — layout and banner are picked in Settings → Start page.
+    const newsStyle = useUserSettingsStore((s) => s.newsStyle)
+    const pinnedBanner = useUserSettingsStore((s) => s.newsPinnedBanner)
+    const refreshNews = useNewsStore((s) => s.refresh)
+    const news = useNews()
+    const showBanner = pinnedBanner || newsStyle === 'banner'
+    const newsOn = newsStyle !== 'none' || showBanner
+    useEffect(() => {
+        if (newsOn) void refreshNews()
+    }, [newsOn, refreshNews])
 
     if (!haveTransports) {
         return <ConnectionStatusBanner />
@@ -96,6 +134,7 @@ export function StartPage({
                     </div>
                 </div>
                 <div className="flex items-center gap-1" style={NO_DRAG}>
+                    {newsStyle === 'inbox' && <NewsBell {...news} />}
                     <Settings />
                     <a
                         href={REPO_URL}
@@ -149,23 +188,19 @@ export function StartPage({
                 </div>
             </header>
 
+            {showBanner && <NewsBanner pinned={news.pinned} />}
+            <ReleaseNotesDialog {...news} />
+
             {/* scroll area — everything except the pinned header */}
             <div className="flex min-h-0 flex-1 flex-col overflow-auto">
                 {/* hero + content */}
                 <main className="relative z-[1] flex flex-1 flex-col items-center px-6 pb-16 pt-8">
                     <div className="fade-in mb-9 max-w-[560px] text-center">
-                        <div
-                            className="mb-5 inline-flex items-center gap-[7px] rounded-full border px-3 py-[5px] text-[12px] font-semibold text-primary"
-                            style={{
-                                background:
-                                    'color-mix(in oklch, var(--primary) 14%, transparent)',
-                                borderColor:
-                                    'color-mix(in oklch, var(--primary) 30%, transparent)',
-                            }}
-                        >
-                            <span className="size-[7px] rounded-full bg-primary" />
-                            QMK · VIA · ZMK compatible
-                        </div>
+                        {newsStyle === 'chip' ? (
+                            <NewsChip {...news} fallback={COMPAT_BADGE} />
+                        ) : (
+                            COMPAT_BADGE
+                        )}
                         <h1 className="mb-3 text-[40px] font-extrabold leading-[1.05] tracking-tight">
                             Configure Your Device
                         </h1>
@@ -175,57 +210,73 @@ export function StartPage({
                         </p>
                     </div>
 
-                    <div className="fade-in w-full max-w-[720px]">
-                        <ConfigReadyBanner />
+                    {/* the rail sits beside the main column and wraps under
+                        it when the window is too narrow for both */}
+                    <div
+                        className={cn(
+                            'flex w-full flex-wrap items-start justify-center gap-6',
+                            newsStyle === 'rail'
+                                ? 'max-w-[1084px]'
+                                : 'max-w-[720px]',
+                        )}
+                    >
+                        <div className="fade-in flex min-w-0 max-w-[720px] flex-[1_1_720px] flex-col">
+                            {newsStyle === 'spotlight' && (
+                                <NewsSpotlight {...news} />
+                            )}
+                            <ConfigReadyBanner />
 
-                        <TransportSection
-                            transports={transports}
-                            devices={devices}
-                            hasListableTransports={hasListableTransports}
-                            hasSimpleConnectOnly={hasSimpleConnectOnly}
-                            refreshing={refreshing}
-                            connectingDeviceId={connectingDeviceId}
-                            onRefresh={refresh}
-                            onConnect={connect}
-                            onSimpleConnect={simpleConnect}
-                            onRequestNew={requestNew}
-                        />
-
-                        <BuilderCard />
-
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                            <FeatureCard
-                                icon={Sparkles}
-                                title="Try Demo Mode"
-                                description="Explore Remappr with a simulated keyboard — no device required."
-                                action={
-                                    <Button
-                                        variant="secondary"
-                                        onClick={() => {
-                                            if (onDemoConnect) {
-                                                void onDemoConnect()
-                                                return
-                                            }
-                                            toast.info(
-                                                'Demo mode coming soon!',
-                                                {
-                                                    description:
-                                                        'This feature is currently under development.',
-                                                },
-                                            )
-                                        }}
-                                    >
-                                        Try Demo
-                                    </Button>
-                                }
+                            <TransportSection
+                                transports={transports}
+                                devices={devices}
+                                hasListableTransports={hasListableTransports}
+                                hasSimpleConnectOnly={hasSimpleConnectOnly}
+                                refreshing={refreshing}
+                                connectingDeviceId={connectingDeviceId}
+                                onRefresh={refresh}
+                                onConnect={connect}
+                                onSimpleConnect={simpleConnect}
+                                onRequestNew={requestNew}
                             />
-                            <FeatureCard
-                                icon={Download}
-                                title="Get the desktop app"
-                                description="Download the latest Remappr build for your operating system."
-                                action={<DownloadLatestButton />}
-                            />
+
+                            <BuilderCard />
+
+                            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                                <FeatureCard
+                                    icon={Sparkles}
+                                    title="Try Demo Mode"
+                                    description="Explore Remappr with a simulated keyboard — no device required."
+                                    action={
+                                        <Button
+                                            variant="secondary"
+                                            onClick={() => {
+                                                if (onDemoConnect) {
+                                                    void onDemoConnect()
+                                                    return
+                                                }
+                                                toast.info(
+                                                    'Demo mode coming soon!',
+                                                    {
+                                                        description:
+                                                            'This feature is currently under development.',
+                                                    },
+                                                )
+                                            }}
+                                        >
+                                            Try Demo
+                                        </Button>
+                                    }
+                                />
+                                <FeatureCard
+                                    icon={Download}
+                                    title="Get the desktop app"
+                                    description="Download the latest Remappr build for your operating system."
+                                    action={<DownloadLatestButton />}
+                                />
+                            </div>
+                            {newsStyle === 'feed' && <NewsFeed {...news} />}
                         </div>
+                        {newsStyle === 'rail' && <NewsRail {...news} />}
                     </div>
                 </main>
 
