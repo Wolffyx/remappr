@@ -4,17 +4,16 @@ A keymap is a stack of **layers**, and each layer assigns a **binding** (an
 action) to every physical key. Layers share the same geometry and matrix — only
 the bindings differ.
 
-::: info 📷 Screenshot slot — `docs/public/images/builder/layers.png`
-The **Layers** panel (layer list with `L0`/`L1` badges) and the binding picker
-open at the bottom.
-:::
-
 ## Layers panel
+
+![The Layers panel with base and layer_1, and the layer menu: Rename, Duplicate, Delete](/images/builder/layers.webp){width=300}
 
 The **Layers** section lists every layer with its name and an `L{index}` badge.
 
 - **Click** a layer to select it — the canvas then edits that layer's bindings.
-- **Add layer** — appends a layer (bindings start transparent / pass-through).
+- **Add layer** — appends a layer (`layer_1`, `layer_2`…; bindings start
+  transparent / pass-through — every key shows ▽).
+- **Hover** a layer to peek at it on the canvas without switching.
 - The per-layer **⋮** menu has **Rename**, **Duplicate**, **Delete** (Delete is
   disabled when only one layer remains). Double-click a name to rename inline.
 
@@ -33,7 +32,15 @@ index).
 ## The binding picker
 
 Select a key and click **Edit binding** (or a slot in the inspector) to open the
-picker. Its header chip shows the context, e.g.
+picker. It docks under the canvas:
+
+![The binding picker under the canvas: the Binding header, action type, keycode tabs and the key grid](/images/builder/binding-picker.webp)
+
+It works like the editor's [binding editor](/guide/app/editing-bindings#the-binding-editor):
+an action-type dropdown (_Key Press_, _Mod-Tap_, _Layer-Tap_…), parameter slots,
+then the keycode picker — tabs by usage page (**Keyboard**, **Language**,
+**Consumer**, **AC**, **AL**, **Contact**, **Media**, **System**), grouped keys and
+_"Search keycodes by label…"_. Its header chip shows the context, e.g.
 `base · Key #5 · A` — layer, key index, slot, and current binding. A firmware
 chip (e.g. `QMK + VIA`, with a USB/Bluetooth icon) shows which targets the picker
 is offering actions for; **Close picker** dismisses it.
