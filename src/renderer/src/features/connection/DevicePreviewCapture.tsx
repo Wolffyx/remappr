@@ -1,5 +1,6 @@
 // Pattern check: no GoF pattern (-) — rejected — headless effect that maps the live base
-// layer to a serializable preview snapshot; reuses resolveBindingLabels/categoryForBinding.
+// layer to a serializable preview snapshot (shape + colour category, no legends);
+// reuses resolveBindingLabels/categoryForBinding.
 import { useEffect, useRef } from 'react'
 import { resolveBindingLabels } from '@firmware'
 import { useLayout } from '@/hooks/use-layouts'
@@ -9,12 +10,12 @@ import useDevicePreviewStore, {
     type PreviewKey,
 } from '@/stores/devicePreviewStore'
 import { categoryForBinding } from '@/lib/keymap/keyCategory'
-import { usageGlyph } from '@/lib/actions/hidUsages'
 
 /**
- * Mounted in the editor; while connected, captures the device's base-layer geometry
- * and legends into the persisted device-preview store so the start-page card can show
- * the real layout after disconnect. Renders nothing.
+ * Mounted in the editor; while connected, captures the device's base-layer geometry,
+ * key colour categories and encoder slots (never what the keys are bound to) into
+ * the persisted device-preview store so the start-page card can show the real
+ * layout after disconnect. Renders nothing.
  */
 export function DevicePreviewCapture(): null {
     const { layouts, selectedPhysicalLayoutIndex } = useLayout()
@@ -41,44 +42,33 @@ export function DevicePreviewCapture(): null {
         if (!layout || keymap.layers.length === 0) return
 
         const keys: PreviewKey[] = resolveBindingLabels(layout, keymap, 0).map(
-            (p): PreviewKey => {
-                const isHoldTap = !!p.holdTap
-                const tap = isHoldTap
-                    ? usageGlyph(p.holdTap!.tapParam)
-                    : p.bindingParam1 != null
-                      ? usageGlyph(p.bindingParam1)
-                      : (p.paramText ?? p.header ?? '')
-                const hold = p.holdTap
-                    ? p.holdTap.holdNodeKind === 'layer'
-                        ? (p.holdTap.holdLayerMomentary ?? '')
-                        : usageGlyph(p.holdTap.holdParam)
-                    : undefined
-                return {
-                    x: p.x,
-                    y: p.y,
-                    width: p.width,
-                    height: p.height,
-                    r: p.r,
-                    rx: p.rx,
-                    ry: p.ry,
-                    category: categoryForBinding({
-                        actionLabel: p.actionLabel,
-                        bindingParam1: p.bindingParam1,
-                        actionTypeName: p.actionTypeName,
-                        outOfRange: p.outOfRange,
-                        isHoldTap,
-                        holdIsLayer: p.holdTap?.holdNodeKind === 'layer',
-                    }),
-                    tap,
-                    hold,
-                    action: p.holdTap?.actionTypeName ?? p.actionTypeName,
-                }
-            },
+            (p): PreviewKey => ({
+                x: p.x,
+                y: p.y,
+                width: p.width,
+                height: p.height,
+                r: p.r,
+                rx: p.rx,
+                ry: p.ry,
+                category: categoryForBinding({
+                    actionLabel: p.actionLabel,
+                    bindingParam1: p.bindingParam1,
+                    actionTypeName: p.actionTypeName,
+                    outOfRange: p.outOfRange,
+                    isHoldTap: !!p.holdTap,
+                    holdIsLayer: p.holdTap?.holdNodeKind === 'layer',
+                }),
+            }),
         )
+        // Slots are in centi-units like the raw layout; keys above are in U.
+        const encoders = (layout.encoders ?? []).map(({ x, y }) => ({
+            x: x / 100,
+            y: y / 100,
+        }))
 
         const key = lastConnectedDevice?.id ?? service.deviceInfo.name
-        const signature = `${key}|${selectedPhysicalLayoutIndex}|${keymap.layers.length}|${keys
-            .map((k) => k.tap)
+        const signature = `${key}|${selectedPhysicalLayoutIndex}|${keymap.layers.length}|${encoders.length}|${keys
+            .map((k) => k.category)
             .join(',')}`
         if (signature === lastSignature.current) return
         lastSignature.current = signature
@@ -89,6 +79,7 @@ export function DevicePreviewCapture(): null {
             keyCount: layout.keys.length,
             layerCount: keymap.layers.length,
             keys,
+            encoders,
             savedAt: Date.now(),
         })
     }, [
