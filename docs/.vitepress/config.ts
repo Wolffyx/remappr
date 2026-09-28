@@ -91,6 +91,14 @@ export default defineConfig({
                         },
                         { text: 'The keymap editor', link: '/guide/editor' },
                         {
+                            text: 'Editing bindings',
+                            link: '/guide/app/editing-bindings',
+                        },
+                        {
+                            text: 'Heatmap, key test & typing load',
+                            link: '/guide/app/insights',
+                        },
+                        {
                             text: 'RGB & lighting',
                             link: '/guide/app/rgb-lighting',
                         },
