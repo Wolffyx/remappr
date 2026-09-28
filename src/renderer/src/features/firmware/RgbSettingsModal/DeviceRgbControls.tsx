@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 
 import type { RgbApi, RgbEffectState } from '@firmware/service'
-import { COLORLESS_EFFECT } from '@firmware/lighting'
+import { effectUsesColor } from '@firmware/lighting'
 import { saveWithToast } from '@/lib/saveWithToast'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
 import useRgbEffectStore from '@/stores/rgbEffectStore'
@@ -99,7 +99,7 @@ export function DeviceRgbControls({ rgb }: Props): JSX.Element {
     }
 
     const name = state ? (cat.effects[state.mode] ?? '') : ''
-    const usesColor = cat.hasColor && !COLORLESS_EFFECT.test(name)
+    const usesColor = effectUsesColor(cat, name)
 
     const model: RgbControlsModel = {
         effects: cat.effects,
