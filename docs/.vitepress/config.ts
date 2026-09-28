@@ -30,6 +30,7 @@ export default defineConfig({
             { text: 'App & Editor', link: '/guide/app/connecting' },
             { text: 'Config Reference', link: '/reference/config/overview' },
             { text: 'Developers', link: '/dev/architecture' },
+            { text: 'What’s new', link: '/whats-new' },
             { text: 'Open app ↗', link: 'https://remappr.com' },
         ],
 

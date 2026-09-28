@@ -8,6 +8,10 @@ on:
             - 'package.json'
             - 'pnpm-lock.yaml'
             - '.github/workflows/docs.yml'
+    # The What's new page is built from GitHub Releases, so rebuild when one
+    # is published (release-please publishes with a PAT, which does trigger).
+    release:
+        types: [published]
     workflow_dispatch:
 
 # One docs deploy at a time; newer pushes cancel in-flight builds.
@@ -43,6 +47,9 @@ jobs:
 
             - name: Build docs
               run: pnpm docs:build
+              env:
+                  # read-only, for the Changelogs page's GitHub releases fetch
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Deploy to Cloudflare Pages
               uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
