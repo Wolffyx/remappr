@@ -2,9 +2,9 @@ name: CI
 
 on:
     pull_request:
-        branches: [main]
+        branches: [main, dev]
     push:
-        branches: [main]
+        branches: [main, dev]
 
 permissions:
     contents: read
@@ -46,6 +46,11 @@ jobs:
               # (else it falls back to a stub). Fork PRs without the secret -> stub.
               run: node scripts/link-remappr.cjs
               env:
+                  # The siblings' branch matching this one's target: a PR into
+                  # dev checks against their dev, main against main. The linker
+                  # falls back to a project's default branch if it has no such
+                  # branch.
+                  REMAPPR_REF: ${{ github.base_ref || github.ref_name }}
                   # URLs are configurable via GitHub repo/org Variables; empty -> script defaults.
                   REMAPPR_FIRMWARE_URL: ${{ vars.REMAPPR_FIRMWARE_URL }}
                   REMAPPR_UI_URL: ${{ vars.REMAPPR_UI_URL }}

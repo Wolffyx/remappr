@@ -42,6 +42,9 @@ jobs:
             - name: Fetch @remappr projects
               run: node scripts/link-remappr.cjs
               env:
+                  # Preview against the siblings' branch matching the PR's
+                  # target (dev → their dev), default branch if they have none.
+                  REMAPPR_REF: ${{ github.base_ref }}
                   REMAPPR_FIRMWARE_URL: ${{ vars.REMAPPR_FIRMWARE_URL }}
                   REMAPPR_UI_URL: ${{ vars.REMAPPR_UI_URL }}
                   REMAPPR_BUILDER_URL: ${{ vars.REMAPPR_BUILDER_URL }}
