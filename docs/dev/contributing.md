@@ -23,7 +23,6 @@ pnpm install
 | ---------------- | ---------------------------------------------------------- |
 | `pnpm edev`      | Electron dev (renderer + main + preload, hot reload)       |
 | `pnpm dev`       | Renderer-only Vite dev server (browser preview, port 5174) |
-| `pnpm storybook` | Storybook (port 6006)                                      |
 | `pnpm typecheck` | `tsc --noEmit` (node + web projects)                       |
 | `pnpm lint`      | ESLint                                                     |
 | `pnpm test`      | Vitest                                                     |

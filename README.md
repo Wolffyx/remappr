@@ -16,7 +16,7 @@ Source lives in [`docs/`](docs) (VitePress); run it with `pnpm docs:dev`.
 - **Shell:** Electron 39
 - **State:** Zustand, Immer
 - **Firmware adapters:** ZMK (BLE/serial), QMK (raw HID via VIA), Vial, Keychron
-- **Testing:** Vitest, Storybook 10
+- **Testing:** Vitest
 
 ## Prerequisites
 
@@ -38,11 +38,10 @@ ABI.
 
 ## Development
 
-| Command          | Purpose                                                    |
-| ---------------- | ---------------------------------------------------------- |
-| `pnpm edev`      | Electron dev (renderer + main + preload, hot reload)       |
-| `pnpm dev`       | Renderer-only Vite dev server (port 5174, browser preview) |
-| `pnpm storybook` | Storybook on port 6006                                     |
+| Command     | Purpose                                                    |
+| ----------- | ---------------------------------------------------------- |
+| `pnpm edev` | Electron dev (renderer + main + preload, hot reload)       |
+| `pnpm dev`  | Renderer-only Vite dev server (port 5174, browser preview) |
 
 ## Quality gates
 

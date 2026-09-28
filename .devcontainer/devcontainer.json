@@ -26,11 +26,10 @@
     "remoteUser": "node",
     "postCreateCommand": "sudo chown node node_modules && pnpm install",
 
-    "forwardPorts": [5173, 5174, 6006],
+    "forwardPorts": [5173, 5174],
     "portsAttributes": {
         "5173": { "label": "vite dev (app)" },
-        "5174": { "label": "vite dev (docs, when 5173 is taken)" },
-        "6006": { "label": "Storybook" }
+        "5174": { "label": "vite dev (docs, when 5173 is taken)" }
     },
 
     "customizations": {
