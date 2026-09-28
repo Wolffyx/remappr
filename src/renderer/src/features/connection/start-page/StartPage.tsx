@@ -1,21 +1,18 @@
 // pattern-check: skip — UI shell, restyled to the design prototype; delegates to useConnection
 // Pattern check: no GoF pattern (-) — rejected — news layouts slot into fixed spots on the page, one layout per spot; a lookup table would still need the per-spot placement.
 import { useEffect } from 'react'
-import { BookOpen, Download, Keyboard, Sparkles } from 'lucide-react'
+import { Download, Keyboard, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Transport } from '@firmware'
 
 import { Button } from '@/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
-import { GitHubIcon } from '@/components/GitHubIcon'
-import { DiscordIcon } from '@/components/DiscordIcon'
 import { DownloadLatestButton } from '@/components/DownloadLatestButton'
-import { APP_VERSION, DISCORD_URL, DOCS_URL, REPO_URL } from '@/lib/constants'
+import { APP_VERSION } from '@/lib/constants'
 import { LicenseNoticeModal } from '@/components/modals/LicenseNoticeModal'
 import { Settings } from '@/components/modals/Settings'
-import { SupportModal } from '@/components/modals/SupportModal'
 import { WindowControls } from '@/layout/WindowControls'
 import { TrafficLightInset } from '@/layout/TrafficLightInset'
+import { CommunityLinks } from '@/layout/toolbar/CommunityLinks'
 import { useConnection } from '@/hooks/use-connection'
 import { cn } from '@/lib/cn'
 import useUserSettingsStore from '@/stores/userSettingsStore'
@@ -108,78 +105,42 @@ export function StartPage({
             />
 
             {/* header */}
+            {/* header: brand · project links (centred) · settings. Same
+                `1fr auto 1fr` grid as the editor header. */}
             <header
-                className="relative z-[2] flex shrink-0 select-none items-center justify-between py-5 pl-7 pr-2"
+                className="relative z-[2] grid shrink-0 select-none grid-cols-[1fr_auto_1fr] items-center gap-2 py-5 pl-7 pr-2"
                 style={DRAG_REGION}
             >
-                {/* clears macOS's native traffic lights; no-op elsewhere */}
-                <TrafficLightInset />
-                <div className="flex items-center gap-3" style={NO_DRAG}>
-                    <span
-                        className="grid size-[38px] place-items-center rounded-xl text-white"
-                        style={{
-                            background:
-                                'linear-gradient(150deg, var(--primary), color-mix(in oklch, var(--primary) 70%, #000))',
-                        }}
-                    >
-                        <Keyboard size={22} />
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-[21px] font-extrabold tracking-tight">
-                            Remappr
+                <div className="flex items-center">
+                    {/* clears macOS's native traffic lights; no-op elsewhere */}
+                    <TrafficLightInset />
+                    <div className="flex items-center gap-3" style={NO_DRAG}>
+                        <span
+                            className="grid size-[38px] place-items-center rounded-xl text-white"
+                            style={{
+                                background:
+                                    'linear-gradient(150deg, var(--primary), color-mix(in oklch, var(--primary) 70%, #000))',
+                            }}
+                        >
+                            <Keyboard size={22} />
                         </span>
-                        <span className="font-mono text-[11px] font-semibold text-muted-foreground">
-                            v{APP_VERSION}
-                        </span>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-[21px] font-extrabold tracking-tight">
+                                Remappr
+                            </span>
+                            <span className="font-mono text-[11px] font-semibold text-muted-foreground">
+                                v{APP_VERSION}
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-1" style={NO_DRAG}>
+                <CommunityLinks />
+                <div
+                    className="flex items-center gap-1 justify-self-end"
+                    style={NO_DRAG}
+                >
                     {newsStyle === 'inbox' && <NewsBell {...news} />}
                     <Settings />
-                    <a
-                        href={REPO_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="View source on GitHub"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-                    >
-                        <GitHubIcon className="h-5 w-5" />
-                    </a>
-                    <a
-                        href={DISCORD_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Join the Discord community"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-                    >
-                        <DiscordIcon className="h-5 w-5" />
-                    </a>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <a
-                                href={DOCS_URL}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="Open the documentation"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-                            >
-                                <BookOpen className="h-5 w-5" />
-                            </a>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Documentation</p>
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div>
-                                <SupportModal />
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Support this project</p>
-                        </TooltipContent>
-                    </Tooltip>
                     {/* native window controls (Electron, non-mac) merged into
                         the bar so the start page is a single top bar. */}
                     <div className="ml-1 flex h-9 items-stretch">
