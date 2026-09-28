@@ -76,6 +76,16 @@ pages. The available groups include:
 Each entry carries a name, description and notes — the same text the visual
 picker shows, surfaced as hover tooltips in the JSON editor.
 
+## Where the key names come from
+
+The `Keyboard` and `Consumer` groups are USB HID usages: page 7
+(Keyboard/Keypad) and page 12 (Consumer). Their names come from the USB-IF's
+[HID Usage Tables 1.5](https://usb.org/document-library/hid-usage-tables-15):
+Remappr bundles those two pages of the USB-IF's published usage-table JSON as
+they are, and puts its own shorter cap labels on top. That's why the usage the
+spec calls "Keyboard Delete" (usage 42) shows as **Backspace**, or **BkSp** on a
+small cap.
+
 ## Friendly names on re-save
 
 When Remappr serializes, it prefers a **friendly display token** (the label, or a

@@ -203,7 +203,6 @@ const PhysicalLayoutCanvasImpl = ({
         keyDisplayModeMap['_default'] ??
         'displayName'
 
-    // TODO: Add a bit of padding for rotation when supported
     // Board bounds depend only on `positions`; memoized so the reduce doesn't run on
     // every render (selection/pan/paint re-renders don't touch the geometry).
     const { rightMost, bottomMost } = useMemo(

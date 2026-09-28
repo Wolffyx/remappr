@@ -179,8 +179,7 @@ export default defineConfig({
         },
 
         footer: {
-            message:
-                'Apache-2.0. Originally forked from ZMK Studio; application layer fully rewritten.',
+            message: 'Released under the Apache-2.0 License.',
             copyright: 'Remappr',
         },
     },
