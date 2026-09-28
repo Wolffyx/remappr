@@ -11,6 +11,7 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "noImplicitAny": true,
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -36,7 +37,8 @@
     "src/main/**/*",
     "src/preload/**/*",
     "src/shared/**/*",
-    "src/firmware/**/*"
+    "src/firmware/**/*",
+    "scripts/release/**/*"
   ],
   "exclude": [
     "src/firmware/clients/zmk/**"

@@ -1,8 +1,9 @@
 name: Dev site (Cloudflare Pages)
 
 # Staging deploy. Every push to `dev` (i.e. every PR merged into dev) rebuilds
-# the web app and ships it to dev.remappr.com. Production (remappr.com) stays
-# on main via main.yml — promote dev -> main when you're happy with staging.
+# the web app and ships it to dev.remappr.com. Production (remappr.com) ships
+# with each release via main.yml — promoting dev -> main is the release
+# (RELEASING.md).
 on:
     push:
         branches: [dev]

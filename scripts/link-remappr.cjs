@@ -91,16 +91,43 @@ function writeBuilderStub(linkAbs) {
     )
 }
 
-// Branch/tag to fetch for a project: per-project REMAPPR_<NAME>_REF wins over
-// the global REMAPPR_REF; unset -> the repo's default branch. This lets the
+// Branch/tag/commit to fetch for a project: per-project REMAPPR_<NAME>_REF wins
+// over the global REMAPPR_REF; unset -> the repo's default branch. This lets the
 // app's `dev` build pull each project's `dev` branch (dev-deploy.yml sets
-// REMAPPR_REF=dev) while main/prod builds stay on the default branch.
+// REMAPPR_REF=dev) while main/prod builds stay on the default branch. Release
+// builds set a full commit SHA per project (the release's remappr-lock, see
+// scripts/release/) so every artifact of a release builds the same sources.
 function refFor(t) {
     return (
         process.env[`REMAPPR_${t.name.toUpperCase()}_REF`] ||
         process.env.REMAPPR_REF ||
         ''
     )
+}
+
+const isSha = (ref) => /^[0-9a-f]{40}$/.test(ref)
+
+// A pinned commit: `git clone --branch` takes only branches and tags, so fetch
+// the one commit instead. No fallback — a release must not quietly build
+// different sources than it recorded.
+function fetchCommit(t, url, dest, sha) {
+    try {
+        fs.mkdirSync(dest, { recursive: true })
+        const git = (args) =>
+            execSync(`git -C "${dest}" ${args}`, { stdio: 'inherit' })
+        git('init --quiet')
+        git(`remote add origin ${url}`)
+        git(`fetch --quiet --depth 1 origin ${sha}`)
+        git('checkout --quiet FETCH_HEAD')
+        return dest
+    } catch {
+        fs.rmSync(dest, { recursive: true, force: true })
+        console.error(
+            `[link-remappr] ERROR: ${t.name}: pinned commit ${sha} could not be fetched.`,
+        )
+        process.exitCode = 1
+        return null
+    }
 }
 
 function tryClone(t) {
@@ -120,6 +147,7 @@ function tryClone(t) {
     const url = authUrl(baseUrl)
     fs.mkdirSync(cacheRoot, { recursive: true })
     fs.rmSync(dest, { recursive: true, force: true })
+    if (isSha(ref)) return fetchCommit(t, url, dest, ref)
     // With a ref, try that branch first; if the project hasn't branched it yet
     // (e.g. `dev` not yet cut from main) fall back to the default branch so the
     // build still succeeds instead of hard-failing on a missing branch.

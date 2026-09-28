@@ -1,8 +1,22 @@
 name: release
 
+# A merge into `main` is a release (RELEASING.md). Normally that is a `dev` →
+# `main` promotion carrying a batch of work; a hotfix branch merged straight
+# into `main` releases the same way. release-please turns the batch's
+# conventional commits into a version (feat → minor, fix → patch while 0.x)
+# and a release PR, which is auto-merged. Merging it creates the release as a
+# DRAFT; the notes job adds the sibling repos' changes and their pinned
+# commits, and the publish job publishes it. Only then does `published` fire
+# the installers, remappr.com, docs and Discord — all reading the finished
+# notes.
 on:
     push:
         branches: [main]
+    workflow_dispatch:
+        inputs:
+            release_as:
+                description: 'Force the next release to this version (e.g. 0.2.0)'
+                required: true
 
 permissions:
     contents: write
@@ -13,13 +27,37 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
+    # Pins the next version: an empty commit with a Release-As footer, pushed
+    # with the PAT so it triggers this workflow's push path.
+    release-as:
+        if: github.event_name == 'workflow_dispatch'
+        runs-on: ubuntu-latest
+        environment: github-pages
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              with:
+                  ref: main
+                  token: ${{ secrets.RELEASE_PAT }}
+            - name: Commit Release-As
+              env:
+                  VERSION: ${{ inputs.release_as }}
+              run: |
+                  if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    echo "::error::release_as must be X.Y.Z, got '$VERSION'"
+                    exit 1
+                  fi
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git commit --allow-empty -m "chore: release $VERSION" -m "Release-As: $VERSION"
+                  git push origin HEAD:main
+
     release:
+        if: github.event_name == 'push'
         runs-on: ubuntu-latest
         environment: github-pages
         outputs:
             release_created: ${{ steps.rp.outputs.release_created }}
             tag_name: ${{ steps.rp.outputs.tag_name }}
-            pr: ${{ steps.rp.outputs.pr }}
         steps:
             - name: Run release
               id: rp
@@ -38,3 +76,53 @@ jobs:
                   PR_NUM=$(jq -r '.number' <<< "$RP_PR")
                   echo "Enabling auto-merge on release PR #$PR_NUM"
                   gh pr merge "$PR_NUM" --squash --auto --repo "$GITHUB_REPOSITORY"
+
+    # Sibling-repo notes + pinned commits (scripts/release/). Runs in the
+    # `remappr` environment for REMAPPR_GIT_TOKEN (the builder is private).
+    notes:
+        needs: release
+        if: needs.release.outputs.release_created == 'true'
+        runs-on: ubuntu-latest
+        environment: remappr
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+              with:
+                  node-version-file: '.nvmrc'
+            - name: Build release notes
+              env:
+                  TAG: ${{ needs.release.outputs.tag_name }}
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  SIBLING_TOKEN: ${{ secrets.REMAPPR_GIT_TOKEN }}
+                  OUT: release-notes.md
+              run: node scripts/release/finalize.ts
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: release-notes
+                  path: release-notes.md
+
+    # Publishes the draft with the PAT: a release published with GITHUB_TOKEN
+    # would not trigger build-release / main / docs / discord. Runs even if the
+    # notes job failed, publishing release-please's notes as they are, so a
+    # GitHub hiccup never strands a release as a draft.
+    publish:
+        needs: [release, notes]
+        if: always() && needs.release.outputs.release_created == 'true'
+        runs-on: ubuntu-latest
+        environment: github-pages
+        steps:
+            - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              if: needs.notes.result == 'success'
+              with:
+                  name: release-notes
+            - name: Publish release
+              env:
+                  GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+                  TAG: ${{ needs.release.outputs.tag_name }}
+              run: |
+                  if [ -f release-notes.md ]; then
+                    gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file release-notes.md --draft=false
+                  else
+                    echo "::warning::No finished notes — publishing $TAG with release-please's notes."
+                    gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+                  fi
