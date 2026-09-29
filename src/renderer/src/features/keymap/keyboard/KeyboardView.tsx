@@ -62,6 +62,9 @@ interface KeyboardViewProps {
     // RGB sheet per-key mode: clicks select keys for colour editing in the sheet,
     // so a single click must NOT also open the keymap binding picker.
     suppressPicker?: boolean
+    // A bottom sheet (RGB / Advanced) holds the picker's dock slot, so the
+    // selected-key card's Edit button would have nothing to open.
+    sheetOpen?: boolean
 }
 
 export default function KeyboardView({
@@ -78,6 +81,7 @@ export default function KeyboardView({
     onSelectedKeyInfoChange,
     paint,
     suppressPicker,
+    sheetOpen,
 }: KeyboardViewProps): JSX.Element {
     const { layouts, selectedPhysicalLayoutIndex } = useLayout()
     // Per-field selectors (not whole-store reads) so this view — which owns the canvas
@@ -326,7 +330,10 @@ export default function KeyboardView({
     // Floating selected-key card: shown when a single key is selected but the
     // bottom picker is closed (workbench/command). Edit reopens the picker.
     const infoCardPos =
-        selectedKeyInfo && !pickerOpen && workspace !== 'inspector'
+        selectedKeyInfo &&
+        !pickerOpen &&
+        !sheetOpen &&
+        workspace !== 'inspector'
             ? selectedKeyInfo
             : undefined
 

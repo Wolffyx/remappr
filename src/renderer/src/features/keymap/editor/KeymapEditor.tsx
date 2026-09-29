@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import KeyboardView from '@/features/keymap/keyboard/KeyboardView'
 import type { KeyPosition } from '@/features/keymap/keyboard/PhysicalLayoutCanvas'
 import { usePerKeyPaint } from '@/features/keymap/keyboard/stage/usePerKeyPaint'
@@ -92,6 +92,16 @@ export function KeymapEditor(): JSX.Element {
     // binding picker while open.
     const anySheetOpen = rgbSheetOpen || advancedSheetOpen
 
+    // Keys picked for colouring are not a keymap selection: drop them when the
+    // per-key section closes (another tab, or the sheet itself).
+    useEffect(() => {
+        if (!lightingPerKey) return
+        return (): void => {
+            setSelectedKeyPosition(undefined)
+            setMultiSelection(new Set())
+        }
+    }, [lightingPerKey, setSelectedKeyPosition])
+
     const keyboard = (
         <KeyboardView
             keymap={keymap}
@@ -107,6 +117,7 @@ export function KeymapEditor(): JSX.Element {
             onSelectedKeyInfoChange={setSelectedKeyInfo}
             paint={paint}
             suppressPicker={lightingPerKey}
+            sheetOpen={anySheetOpen}
         />
     )
 
