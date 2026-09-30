@@ -15,8 +15,8 @@ hands off when you click **Editor**.
   card with its [device menu](/guide/app/connecting#the-device-menu). The
   **⊟** button at the top-left of the header folds the sidebar away.
 - **Board** (middle) — the keyboard itself. A pill in the top-left names the
-  layer on show (**base** · layer) next to a **LIVE** badge when the board is
-  connected; the zoom controls sit top-right (**−**, the zoom level, **+**, and
+  layer on show (**base** · layer) next to a **LIVE** badge while
+  [live view](/guide/app/insights#live-view) is on; the zoom controls sit top-right (**−**, the zoom level, **+**, and
   fit-to-view).
 - **Header** (top) — the toolbar, described [below](#header-toolbar).
 - **Binding editor** — opens when you click a key; where it opens depends on

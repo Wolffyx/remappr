@@ -1,4 +1,4 @@
-// pattern-check: skip — persisted zustand sim-state store mirroring liveViewStore
+// pattern-check: skip — persisted zustand sim-state store (liveViewStore's shape, minus persistence there)
 import { create } from 'zustand'
 import { createJSONStorage, devtools, persist } from 'zustand/middleware'
 import {
