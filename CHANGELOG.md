@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.1.0](https://github.com/Wolffyx/remappr/compare/v0.0.16...v0.1.0) (2026-09-30)
+
+
+### Features
+
+* **demo:** try the unlock UI without a keyboard ([db4bc0a](https://github.com/Wolffyx/remappr/commit/db4bc0a22d91e9b17250bf99774f39b5de8f966a))
+* **encoders:** pick knob directions like mod-tap slots ([ad6e1b4](https://github.com/Wolffyx/remappr/commit/ad6e1b49e28ac8ed7e2db8df8f010c92378a49a0))
+* **header:** centre the project links in the top bar ([db43e08](https://github.com/Wolffyx/remappr/commit/db43e08564e0e28b2d355fd17177f3df76454319))
+* **lock:** unlock prompt for action locks, one UnlockPanel ([9ff13f2](https://github.com/Wolffyx/remappr/commit/9ff13f293539017354e069f98e2fcf910fee9f40))
+* **news:** show what's new after an update ([881b8e8](https://github.com/Wolffyx/remappr/commit/881b8e8f63af7a6f1f165fd022c02d4750c0c650)), closes [#205](https://github.com/Wolffyx/remappr/issues/205)
+* **news:** start-page news with layouts picked in Settings ([394633d](https://github.com/Wolffyx/remappr/commit/394633de51c2b9d61ac72260a50e3d3bae5403b5))
+* **rgb:** paint every LED under a key ([789125c](https://github.com/Wolffyx/remappr/commit/789125c2dca53264d8603a527bd9d15ca4c7ceae))
+* **rgb:** per-key paint on write-only firmware, optional indicators ([2721773](https://github.com/Wolffyx/remappr/commit/272177375ed2b45beee87add1241b2c93b1eadda)), closes [#191](https://github.com/Wolffyx/remappr/issues/191)
+* **sideload:** "Use board's layout" button ([f471d05](https://github.com/Wolffyx/remappr/commit/f471d054fc70ffa0668c95eb28f113e34d2fd5de)), closes [#189](https://github.com/Wolffyx/remappr/issues/189)
+* **stage:** draw encoders as a knob on a key cap ([61243c2](https://github.com/Wolffyx/remappr/commit/61243c2906e08a78b0f9ce6405d6897683c441a4))
+* **stage:** show icons on encoder knobs, drop the arrow glyphs ([75f31e5](https://github.com/Wolffyx/remappr/commit/75f31e5c0ec83e87cecdbf5537712bce32ba3b5a))
+
+
+### Bug Fixes
+
+* **connect:** let Redux DevTools serialize a Vial connection ([8c25f21](https://github.com/Wolffyx/remappr/commit/8c25f21809915b1f806d4aaa025f9c3eb30f81fd))
+* **connect:** load firmware clients independently ([563f6c7](https://github.com/Wolffyx/remappr/commit/563f6c727e6ad1fbea140e5736e0affbfad94766))
+* **connect:** show a new connection with its lock state ([e6730ec](https://github.com/Wolffyx/remappr/commit/e6730ec6e068cdfb8c80afe3b56451e791f1e8ec))
+* **connect:** show the client's connect notices ([a1f89b6](https://github.com/Wolffyx/remappr/commit/a1f89b6bc827f71a0b2443fde4f78900e632e732)), closes [#187](https://github.com/Wolffyx/remappr/issues/187)
+* **deps:** mirror the firmware client's XZ decoder ([d5822f9](https://github.com/Wolffyx/remappr/commit/d5822f9fe62c4d7799f2a0b0c55972490f1376c5))
+* **news:** import semver relatively so the docs build resolves it ([a900ea3](https://github.com/Wolffyx/remappr/commit/a900ea36f84d35779ddcc7a839d0ce80dcd5f952))
+* **profile:** survive bindings the firmware cannot set on restore ([8bc237e](https://github.com/Wolffyx/remappr/commit/8bc237e42829f8f199d2caee7183cf4048c45fe5))
+* **rgb:** ask the firmware client which effects use the colour picker ([13112d9](https://github.com/Wolffyx/remappr/commit/13112d9df38a5595a07be961f523ef5ec88a93e1))
+* **rgb:** drop per-key selection when leaving the Per-key tab ([72facdf](https://github.com/Wolffyx/remappr/commit/72facdfd3d44f772974d699174edbc36220220d6))
+* **search:** drop the dead tag strip from key label matching ([26139ac](https://github.com/Wolffyx/remappr/commit/26139ac87772b30edb3272475e2dd351f41f0903))
+* **sideload:** re-read the device config after a layout upload ([25a05ee](https://github.com/Wolffyx/remappr/commit/25a05ee6cfd9ce721d2104a96fc65c34d8518315))
+* **stage:** draw knobs where the layout puts them, at cap size ([0f7c2b6](https://github.com/Wolffyx/remappr/commit/0f7c2b65fb49bab21c717e6fe9fcce80ac2e5acc))
+* **stage:** start every session with live view off ([46d3c05](https://github.com/Wolffyx/remappr/commit/46d3c05421eecf908ffed637793d72ded7b44230))
+* **start-page:** device previews show the board, not its bindings ([f3910ec](https://github.com/Wolffyx/remappr/commit/f3910ec84c3f2ef97a066b69c9cfecbfaf2b6e23))
+
 ## [0.0.16](https://github.com/Wolffyx/remappr/compare/v0.0.15...v0.0.16) (2026-08-26)
 
 
