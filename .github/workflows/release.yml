@@ -1,8 +1,7 @@
 name: release
 
-# A merge into `main` is a release (RELEASING.md). Normally that is a `dev` →
-# `main` promotion carrying a batch of work; a hotfix branch merged straight
-# into `main` releases the same way. release-please turns the batch's
+# A merge into `main` is a release (RELEASING.md): a branch cut from `main`,
+# tested on `dev`, then merged into `main`, feature or quick fix alike. release-please turns the batch's
 # conventional commits into a version (feat → minor, fix → patch while 0.x)
 # and a release PR, which is auto-merged. Merging it creates the release as a
 # DRAFT; the notes job adds the sibling repos' changes and their pinned

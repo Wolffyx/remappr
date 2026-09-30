@@ -23,7 +23,8 @@ hot for often — with a **Less → More** scale at the top of the board.
 
 **Live view** (⚡) flashes each key on the board as you press it — a quick way
 to check that a binding is where you think it is. Like the heatmap it listens to
-key presses while Remappr has focus.
+key presses while Remappr has focus. It starts off in every session: switch it
+on from the header when you need it.
 
 ## Key test
 

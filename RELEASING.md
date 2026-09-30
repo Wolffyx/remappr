@@ -5,14 +5,21 @@ remappr.com and the release notes all come from the same commits.
 
 ## The flow
 
-1. Feature and fix PRs merge into **`dev`**. Every push to `dev` redeploys
-   staging at **dev.remappr.com** (`dev-deploy.yml`); nothing is released.
-2. When the batch is ready, promote the sibling repos first (below), then open
-   **one PR `dev` → `main`** in this repo.
-3. Merge it with **"Create a merge commit"**, never squash. release-please
-   reads the individual conventional commits to pick the version and write the
-   notes; a squash hands it a single commit (the PR title) instead.
-4. That's the release. `release.yml` then, without further input:
+Every change, feature or quick fix, travels on its own branch:
+
+1. **Branch from `main`.** Never from `dev`: a branch cut from `dev` carries
+   whatever else is waiting there, and merging it into `main` would release
+   that too.
+2. **PR into `dev` first.** Every push to `dev` redeploys staging at
+   **dev.remappr.com** (`dev-deploy.yml`); nothing is released. Test it there.
+3. **When it's good, PR the same branch into `main`.** Promote the sibling
+   repos first if the branch needs their changes (below). Several branches can
+   go into `main` one after another and ship as one release; each merge that
+   carries a `feat` or `fix` cuts one.
+4. **Merge with "Create a merge commit"**, never squash. release-please reads
+   the individual conventional commits to pick the version and write the notes;
+   a squash hands it a single commit (the PR title) instead.
+5. **That's the release.** `release.yml` then, without further input:
     - opens the release-please PR and auto-merges it,
     - creates the GitHub release as a **draft**,
     - adds the sibling repos' changes to the notes and records the sibling
@@ -23,10 +30,12 @@ remappr.com and the release notes all come from the same commits.
         - `docs.yml`: the docs' What's new page,
         - `discord-release.yml`: the announcement, with an `@everyone` ping.
 
-Anything merged into `main` releases the same way. A hotfix can branch from
-`main` and merge straight back (then merge `main` into `dev`), no promotion
-needed. A docs-only change can too: `docs.yml` deploys it, and with no `feat` /
-`fix` in it, no release is cut.
+`dev` never merges into `main`, and nothing merges `main` into `dev` by hand:
+each new branch starts from `main`, so the release commit (version bump,
+CHANGELOG) reaches `dev` with the next branch merged into it.
+
+A docs-only change follows the same path: `docs.yml` deploys it, and with no
+`feat` / `fix` in it, no release is cut.
 
 ## Versions
 
@@ -48,7 +57,8 @@ next release uses that number.
 The app is built with three repos linked in as source
 (`scripts/link-remappr.cjs`): `remapprClientFirmware`, `remapprUI` and the
 private `remapprBuilder`. A release takes each one's **default branch** as it
-is at release time, so promote their `dev` → `main` before the app's.
+is at release time, so merge a branch's sibling-repo counterparts into their
+`main` before the app's.
 
 The notes list their `feat` / `fix` / `perf` commits since the previous release
 under the same headings as the app's, scoped by repo (`firmware/vial: …`),
