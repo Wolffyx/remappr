@@ -1,8 +1,9 @@
 name: discord-release
 
-# Announce every published (non-prerelease) GitHub Release to Discord.
-# release-please cuts the release on push to main, which fires this event —
-# same trigger build-release.yml uses.
+# Announce every published (non-prerelease) GitHub Release to Discord, with an
+# @everyone ping. Releases are deliberate batches now (RELEASING.md), so each
+# one is worth the ping. release.yml publishes the release once its notes are
+# final, which fires this event — same trigger build-release.yml uses.
 on:
     release:
         types: [published]
@@ -42,7 +43,9 @@ jobs:
 
                   # Discord caps an embed description at 4096 chars; truncate with
                   # a marker well under the limit.
-                  BODY="${RELEASE_BODY:-No release notes provided.}"
+                  # Drop the hidden remappr-lock line (sibling commits the release
+                  # was built from): Discord shows HTML comments as text.
+                  BODY="$(printf '%s' "${RELEASE_BODY:-No release notes provided.}" | sed '/^<!-- remappr-lock /d')"
                   if [ "${#BODY}" -gt 3900 ]; then
                     BODY="${BODY:0:3900}"$'\n\n…truncated — see the full changelog on GitHub.'
                   fi
@@ -54,6 +57,8 @@ jobs:
                     --arg ts "$RELEASE_TIME" \
                     '{
                       username: "Remappr Releases",
+                      content: "@everyone",
+                      allowed_mentions: { parse: ["everyone"] },
                       embeds: [ {
                         title: $title,
                         url: $url,

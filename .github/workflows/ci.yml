@@ -2,9 +2,12 @@ name: CI
 
 on:
     pull_request:
-        branches: [main]
+        branches: [main, dev]
     push:
-        branches: [main]
+        branches: [main, dev]
+
+permissions:
+    contents: read
 
 concurrency:
     group: ci-${{ github.ref }}
@@ -43,6 +46,11 @@ jobs:
               # (else it falls back to a stub). Fork PRs without the secret -> stub.
               run: node scripts/link-remappr.cjs
               env:
+                  # Siblings on the PR's own branch name if they have it (a
+                  # feature spanning repos), else the branch matching the PR's
+                  # target (dev → their dev); a push builds against the
+                  # siblings' same branch. Default branch as the last resort.
+                  REMAPPR_REF: ${{ github.head_ref && format('{0},{1}', github.head_ref, github.base_ref) || github.ref_name }}
                   # URLs are configurable via GitHub repo/org Variables; empty -> script defaults.
                   REMAPPR_FIRMWARE_URL: ${{ vars.REMAPPR_FIRMWARE_URL }}
                   REMAPPR_UI_URL: ${{ vars.REMAPPR_UI_URL }}
@@ -51,7 +59,9 @@ jobs:
 
             - name: Guard against daisyUI re-introduction
               run: |
-                  if grep -rEn 'btn-|bg-base-|text-base-content|primary-content|\bnavbar\b|rounded-box|badge-' src/; then
+                  # btn-/badge- only as class names: a preceding "-" is a CSS
+                  # custom property (the UI kit's Badge reads --badge-tone).
+                  if grep -rEn '(^|[^-])(btn|badge)-|bg-base-|text-base-content|primary-content|\bnavbar\b|rounded-box' src/; then
                     echo "::error::daisyUI tokens or class names detected. Migrate to shadcn equivalents (see chore/shadcn-update branch history)."
                     exit 1
                   fi

@@ -37,6 +37,7 @@ export const DeviceMenu = (): JSX.Element => {
         parentService,
         activeNodeId,
         setService,
+        publishService,
         communication,
         deviceName,
         disconnect,
@@ -49,6 +50,7 @@ export const DeviceMenu = (): JSX.Element => {
             parentService: s.parentService,
             activeNodeId: s.activeNodeId,
             setService: s.setService,
+            publishService: s.publishService,
             communication: s.communication,
             deviceName: s.deviceName,
             disconnect: s.disconnect,
@@ -136,9 +138,12 @@ export const DeviceMenu = (): JSX.Element => {
         setService(null)
 
         setTimeout(() => {
-            setService(currentService, currentCommunication ?? undefined)
+            void publishService(
+                currentService,
+                currentCommunication ?? undefined,
+            )
         }, 0)
-    }, [service, communication, reset, setService])
+    }, [service, communication, reset, setService, publishService])
 
     // Connected-state tracks the live RPC service, NOT the device name. Some
     // firmwares (e.g. a ZMK build with a blank CONFIG_ZMK_KEYBOARD_NAME) report

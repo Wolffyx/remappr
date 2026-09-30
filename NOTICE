@@ -13,19 +13,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 
-ORIGIN
-------
-Remappr originated as a fork of ZMK Studio
-(https://github.com/zmkfirmware/zmk-studio) and has since been substantially
-rewritten. Portions may derive from or be inspired by the original work:
+ZMK STUDIO
+----------
+A few files still contain code from ZMK Studio:
 
     ZMK Studio
     Copyright 2024 The ZMK Contributors
     https://github.com/zmkfirmware/zmk-studio
     Licensed under the Apache License, Version 2.0
-
-The bundled ZMK Studio TypeScript client (@zmkfirmware/zmk-studio-ts-client)
-is licensed under the MIT License, Copyright (c) 2020 The ZMK Contributors.
 
 
 THIRD-PARTY KEYBOARD FIRMWARE — INTEROPERABILITY
@@ -71,10 +66,10 @@ License 1.1. The full license text ships at public/fonts.LICENSE.txt.
 
 BUNDLED DATA
 ------------
-  - USB HID Usage Tables — the data files
-        src/renderer/src/data/HidUsageTables-1.5.json and
-        keyboard-and-consumer-usage-tables.json are derived from the USB-IF
-        "HID Usage Tables" specification.
+  - USB HID Usage Tables 1.5 — src/renderer/src/data/
+        keyboard-and-consumer-usage-tables.json is the Keyboard/Keypad (7) and
+        Consumer (12) pages of the USB-IF's published usage-table JSON, as
+        published. Remappr's own cap labels sit on top of it.
         Copyright (c) USB Implementers Forum, Inc. — https://www.usb.org/hid
 
 
@@ -82,6 +77,10 @@ BUNDLED THIRD-PARTY SOFTWARE
 ----------------------------
 Remappr is distributed with open-source npm dependencies whose licenses are
 preserved in node_modules and apply on redistribution. Of particular note:
+
+  - @zmkfirmware/zmk-studio-ts-client — MIT License,
+        Copyright (c) 2020 The ZMK Contributors. The ZMK Studio RPC client
+        Remappr uses to talk to ZMK keyboards.
 
   - Monaco Editor — MIT License (Microsoft). It incorporates further components
         under MPL-2.0, Apache-2.0, BSD and ISC; see the third-party notices that

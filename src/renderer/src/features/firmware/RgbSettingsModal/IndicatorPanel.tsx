@@ -13,16 +13,16 @@ import type {
     HsvColor,
     IndicatorConfig,
     IndicatorFlags,
-    RgbApi,
 } from '@firmware/service'
 import { saveWithToast } from '@/lib/saveWithToast'
 import { Label } from '@/ui/label'
 import { Switch } from '@/ui/switch'
 
 import { ColorPicker } from './ColorPicker'
+import type { IndicatorRgb } from './indicators'
 
 interface Props {
-    rgb: RgbApi
+    rgb: IndicatorRgb
 }
 
 const WRITE_DEBOUNCE_MS = 90

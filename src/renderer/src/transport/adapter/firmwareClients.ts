@@ -44,6 +44,28 @@ export function discoverableClientDirs(): string[] {
     return clientEntries().map(([key]) => clientDir(key))
 }
 
+/**
+ * Run every client import, isolating failures: one client whose chunk fails to
+ * load (a dev-server "Outdated Optimize Dep" 504, a flaky network fetch in
+ * production) must not unregister every other firmware. Returns the globKeys
+ * that failed.
+ */
+export async function loadClientModules(
+    entries: [string, () => Promise<unknown>][],
+): Promise<string[]> {
+    const results = await Promise.allSettled(entries.map(([, load]) => load()))
+    const failed: string[] = []
+    results.forEach((r, i) => {
+        if (r.status === 'fulfilled') return
+        failed.push(entries[i][0])
+        console.error(
+            `[firmware] client "${clientDir(entries[i][0])}" failed to load; its keyboards can't connect until it does`,
+            r.reason,
+        )
+    })
+    return failed
+}
+
 let loadOnce: Promise<void> | null = null
 
 /**
@@ -62,8 +84,11 @@ export function ensureFirmwareClientsLoaded(): Promise<void> {
     // handshake would otherwise regenerate every launch → ERR_AUTH on an
     // already-bonded node) happens inside that client, not here.
     initHostSecretStore()
-    loadOnce = Promise.all(clientEntries().map(([, load]) => load()))
-        .then(() => prepareAdapters())
-        .then(() => undefined)
+    loadOnce = loadClientModules(clientEntries()).then(async (failed) => {
+        await prepareAdapters()
+        // Forget a partial load so the next caller retries the failed clients.
+        // Modules that did load are cached by the runtime and register once.
+        if (failed.length > 0) loadOnce = null
+    })
     return loadOnce
 }

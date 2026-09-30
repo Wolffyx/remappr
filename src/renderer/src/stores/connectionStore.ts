@@ -81,6 +81,14 @@ interface ConnectionState {
     ) => void
     setDeviceName: (name: string | null) => void
     setLockState: (state: LockState) => void
+    /** Show a newly connected service together with its lock state. The store
+     *  holds 'locked' until a service's state is read, so publishing the
+     *  service first drew the locked screen for a moment on every board with
+     *  an 'editor' lock (ZMK). Reads the state, sets it, then the service. */
+    publishService: (
+        service: KeyboardService,
+        communication?: 'serial' | 'ble' | 'hid',
+    ) => Promise<void>
     setKeyCatalog: (catalog: KeyCatalog | null) => void
     setConnectionAbort: (abort: AbortController) => void
     resetConnection: () => void
@@ -268,6 +276,16 @@ const useConnectionStore = create<ConnectionState>()(
                 set({ lastConnectedDevice: device }),
             setDeviceName: (name) => set({ deviceName: name }),
             setLockState: (state) => set({ lockState: state }),
+            publishService: async (service, communication) => {
+                let lockState: LockState = 'locked'
+                try {
+                    lockState = await service.getLockState()
+                } catch (err) {
+                    console.warn('getLockState failed', err)
+                }
+                get().setLockState(lockState)
+                get().setService(service, communication)
+            },
             setKeyCatalog: (catalog) => set({ keyCatalog: catalog }),
             setConnectionAbort: (abort) => set({ connectionAbort: abort }),
             openNode: async (id) => {
@@ -359,6 +377,16 @@ const useConnectionStore = create<ConnectionState>()(
                 set({ connectionAbort: new AbortController() })
             },
         })),
+        {
+            // The live service sits in this state and the Redux DevTools
+            // extension JSON-serializes it on every set. A Vial service holds a
+            // 64-bit keyboard id as a bigint, which JSON.stringify rejects —
+            // the throw escapes set() and fails the connect.
+            serialize: {
+                replacer: (_key: string, value: unknown) =>
+                    typeof value === 'bigint' ? value.toString() : value,
+            },
+        },
     ),
 )
 

@@ -1,5 +1,5 @@
 // pattern-check: skip — presentational summary card, single caller, no abstraction
-import { KeyButton } from '@/features/keymap/keyboard/KeyButton'
+import { KeyCapPreview } from '@/features/keymap/keyboard/KeyCapPreview'
 import type { KeyPosition } from '@/features/keymap/keyboard/PhysicalLayoutCanvas'
 import { CATEGORY_META } from '@/lib/keymap/keyCategory'
 
@@ -14,9 +14,7 @@ export function SelectedKeyCard({
     const category = CATEGORY_META[info.category ?? 'alpha']?.label
     return (
         <div className="mb-4 flex items-center gap-3 rounded-xl border bg-background p-3">
-            <div className="relative size-12 shrink-0">
-                <KeyButton oneU={48} selected {...info} />
-            </div>
+            <KeyCapPreview info={info} />
             <div className="min-w-0 leading-tight">
                 <div className="truncate text-sm font-bold text-foreground">
                     {info.header}

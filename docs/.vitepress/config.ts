@@ -30,6 +30,7 @@ export default defineConfig({
             { text: 'App & Editor', link: '/guide/app/connecting' },
             { text: 'Config Reference', link: '/reference/config/overview' },
             { text: 'Developers', link: '/dev/architecture' },
+            { text: 'What’s new', link: '/whats-new' },
             { text: 'Open app ↗', link: 'https://remappr.com' },
         ],
 
@@ -89,6 +90,14 @@ export default defineConfig({
                             link: '/guide/app/connecting',
                         },
                         { text: 'The keymap editor', link: '/guide/editor' },
+                        {
+                            text: 'Editing bindings',
+                            link: '/guide/app/editing-bindings',
+                        },
+                        {
+                            text: 'Heatmap, key test & typing load',
+                            link: '/guide/app/insights',
+                        },
                         {
                             text: 'RGB & lighting',
                             link: '/guide/app/rgb-lighting',
@@ -179,8 +188,7 @@ export default defineConfig({
         },
 
         footer: {
-            message:
-                'Apache-2.0. Originally forked from ZMK Studio; application layer fully rewritten.',
+            message: 'Released under the Apache-2.0 License.',
             copyright: 'Remappr',
         },
     },

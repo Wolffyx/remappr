@@ -23,7 +23,7 @@
  */
 const fs = require('node:fs')
 const path = require('node:path')
-const { execSync } = require('node:child_process')
+const { execFileSync } = require('node:child_process')
 
 const appRoot = path.resolve(__dirname, '..')
 // app = .../Typescript/React/zmk-studio-original  ->  ../../ = .../Typescript
@@ -69,14 +69,22 @@ function authUrl(url) {
     )
 }
 
-function wireSymlink(linkAbs, targetAbs) {
+// rmSync follows a symlink, so a dangling one (its clone was deleted) survives
+// it and the new symlinkSync fails with EEXIST; unlink the link itself first.
+function removeLink(linkAbs) {
+    const stat = fs.lstatSync(linkAbs, { throwIfNoEntry: false })
+    if (stat?.isSymbolicLink()) fs.unlinkSync(linkAbs)
     fs.rmSync(linkAbs, { recursive: true, force: true })
+}
+
+function wireSymlink(linkAbs, targetAbs) {
+    removeLink(linkAbs)
     fs.mkdirSync(path.dirname(linkAbs), { recursive: true })
     fs.symlinkSync(path.relative(path.dirname(linkAbs), targetAbs), linkAbs)
 }
 
 function writeBuilderStub(linkAbs) {
-    fs.rmSync(linkAbs, { recursive: true, force: true })
+    removeLink(linkAbs)
     fs.mkdirSync(linkAbs, { recursive: true })
     fs.writeFileSync(
         path.join(linkAbs, 'index.tsx'),
@@ -91,22 +99,68 @@ function writeBuilderStub(linkAbs) {
     )
 }
 
-// Branch/tag to fetch for a project: per-project REMAPPR_<NAME>_REF wins over
-// the global REMAPPR_REF; unset -> the repo's default branch. This lets the
-// app's `dev` build pull each project's `dev` branch (dev-deploy.yml sets
-// REMAPPR_REF=dev) while main/prod builds stay on the default branch.
-function refFor(t) {
-    return (
+// Refs to fetch for a project, tried in order, then the repo's default branch:
+// per-project REMAPPR_<NAME>_REF wins over the global REMAPPR_REF, and either
+// may list several, comma-separated. So:
+//   - dev-deploy.yml sets REMAPPR_REF=dev: staging pulls each project's `dev`.
+//   - PR builds set "<pr branch>,<base branch>": a feature that spans repos
+//     under one branch name builds against its sibling branches before any of
+//     them merge; otherwise against the siblings' branch matching the target.
+//   - Release builds set a full commit SHA per project (the release's
+//     remappr-lock, see scripts/release/) so every artifact of a release builds
+//     the same sources.
+// Unset -> the default branch, so main/prod builds stay there.
+function refsFor(t) {
+    const raw =
         process.env[`REMAPPR_${t.name.toUpperCase()}_REF`] ||
         process.env.REMAPPR_REF ||
         ''
-    )
+    return raw
+        .split(',')
+        .map((ref) => ref.trim())
+        .filter((ref) => {
+            if (!ref) return false
+            // Refs can come from a PR's branch name; keep them to plain
+            // branch/tag characters (git runs without a shell anyway).
+            if (/^[A-Za-z0-9._/-]+$/.test(ref) && !ref.startsWith('-')) {
+                return true
+            }
+            console.warn(`[link-remappr] ignoring unusable ref "${ref}"`)
+            return false
+        })
+}
+
+const isSha = (ref) => /^[0-9a-f]{40}$/.test(ref)
+
+const git = (args) => execFileSync('git', args, { stdio: 'inherit' })
+
+// A pinned commit: `git clone --branch` takes only branches and tags, so fetch
+// the one commit instead. No fallback — a release must not quietly build
+// different sources than it recorded.
+function fetchCommit(t, url, dest, sha) {
+    try {
+        fs.mkdirSync(dest, { recursive: true })
+        git(['-C', dest, 'init', '--quiet'])
+        git(['-C', dest, 'remote', 'add', 'origin', url])
+        git(['-C', dest, 'fetch', '--quiet', '--depth', '1', 'origin', sha])
+        git(['-C', dest, 'checkout', '--quiet', 'FETCH_HEAD'])
+        return dest
+    } catch {
+        fs.rmSync(dest, { recursive: true, force: true })
+        console.error(
+            `[link-remappr] ERROR: ${t.name}: pinned commit ${sha} could not be fetched.`,
+        )
+        process.exitCode = 1
+        return null
+    }
 }
 
 function tryClone(t) {
-    const ref = refFor(t)
-    // Cache per ref so switching branches locally doesn't serve a stale clone.
-    const dest = path.join(cacheRoot, ref ? `${t.repoDir}@${ref}` : t.repoDir)
+    const refs = refsFor(t)
+    // Cache per ref list so switching branches locally doesn't serve a stale
+    // clone.
+    const key = refs.join('+').replace(/\//g, '_')
+    const dest = path.join(cacheRoot, key ? `${t.repoDir}@${key}` : t.repoDir)
     if (fs.existsSync(path.join(dest, t.srcSub))) return dest // cached
     if (noFetch) return null
     // Private projects need a token; without one, skip (optional -> stub).
@@ -120,20 +174,19 @@ function tryClone(t) {
     const url = authUrl(baseUrl)
     fs.mkdirSync(cacheRoot, { recursive: true })
     fs.rmSync(dest, { recursive: true, force: true })
-    // With a ref, try that branch first; if the project hasn't branched it yet
-    // (e.g. `dev` not yet cut from main) fall back to the default branch so the
+    if (refs.length === 1 && isSha(refs[0])) {
+        return fetchCommit(t, url, dest, refs[0])
+    }
+    // Each listed branch in turn; a project that hasn't cut one (e.g. `dev`
+    // not yet branched from main) falls through to its default branch, so the
     // build still succeeds instead of hard-failing on a missing branch.
-    const attempts = ref ? [`--branch ${ref} `, ''] : ['']
-    for (const branchArg of attempts) {
+    for (const ref of [...refs, null]) {
+        const branch = ref ? ['--branch', ref] : []
         try {
-            execSync(`git clone --depth 1 ${branchArg}${url} "${dest}"`, {
-                stdio: 'inherit',
-            })
-            if (ref && branchArg === '') {
-                console.log(
-                    `[link-remappr] ${t.name}: ref "${ref}" not found — used the default branch.`,
-                )
-            }
+            git(['clone', '--quiet', '--depth', '1', ...branch, url, dest])
+            console.log(
+                `[link-remappr] ${t.name}: ${ref ? `branch "${ref}"` : 'default branch'}`,
+            )
             return dest
         } catch {
             fs.rmSync(dest, { recursive: true, force: true })

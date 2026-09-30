@@ -22,14 +22,17 @@ import { Modal } from '@/ui/modal'
 import { TapDanceTab } from '@/features/dynamic/tabs/TapDanceTab'
 import type { KeyPosition } from '@/features/keymap/keyboard/PhysicalLayoutCanvas'
 import { SelectedKeyCard } from './BindingEditorSelectedKeyCard'
+import { EncoderDirectionBar } from '@/features/encoders/EncoderDirectionBar'
+import { knobLegend } from '@/features/encoders/knobLegend'
+import {
+    actionFor,
+    type EncoderSelection,
+    nextDir,
+} from '@/features/encoders/model'
+import { useEncoderEditor } from '@/features/encoders/useEncoderEditor'
 import { toast } from 'sonner'
 
 const TAP_DANCE_KINDS: ReadonlySet<string> = new Set(['vial:tap-dance'])
-
-interface EncoderSelection {
-    slot: number
-    dir: 'cw' | 'ccw'
-}
 
 // pattern-check: skip — additive optional variant prop on existing BindingEditor
 interface BindingEditorProps {
@@ -100,6 +103,13 @@ export function BindingEditor({
         )
     }, [keymap, selectedLayerIndex])
 
+    const encoderEditor = useEncoderEditor({
+        service,
+        keymap,
+        setKeymap,
+        layerIndex: effectiveLayerIndex,
+    })
+
     const doUpdateAction = useCallback(
         (draft: KeyActionDraft): void => {
             if (!service || service.capabilities.readOnly || !keymap) return
@@ -108,53 +118,16 @@ export function BindingEditor({
             const layerId = keymap.layers[layer].id
             const newAction = service.buildKeyAction(draft.kind, draft.params)
 
-            // Encoder edit branch.
-            if (selectedEncoder && service.encoders) {
-                const { slot, dir } = selectedEncoder
-                const enc = keymap.layers[layer].encoders?.[slot]
-                if (!enc) return
-                const oldAction = dir === 'cw' ? enc.cw : enc.ccw
-                const direction: 0 | 1 = dir === 'cw' ? 0 : 1
-                const setEncoder = service.encoders.setEncoder.bind(
-                    service.encoders,
-                )
-                // pattern-check: skip — optimistic reorder of existing store write vs RPC, no abstraction
-                const applyEncoder = (action: KeyAction): void =>
-                    setKeymap((prev) => {
-                        if (!prev) return prev
-                        return produce(prev, (d) => {
-                            const e = d.layers[layer].encoders?.[slot]
-                            if (!e) return
-                            if (dir === 'cw') e.cw = action
-                            else e.ccw = action
-                        })
+            // Encoder: write the selected direction, then move to the next
+            // one — like mod-tap's hold → tap, a knob is one pick per direction.
+            if (selectedEncoder) {
+                encoderEditor.setDirection(selectedEncoder, newAction)
+                const next = nextDir(selectedEncoder.dir)
+                if (next)
+                    setSelectedEncoder?.({
+                        slot: selectedEncoder.slot,
+                        dir: next,
                     })
-                doIt?.(async (): Promise<() => Promise<void>> => {
-                    // Optimistic — mirror the key branch below.
-                    applyEncoder(newAction)
-                    try {
-                        await setEncoder(layerId, slot, direction, newAction)
-                    } catch (e) {
-                        toast.error('Failed to set encoder action')
-                        console.error('Encoder set failed:', e)
-                        applyEncoder(oldAction)
-                        throw e
-                    }
-                    return async (): Promise<void> => {
-                        applyEncoder(oldAction)
-                        try {
-                            await setEncoder(
-                                layerId,
-                                slot,
-                                direction,
-                                oldAction,
-                            )
-                        } catch (e) {
-                            console.error('Failed to undo encoder set', e)
-                            applyEncoder(newAction)
-                        }
-                    }
-                })
                 return
             }
 
@@ -215,9 +188,15 @@ export function BindingEditor({
             effectiveLayerIndex,
             selectedKeyPosition,
             selectedEncoder,
+            setSelectedEncoder,
+            encoderEditor,
             setKeymap,
         ],
     )
+
+    const selectedEncoderActions = selectedEncoder
+        ? keymap?.layers[effectiveLayerIndex]?.encoders?.[selectedEncoder.slot]
+        : undefined
 
     const selectedAction = useMemo((): KeyAction | null => {
         if (keymap == null || !keymap.layers[effectiveLayerIndex]) return null
@@ -227,7 +206,7 @@ export function BindingEditor({
                     selectedEncoder.slot
                 ]
             if (!enc) return null
-            return selectedEncoder.dir === 'cw' ? enc.cw : enc.ccw
+            return actionFor(enc, selectedEncoder.dir)
         }
         if (
             selectedKeyPosition == null ||
@@ -275,12 +254,33 @@ export function BindingEditor({
     const canEditTapDance =
         tapDanceIdx !== null && !!service && tapDanceCount > 0
 
+    // Direction chips ride inline in the picker's header row, like mod-tap's
+    // hold/tap slots.
+    const encoderChips =
+        selectedEncoder && selectedEncoderActions ? (
+            <EncoderDirectionBar
+                legend={knobLegend(
+                    selectedEncoder.slot,
+                    selectedEncoderActions,
+                )}
+                activeDir={selectedEncoder.dir}
+                onActivate={(dir) =>
+                    setSelectedEncoder?.({ slot: selectedEncoder.slot, dir })
+                }
+                onSwap={
+                    encoderEditor.canEdit
+                        ? () => encoderEditor.swap(selectedEncoder.slot)
+                        : undefined
+                }
+            />
+        ) : undefined
+
     const editorBody = (
         <>
             {selectedEncoder && (
                 <div className="text-xs text-muted-foreground mb-2">
-                    Encoder {selectedEncoder.slot} —{' '}
-                    {selectedEncoder.dir.toUpperCase()}
+                    {/* 1-based, like the knob's own labels on the stage. */}
+                    Encoder {selectedEncoder.slot + 1}
                 </div>
             )}
             {readOnly ? (
@@ -296,6 +296,7 @@ export function BindingEditor({
                             actionTypes={actionTypes}
                             layers={layerList}
                             onChange={doUpdateAction}
+                            headerExtra={encoderChips}
                         />
                     )}
                 </div>

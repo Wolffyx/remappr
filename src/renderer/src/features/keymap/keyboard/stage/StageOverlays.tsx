@@ -1,7 +1,7 @@
 // pattern-check: skip — presentational stage overlays extracted from KeyboardView
 import { Eraser, Eye, SquarePen, Wand2, X } from 'lucide-react'
 import { CATEGORY_META, layerAccent } from '@/lib/keymap/keyCategory'
-import { KeyButton } from '../KeyButton'
+import { KeyCapPreview } from '../KeyCapPreview'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
 
 /** Top-left cluster: current-layer pill (accent dot + glow) + pulsing LIVE chip. */
@@ -78,9 +78,7 @@ export function SelectedKeyCard({
 }): JSX.Element {
     return (
         <div className="fade-in absolute bottom-4 left-4 z-10 flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5 shadow-lg">
-            <div className="relative size-12 shrink-0">
-                <KeyButton oneU={48} selected {...info} />
-            </div>
+            <KeyCapPreview info={info} />
             <div className="text-xs leading-tight">
                 <div className="font-semibold text-foreground">
                     {info.header}

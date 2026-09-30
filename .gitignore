@@ -35,7 +35,6 @@ package-lock.json
 *.sw?
 *.tsbuildinfo
 
-*storybook.log
 .patchwork
 # FlowPatch IDE-like workspace state (generated)
 .flowpatch/state/

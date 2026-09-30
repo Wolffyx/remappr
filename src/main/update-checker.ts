@@ -5,6 +5,7 @@ import {
     IpcEvents,
     type UpdateAvailablePayload,
 } from '../shared/ipc-types'
+import { compareVersions } from '../shared/semver'
 
 const REPO_OWNER = 'Wolffyx'
 const REPO_NAME = 'remappr'
@@ -14,6 +15,7 @@ interface GitHubRelease {
     tag_name: string
     html_url: string
     body: string | null
+    published_at: string
 }
 
 export interface UpdateCheckResult {
@@ -26,21 +28,8 @@ export interface UpdateCheckResult {
 let cachedEtag: string | null = null
 let cachedRelease: GitHubRelease | null = null
 
-function parseSemver(v: string): [number, number, number] | null {
-    const m = v.replace(/^v/, '').match(/^(\d+)\.(\d+)\.(\d+)/)
-    if (!m) return null
-    return [Number(m[1]), Number(m[2]), Number(m[3])]
-}
-
 function isNewer(latest: string, current: string): boolean {
-    const a = parseSemver(latest)
-    const b = parseSemver(current)
-    if (!a || !b) return false
-    for (let i = 0; i < 3; i++) {
-        if (a[i] > b[i]) return true
-        if (a[i] < b[i]) return false
-    }
-    return false
+    return (compareVersions(latest, current) ?? 0) > 0
 }
 
 function compareToCurrent(release: GitHubRelease): UpdateCheckResult {
@@ -86,6 +75,7 @@ export async function checkForUpdates(
                 version: result.version!,
                 url: result.url!,
                 notes: release.body ?? '',
+                publishedAt: release.published_at,
             }
             win.webContents.send(IpcEvents.UPDATE_AVAILABLE, payload)
         }

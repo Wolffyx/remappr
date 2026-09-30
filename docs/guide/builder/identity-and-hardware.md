@@ -5,12 +5,11 @@ bindings — name, USB identity, firmware targets, controller, matrix, lighting 
 firmware config. These fields turn a keymap into a _flashable_ project. Sections
 appear/disappear based on the firmware targets you select.
 
-::: info 📷 Screenshot slot — `docs/public/images/builder/identity.png`
-The Identity panel scrolled to show **Identity**, **USB identifiers**,
-**Firmware targets** and **Controller**.
-:::
+![The top of the Identity panel: Identity, USB identifiers, Firmware targets and the keyboard-type line](/images/builder/identity.webp){width=300}
 
-Every field below is labelled exactly as it appears in the panel, with the
+The panel scrolls, top to bottom: Identity · USB identifiers · Firmware targets
+· Controller · Matrix · Capabilities · Lighting · Firmware config · Hardware pins
+· Timing & defaults · Behaviors · Conditional layers · Readiness. Every field below is labelled exactly as it appears in the panel, with the
 config key it writes.
 
 ## Identity
@@ -31,13 +30,25 @@ Required for the QMK family.
 
 ## Firmware targets
 
-Cards for each target (**QMK**, **VIA**, **Vial**, **ZMK**) with a one-line
-blurb; selecting them fills `keyboard.firmware[]`. An info line summarises the
-choice — _"Keyboard type · Wired (USB)"_ or _"Wireless (BLE)"_, and _"Keycodes &
-behaviours follow {firmware}"_. VIA and Vial compile through QMK. See
+One card per target; click to toggle, and several can be on at once. Selecting
+them fills `keyboard.firmware[]`:
+
+| Target      | Card blurb                             |
+| ----------- | -------------------------------------- |
+| **QMK**     | C firmware · info.json + keymap        |
+| **VIA**     | Live remap · v3 definition             |
+| **Vial**    | On-device · VIA + vial.json            |
+| **ZMK**     | Wireless · devicetree keymap           |
+| **Remappr** | Wireless · Zephyr shield + config blob |
+
+An info line under the cards summarises the choice — _"Keyboard type · Wired +
+wireless"_ (or wired / wireless only) and _"Keycodes & behaviours follow ZMK +
+Remappr"_. VIA and Vial compile through QMK. See
 [Firmware targets](/reference/config/firmware-targets).
 
 ## Controller
+
+![Controller and Matrix: board and shield, the 4 × 6 matrix with Auto, diode direction, scan mode and pin mapping](/images/builder/controller-matrix.webp){width=300}
 
 Writes `keyboard.controller`. Fields shown depend on the targets:
 
@@ -65,8 +76,8 @@ The board-level matrix descriptor (`keyboard.matrix`) plus pin labels
 | **Pin mapping**     | `pins.rows` / `pins.cols` | `row pins` / `col pins`                                   |
 | **Auto**            | per-key `matrix`          | _"Auto assigns each key's row/column from its position."_ |
 
-The display reads e.g. `4 × 12 · 36 keys` (`· wired` when keys have matrix
-positions). Per-key wiring is in the [inspector](/guide/builder/inspector#matrix-wiring-row-column).
+The display reads e.g. `4 × 6 · rows × columns per half · 42 keys` (`· wired`
+when keys have matrix positions). Per-key wiring is in the [inspector](/guide/builder/inspector#matrix-wiring-row-column).
 
 ## Capabilities
 
@@ -75,6 +86,8 @@ positions). Per-key wiring is in the [inspector](/guide/builder/inspector#matrix
 | **Split / two-piece** | `keyboard.split` |
 
 ## Lighting
+
+![Lighting with RGB underglow on: Effect chips, colour swatches and Brightness](/images/builder/lighting.webp){width=300}
 
 Writes `keyboard.lighting`; _"Configured for every firmware target — the exporter
 maps it to each platform."_
@@ -92,6 +105,8 @@ maps it to each platform."_
 See [Lighting](/guide/builder/lighting) for the full picture (actions vs config).
 
 ## Firmware config (.conf) — ZMK
+
+![Firmware config (.conf): the Kconfig toggles and the Extra Kconfig box](/images/builder/firmware-config.webp){width=300}
 
 Toggles that derive the ZMK `.conf`, writing `keyboard.firmwareConfig`. A live
 **Generated .conf** preview updates as you flip them. **Extra Kconfig** (e.g.
@@ -113,9 +128,11 @@ Each is **tri-state** — left alone it auto-derives from used behaviors/hardwar
 toggling sets an explicit override. See
 [Firmware config](/reference/config/hardware#firmware-config).
 
-## Hardware pins — ZMK
+## Hardware pins — ZMK {#hardware-pins-zmk}
 
-Appears when a feature needs a pin. Friendly nRF labels like `P0.13` emit psels;
+![Hardware pins: the WS2812 underglow data pin, LED count, colour order and SPI instance](/images/builder/hardware-pins.webp){width=300}
+
+Appears when a feature needs a pin — here, after turning **RGB underglow** on. Friendly nRF labels like `P0.13` emit psels;
 _"verify against your board wiring."_ Writes `keyboard.hardware`.
 
 | Section                    | Fields                                                     | Writes                  |
@@ -123,6 +140,61 @@ _"verify against your board wiring."_ Writes `keyboard.hardware`.
 | **Ext-power control GPIO** | pin (`P0.14`), **Active low**                              | `hardware.extPowerCtrl` |
 | **Backlight PWM**          | pin (`P0.13`), instance (`pwm0`), **Inverted**             | `hardware.backlightPwm` |
 | **WS2812 underglow**       | data pin (`P1.13`), LEDs, color order (GRB…), SPI (`spi3`) | `hardware.ws2812`       |
+
+## Timing & defaults
+
+Board-wide behavior timings, written to the config's top-level
+[`defaults`](/reference/config/keymap-format#defaults). Every field is optional:
+_"Blank = the firmware / devicetree default."_
+
+![Timing & defaults: Tap-hold & combo, Debounce and Engine timing groups, all on auto](/images/builder/timing.webp){width=300}
+
+| Group                | Field                   | Writes                    | Meaning                                              |
+| -------------------- | ----------------------- | ------------------------- | ---------------------------------------------------- |
+| **Tap-hold & combo** | Tapping term            | `tappingTermMs`           | Hold-vs-tap decision window.                         |
+|                      | Quick tap               | `quickTapMs`              | Tap-then-hold within this window repeats the tap.    |
+|                      | Combo timeout           | `comboTimeoutMs`          | Max time between the keys of a combo.                |
+| **Debounce**         | Release debounce        | `releaseDebounceMs`       | 0 keeps the firmware / devicetree value.             |
+|                      | Press debounce          | `pressDebounceMs`         | ″                                                    |
+|                      | Matrix press debounce   | `matrixPressDebounceMs`   | ″                                                    |
+|                      | Matrix release debounce | `matrixReleaseDebounceMs` | ″                                                    |
+| **Engine timing**    | Caps-word idle          | `capsWordIdleMs`          | Auto-exit caps-word after this idle time; 0 = never. |
+|                      | Sticky release          | `stickyReleaseDefaultMs`  | Sticky-key lifetime; 0 = until the next key.         |
+|                      | Macro default wait      | `macroDefaultWaitMs`      | Default gap between macro steps.                     |
+|                      | Macro default tap       | `macroDefaultTapMs`       | Default tap hold-time inside a macro.                |
+|                      | Matrix poll period      | `matrixPollPeriodMs`      | Matrix scan interval; 0 keeps the devicetree value.  |
+
+The **Engine timing** fields apply on Remappr Firmware. The same fields are
+editable live on a connected board in the editor's
+[Timing & Defaults](/guide/app/advanced#timing-defaults) dialog.
+
+## Behaviors (hold-taps & mod-morphs)
+
+_"Custom hold-tap and mod-morph defs the keymap can bind. Add one below, then
+tune its behaviors, timing and modifiers."_
+
+![Behaviors: a new hold-tap ht_1 with Hold and Tap behaviors, flavor, timings and toggles; Add hold-tap / Add mod-morph; Conditional layers and Readiness below](/images/builder/behaviors.webp){width=300}
+
+- **+ Add hold-tap** — a new definition (`ht_1`, `ht_2`…) in
+  [`holdTaps`](/reference/config/keymap-format#holdtaps): the **Hold** and **Tap**
+  behaviors (`&kp`, `&mo`, `&lt`, `&mt`, `&sk`, `&sl`, `&kt`, `&trans`),
+  **Flavor** (_balanced_, _hold-preferred_, _tap-preferred_,
+  _tap-unless-interrupted_), **Tapping term**, **Quick tap**, **Require prior
+  idle**, and the **Retro tap** / **Trigger hold on release** switches.
+  **Remove** deletes it.
+- **+ Add mod-morph** — a key that sends something else while a modifier is held,
+  in [`modMorphs`](/reference/config/keymap-format#modmorphs).
+
+Once defined, a hold-tap or mod-morph shows up in the binding picker as an action
+you can put on any key.
+
+## Conditional layers (tri-layer)
+
+_"Auto-activate a layer while a combination of others is held."_ **+ Add
+tri-layer** adds a rule to
+[`conditionalLayers`](/reference/config/keymap-format#conditionallayers): pick the
+layers that must all be active and the layer they turn on — the classic
+_lower_ + _raise_ → _adjust_.
 
 ## Firmware config (config.h / rules.mk) — QMK
 
@@ -155,8 +227,9 @@ inspector's **Layout variant**.
 
 ## Readiness
 
-A live **Readiness** strip shows a button per target — green/_"Ready to build"_
-when there are no blocking errors, otherwise a tooltip lists what is missing. This
+The **Readiness** strip at the bottom of the panel shows a chip per target —
+✓ when it can build, ⚠ when it builds with warnings, ⊗ when something blocking is
+missing; hover a chip for the list. This
 is the same check the [export modal](/guide/builder/export-build-flash#readiness)
 runs.
 

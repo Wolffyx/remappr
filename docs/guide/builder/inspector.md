@@ -5,10 +5,7 @@ key selected it shows that key's element type, binding, geometry, rotation and
 matrix wiring; with several selected it shows bulk actions; with nothing
 selected it shows a hint.
 
-::: info 📷 Screenshot slot — `docs/public/images/builder/inspector.png`
-The inspector with one key selected — the **Element** tabs, **Key binding**,
-**Geometry (U)**, **Rotation** and **Matrix wiring** sections.
-:::
+![One key selected: the inspector on the right with Element, Key binding, Geometry, Rotation and Matrix wiring](/images/builder/inspector.webp)
 
 ## Element type
 
@@ -51,12 +48,12 @@ Fields **X**, **Y**, **Width**, **Height**, plus quick width presets
 **Angle °** (→ `r`) with **Reset**, fine **−5° / +5°** and step **−15° / +15°**
 buttons. When a key is rotated, **Pivot X** / **Pivot Y** (→ `rx`/`ry`) appear.
 
-## Matrix wiring · row / column
+## Matrix wiring · row / column {#matrix-wiring-row-column}
 
 Set the key's electrical position (→ `matrix: [row, col]`):
 
 - **Row** / **Column** dropdowns (each option shows its pin, e.g. `Row 2 · GP6`).
-- Status line: _"Wired to {rowPin} × {colPin}"_.
+- Status line: _"Wired to {rowPin} × {colPin}"_ (e.g. **Wired to GP0 × GP8**).
 - **Auto-assign row/col from position** — re-derives row/col whenever the key
   moves. _"Editing row/column by hand turns it off."_
 - **Snap to grid on row/col change**.
@@ -76,8 +73,10 @@ a **Layout variant** dropdown tags the key into one (→ `variant`); the default
 
 ## Multi-select — bulk actions
 
-Select several keys and the inspector switches to **{n} keys selected · Bulk
-actions apply to all**:
+Select several keys (drag a marquee on empty canvas, or `Ctrl/Cmd + A`) and the
+inspector switches to **{n} keys selected · Bulk actions apply to all**:
+
+![42 keys selected: Matrix wiring and Align & size bulk actions](/images/builder/bulk.webp)
 
 | Group             | Controls                                                                                   |
 | ----------------- | ------------------------------------------------------------------------------------------ |

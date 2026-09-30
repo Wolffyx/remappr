@@ -5,16 +5,11 @@ plus the **matrix** that says how each key is wired electrically. Both feed the
 firmware export and both live under `keyboard` in the
 [config](/reference/config/keymap-format#keyboard).
 
-::: info 📷 Screenshot slot — `docs/public/images/builder/build-from.png`
-The left panel's **Build from** row (Presets · Import KLE · Make grid · Add key)
-with a board on the canvas.
-:::
-
 ## Create the geometry
 
-The **Build from** section has four entry points. The **Start a keyboard** dialog
-(_"Design a keyboard — pick a starting point"_) offers the same three starting
-points plus "Start blank".
+The left panel's **Build from** section has four entry points. The
+[Design a keyboard](/guide/builder/overview#starting-a-board) dialog offers the
+same starting points, plus **Import config** and **Load from saved builds**.
 
 | Tool           | Dialog                                                      | What it does                                                         |
 | -------------- | ----------------------------------------------------------- | -------------------------------------------------------------------- |
@@ -25,6 +20,37 @@ points plus "Start blank".
 
 The first three **replace** the geometry (layer names kept, bindings reset to
 pass-through); **Add key** is additive.
+
+### Presets
+
+![Start from a preset: Corne / split 42, Ortho 4×12, 60% ANSI, Numpad, Macropad 3×3, Blank canvas](/images/builder/presets.webp)
+
+_"Start from a preset — Replaces the current board layout"_:
+
+| Preset               | What you get          |
+| -------------------- | --------------------- |
+| **Corne / split 42** | 3×6 + 3 thumbs, split |
+| **Ortho 4×12**       | Planck-style grid     |
+| **60% ANSI**         | Compact staggered     |
+| **Numpad**           | 17-key number pad     |
+| **Macropad 3×3**     | 9-key macro grid      |
+| **Blank canvas**     | Start from nothing    |
+
+### Import from KLE
+
+![Import from KLE: a box for the Raw data, and Import layout](/images/builder/import-kle.webp)
+
+On [keyboard-layout-editor.com](http://www.keyboard-layout-editor.com), open
+**Raw data**, copy everything, paste it into the box (_"Paste the 'Raw data' from
+the KLE Download menu…"_) and press **Import layout**.
+
+### Make a grid
+
+![Make a grid: Rows and Columns, and Create 4×12 grid](/images/builder/make-grid.webp)
+
+_"Make a grid — Ortholinear rows × columns"_: set **Rows** and **Columns**, then
+**Create R×C grid**. _"Creates R×C keys in a R×C grid. Resets bindings to
+pass-thru; layer names are kept."_
 
 ::: tip KLE imports
 _"Imports key positions & sizes only — legends and matrix wiring are assigned in
@@ -84,9 +110,14 @@ The inspector edits all of these — see [Key inspector](/guide/builder/inspecto
 
 Firmware needs the **electrical row and column** of each key. Two ways to set it:
 
-1. **Matrix-wiring overlay** (toolbar **Matrix wiring view**) — shows the grid
-   with editable **pin chips** ("Click to set the GPIO pin"); add rows/cols with
-   the **Add a matrix row** / **Add a matrix column** buttons.
+1. **Matrix-wiring overlay** (toolbar **Matrix wiring view**) — draws each row
+   and column as a line through its keys, labels every key with its `row.col`,
+   and puts an editable **pin chip** at the end of each line (_"Click to set the
+   GPIO pin"_); add rows/cols with the **+** buttons (**Add a matrix row** /
+   **Add a matrix column**).
+
+    ![The matrix wiring view: row lines with GP pin chips on the left, column chips along the top, row.col under each key](/images/builder/matrix-wiring.webp)
+
 2. **Per key**, in the inspector's **Matrix wiring · row / column** section.
 
 The Identity panel's **Matrix** section sets the dimensions and has an **Auto**

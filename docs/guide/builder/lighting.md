@@ -26,17 +26,20 @@ There are two distinct things, and it helps to keep them apart:
 
 ## In the builder
 
-::: info 📷 Screenshot slot — `docs/public/images/builder/lighting.png`
-The Identity panel's **Lighting** section with **RGB underglow** enabled, showing
-the Effect, Color and Brightness controls.
-:::
+![The Lighting section with RGB underglow on: Effect chips, colour swatches and a Brightness slider](/images/builder/lighting.webp){width=300}
+
+Turning **RGB underglow** on also opens the
+[Hardware pins](/guide/builder/identity-and-hardware#hardware-pins-zmk) section
+for its WS2812 data pin. While the builder is open, the board on the canvas glows
+with the effect and colour you pick, so you can preview it.
 
 The Identity panel's **Lighting** section declares the board's lighting and
 defaults for supported targets (_"Configured for every firmware target — the
 exporter maps it to each platform."_):
 
-- **RGB underglow** → **Effect** (solid / breathe / rainbow / swirl / gradient),
-  **Color** (a hue or Rainbow), **Brightness**.
+- **RGB underglow** → **Effect** (**Solid**, **Breathe**, **Rainbow**,
+  **Swirl**, **Gradient**), **Color** (the first swatch is Rainbow, the rest set a
+  hue), **Brightness** (a percentage).
 - **Per-key backlight** → **Backlight brightness**, **Breathing**.
 
 These write `keyboard.lighting`:

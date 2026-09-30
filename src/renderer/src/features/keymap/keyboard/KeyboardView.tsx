@@ -19,7 +19,8 @@ import useHeatmapStore from '@/stores/heatmapStore'
 import useLiveViewStore from '@/stores/liveViewStore'
 import useKeyTestStore from '@/stores/keyTestStore'
 import useLayerPeekStore from '@/stores/layerPeekStore'
-import type { EncoderSelection } from './stage/helpers'
+import useUnlockPromptStore from '@/stores/unlockPromptStore'
+import type { EncoderSelection } from '@/features/encoders/model'
 import { useActionTypes } from './stage/useActionTypes'
 import { useStageLighting } from './stage/useStageLighting'
 import { useStageBindings } from './stage/useStageBindings'
@@ -37,6 +38,7 @@ import {
     SelectedKeyCard,
 } from './stage/StageOverlays'
 
+const NO_KEYS: number[] = []
 interface KeyboardViewProps {
     keymap: Keymap | undefined
     selectedKeyPosition: number | undefined
@@ -60,6 +62,9 @@ interface KeyboardViewProps {
     // RGB sheet per-key mode: clicks select keys for colour editing in the sheet,
     // so a single click must NOT also open the keymap binding picker.
     suppressPicker?: boolean
+    // A bottom sheet (RGB / Advanced) holds the picker's dock slot, so the
+    // selected-key card's Edit button would have nothing to open.
+    sheetOpen?: boolean
 }
 
 export default function KeyboardView({
@@ -76,6 +81,7 @@ export default function KeyboardView({
     onSelectedKeyInfoChange,
     paint,
     suppressPicker,
+    sheetOpen,
 }: KeyboardViewProps): JSX.Element {
     const { layouts, selectedPhysicalLayoutIndex } = useLayout()
     // Per-field selectors (not whole-store reads) so this view — which owns the canvas
@@ -171,8 +177,8 @@ export default function KeyboardView({
     // Stable encoder-click handler so PhysicalLayoutCanvas (memoized) isn't re-rendered
     // by a fresh closure on every KeyboardView render.
     const handleEncoderClicked = useCallback(
-        (slot: number, dir: 'cw' | 'ccw'): void => {
-            setSelectedEncoder?.({ slot, dir })
+        (sel: EncoderSelection): void => {
+            setSelectedEncoder?.(sel)
             if (workspace === 'command') setPaletteOpen(true)
             else setPickerOpen?.(true)
         },
@@ -182,6 +188,19 @@ export default function KeyboardView({
     const keyCount = keymap?.layers[effectiveLayerIndex]?.keys.length ?? 0
 
     // Selection: click handling, target positions, clear-all.
+    // While the unlock prompt is open, light the combo keys the board wants
+    // held, on top of any multi-selection.
+    const unlockKeys = useUnlockPromptStore((s) =>
+        s.status === 'idle' ? NO_KEYS : s.keys,
+    )
+    const highlightedPositions = useMemo(
+        () =>
+            unlockKeys.length === 0
+                ? multiSelection
+                : new Set([...multiSelection, ...unlockKeys]),
+        [multiSelection, unlockKeys],
+    )
+
     const {
         anchorRef,
         handlePositionClicked,
@@ -311,7 +330,10 @@ export default function KeyboardView({
     // Floating selected-key card: shown when a single key is selected but the
     // bottom picker is closed (workbench/command). Edit reopens the picker.
     const infoCardPos =
-        selectedKeyInfo && !pickerOpen && workspace !== 'inspector'
+        selectedKeyInfo &&
+        !pickerOpen &&
+        !sheetOpen &&
+        workspace !== 'inspector'
             ? selectedKeyInfo
             : undefined
 
@@ -334,7 +356,7 @@ export default function KeyboardView({
                 lighting={lighting}
                 perKeyColors={paint.perKeyColors}
                 selectedPosition={selectedKeyPosition}
-                selectedPositions={multiSelection}
+                selectedPositions={highlightedPositions}
                 onPositionClicked={handlePositionClicked}
                 selectedEncoder={selectedEncoder}
                 onEncoderClicked={handleEncoderClicked}

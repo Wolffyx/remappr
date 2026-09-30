@@ -4,7 +4,9 @@ import { create } from 'zustand'
 import { createJSONStorage, devtools, persist } from 'zustand/middleware'
 import type { KeyCategory } from '@/lib/keymap/keyCategory'
 
-/** One key of a cached base-layer preview — fully serializable (no ReactNodes). */
+/** One key of a cached base-layer preview — fully serializable (no ReactNodes).
+ *  Shape and colour category only: the card shows the board, never what the
+ *  keys are bound to. */
 export interface PreviewKey {
     x: number
     y: number
@@ -14,12 +16,12 @@ export interface PreviewKey {
     rx?: number
     ry?: number
     category: KeyCategory
-    /** Resolved tap glyph, e.g. "Q". */
-    tap: string
-    /** Resolved hold glyph / layer name, when the key is a hold-tap. */
-    hold?: string
-    /** Action-type tag, e.g. "Key Press" / "Mod-Tap". */
-    action?: string
+}
+
+/** A knob's position, in keyboard units like PreviewKey. */
+export interface PreviewEncoder {
+    x: number
+    y: number
 }
 
 /**
@@ -33,6 +35,7 @@ export interface DevicePreviewSnapshot {
     keyCount: number
     layerCount: number
     keys: PreviewKey[]
+    encoders?: PreviewEncoder[]
     savedAt: number
 }
 
@@ -40,6 +43,35 @@ interface DevicePreviewState {
     snapshots: Record<string, DevicePreviewSnapshot>
     saveSnapshot: (key: string, snapshot: DevicePreviewSnapshot) => void
     clear: (key: string) => void
+}
+
+// Keeps only a key's shape and category, whatever else an older snapshot saved.
+const stripLegend = ({
+    x,
+    y,
+    width,
+    height,
+    r,
+    rx,
+    ry,
+    category,
+}: PreviewKey): PreviewKey => ({ x, y, width, height, r, rx, ry, category })
+
+/** Persist migration. v1: snapshots no longer carry key legends
+ *  (tap/hold/action); strip the ones saved before. */
+export function migrateDevicePreviews(
+    persisted: unknown,
+    version: number,
+): Partial<DevicePreviewState> {
+    const p = (persisted ?? {}) as Partial<DevicePreviewState>
+    if (version >= 1 || !p.snapshots) return p
+    const snapshots = Object.fromEntries(
+        Object.entries(p.snapshots).map(([id, snap]) => [
+            id,
+            { ...snap, keys: snap.keys.map(stripLegend) },
+        ]),
+    )
+    return { ...p, snapshots }
 }
 
 const useDevicePreviewStore = create<DevicePreviewState>()(
@@ -62,6 +94,8 @@ const useDevicePreviewStore = create<DevicePreviewState>()(
                 name: 'device-preview-store',
                 storage: createJSONStorage(() => localStorage),
                 partialize: (s) => ({ snapshots: s.snapshots }),
+                version: 1,
+                migrate: migrateDevicePreviews,
             },
         ),
     ),

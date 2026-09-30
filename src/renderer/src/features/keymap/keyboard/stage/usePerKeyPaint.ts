@@ -5,6 +5,7 @@ import type { HsvColor, KeyboardService } from '@firmware/service'
 import usePerKeyPaintStore from '@/stores/perKeyPaintStore'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
 import { saveWithToast } from '@/lib/saveWithToast'
+import { identityKeyLeds, ledRuns, ledSpan } from './perKeyLeds'
 
 const PER_KEY_BATCH_MAX = 9
 // Per-key sub-effect selector (per_key_rgb_type). Firmware enum
@@ -19,9 +20,13 @@ const PER_KEY_STATIC_TYPE = 0
 // catalog — see keychron/rgb.ts).
 const PER_KEY_EFFECT_RE = /per[\s-]?key/i
 
+// pattern-check: skip one field added to the existing PaintApi shape
 export interface PaintApi {
     /** Per-key RGB write is supported by the connected firmware. */
     available: boolean
+    /** The keyboard holds painted colours in RAM only (RgbApi.perKeyVolatile):
+     *  they are lost on unplug, and nothing is saved after a paint. */
+    volatile: boolean
     active: boolean
     setActive: (active: boolean) => void
     brush: HsvColor
@@ -41,7 +46,13 @@ export function usePerKeyPaint(
     keyCount: number,
 ): PaintApi {
     const rgb = service?.rgb
-    const available = !!(rgb?.getPerKeyColors && rgb?.setPerKeyColors)
+    const available = !!rgb?.setPerKeyColors
+    const volatile = !!rgb?.perKeyVolatile
+    // Persist after a paint, unless the colours live in RAM only: then a save
+    // would only store the per-key effect over an empty buffer.
+    const persist = useCallback(async (): Promise<void> => {
+        if (!rgb?.perKeyVolatile) await rgb?.save?.()
+    }, [rgb])
 
     const active = usePerKeyPaintStore((s) => s.active)
     const brush = usePerKeyPaintStore((s) => s.brush)
@@ -54,12 +65,21 @@ export function usePerKeyPaint(
     const load = usePerKeyPaintStore((s) => s.load)
     const reset = usePerKeyPaintStore((s) => s.reset)
 
-    // canvas idx → LED idx (identity until calibrated; see keychron/rgb.ts).
-    const ledMapRef = useRef<number[]>([])
+    // canvas idx → the LEDs under that key (RgbApi.getKeyLeds). A long
+    // spacebar can have several; a key with none gets no writes.
+    const keyLedsRef = useRef<number[][]>([])
+    const ledsOf = useCallback(
+        (idx: number): number[] => keyLedsRef.current[idx] ?? [idx],
+        [],
+    )
     // Coalesced drag writes: LED idx → latest brush colour. Repeated keys in a
     // sweep collapse to one entry; flushed as contiguous batches at gesture end
     // (one save() total) instead of a write+save per painted key.
     const pendingRef = useRef<Map<number, HsvColor>>(new Map())
+    // Write-only firmware: the connection whose colours the store holds. The
+    // store is the only record of what was painted, so keep it across visits
+    // to paint mode and clear it only for a new connection.
+    const blankSeededFor = useRef<typeof rgb>(undefined)
 
     // On entering paint mode: resolve the LED map, activate the device's per-key
     // mode, and seed the store with the keyboard's current per-key colours.
@@ -67,11 +87,10 @@ export function usePerKeyPaint(
         if (!active || !available || keyCount <= 0 || !rgb) return
         let cancelled = false
         ;(async () => {
-            const map =
-                (await rgb.getLedIndexMap?.(keyCount)) ??
-                Array.from({ length: keyCount }, (_, i) => i)
+            const keyLeds =
+                (await rgb.getKeyLeds?.(keyCount)) ?? identityKeyLeds(keyCount)
             if (cancelled) return
-            ledMapRef.current = map
+            keyLedsRef.current = keyLeds
             // Switch the active RGB-matrix effect to the board's "Per Key RGB"
             // mode — without this the keyboard keeps running its current effect
             // (Breathing, etc.) and never displays the per-key colour buffer.
@@ -113,12 +132,23 @@ export function usePerKeyPaint(
                     'Could not switch keyboard to per-key mode',
                 )
             }
-            // Seed from device colours (read sequentially, map LED → canvas idx).
+            // Seed from device colours (read sequentially; a key shows its
+            // first LED's colour).
+            // Write-only firmware can't report them: start a new connection
+            // from a blank board, then keep what this session painted.
+            if (!rgb.getPerKeyColors) {
+                if (blankSeededFor.current !== rgb) {
+                    blankSeededFor.current = rgb
+                    load({})
+                }
+                return
+            }
             const result = await saveWithToast(
                 async () => {
+                    const span = ledSpan(keyLeds)
                     const ledColors: HsvColor[] = []
-                    for (let s = 0; s < keyCount; s += PER_KEY_BATCH_MAX) {
-                        const n = Math.min(PER_KEY_BATCH_MAX, keyCount - s)
+                    for (let s = 0; s < span; s += PER_KEY_BATCH_MAX) {
+                        const n = Math.min(PER_KEY_BATCH_MAX, span - s)
                         ledColors.push(...(await rgb.getPerKeyColors!(s, n)))
                     }
                     return ledColors
@@ -128,11 +158,10 @@ export function usePerKeyPaint(
             )
             if (cancelled || !result) return
             const seeded: Record<number, HsvColor> = {}
-            for (let idx = 0; idx < keyCount; idx++) {
-                const led = map[idx] ?? idx
-                const c = result[led]
+            keyLeds.forEach(([led], idx) => {
+                const c = led === undefined ? undefined : result[led]
                 if (c) seeded[idx] = c
-            }
+            })
             load(seeded)
         })()
         return (): void => {
@@ -140,51 +169,41 @@ export function usePerKeyPaint(
         }
     }, [active, available, keyCount, rgb, load])
 
+    // Write LED → colour in as few setPerKeyColors calls as possible, then
+    // persist once.
+    const writeLeds = useCallback(
+        async (writes: ReadonlyMap<number, HsvColor>): Promise<void> => {
+            if (!rgb?.setPerKeyColors) return
+            for (const run of ledRuns(writes, PER_KEY_BATCH_MAX)) {
+                await rgb.setPerKeyColors(run.start, run.colors)
+            }
+            await persist()
+        },
+        [rgb, persist],
+    )
+
     const onKeyPaint = useCallback(
         (idx: number): void => {
             paint(idx) // instant store/glow update
             if (!rgb?.setPerKeyColors) return
             // Queue the write; flushed on commitPaint() at gesture end.
-            const led = ledMapRef.current[idx] ?? idx
-            pendingRef.current.set(led, {
-                ...usePerKeyPaintStore.getState().brush,
-            })
+            const brush = usePerKeyPaintStore.getState().brush
+            for (const led of ledsOf(idx))
+                pendingRef.current.set(led, { ...brush })
         },
-        [paint, rgb],
+        [paint, rgb, ledsOf],
     )
 
     const commitPaint = useCallback((): void => {
-        if (!rgb?.setPerKeyColors) return
         const pending = pendingRef.current
-        if (pending.size === 0) return
+        if (!rgb?.setPerKeyColors || pending.size === 0) return
         pendingRef.current = new Map()
-        const entries = [...pending.entries()].sort((a, b) => a[0] - b[0])
         void saveWithToast(
-            async () => {
-                // Group consecutive LEDs into one setPerKeyColors call (each
-                // batch writes startLed, startLed+1, … with its own colour).
-                let i = 0
-                while (i < entries.length) {
-                    const startLed = entries[i][0]
-                    const batch: HsvColor[] = [entries[i][1]]
-                    let j = i + 1
-                    while (
-                        j < entries.length &&
-                        batch.length < PER_KEY_BATCH_MAX &&
-                        entries[j][0] === startLed + batch.length
-                    ) {
-                        batch.push(entries[j][1])
-                        j++
-                    }
-                    await rgb.setPerKeyColors!(startLed, batch)
-                    i = j
-                }
-                await rgb.save?.()
-            },
+            () => writeLeds(pending),
             null,
             'Per-key write failed',
         )
-    }, [rgb])
+    }, [rgb, writeLeds])
 
     const onKeyEyedrop = useCallback(
         (idx: number): void => eyedrop(idx),
@@ -194,42 +213,18 @@ export function usePerKeyPaint(
     const fillAll = useCallback((): void => {
         const idxs = Array.from({ length: keyCount }, (_, i) => i)
         fillAllStore(idxs)
-        const b = usePerKeyPaintStore.getState().brush
         pendingRef.current.clear() // fillAll writes directly; drop stale queue
         if (!rgb?.setPerKeyColors) return
+        const brush = usePerKeyPaintStore.getState().brush
+        const writes = new Map(
+            idxs.flatMap(ledsOf).map((led) => [led, { ...brush }] as const),
+        )
         void saveWithToast(
-            async () => {
-                // Group consecutive LEDs into batches of the same colour.
-                for (let s = 0; s < keyCount; s += PER_KEY_BATCH_MAX) {
-                    const n = Math.min(PER_KEY_BATCH_MAX, keyCount - s)
-                    const led = ledMapRef.current[s] ?? s
-                    // Identity map → contiguous LEDs; non-identity falls back to
-                    // per-key writes for correctness.
-                    const contiguous = Array.from(
-                        { length: n },
-                        (_, k) =>
-                            (ledMapRef.current[s + k] ?? s + k) === led + k,
-                    ).every(Boolean)
-                    if (contiguous) {
-                        await rgb.setPerKeyColors!(
-                            led,
-                            Array.from({ length: n }, () => ({ ...b })),
-                        )
-                    } else {
-                        for (let k = 0; k < n; k++) {
-                            await rgb.setPerKeyColors!(
-                                ledMapRef.current[s + k] ?? s + k,
-                                [{ ...b }],
-                            )
-                        }
-                    }
-                }
-                await rgb.save?.()
-            },
+            () => writeLeds(writes),
             'Filled all keys',
             'Fill all failed',
         )
-    }, [keyCount, fillAllStore, rgb])
+    }, [keyCount, fillAllStore, rgb, writeLeds, ledsOf])
 
     const clearAll = useCallback((): void => reset(), [reset])
 
@@ -240,6 +235,7 @@ export function usePerKeyPaint(
 
     return {
         available,
+        volatile,
         active,
         setActive,
         brush,

@@ -1,23 +1,20 @@
 // pattern-check: skip — toolbar cluster extracted from Header, no abstraction
 //
 // The config cluster: flash/export · dynamic entries · macros · the
-// capability-gated dialogs · RGB · sideload · settings · community links.
+// capability-gated dialogs · RGB · sideload · settings. The project links
+// live in CommunityLinks, centred in the header.
 import { useEffect } from 'react'
-import { BookOpen, Lightbulb, Sliders, Sparkles } from 'lucide-react'
+import { Lightbulb, Sliders, Sparkles } from 'lucide-react'
 
 import { supportsRuntimeLighting } from '@firmware/config'
-import { GitHubIcon } from '@/components/GitHubIcon'
-import { DiscordIcon } from '@/components/DiscordIcon'
-import { DISCORD_URL, DOCS_URL, REPO_URL } from '@/lib/constants'
 import useConnectionStore from '@/stores/connectionStore'
 import useConfigStore from '@/stores/configStore'
 import useRgbSheetStore from '@/stores/rgbSheetStore'
 import useAdvancedSheetStore from '@/stores/advancedSheetStore'
 import { SideloadAction } from '@/features/firmware/SideloadAction'
 import { Settings } from '@/components/modals/Settings'
-import { SupportModal } from '@/components/modals/SupportModal'
 import { Download as DownloadModal } from '@/components/modals/Download'
-import { ToolbarButton, ToolbarLink, ToolbarSlot } from './ToolbarButton'
+import { ToolbarButton, ToolbarSlot } from './ToolbarButton'
 import { ToolbarModals } from './ToolbarModals'
 
 export function ConfigTools(): JSX.Element {
@@ -102,27 +99,6 @@ export function ConfigTools(): JSX.Element {
             <SideloadAction />
             <ToolbarSlot tooltip="Settings">
                 <Settings />
-            </ToolbarSlot>
-            <ToolbarLink
-                icon={GitHubIcon}
-                href={REPO_URL}
-                tooltip="GitHub Repository"
-                label="View source on GitHub"
-            />
-            <ToolbarLink
-                icon={DiscordIcon}
-                href={DISCORD_URL}
-                tooltip="Discord Community"
-                label="Join the Discord community"
-            />
-            <ToolbarLink
-                icon={BookOpen}
-                href={DOCS_URL}
-                tooltip="Documentation"
-                label="Open the documentation"
-            />
-            <ToolbarSlot tooltip="Support this project">
-                <SupportModal />
             </ToolbarSlot>
         </>
     )

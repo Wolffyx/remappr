@@ -1,5 +1,11 @@
 // Pattern check: no GoF pattern (-) — rejected — picker state container over neutral KeyAction/ActionType, dispatches on slot.kind, no abstraction needed.
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+    type ReactNode,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from 'react'
 import { toast } from 'sonner'
 import type { ActionSlot, ActionType, KeyAction } from '@firmware/types'
 import type { KeycodeCodec } from '@firmware/codec'
@@ -37,6 +43,11 @@ export interface KeyActionPickerProps {
     codec?: KeycodeCodec
     /** Optional firmware-filtered catalog forwarded to the keycode grid. */
     catalog?: KeyCatalog
+    // pattern-check: skip additive optional render slot on existing props interface
+    /** Extra controls for the header row, after the type dropdown and its
+     *  hold/tap chips — e.g. an encoder's direction chips, so they sit inline
+     *  like mod-tap's slots instead of stacked above the dropdown. */
+    headerExtra?: ReactNode
 }
 
 // pattern-check: skip mechanical move of pure slot helpers to sibling utils
@@ -47,6 +58,7 @@ export const KeyActionPicker = ({
     onChange,
     codec,
     catalog,
+    headerExtra,
 }: KeyActionPickerProps): JSX.Element => {
     // Reverse-map the committed action to a (possibly composite) selection: a key
     // bound to &mkp / &mmv / &msc re-selects the unified Mouse type + its command.
@@ -258,6 +270,7 @@ export const KeyActionPicker = ({
                         onActivate={(id) => setActiveSlotIndex(parseInt(id))}
                     />
                 )}
+                {headerExtra}
             </div>
             {visible.length > 0 && (
                 <div className="flex-1">
