@@ -8,8 +8,7 @@ remappr.com and the release notes all come from the same commits.
 1. Feature and fix PRs merge into **`dev`**. Every push to `dev` redeploys
    staging at **dev.remappr.com** (`dev-deploy.yml`); nothing is released.
 2. When the batch is ready, promote the sibling repos first (below), then open
-   **one PR into `main`** in this repo: from the feature branch that already
-   went into `dev`, or `dev` itself.
+   **one PR `dev` → `main`** in this repo.
 3. Merge it with **"Create a merge commit"**, never squash. release-please
    reads the individual conventional commits to pick the version and write the
    notes; a squash hands it a single commit (the PR title) instead.
@@ -23,16 +22,11 @@ remappr.com and the release notes all come from the same commits.
         - `main.yml`: remappr.com,
         - `docs.yml`: the docs' What's new page,
         - `discord-release.yml`: the announcement, with an `@everyone` ping.
-    - merges `main` back into `dev` (the `sync-dev` job), so `dev` has the
-      release commit and anything that went straight into `main`. If the two
-      conflict, it opens a PR `chore/merge-vX.Y.Z-into-dev` → `dev` instead;
-      resolve it there and merge with a merge commit.
 
 Anything merged into `main` releases the same way. A hotfix can branch from
-`main` and merge straight back, no promotion needed; `sync-dev` brings it into
-`dev` with the release. A docs-only change can too: `docs.yml` deploys it, and
-with no `feat` / `fix` in it, no release is cut, so nothing syncs it into
-`dev` until the next release.
+`main` and merge straight back (then merge `main` into `dev`), no promotion
+needed. A docs-only change can too: `docs.yml` deploys it, and with no `feat` /
+`fix` in it, no release is cut.
 
 ## Versions
 
