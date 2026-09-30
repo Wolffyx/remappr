@@ -8,7 +8,7 @@ name: release
 # DRAFT; the notes job adds the sibling repos' changes and their pinned
 # commits, and the publish job publishes it. Only then does `published` fire
 # the installers, remappr.com, docs and Discord — all reading the finished
-# notes.
+# notes. Last, sync-dev merges `main` back into `dev`.
 on:
     push:
         branches: [main]
@@ -126,3 +126,42 @@ jobs:
                     echo "::warning::No finished notes — publishing $TAG with release-please's notes."
                     gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
                   fi
+
+    # Brings the release back into `dev`: the release commit (version bump,
+    # CHANGELOG) and anything merged straight into `main`. Pushed with the PAT
+    # so dev.remappr.com redeploys. A conflict is left for a person: `main` goes
+    # to its own branch with a PR into `dev`, so resolving it on GitHub never
+    # writes to `main`.
+    sync-dev:
+        needs: [release, publish]
+        if: always() && needs.publish.result == 'success'
+        runs-on: ubuntu-latest
+        environment: github-pages
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              with:
+                  ref: dev
+                  fetch-depth: 0
+                  token: ${{ secrets.RELEASE_PAT }}
+            - name: Merge main into dev
+              env:
+                  GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+                  TAG: ${{ needs.release.outputs.tag_name }}
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  if git merge-base --is-ancestor origin/main HEAD; then
+                    echo "dev already contains main."
+                    exit 0
+                  fi
+                  if git merge --no-ff origin/main -m "chore: merge $TAG from main into dev"; then
+                    git push origin HEAD:dev
+                    exit 0
+                  fi
+                  git merge --abort
+                  BRANCH="chore/merge-$TAG-into-dev"
+                  git push --force origin "origin/main:refs/heads/$BRANCH"
+                  gh pr create --repo "$GITHUB_REPOSITORY" --base dev --head "$BRANCH" \
+                    --title "chore: merge $TAG from main into dev" \
+                    --body "The release workflow could not merge \`main\` into \`dev\` on its own: they conflict. Resolve the conflicts here and merge with **Create a merge commit**."
+                  echo "::warning::main and dev conflict; opened a PR from $BRANCH into dev."
