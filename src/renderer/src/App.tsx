@@ -4,6 +4,7 @@ import { connectMock, isUnlocked, pickAdapter } from '@firmware'
 import { rememberConnectedDeviceName } from '@/transport/web-serial'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
 import { DongleLanding } from '@/features/connection/DongleLanding'
+import { MouseLanding } from '@/features/device/MouseLanding'
 import useConnectionStore from '@/stores/connectionStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import undoRedoStore from '@/stores/undoRedoStore'
@@ -226,12 +227,13 @@ function App(): JSX.Element {
 
     const builderOpen = useBuilderStore((s) => s.open)
 
-    // A dongle has no keymap — it lands on the node roster (DongleLanding), which
-    // gets the standalone TitleBar like the locked/start states, not the editor
-    // chrome.
+    // A dongle or a mouse has no keymap — it lands on the node roster
+    // (DongleLanding) or the mouse page (MouseLanding), which get the standalone
+    // TitleBar like the locked/start states, not the editor chrome.
+    const keyless = service?.kind === 'dongle' || service?.kind === 'mouse'
     const showEditor =
         !!service &&
-        service.kind !== 'dongle' &&
+        !keyless &&
         !(service.capabilities.lock === 'editor' && !isUnlocked(lockState))
 
     return (
@@ -258,6 +260,10 @@ function App(): JSX.Element {
                         ) : service.kind === 'dongle' ? (
                             <ErrorBoundary>
                                 <DongleLanding />
+                            </ErrorBoundary>
+                        ) : service.kind === 'mouse' ? (
+                            <ErrorBoundary>
+                                <MouseLanding />
                             </ErrorBoundary>
                         ) : (
                             <ErrorBoundary>

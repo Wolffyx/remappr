@@ -11,6 +11,7 @@ import {
     Cpu,
     Crown,
     Eraser,
+    Mouse,
     Plus,
     Power,
     Radio,
@@ -24,6 +25,11 @@ import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
 import { Switch } from '@/ui/switch'
 import type { NodeView } from '@firmware/service'
+import { DongleSettingsPanel } from '@/features/device/DongleSettingsPanel'
+import { DongleBody } from '@/features/device/DongleBody'
+
+/** NodeView.personality of a mouse (firmware REMAPPR_PERSONALITY_MOUSE_NODE). */
+const PERSONALITY_MOUSE = 2
 
 export function DongleLanding(): JSX.Element {
     // Field-scoped selectors — avoids re-rendering on unrelated store changes.
@@ -64,15 +70,20 @@ export function DongleLanding(): JSX.Element {
         void fetchNodes()
     }, [fetchNodes])
 
-    useEffect(() => {
-        // One-shot NKRO-state query (DONGLE.SET_NKRO, no arg = read-only). An
-        // older firmware answers ERR_CMD — leave the toggle hidden (null).
+    // NKRO-state query (DONGLE.SET_NKRO, no arg = read-only). An older firmware
+    // answers ERR_CMD — leave the toggle hidden (null). Re-run after a settings
+    // save, which replaces a live NKRO switch with the saved routing.
+    const refreshNkro = useCallback((): void => {
         if (!nodesApi) return
         nodesApi
             .setNkro()
             .then(setNkro)
             .catch(() => setNkro(null))
     }, [nodesApi])
+
+    useEffect(() => {
+        refreshNkro()
+    }, [refreshNkro])
 
     // Flip the dongle's USB keystroke routing (NKRO interface vs the BIOS-safe
     // boot 6KRO default). Optimistic UI; revert to the device's answer/old state.
@@ -271,109 +282,130 @@ export function DongleLanding(): JSX.Element {
                 </Button>
             </div>
 
-            {/* Node roster. */}
+            {/* Node roster (+ the dongle's own settings when it has a store). */}
             <div className="flex-1 overflow-auto p-5">
-                <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Nodes
-                </h2>
-                {loading && nodes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                        Scanning for nodes…
-                    </p>
-                ) : nodes.length === 0 ? (
-                    <div className="rounded-[10px] border border-dashed border-border p-6 text-center">
-                        <Cpu className="mx-auto mb-2 size-6 text-muted-foreground" />
-                        <p className="text-sm font-medium">No paired nodes</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            Open the pairing window, put a node in pairing mode,
-                            then Refresh.
+                <DongleBody
+                    settings={
+                        service?.device && (
+                            <DongleSettingsPanel
+                                device={service.device}
+                                onSaved={refreshNkro}
+                            />
+                        )
+                    }
+                >
+                    <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Nodes
+                    </h2>
+                    {loading && nodes.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            Scanning for nodes…
                         </p>
-                        <Button
-                            className="mt-3"
-                            size="sm"
-                            onClick={() => void handlePair()}
-                            disabled={pairing}
-                        >
-                            <Plus className="mr-1.5 size-3.5" />
-                            Open pairing window
-                        </Button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                        {/* pattern-check: skip — presentational JSX restructure
+                    ) : nodes.length === 0 ? (
+                        <div className="rounded-[10px] border border-dashed border-border p-6 text-center">
+                            <Cpu className="mx-auto mb-2 size-6 text-muted-foreground" />
+                            <p className="text-sm font-medium">
+                                No paired nodes
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Open the pairing window, put a node in pairing
+                                mode, then Refresh.
+                            </p>
+                            <Button
+                                className="mt-3"
+                                size="sm"
+                                onClick={() => void handlePair()}
+                                disabled={pairing}
+                            >
+                                <Plus className="mr-1.5 size-3.5" />
+                                Open pairing window
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                            {/* pattern-check: skip — presentational JSX restructure
                             of the node row (open + unpair + forget buttons); no
                             new logic or abstraction. */}
-                        {nodes.map((n) => (
-                            <div
-                                key={n.id}
-                                className="flex items-center gap-1 rounded-[10px] border border-border bg-card pr-1.5 transition-colors hover:border-foreground/30"
-                            >
-                                <button
-                                    type="button"
-                                    disabled={!n.online}
-                                    onClick={() => void handleOpen(n.id)}
-                                    className="flex min-w-0 flex-1 items-center gap-3 rounded-l-[10px] px-3.5 py-3 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                            {nodes.map((n) => (
+                                <div
+                                    key={n.id}
+                                    className="flex items-center gap-1 rounded-[10px] border border-border bg-card pr-1.5 transition-colors hover:border-foreground/30"
                                 >
-                                    <Cpu className="size-5 shrink-0 text-muted-foreground" />
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="truncate text-sm font-semibold">
-                                                {n.label}
-                                            </span>
-                                            {n.isMaster && (
-                                                <span
-                                                    title="Topology master (§5 election)"
-                                                    className="inline-flex shrink-0 items-center gap-0.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400"
-                                                >
-                                                    <Crown className="size-2.5" />
-                                                    Master
+                                    <button
+                                        type="button"
+                                        disabled={!n.online}
+                                        onClick={() => void handleOpen(n.id)}
+                                        className="flex min-w-0 flex-1 items-center gap-3 rounded-l-[10px] px-3.5 py-3 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {n.personality === PERSONALITY_MOUSE ? (
+                                            <Mouse className="size-5 shrink-0 text-muted-foreground" />
+                                        ) : (
+                                            <Cpu className="size-5 shrink-0 text-muted-foreground" />
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="truncate text-sm font-semibold">
+                                                    {n.label}
                                                 </span>
-                                            )}
+                                                {n.isMaster && (
+                                                    <span
+                                                        title="Topology master (§5 election)"
+                                                        className="inline-flex shrink-0 items-center gap-0.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400"
+                                                    >
+                                                        <Crown className="size-2.5" />
+                                                        Master
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-[11px] text-muted-foreground">
+                                                {n.online
+                                                    ? 'Online'
+                                                    : 'Offline'}
+                                                {n.online && n.rssi
+                                                    ? ` · ${n.rssi} dBm`
+                                                    : ''}
+                                                {n.hopCount
+                                                    ? ` · ${n.hopCount} hop${
+                                                          n.hopCount > 1
+                                                              ? 's'
+                                                              : ''
+                                                      }`
+                                                    : ''}
+                                            </div>
                                         </div>
-                                        <div className="text-[11px] text-muted-foreground">
-                                            {n.online ? 'Online' : 'Offline'}
-                                            {n.online && n.rssi
-                                                ? ` · ${n.rssi} dBm`
-                                                : ''}
-                                            {n.hopCount
-                                                ? ` · ${n.hopCount} hop${
-                                                      n.hopCount > 1 ? 's' : ''
-                                                  }`
-                                                : ''}
-                                        </div>
-                                    </div>
-                                </button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    disabled={!n.online}
-                                    className="size-8 shrink-0 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                                    title={
-                                        n.online
-                                            ? 'Unpair radio (node forgets the dongle and re-pairs)'
-                                            : 'Unpair needs the node online'
-                                    }
-                                    onClick={() =>
-                                        void handleUnpair(n.id, n.label)
-                                    }
-                                >
-                                    <Unplug className="size-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
-                                    title="Forget node"
-                                    onClick={() =>
-                                        void handleForget(n.id, n.label)
-                                    }
-                                >
-                                    <Trash2 className="size-4" />
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                                    </button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        disabled={!n.online}
+                                        className="size-8 shrink-0 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                        title={
+                                            n.online
+                                                ? 'Unpair radio (node forgets the dongle and re-pairs)'
+                                                : 'Unpair needs the node online'
+                                        }
+                                        onClick={() =>
+                                            void handleUnpair(n.id, n.label)
+                                        }
+                                    >
+                                        <Unplug className="size-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+                                        title="Forget node"
+                                        onClick={() =>
+                                            void handleForget(n.id, n.label)
+                                        }
+                                    >
+                                        <Trash2 className="size-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </DongleBody>
             </div>
         </div>
     )
