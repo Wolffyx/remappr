@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, devtools, persist } from 'zustand/middleware'
 import type { KeyCategory } from '@/lib/keymap/keyCategory'
+import type { DeviceActionCategory, DeviceModel } from '@firmware/devices/types'
 
 /** One key of a cached base-layer preview — fully serializable (no ReactNodes).
  *  Shape and colour category only: the card shows the board, never what the
@@ -29,6 +30,13 @@ export interface PreviewEncoder {
  * start-page card after disconnect. Keyed by the device's stable list id (falling
  * back to the firmware-reported name for pair-new flows that have no list id).
  */
+/** A device driven as controls (mouse, gamepad …): its layout and the colour
+ *  category of what each control is bound to — never the binding itself. */
+export interface PreviewDevice {
+    model: DeviceModel
+    categories: Record<string, DeviceActionCategory>
+}
+
 export interface DevicePreviewSnapshot {
     name: string
     communication: 'serial' | 'ble' | 'hid'
@@ -36,6 +44,8 @@ export interface DevicePreviewSnapshot {
     layerCount: number
     keys: PreviewKey[]
     encoders?: PreviewEncoder[]
+    /** Set for a controls device; `keys` is then empty. */
+    device?: PreviewDevice
     savedAt: number
 }
 

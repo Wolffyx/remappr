@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/ui/ErrorBoundary'
 import { Header } from '@/layout/Header'
 import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { DeviceDrawer } from './DeviceDrawer'
+import { DeviceSnapshotCapture } from './DeviceSnapshotCapture'
 import { DeviceToolClusters } from './DeviceToolClusters'
 import { FORM_ICON } from './formIcons'
 import useDeviceEditorStore from './model/deviceEditorStore'
@@ -42,6 +43,7 @@ export function DeviceEditor({
                     icon={form ? FORM_ICON[form] : Keyboard}
                     tools={<DeviceToolClusters />}
                 />
+                <DeviceSnapshotCapture />
                 <ErrorBoundary>
                     <DeviceWorkspace />
                 </ErrorBoundary>

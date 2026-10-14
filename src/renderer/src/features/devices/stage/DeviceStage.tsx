@@ -5,6 +5,7 @@
 // or a hover card ("Clean"). Scales to fit its box.
 import { useCallback, useMemo, useRef, useState, type JSX } from 'react'
 import type {
+    DeviceActionCategory,
     DeviceBindings,
     DeviceControl,
     DeviceModel,
@@ -36,6 +37,9 @@ export interface DeviceStageProps {
     live?: boolean
     /** Start-page tile: no interaction, no gutters, may shrink a lot. */
     preview?: boolean
+    /** Tint each control by this category instead of summarising its binding
+     *  (a cached preview keeps only the colours). */
+    categories?: Readonly<Record<string, DeviceActionCategory>>
     className?: string
 }
 
@@ -88,6 +92,7 @@ export function DeviceStage({
     mono = false,
     live = false,
     preview = false,
+    categories,
     className,
 }: DeviceStageProps): JSX.Element {
     const wrapRef = useRef<HTMLDivElement>(null)
@@ -102,14 +107,17 @@ export function DeviceStage({
     )
     const summaries = useMemo(
         () =>
-            new Map(
+            new Map<string, BindingSummary>(
                 model.controls.map((c) => [
                     c.id,
-                    bindingSummary(c, bindings, index),
+                    categories
+                        ? { text: '', cat: categories[c.id] ?? 'none' }
+                        : bindingSummary(c, bindings, index),
                 ]),
             ),
-        [model, bindings, index],
+        [model, bindings, index, categories],
     )
+
     const anchors = useMemo(
         () => (showCallouts ? calloutAnchors(model, L) : []),
         [showCallouts, model, L],
