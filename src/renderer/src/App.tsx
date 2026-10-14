@@ -1,10 +1,11 @@
-import React, { JSX, Suspense, lazy, useCallback, useEffect } from 'react'
-import type { MockServiceOptions, Transport } from '@firmware'
-import { connectMock, pickAdapter } from '@firmware'
+import { JSX, Suspense, lazy, useCallback, useEffect } from 'react'
+import type { Transport } from '@firmware'
+import { pickAdapter } from '@firmware'
 import { rememberConnectedDeviceName } from '@/transport/web-serial'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
 import { DongleLanding } from '@/features/connection/DongleLanding'
 import { MouseLanding } from '@/features/device/MouseLanding'
+import { DeviceEditor } from '@/features/devices/DeviceEditor'
 import useConnectionStore from '@/stores/connectionStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import undoRedoStore from '@/stores/undoRedoStore'
@@ -30,7 +31,12 @@ import { isElectron as isElectronEnv } from '@/transport'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
 import { withSaveMode } from '@/lib/saveMode'
 import { withUnlockPrompt } from '@/lib/unlockPrompt'
+import {
+    connectDemo,
+    demoDeviceFromUrl,
+} from '@/features/connection/demo/connectDemo'
 import { categoryForFirmware } from '@/lib/adapterCategories'
+import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
 
 // Code-split the full-screen builder: it drags in Monaco (multi-MB), which
@@ -39,35 +45,10 @@ const Builder = lazy(() =>
     import('@/features/builder').then((m) => ({ default: m.Builder })),
 )
 
-// Hoisted so it's a stable reference — an inline object here makes a fresh ref every
-// App render, forcing the whole editor subtree (Drawer + KeymapEditor + canvas) to
-// re-render on any connection/lock-state change.
-const SIDEBAR_STYLE = {
-    '--sidebar-width': '15.5rem',
-    '--header-height': 'calc(var(--spacing) * 13)',
-    '--footer-height': 'calc(var(--spacing) * 8)',
-} as React.CSSProperties
-
 // Abort a connection attempt whose adapter handshake never answers (e.g. a
 // silent / half-flashed device) so the UI recovers instead of hanging on
 // "Connecting" forever. Generous enough not to trip a slow-but-valid BLE link.
 const CONNECT_TIMEOUT_MS = 15_000
-
-// Dev only: `?demoLock=actions` (Vial-style) or `?demoLock=editor` (ZMK-style)
-// starts the demo board locked, to try the unlock UI without a keyboard.
-function demoLockOptions(): MockServiceOptions | undefined {
-    if (!import.meta.env.DEV) return undefined
-    const kind = new URLSearchParams(window.location.search).get('demoLock')
-    if (kind === 'actions') return { lock: 'actions', initiallyLocked: true }
-    if (kind === 'editor') {
-        return {
-            lock: 'editor',
-            initiallyLocked: true,
-            deviceUnlockAfterMs: 5_000,
-        }
-    }
-    return undefined
-}
 
 function App(): JSX.Element {
     // pattern-check: skip — UI sweep, replace store-connection with store-service
@@ -191,21 +172,9 @@ function App(): JSX.Element {
         }
     }
 
-    const onDemoConnect = async (): Promise<void> => {
-        try {
-            const next = withUnlockPrompt(await connectMock(demoLockOptions()))
-            next.onClosed((): void => {
-                setDeviceName(null)
-                setService(null)
-            })
-            setDeviceName(next.deviceInfo.name)
-            await publishService(next)
-        } catch (err) {
-            toast.error('Failed to start demo mode.', {
-                description: err instanceof Error ? err.message : String(err),
-            })
-        }
-    }
+    // Try Demo: the device named by `?demoDevice=` in dev, the Corne otherwise.
+    const onDemoConnect = (): Promise<void> =>
+        connectDemo(demoDeviceFromUrl() ?? 'corne')
 
     const isElectron = isElectronEnv()
 
@@ -243,6 +212,7 @@ function App(): JSX.Element {
             />
         ),
         unlock: () => <UnlockPanel layout="screen" />,
+        devices: () => <DeviceEditor controls={service!.controls!} />,
         dongle: () => <DongleLanding />,
         mouse: () => <MouseLanding />,
         keymap: () => (

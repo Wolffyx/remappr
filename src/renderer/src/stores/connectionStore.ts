@@ -145,7 +145,13 @@ const useConnectionStore = create<ConnectionState>()(
                 // through the same path real hardware would, and the Header gate
                 // (service.keyTest) shows the button only here, not on firmwares
                 // that lack a matrix channel.
-                if (service && service.capabilities.demo && !service.keyTest) {
+                // A device driven as controls has its own live readout instead.
+                if (
+                    service &&
+                    service.capabilities.demo &&
+                    !service.keyTest &&
+                    !service.controls
+                ) {
                     service.keyTest = createOsBackedKeyTest(() => {
                         const keymap = useKeymapStore.getState().keymap
                         if (!keymap) return null

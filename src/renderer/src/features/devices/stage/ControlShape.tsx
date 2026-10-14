@@ -177,10 +177,10 @@ function faceFill(shape: Shape, box: ControlBox, col: ControlColors): string {
 }
 
 const ARROWS = [
-    ['▲', { top: 5, left: '50%', marginLeft: -4 }],
-    ['▼', { bottom: 5, left: '50%', marginLeft: -4 }],
-    ['◀', { left: 5, top: '50%', marginTop: -6 }],
-    ['▶', { right: 5, top: '50%', marginTop: -6 }],
+    ['▲\uFE0E', { top: 5, left: '50%', marginLeft: -4 }],
+    ['▼\uFE0E', { bottom: 5, left: '50%', marginLeft: -4 }],
+    ['◀\uFE0E', { left: 5, top: '50%', marginTop: -6 }],
+    ['▶\uFE0E', { right: 5, top: '50%', marginTop: -6 }],
 ] as const
 
 function DpadBody({ box, col }: BodyProps): JSX.Element {

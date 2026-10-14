@@ -175,8 +175,8 @@ export function HistoryTools(): JSX.Element {
                     <TooltipContent>
                         <p>
                             {autoSaveActive
-                                ? 'Auto-save is on — every change is written to the keyboard immediately. Toggle it in Settings → Communication.'
-                                : 'Save keymap to keyboard'}
+                                ? 'Auto-save is on — every change is written to the device immediately. Toggle it in Settings → Communication.'
+                                : 'Save changes to the device'}
                         </p>
                     </TooltipContent>
                 </Tooltip>

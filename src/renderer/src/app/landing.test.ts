@@ -5,11 +5,16 @@ import type { LockKind } from '@firmware/types'
 import { needsTitleBar, resolveLanding, type LandingState } from './landing'
 
 function service(
-    extra: { kind?: KeyboardService['kind']; lock?: LockKind } = {},
+    extra: {
+        kind?: KeyboardService['kind']
+        lock?: LockKind
+        controls?: boolean
+    } = {},
 ): KeyboardService {
     return {
         kind: extra.kind,
         capabilities: { lock: extra.lock ?? 'none' },
+        controls: extra.controls ? {} : undefined,
     } as unknown as KeyboardService
 }
 
@@ -46,6 +51,21 @@ describe('resolveLanding', () => {
         expect(
             resolveLanding(state({ service: service({ kind: 'mouse' }) })),
         ).toBe('mouse')
+    })
+
+    it('opens the device editor for any device driven as controls', () => {
+        expect(
+            resolveLanding(
+                state({ service: service({ kind: 'mouse', controls: true }) }),
+            ),
+        ).toBe('devices')
+        expect(
+            resolveLanding(
+                state({
+                    service: service({ kind: 'joystick', controls: true }),
+                }),
+            ),
+        ).toBe('devices')
     })
 
     it('opens the keymap editor for a keyboard', () => {

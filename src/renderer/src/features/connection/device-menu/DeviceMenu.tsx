@@ -151,7 +151,7 @@ export const DeviceMenu = (): JSX.Element => {
     // gating on the name string wrongly showed "Offline" and disabled the menu.
     const connected = !!service
     const displayName =
-        deviceName?.trim() || service?.deviceInfo.name?.trim() || 'Keyboard'
+        deviceName?.trim() || service?.deviceInfo.name?.trim() || 'Device'
     const connLabel = communication === 'ble' ? 'BLE' : 'USB'
     const statusLabel = viewingNode
         ? 'Node · read-only'

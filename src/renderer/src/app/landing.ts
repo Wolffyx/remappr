@@ -8,6 +8,7 @@ export type Landing =
     | 'builder'
     | 'start'
     | 'unlock'
+    | 'devices'
     | 'dongle'
     | 'mouse'
     | 'keymap'
@@ -30,6 +31,8 @@ const RULES: readonly Rule[] = [
             s.service?.capabilities.lock === 'editor' &&
             !isUnlocked(s.lockState),
     ],
+    // A device driven as controls opens the device editor, whatever its kind.
+    ['devices', (s) => !!s.service?.controls],
     ['dongle', (s) => s.service?.kind === 'dongle'],
     ['mouse', (s) => s.service?.kind === 'mouse'],
 ]

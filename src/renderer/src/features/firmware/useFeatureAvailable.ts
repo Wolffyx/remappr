@@ -31,6 +31,11 @@ export const FEATURE_PROBES = {
     // Inverse of capabilities.readOnly: a behind-dongle node view is read-only,
     // so every keymap-editing affordance gates on `editable`.
     editable: (s) => !s.capabilities.readOnly,
+    // Device-controls facade (mice, gamepads, flight sticks): the editor, its
+    // write path and its live readout are each present-or-absent per adapter.
+    controls: (s) => s.controls,
+    controlsEditable: (s) => s.controls?.setBinding,
+    controlsLive: (s) => s.controls?.onInput,
 } satisfies Record<string, ServiceProbe>
 
 export type Feature = keyof typeof FEATURE_PROBES
