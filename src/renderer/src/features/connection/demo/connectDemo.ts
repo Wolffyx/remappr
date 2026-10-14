@@ -5,9 +5,8 @@ import {
     type DemoDeviceId,
     type MockServiceOptions,
 } from '@firmware'
-import useConnectionStore from '@/stores/connectionStore'
-import undoRedoStore from '@/stores/undoRedoStore'
 import { withUnlockPrompt } from '@/lib/unlockPrompt'
+import { openService } from '../openService'
 
 /** Dev only: `?demoLock=actions` (Vial-style) or `?demoLock=editor`
  *  (ZMK-style) starts the demo keyboards locked, to try the unlock UI. */
@@ -30,20 +29,10 @@ export function demoDeviceFromUrl(): DemoDeviceId | null {
 /** Open the demo device `id`, closing whatever is connected first so its edit
  *  history never carries over to the next device. */
 export async function connectDemo(id: DemoDeviceId): Promise<void> {
-    const store = useConnectionStore.getState()
     try {
-        if (store.service) await store.disconnect()
-        undoRedoStore.getState().reset()
-        const next = withUnlockPrompt(
-            await connectDemoDevice(id, demoLockOptions()),
+        await openService(async () =>
+            withUnlockPrompt(await connectDemoDevice(id, demoLockOptions())),
         )
-        next.onClosed((): void => {
-            const s = useConnectionStore.getState()
-            s.setDeviceName(null)
-            s.setService(null)
-        })
-        store.setDeviceName(next.deviceInfo.name)
-        await store.publishService(next)
     } catch (err) {
         toast.error('Failed to start demo mode.', {
             description: err instanceof Error ? err.message : String(err),
