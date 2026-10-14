@@ -111,10 +111,10 @@ describe('curves', () => {
 
 describe('sections', () => {
     it('shows only sections whose fields the adapter honours', () => {
+        // the demo mouse honours tap + hold only (no turbo / toggle)
         expect(visibleSections('button', catalog.fields)).toEqual([
             'tap',
             'hold',
-            'behaviour',
         ])
         expect(visibleSections('button', { button: ['a'] })).toEqual(['tap'])
         expect(visibleSections('sensor', {})).toEqual([])

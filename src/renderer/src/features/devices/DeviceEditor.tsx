@@ -16,6 +16,7 @@ import { DeviceWorkbench } from './DeviceWorkbench'
 import { FORM_ICON } from './formIcons'
 import useDeviceEditorStore from './model/deviceEditorStore'
 import { useDeviceControls } from './model/useDeviceControls'
+import { DOCK_WIDTH, InspectorDock } from './workspaces/InspectorDock'
 
 export function DeviceEditor({
     controls,
@@ -33,7 +34,9 @@ export function DeviceEditor({
                     tools={<DeviceToolClusters />}
                 />
                 <ErrorBoundary>
-                    <DeviceWorkbench />
+                    <DeviceWorkbench dockWidth={DOCK_WIDTH}>
+                        <InspectorDock />
+                    </DeviceWorkbench>
                 </ErrorBoundary>
             </SidebarInset>
         </SidebarProvider>
