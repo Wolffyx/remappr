@@ -116,10 +116,11 @@ export function DeviceWorkbench({
     dockWidth = 0,
     stageBottom = '0',
     stageInset,
-    hint = 'Click a control to remap it',
+    hint,
     onSelect,
     children,
 }: DeviceWorkbenchProps): JSX.Element {
+    const editable = useFeatureAvailable('controlsEditable')
     const loaded = useDeviceEditorStore((s) => s.loaded)
     const status = useDeviceEditorStore((s) => s.status)
     const error = useDeviceEditorStore((s) => s.error)
@@ -190,7 +191,14 @@ export function DeviceWorkbench({
                     />
                 </div>
             )}
-            {!selected && status === 'ready' && <Hint>{hint}</Hint>}
+            {!selected && status === 'ready' && (
+                <Hint>
+                    {hint ??
+                        (editable
+                            ? 'Click a control to remap it'
+                            : 'Click a control to see what it sends')}
+                </Hint>
+            )}
             {children}
         </main>
     )

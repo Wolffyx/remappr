@@ -54,6 +54,10 @@ export function indexCatalog(catalog: ControlsCatalog): CatalogIndex {
     }
 }
 
+/** The parts that apply, " · "-joined; undefined when none do. */
+const joined = (parts: readonly (string | false)[]): string | undefined =>
+    parts.filter(Boolean).join(' · ') || undefined
+
 type Formatters = {
     readonly [K in ControlKind]: (
         b: BindingByKind[K],
@@ -80,17 +84,27 @@ const FORMAT: Formatters = {
     }),
     stick: (b, ix) => {
         const o = ix.output('stick', b.out)
+        const can = (f: 'curve' | 'inner'): boolean =>
+            supportsField(ix.catalog.fields, 'stick', f)
         return {
             text: o.label,
-            sub: `${CURVE_LABEL[b.curve]} · dz ${b.inner}%`,
+            sub: joined([
+                can('curve') && CURVE_LABEL[b.curve],
+                can('inner') && `dz ${b.inner}%`,
+            ]),
             cat: o.cat,
         }
     },
     trigger: (b, ix) => {
         const o = ix.output('trigger', b.out)
+        const can = (f: 'mode' | 'start'): boolean =>
+            supportsField(ix.catalog.fields, 'trigger', f)
         return {
             text: o.label,
-            sub: `${TRIGGER_MODE_LABEL[b.mode]} · ${b.start}–${b.end}%`,
+            sub: joined([
+                can('mode') && TRIGGER_MODE_LABEL[b.mode],
+                can('start') && `${b.start}–${b.end}%`,
+            ]),
             cat: o.cat,
         }
     },
@@ -115,9 +129,14 @@ const FORMAT: Formatters = {
     },
     axis: (b, ix) => {
         const o = ix.output('axis', b.out)
+        const can = (f: 'curve' | 'inv'): boolean =>
+            supportsField(ix.catalog.fields, 'axis', f)
         return {
             text: o.label,
-            sub: CURVE_LABEL[b.curve] + (b.inv ? ' · inverted' : ''),
+            sub: joined([
+                can('curve') && CURVE_LABEL[b.curve],
+                can('inv') && b.inv && 'inverted',
+            ]),
             cat: o.cat,
         }
     },

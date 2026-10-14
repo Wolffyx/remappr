@@ -10,12 +10,14 @@ import type {
 import {
     bindingSummary,
     indexCatalog,
+    type BindingSummary,
     type CatalogIndex,
 } from './bindingSummary'
 import { curveAt, curveSamples } from './curves'
 import { categoryAccent, controlColors, profileAccent } from './deviceCategory'
 import { deviceSummary } from './labels'
 import { supportsField, visibleSections } from './sections'
+import { standardProfile } from '@firmware/generic/gamepad/standard'
 
 let catalog: ControlsCatalog
 let ix: CatalogIndex
@@ -78,6 +80,19 @@ describe('bindingSummary', () => {
             text: '4-way · D-pad ↑',
             cat: 'pad',
         })
+    })
+
+    it('leaves out tuning the device does not report', () => {
+        const native = standardProfile('Pad')
+        const nix = indexCatalog(native.catalog)
+        const at = (id: string): BindingSummary =>
+            bindingSummary(control(native.model, id), native.bindings, nix)
+        expect(at('ls')).toEqual({
+            text: 'Left stick',
+            sub: undefined,
+            cat: 'pad',
+        })
+        expect(at('rt')).toMatchObject({ text: 'RT (analog)', sub: undefined })
     })
 
     it('reads an unbound control as its kind default', () => {

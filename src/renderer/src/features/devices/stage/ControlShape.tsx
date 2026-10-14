@@ -277,6 +277,15 @@ function surfaceStyle(
     }
 }
 
+/** A wheel's tread follows its live turn: one notch (¼) moves it a quarter
+ *  of the 8px stripe period. */
+function treadOffset(box: ControlBox, turn: number): CSSProperties {
+    const px = `${turn * 8}px`
+    return box.w > box.h
+        ? { backgroundPositionX: px }
+        : { backgroundPositionY: px }
+}
+
 function shadowOf(
     col: ControlColors,
     flags: {
@@ -346,6 +355,7 @@ function ControlShapeView({
                 transform: `rotate(${c.r ?? 0}deg)${pressed ? ' scale(.93)' : ''}`,
                 boxShadow: shadowOf(col, { selected, hovered, pressed, flat }),
                 ...surfaceStyle(c, box, col, selected || hovered),
+                ...(c.shape === 'wheel' ? treadOffset(box, deflect.x) : {}),
             }}
         >
             {Inset ? <Inset {...body} /> : null}
