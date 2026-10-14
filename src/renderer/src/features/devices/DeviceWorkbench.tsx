@@ -1,6 +1,7 @@
 // Pattern check: no GoF pattern (-) — rejected — presentational workbench: stage overlays (profile pill, labels toggle, default-layout banner, hint) around DeviceStage.
 import { useState, type JSX, type ReactNode } from 'react'
-import { Lightbulb, X } from 'lucide-react'
+import { Lightbulb, Ruler, X } from 'lucide-react'
+import { Button } from '@/ui/button'
 import { Segmented } from '@/ui/segmented'
 import { cn } from '@/lib/cn'
 import { profileAccent } from '@/lib/devices/deviceCategory'
@@ -15,6 +16,7 @@ import useDeviceEditorStore, {
     selectActiveBindings,
 } from './model/deviceEditorStore'
 import useDeviceViewStore from './model/deviceViewStore'
+import { useEditLayout } from './model/useEditLayout'
 import { DeviceStage, type StageLabels } from './stage/DeviceStage'
 import { hasCallout } from './stage/geometry'
 
@@ -37,7 +39,8 @@ function ProfilePill(): JSX.Element | null {
     )
 }
 
-/** "This device didn't report a layout" — shown once per open. */
+/** "This device didn't report a layout" — shown once per open, with a way to
+ *  re-draw it in the Builder where that is possible. */
 function DefaultedBanner({
     hid,
     form,
@@ -46,6 +49,7 @@ function DefaultedBanner({
     form: string
 }): JSX.Element | null {
     const [open, setOpen] = useState(true)
+    const editLayout = useEditLayout()
     if (!open) return null
     return (
         <div className="fade-in pointer-events-none absolute inset-x-[18px] top-[58px] z-[11] flex justify-center">
@@ -61,6 +65,16 @@ function DefaultedBanner({
                         positions are generic.
                     </span>
                 </div>
+                {editLayout && (
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={editLayout}
+                    >
+                        <Ruler className="size-3.5" /> Fix layout
+                    </Button>
+                )}
                 <button
                     type="button"
                     aria-label="Dismiss"

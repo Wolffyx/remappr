@@ -2,7 +2,12 @@
 //
 // One control drawn on the device stage: its shape, tinted by the category of
 // what it is bound to, glowing while held in live view.
-import { memo, type CSSProperties, type JSX } from 'react'
+import {
+    memo,
+    type CSSProperties,
+    type JSX,
+    type PointerEvent as ReactPointerEvent,
+} from 'react'
 import type {
     ControlShape as Shape,
     DeviceControl,
@@ -33,6 +38,8 @@ export interface ControlShapeProps {
     live: boolean
     /** Start-page tile: key caps stay blank. */
     preview?: boolean
+    /** Layout mode: a press starts a drag (instead of just selecting). */
+    onPress?: (id: string, e: ReactPointerEvent) => void
     onSelect: (id: string) => void
     onHover: (id: string | null) => void
 }
@@ -298,6 +305,7 @@ function ControlShapeView({
     mono,
     live,
     preview = false,
+    onPress,
     onSelect,
     onHover,
 }: ControlShapeProps): JSX.Element {
@@ -319,12 +327,14 @@ function ControlShapeView({
             aria-pressed={selected}
             onPointerDown={(e) => {
                 e.stopPropagation()
-                onSelect(c.id)
+                if (onPress) onPress(c.id, e)
+                else onSelect(c.id)
             }}
             onPointerEnter={() => onHover(c.id)}
             onPointerLeave={() => onHover(null)}
-            className="absolute grid cursor-pointer place-items-center p-0 transition-[transform,box-shadow,left,top] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="absolute grid place-items-center p-0 transition-[transform,box-shadow,left,top] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             style={{
+                cursor: onPress ? 'grab' : 'pointer',
                 left: box.x,
                 top: box.y,
                 width: box.w,
