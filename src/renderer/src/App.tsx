@@ -1,6 +1,6 @@
 import React, { JSX, Suspense, lazy, useCallback, useEffect } from 'react'
 import type { MockServiceOptions, Transport } from '@firmware'
-import { connectMock, isUnlocked, pickAdapter } from '@firmware'
+import { connectMock, pickAdapter } from '@firmware'
 import { rememberConnectedDeviceName } from '@/transport/web-serial'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
 import { DongleLanding } from '@/features/connection/DongleLanding'
@@ -31,6 +31,7 @@ import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
 import { withSaveMode } from '@/lib/saveMode'
 import { withUnlockPrompt } from '@/lib/unlockPrompt'
 import { categoryForFirmware } from '@/lib/adapterCategories'
+import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
 
 // Code-split the full-screen builder: it drags in Monaco (multi-MB), which
 // otherwise lands in the entry chunk for users who never open the builder.
@@ -226,74 +227,51 @@ function App(): JSX.Element {
     }, [])
 
     const builderOpen = useBuilderStore((s) => s.open)
+    const landing = resolveLanding({ builderOpen, service, lockState })
 
-    // A dongle or a mouse has no keymap — it lands on the node roster
-    // (DongleLanding) or the mouse page (MouseLanding), which get the standalone
-    // TitleBar like the locked/start states, not the editor chrome.
-    const keyless = service?.kind === 'dongle' || service?.kind === 'mouse'
-    const showEditor =
-        !!service &&
-        !keyless &&
-        !(service.capabilities.lock === 'editor' && !isUnlocked(lockState))
+    // Pattern check: Dispatch Map (Tier 0) — applied — landing → screen table replaces the nested service.kind ternary; one entry per screen.
+    const screens: Record<Landing, () => JSX.Element> = {
+        builder: () => (
+            <Suspense fallback={null}>
+                <Builder />
+            </Suspense>
+        ),
+        start: () => (
+            <StartPage
+                onTransportCreated={onConnect}
+                onDemoConnect={onDemoConnect}
+            />
+        ),
+        unlock: () => <UnlockPanel layout="screen" />,
+        dongle: () => <DongleLanding />,
+        mouse: () => <MouseLanding />,
+        keymap: () => (
+            <SidebarProvider className="!min-h-0 h-full" style={SIDEBAR_STYLE}>
+                <Drawer />
+                <SidebarInset>
+                    <Header />
+                    <AutoLayoutResolver />
+                    <DevicePreviewCapture />
+                    <ProfileRestoreManager />
+                    <ErrorBoundary>
+                        <KeymapEditor />
+                    </ErrorBoundary>
+                    {/*<Footer />*/}
+                </SidebarInset>
+                <CoachmarkTour />
+            </SidebarProvider>
+        ),
+    }
 
     return (
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
             <div className="flex h-screen flex-col overflow-hidden">
                 {/* The editor, the full-screen builder, and the start page each
                     own a header with an inline drag region + window controls;
-                    only the locked overlay (service present but locked) still
-                    needs the standalone drag bar. */}
-                {!showEditor && !builderOpen && !!service && <TitleBar />}
+                    the screens without one get the standalone drag bar. */}
+                {needsTitleBar(landing) && <TitleBar />}
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    {builderOpen ? (
-                        <ErrorBoundary>
-                            <Suspense fallback={null}>
-                                <Builder />
-                            </Suspense>
-                        </ErrorBoundary>
-                    ) : service ? (
-                        service.capabilities.lock === 'editor' &&
-                        !isUnlocked(lockState) ? (
-                            <ErrorBoundary>
-                                <UnlockPanel layout="screen" />
-                            </ErrorBoundary>
-                        ) : service.kind === 'dongle' ? (
-                            <ErrorBoundary>
-                                <DongleLanding />
-                            </ErrorBoundary>
-                        ) : service.kind === 'mouse' ? (
-                            <ErrorBoundary>
-                                <MouseLanding />
-                            </ErrorBoundary>
-                        ) : (
-                            <ErrorBoundary>
-                                <SidebarProvider
-                                    className="!min-h-0 h-full"
-                                    style={SIDEBAR_STYLE}
-                                >
-                                    <Drawer />
-                                    <SidebarInset>
-                                        <Header />
-                                        <AutoLayoutResolver />
-                                        <DevicePreviewCapture />
-                                        <ProfileRestoreManager />
-                                        <ErrorBoundary>
-                                            <KeymapEditor />
-                                        </ErrorBoundary>
-                                        {/*<Footer />*/}
-                                    </SidebarInset>
-                                    <CoachmarkTour />
-                                </SidebarProvider>
-                            </ErrorBoundary>
-                        )
-                    ) : (
-                        <ErrorBoundary>
-                            <StartPage
-                                onTransportCreated={onConnect}
-                                onDemoConnect={onDemoConnect}
-                            />
-                        </ErrorBoundary>
-                    )}
+                    <ErrorBoundary>{screens[landing]()}</ErrorBoundary>
                 </div>
             </div>
             <UpdateNotification />
