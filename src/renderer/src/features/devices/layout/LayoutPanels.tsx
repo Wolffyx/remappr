@@ -21,7 +21,10 @@ import { KIND_LABEL } from '@/lib/devices/labels'
 import { InSection, SwitchRow } from '../inspector/parts'
 import { NumField } from './NumField'
 
-type ControlPatch = Partial<Record<keyof DeviceControl, unknown>>
+/** Fields of a control to change; undefined clears an optional one. */
+export type ControlPatch = Partial<{
+    -readonly [K in keyof DeviceControl]: DeviceControl[K]
+}>
 
 const SIZE_PRESETS: readonly [number, number][] = [
     [0.5, 0.5],
@@ -99,7 +102,8 @@ export function GeometryPanel({
     model: DeviceModel
     control: DeviceControl
     onPatch: (patch: ControlPatch) => void
-    onRemove: () => void
+    /** Absent when the device's inputs are fixed (re-drawing a device). */
+    onRemove?: () => void
 }): JSX.Element {
     const zones = SHELL_ZONES[model.shell.type]
     return (
@@ -227,15 +231,17 @@ export function GeometryPanel({
                     />
                 </div>
             </InSection>
-            <div className="border-t border-border px-4 pt-3.5 pb-5">
-                <Button
-                    variant="secondary"
-                    className="w-full text-destructive"
-                    onClick={onRemove}
-                >
-                    <Trash2 className="size-3.5" /> Remove control
-                </Button>
-            </div>
+            {onRemove && (
+                <div className="border-t border-border px-4 pt-3.5 pb-5">
+                    <Button
+                        variant="secondary"
+                        className="w-full text-destructive"
+                        onClick={onRemove}
+                    >
+                        <Trash2 className="size-3.5" /> Remove control
+                    </Button>
+                </div>
+            )}
         </>
     )
 }
