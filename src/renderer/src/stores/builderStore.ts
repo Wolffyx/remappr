@@ -17,6 +17,8 @@ import useConnectionStore from '@/stores/connectionStore'
 
 export type SnapMode = 'grid' | 'free'
 
+export type BuilderDocKind = 'keymap' | 'device'
+
 // Pattern check: no GoF pattern (-) — rejected — additive plain data types +
 // zustand state for the picker-open target; discriminated slot string, no abstraction.
 /** Which binding slot the picker edits: a key's base binding, an encoder's
@@ -60,6 +62,9 @@ const HISTORY_CAP = 60
 interface BuilderState {
     /** Whether the full-screen builder owns the viewport. */
     open: boolean
+    /** What the builder is editing: a keyboard (the config) or a device layout
+     *  (features/devices/model/deviceBuilderStore). */
+    docKind: BuilderDocKind
     /** Selected key indices (into `config.keyboard.keys`). */
     selection: Set<number>
     /** Active layer index (left-panel layers list; clamped to layers length). */
@@ -93,6 +98,9 @@ interface BuilderState {
     cameFromBuilder: boolean
 
     setOpen: (open: boolean) => void
+    /** Open on the device layout already started in the device builder store. */
+    openDevice: () => void
+    setDocKind: (docKind: BuilderDocKind) => void
     /** Re-open the builder from the editor (the back-to-Builder button). */
     returnToBuilder: () => void
     setCameFromBuilder: (value: boolean) => void
@@ -137,6 +145,7 @@ const pushCapped = (
 const useBuilderStore = create<BuilderState>()(
     devtools((set, get) => ({
         open: false,
+        docKind: 'keymap',
         selection: new Set<number>(),
         activeLayer: 0,
         activeVariant: '',
@@ -162,6 +171,7 @@ const useBuilderStore = create<BuilderState>()(
                 open
                     ? {
                           open,
+                          docKind: 'keymap',
                           cameFromBuilder: false,
                           selection: new Set<number>(),
                           activeLayer: 0,
@@ -176,6 +186,9 @@ const useBuilderStore = create<BuilderState>()(
                       }
                     : { open },
             ),
+        openDevice: () =>
+            set({ open: true, docKind: 'device', cameFromBuilder: false }),
+        setDocKind: (docKind) => set({ docKind }),
         returnToBuilder: () => set({ open: true, cameFromBuilder: false }),
         setCameFromBuilder: (cameFromBuilder) => set({ cameFromBuilder }),
         openBinding: (binding) => set({ binding }),
