@@ -1,5 +1,6 @@
 // Pattern check: no GoF pattern (-) — rejected — headless effect, the controls-device twin of features/connection/DevicePreviewCapture.tsx: caches layout + colour categories for the start-page card.
 import { useEffect, useRef } from 'react'
+import { GENERIC_FIRMWARE } from '@firmware/generic'
 import { bindingSummary } from '@/lib/devices/bindingSummary'
 import useConnectionStore from '@/stores/connectionStore'
 import useDevicePreviewStore from '@/stores/devicePreviewStore'
@@ -21,8 +22,10 @@ export function DeviceSnapshotCapture(): null {
     const lastSignature = useRef<string | null>(null)
 
     useEffect(() => {
-        // Demo devices are never listed on the start page.
+        // Demo devices are never listed on the start page; a generic device's
+        // tile previews itself from its source.
         if (!service || !loaded || !ready || service.capabilities.demo) return
+        if (service.deviceInfo.firmware === GENERIC_FIRMWARE) return
         const { model, index } = loaded
         const categories = Object.fromEntries(
             model.controls.map((c) => [

@@ -1,6 +1,6 @@
 // pattern-check: skip — UI shell, restyled to the design prototype; delegates to useConnection
 // Pattern check: no GoF pattern (-) — rejected — news layouts slot into fixed spots on the page, one layout per spot; a lookup table would still need the per-spot placement.
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Download, Keyboard, Sparkles } from 'lucide-react'
 import type { DemoDeviceId, Transport } from '@firmware'
 
@@ -35,6 +35,8 @@ import { FeatureCard } from './FeatureCard'
 import { BuilderCard } from './BuilderCard'
 import { DemoDeviceModal } from '../demo/DemoDeviceModal'
 import { demoDeviceFromUrl } from '../demo/connectDemo'
+import useInputDeviceStore from '../input-devices/inputDeviceStore'
+import { useInputDevices } from '../input-devices/useInputDevices'
 
 // The hero's "works with" pill; the chip news layout takes its place.
 const COMPAT_BADGE = (
@@ -46,7 +48,7 @@ const COMPAT_BADGE = (
         }}
     >
         <span className="size-[7px] rounded-full bg-primary" />
-        QMK · VIA · ZMK compatible
+        QMK · VIA · ZMK · HID compatible
     </div>
 )
 
@@ -87,6 +89,16 @@ export function StartPage({
         simpleConnect,
         requestNew,
     } = useConnection(onTransportCreated)
+    const firmwareLabels = useMemo(
+        () => devices.map((d) => d.device.label),
+        [devices],
+    )
+    const input = useInputDevices(firmwareLabels)
+    const openInput = useInputDeviceStore((s) => s.open)
+    const refreshAll = (): void => {
+        refresh()
+        input.refresh()
+    }
 
     // Start-page news — layout and banner are picked in Settings → Start page.
     const newsStyle = useUserSettingsStore((s) => s.newsStyle)
@@ -178,8 +190,8 @@ export function StartPage({
                             Configure Your Devices
                         </h1>
                         <p className="text-[16px] leading-normal text-muted-foreground">
-                            Connect your device to customize keymaps and
-                            settings.
+                            Connect your keyboard, mouse or controller to
+                            customize keymaps and settings.
                         </p>
                     </div>
 
@@ -206,10 +218,13 @@ export function StartPage({
                                 hasSimpleConnectOnly={hasSimpleConnectOnly}
                                 refreshing={refreshing}
                                 connectingDeviceId={connectingDeviceId}
-                                onRefresh={refresh}
+                                onRefresh={refreshAll}
                                 onConnect={connect}
                                 onSimpleConnect={simpleConnect}
                                 onRequestNew={requestNew}
+                                inputDevices={input.devices}
+                                gamepadHint={input.gamepadsSupported}
+                                onOpenInput={(d) => void openInput(d)}
                             />
 
                             <BuilderCard />

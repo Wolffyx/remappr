@@ -8,11 +8,13 @@ import {
     CardHeader,
     CardTitle,
 } from '@/ui/card'
+import type { GenericInputDevice } from '@firmware/generic'
 import type { TransportFactory } from '@/transport/types'
 import type { DeviceWithTransport } from '@/features/connection/types'
 import { SimpleConnectGrid } from './transport-section/SimpleConnectGrid'
 import { ListedDevices } from './transport-section/ListedDevices'
 import { EmptyState } from './transport-section/EmptyState'
+import { InputDeviceGrid } from './transport-section/InputDeviceGrid'
 
 interface TransportSectionProps {
     transports: TransportFactory[]
@@ -25,6 +27,11 @@ interface TransportSectionProps {
     onConnect: (d: DeviceWithTransport) => void
     onSimpleConnect: (t: TransportFactory) => void
     onRequestNew: (t: TransportFactory) => void
+    /** Controllers and mice with no vendor protocol (view + live test). */
+    inputDevices: readonly GenericInputDevice[]
+    /** The browser can see controllers once a button is pressed. */
+    gamepadHint: boolean
+    onOpenInput: (d: GenericInputDevice) => void
 }
 
 export function TransportSection({
@@ -38,8 +45,19 @@ export function TransportSection({
     onConnect,
     onSimpleConnect,
     onRequestNew,
+    inputDevices,
+    gamepadHint,
+    onOpenInput,
 }: TransportSectionProps): JSX.Element {
     const pairableTransports = transports.filter((t) => !!t.request_new)
+    const found = devices.length + inputDevices.length
+    const inputGrid = (
+        <InputDeviceGrid
+            devices={inputDevices}
+            gamepadHint={gamepadHint}
+            onOpen={onOpenInput}
+        />
+    )
 
     return (
         <Card className="mb-8">
@@ -69,12 +87,15 @@ export function TransportSection({
             </CardHeader>
             <CardContent>
                 {hasSimpleConnectOnly ? (
-                    <SimpleConnectGrid
-                        transports={transports}
-                        onSimpleConnect={onSimpleConnect}
-                    />
-                ) : hasListableTransports && devices.length > 0 ? (
-                    <>
+                    <div className="space-y-4">
+                        <SimpleConnectGrid
+                            transports={transports}
+                            onSimpleConnect={onSimpleConnect}
+                        />
+                        {inputGrid}
+                    </div>
+                ) : hasListableTransports && found > 0 ? (
+                    <div className="space-y-4">
                         <ListedDevices
                             devices={devices}
                             pairableTransports={pairableTransports}
@@ -84,19 +105,22 @@ export function TransportSection({
                             onRefresh={onRefresh}
                             onRequestNew={onRequestNew}
                         />
-                        <p className="mt-4 text-center text-xs text-muted-foreground">
-                            {devices.length} device
-                            {devices.length === 1 ? '' : 's'} found · click a
-                            card to open the editor
+                        {inputGrid}
+                        <p className="text-center text-xs text-muted-foreground">
+                            {found} device{found === 1 ? '' : 's'} found · click
+                            one to open its editor
                         </p>
-                    </>
+                    </div>
                 ) : hasListableTransports ? (
-                    <EmptyState
-                        pairableTransports={pairableTransports}
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        onRequestNew={onRequestNew}
-                    />
+                    <>
+                        <EmptyState
+                            pairableTransports={pairableTransports}
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            onRequestNew={onRequestNew}
+                        />
+                        {inputGrid}
+                    </>
                 ) : null}
             </CardContent>
         </Card>
