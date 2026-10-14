@@ -12,11 +12,13 @@ import { Header } from '@/layout/Header'
 import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { DeviceDrawer } from './DeviceDrawer'
 import { DeviceToolClusters } from './DeviceToolClusters'
-import { DeviceWorkbench } from './DeviceWorkbench'
 import { FORM_ICON } from './formIcons'
 import useDeviceEditorStore from './model/deviceEditorStore'
 import { useDeviceControls } from './model/useDeviceControls'
-import { DOCK_WIDTH, InspectorDock } from './workspaces/InspectorDock'
+import { DeviceWorkspace } from './workspaces/DeviceWorkspace'
+import { useCommandAssign } from './model/useCommandAssign'
+import { useDeviceShortcuts } from './model/useDeviceShortcuts'
+import useUserSettingsStore from '@/stores/userSettingsStore'
 
 export function DeviceEditor({
     controls,
@@ -24,6 +26,9 @@ export function DeviceEditor({
     controls: ControlsApi
 }): JSX.Element {
     useDeviceControls(controls)
+    const commandMode = useUserSettingsStore((s) => s.workspace === 'command')
+    const assign = useCommandAssign()
+    useDeviceShortcuts(commandMode ? assign : undefined)
     const form = useDeviceEditorStore((s) => s.loaded?.model.form)
     return (
         <SidebarProvider className="!min-h-0 h-full" style={SIDEBAR_STYLE}>
@@ -34,9 +39,7 @@ export function DeviceEditor({
                     tools={<DeviceToolClusters />}
                 />
                 <ErrorBoundary>
-                    <DeviceWorkbench dockWidth={DOCK_WIDTH}>
-                        <InspectorDock />
-                    </DeviceWorkbench>
+                    <DeviceWorkspace />
                 </ErrorBoundary>
             </SidebarInset>
         </SidebarProvider>

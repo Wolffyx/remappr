@@ -16,15 +16,15 @@ export type HatDir =
     | 'dr'
 
 const CELLS: readonly (readonly [HatDir, string] | null)[] = [
-    ['ul', '↖'],
-    ['up', '↑'],
-    ['ur', '↗'],
-    ['left', '←'],
+    ['ul', '↖\uFE0E'],
+    ['up', '↑\uFE0E'],
+    ['ur', '↗\uFE0E'],
+    ['left', '←\uFE0E'],
     null,
-    ['right', '→'],
-    ['dl', '↙'],
-    ['down', '↓'],
-    ['dr', '↘'],
+    ['right', '→\uFE0E'],
+    ['dl', '↙\uFE0E'],
+    ['down', '↓\uFE0E'],
+    ['dr', '↘\uFE0E'],
 ]
 
 export function HatGrid({

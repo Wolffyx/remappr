@@ -87,17 +87,23 @@ function Hint({ children }: { children: ReactNode }): JSX.Element {
 export interface DeviceWorkbenchProps {
     /** Px the right dock covers (workspace B), so overlays stay clear of it. */
     dockWidth?: number
-    /** CSS inset of the stage box (the sheet of workspace A raises its bottom). */
+    /** Where the stage area ends (workspace A's sheet takes the bottom). */
+    stageBottom?: string
+    /** CSS inset of the stage inside its area. */
     stageInset?: string
     hint?: ReactNode
+    /** What a click on a control (or the empty stage, null) does. */
+    onSelect?: (id: string | null) => void
     children?: ReactNode
 }
 
 /** The stage area of the device editor; workspaces add their panels as children. */
 export function DeviceWorkbench({
     dockWidth = 0,
+    stageBottom = '0',
     stageInset,
     hint = 'Click a control to remap it',
+    onSelect,
     children,
 }: DeviceWorkbenchProps): JSX.Element {
     const loaded = useDeviceEditorStore((s) => s.loaded)
@@ -105,7 +111,8 @@ export function DeviceWorkbench({
     const error = useDeviceEditorStore((s) => s.error)
     const bindings = useDeviceEditorStore(selectActiveBindings)
     const selected = useDeviceEditorStore((s) => s.selected)
-    const select = useDeviceEditorStore((s) => s.select)
+    const storeSelect = useDeviceEditorStore((s) => s.select)
+    const select = onSelect ?? storeSelect
     const labels = useDeviceViewStore((s) => s.labels)
     const setLabels = useDeviceViewStore((s) => s.setLabels)
     const liveFeature = useFeatureAvailable('controlsLive')
@@ -148,7 +155,10 @@ export function DeviceWorkbench({
                 <Hint>Could not read the device: {error}</Hint>
             )}
             {model && loaded && (
-                <div className="absolute inset-0" style={{ right: dockWidth }}>
+                <div
+                    className="absolute inset-0 transition-[bottom] duration-200"
+                    style={{ right: dockWidth, bottom: stageBottom }}
+                >
                     <DeviceStage
                         model={model}
                         bindings={bindings}
