@@ -8,6 +8,7 @@ import useConnectionStore from '@/stores/connectionStore'
 import useLiveViewStore from '@/stores/liveViewStore'
 import { HistoryTools } from '@/layout/toolbar/HistoryTools'
 import { ToolbarButton, ToolbarSlot } from '@/layout/toolbar/ToolbarButton'
+import { DeviceSettingsButton } from './DeviceSettings'
 
 const SEPARATOR = 'mx-1 data-[orientation=vertical]:h-5'
 
@@ -49,6 +50,7 @@ export function DeviceToolClusters(): JSX.Element {
                     onClick={() => void exportProfiles()}
                 />
             )}
+            <DeviceSettingsButton />
             <ToolbarSlot tooltip="Settings">
                 <Settings />
             </ToolbarSlot>

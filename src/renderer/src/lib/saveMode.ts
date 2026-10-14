@@ -140,6 +140,14 @@ export function withSaveMode(
         }, AUTO_COMMIT_DEBOUNCE_MS)
     }
 
+    // A device edited as controls stages its edits on the service itself (the
+    // controls facade, the settings draft) and says so through its pending
+    // flag; in auto mode, commit them shortly after, like key edits.
+    if (service.controls && !underlyingAutomatic) {
+        service.onPendingChangesChanged((pending) => {
+            if (pending && auto) scheduleAutoCommit()
+        })
+    }
     const flushStaged = async (): Promise<void> => {
         const keyOps = [...queue.entries()].filter(
             (e): e is [string, StagedKeyOp] => e[1].kind === 'key',

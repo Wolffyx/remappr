@@ -28,9 +28,6 @@ import type { NodeView } from '@firmware/service'
 import { DongleSettingsPanel } from '@/features/device/DongleSettingsPanel'
 import { DongleBody } from '@/features/device/DongleBody'
 
-/** NodeView.personality of a mouse (firmware REMAPPR_PERSONALITY_MOUSE_NODE). */
-const PERSONALITY_MOUSE = 2
-
 export function DongleLanding(): JSX.Element {
     // Field-scoped selectors — avoids re-rendering on unrelated store changes.
     const service = useConnectionStore((s) => s.service)
@@ -337,7 +334,7 @@ export function DongleLanding(): JSX.Element {
                                         onClick={() => void handleOpen(n.id)}
                                         className="flex min-w-0 flex-1 items-center gap-3 rounded-l-[10px] px-3.5 py-3 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                                     >
-                                        {n.personality === PERSONALITY_MOUSE ? (
+                                        {n.kind === 'mouse' ? (
                                             <Mouse className="size-5 shrink-0 text-muted-foreground" />
                                         ) : (
                                             <Cpu className="size-5 shrink-0 text-muted-foreground" />

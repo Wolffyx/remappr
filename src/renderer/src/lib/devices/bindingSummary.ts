@@ -15,6 +15,7 @@ import type {
 } from '@firmware/devices/types'
 import { bindingOf } from '@firmware/devices/defaults'
 import { CURVE_LABEL, TRIGGER_MODE_LABEL } from './labels'
+import { supportsField } from './sections'
 
 export interface BindingSummary {
     text: string
@@ -71,7 +72,9 @@ const FORMAT: Formatters = {
         return { text: a.label, sub, cat: a.cat }
     },
     wheel: (b, ix) => ({
-        text: `Scroll · ${b.lines} lines`,
+        text: supportsField(ix.catalog.fields, 'wheel', 'lines')
+            ? `Scroll · ${b.lines} lines`
+            : 'Scroll wheel',
         sub: `click · ${ix.action(b.click).label}`,
         cat: 'mouse',
     }),
