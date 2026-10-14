@@ -173,6 +173,7 @@ export function DeviceStage({
                             hovered={hover === c.id}
                             mono={mono}
                             live={live}
+                            preview={preview}
                             onSelect={select}
                             onHover={onHover}
                         />

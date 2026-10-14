@@ -1,9 +1,8 @@
 // pattern-check: skip — UI shell, restyled to the design prototype; delegates to useConnection
 // Pattern check: no GoF pattern (-) — rejected — news layouts slot into fixed spots on the page, one layout per spot; a lookup table would still need the per-spot placement.
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Download, Keyboard, Sparkles } from 'lucide-react'
-import { toast } from 'sonner'
-import type { Transport } from '@firmware'
+import type { DemoDeviceId, Transport } from '@firmware'
 
 import { Button } from '@/ui/button'
 import { DownloadLatestButton } from '@/components/DownloadLatestButton'
@@ -34,6 +33,8 @@ import { ConfigReadyBanner } from './ConfigReadyBanner'
 import { TransportSection } from './TransportSection'
 import { FeatureCard } from './FeatureCard'
 import { BuilderCard } from './BuilderCard'
+import { DemoDeviceModal } from '../demo/DemoDeviceModal'
+import { demoDeviceFromUrl } from '../demo/connectDemo'
 
 // The hero's "works with" pill; the chip news layout takes its place.
 const COMPAT_BADGE = (
@@ -55,13 +56,24 @@ interface StartPageProps {
         t: Transport,
         communication: 'serial' | 'ble' | 'hid',
     ) => Promise<boolean>
-    onDemoConnect?: () => void | Promise<void>
+    /** Open the demo device `id` (Try Demo's chooser picks it). */
+    onDemoConnect?: (id: DemoDeviceId) => void | Promise<void>
 }
 
 export function StartPage({
     onTransportCreated,
     onDemoConnect,
 }: StartPageProps): JSX.Element {
+    const [demoOpen, setDemoOpen] = useState(false)
+    // Dev: `?demoDevice=<id>` skips the chooser.
+    const openDemo = (): void => {
+        const id = demoDeviceFromUrl()
+        if (id && onDemoConnect) {
+            void onDemoConnect(id)
+            return
+        }
+        setDemoOpen(true)
+    }
     const {
         transports,
         haveTransports,
@@ -163,7 +175,7 @@ export function StartPage({
                             COMPAT_BADGE
                         )}
                         <h1 className="mb-3 text-[40px] font-extrabold leading-[1.05] tracking-tight">
-                            Configure Your Device
+                            Configure Your Devices
                         </h1>
                         <p className="text-[16px] leading-normal text-muted-foreground">
                             Connect your device to customize keymaps and
@@ -201,28 +213,21 @@ export function StartPage({
                             />
 
                             <BuilderCard />
+                            <DemoDeviceModal
+                                opened={demoOpen}
+                                onClose={() => setDemoOpen(false)}
+                                onPick={(id) => void onDemoConnect?.(id)}
+                            />
 
                             <div className="mt-4 grid gap-4 sm:grid-cols-2">
                                 <FeatureCard
                                     icon={Sparkles}
                                     title="Try Demo Mode"
-                                    description="Explore Remappr with a simulated keyboard — no device required."
+                                    description="Explore Remappr with simulated keyboards, a mouse and controllers — no device required."
                                     action={
                                         <Button
                                             variant="secondary"
-                                            onClick={() => {
-                                                if (onDemoConnect) {
-                                                    void onDemoConnect()
-                                                    return
-                                                }
-                                                toast.info(
-                                                    'Demo mode coming soon!',
-                                                    {
-                                                        description:
-                                                            'This feature is currently under development.',
-                                                    },
-                                                )
-                                            }}
+                                            onClick={openDemo}
                                         >
                                             Try Demo
                                         </Button>

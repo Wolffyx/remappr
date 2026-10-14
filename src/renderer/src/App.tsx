@@ -31,10 +31,7 @@ import { isElectron as isElectronEnv } from '@/transport'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
 import { withSaveMode } from '@/lib/saveMode'
 import { withUnlockPrompt } from '@/lib/unlockPrompt'
-import {
-    connectDemo,
-    demoDeviceFromUrl,
-} from '@/features/connection/demo/connectDemo'
+import { connectDemo } from '@/features/connection/demo/connectDemo'
 import { categoryForFirmware } from '@/lib/adapterCategories'
 import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
@@ -172,10 +169,6 @@ function App(): JSX.Element {
         }
     }
 
-    // Try Demo: the device named by `?demoDevice=` in dev, the Corne otherwise.
-    const onDemoConnect = (): Promise<void> =>
-        connectDemo(demoDeviceFromUrl() ?? 'corne')
-
     const isElectron = isElectronEnv()
 
     useEffect(() => {
@@ -208,7 +201,7 @@ function App(): JSX.Element {
         start: () => (
             <StartPage
                 onTransportCreated={onConnect}
-                onDemoConnect={onDemoConnect}
+                onDemoConnect={connectDemo}
             />
         ),
         unlock: () => <UnlockPanel layout="screen" />,

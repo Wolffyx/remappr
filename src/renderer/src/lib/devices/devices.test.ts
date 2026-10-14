@@ -131,6 +131,14 @@ describe('colours and labels', () => {
 
     it('cycles profile accents and summarises a device', () => {
         expect(profileAccent(0)).toBe(profileAccent(7))
-        expect(deviceSummary('mouse', 7)).toBe('Mouse · 7 controls')
+        expect(deviceSummary('mouse', mouse.controls)).toBe(
+            'Mouse · 7 controls',
+        )
+        expect(
+            deviceSummary('macropad', [
+                { kind: 'encoder', shape: 'knob' },
+                { kind: 'button', shape: 'key' },
+            ]),
+        ).toBe('Macro pad · 1 key · 1 encoder')
     })
 })

@@ -31,6 +31,8 @@ export interface ControlShapeProps {
     hovered: boolean
     mono: boolean
     live: boolean
+    /** Start-page tile: key caps stay blank. */
+    preview?: boolean
     onSelect: (id: string) => void
     onHover: (id: string | null) => void
 }
@@ -41,6 +43,7 @@ interface BodyProps {
     col: ControlColors
     summary: BindingSummary
     deflect: { x: number; y: number }
+    preview: boolean
 }
 
 const MONO_FONT = 'font-mono font-bold pointer-events-none'
@@ -136,8 +139,8 @@ function SensorEye({ col }: BodyProps): JSX.Element {
     )
 }
 
-function KeyCapFace({ col, summary }: BodyProps): JSX.Element {
-    const t = summary.text
+function KeyCapFace({ col, summary, preview }: BodyProps): JSX.Element {
+    const t = preview ? '' : summary.text
     const size = t.length > 6 ? 8.5 : t.length > 2 ? 10.5 : 15
     return (
         <div
@@ -294,13 +297,14 @@ function ControlShapeView({
     hovered,
     mono,
     live,
+    preview = false,
     onSelect,
     onHover,
 }: ControlShapeProps): JSX.Element {
     const pressed = useControlPressed(c.id, live)
     const deflect = analogXY(useControlAnalog(c.id, live))
     const col = controlColors(summary.cat, mono)
-    const body: BodyProps = { c, box, col, summary, deflect }
+    const body: BodyProps = { c, box, col, summary, deflect, preview }
     const flat = c.shape === 'dpad' || c.shape === 'ring'
     const Inset =
         c.shape === 'dpad'

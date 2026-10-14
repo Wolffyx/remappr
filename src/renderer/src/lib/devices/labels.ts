@@ -1,6 +1,7 @@
 // pattern-check: skip — pure data: display names for device forms, control kinds, curves and trigger modes.
 import type {
     ControlKind,
+    DeviceControl,
     DeviceForm,
     ResponseCurve,
     TriggerMode,
@@ -38,7 +39,20 @@ export const TRIGGER_MODE_LABEL: Readonly<Record<TriggerMode, string>> = {
     digital: 'Digital',
 }
 
-/** "Mouse · 7 controls" — the one-line description of a device. */
-export function deviceSummary(form: DeviceForm, controlCount: number): string {
-    return `${FORM_LABEL[form]} · ${controlCount} control${controlCount === 1 ? '' : 's'}`
+const count = (n: number, one: string): string =>
+    `${n} ${one}${n === 1 ? '' : 's'}`
+
+/** One-line description: "Mouse · 7 controls", "Macro pad · 9 keys · 2
+ *  encoders" (keyboards count keys and encoders, not controls). */
+export function deviceSummary(
+    form: DeviceForm,
+    controls: readonly Pick<DeviceControl, 'kind' | 'shape'>[],
+): string {
+    if (form !== 'keyboard' && form !== 'macropad') {
+        return `${FORM_LABEL[form]} · ${count(controls.length, 'control')}`
+    }
+    const keys = controls.filter((c) => c.shape === 'key').length
+    const encoders = controls.filter((c) => c.kind === 'encoder').length
+    const enc = encoders ? ` · ${count(encoders, 'encoder')}` : ''
+    return `${FORM_LABEL[form]} · ${count(keys, 'key')}${enc}`
 }
