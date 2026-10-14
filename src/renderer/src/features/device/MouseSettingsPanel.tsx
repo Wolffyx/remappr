@@ -5,7 +5,7 @@
 // inside the device editor. Edits go into the same staged document as the
 // button and CPI edits on the stage, so the header's Save writes them all.
 // Through the dongle the panel reads the stored settings, read-only.
-import { JSX, useCallback, useEffect, useRef, useState } from 'react'
+import { JSX, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import type { MotionConfig } from '@firmware'
 import type { ConfigDevice } from '@firmware/config'
@@ -83,10 +83,12 @@ export function MouseSettingsPanel({
     // A saved document replaces the live values: re-read them.
     useEffect(() => draft?.onChanged(() => setLiveKey((k) => k + 1)), [draft])
 
-    const range: DpiRange | null =
-        motionCfg && motionCfg.dpiMax > 0
-            ? { min: motionCfg.dpiMin, max: motionCfg.dpiMax }
-            : null
+    const dpiMin = motionCfg?.dpiMin ?? 0
+    const dpiMax = motionCfg?.dpiMax ?? 0
+    const range: DpiRange | null = useMemo(
+        () => (dpiMax > 0 ? { min: dpiMin, max: dpiMax } : null),
+        [dpiMin, dpiMax],
+    )
     const m = mouseFromDraft(form.mouse, doc?.mouse, range)
     const r = radioFromDraft(form.radio, doc?.radio)
     const errors = { ...m.errors, ...r.errors }
