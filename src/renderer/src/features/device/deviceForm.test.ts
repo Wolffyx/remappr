@@ -134,6 +134,28 @@ describe('mouse draft', () => {
         expect(errors.curve).toMatch(/share a speed/)
     })
 
+    it('edits the starting DPI stage when the mouse has stages', () => {
+        const stored = {
+            dpiStages: [400, 800, 1600],
+            dpiStage: 1,
+            invertY: true,
+        }
+        const draft = mouseDraft(stored)
+        expect(draft.cpi).toBe('800')
+        const { mouse } = mouseFromDraft(
+            { ...draft, cpi: '1000' },
+            stored,
+            null,
+        )
+        expect(mouse).toMatchObject({
+            dpiStages: [400, 1000, 1600],
+            dpiStage: 1,
+        })
+        expect(mouse?.cpi).toBeUndefined()
+        const cleared = mouseFromDraft({ ...draft, cpi: '' }, stored, null)
+        expect(cleared.mouse?.dpiStages).toEqual([400, 800, 1600])
+    })
+
     it('maps "off" to a dropped button', () => {
         const draft = mouseDraft(undefined)
         draft.buttons[1] = 'off'

@@ -171,12 +171,19 @@ export interface MouseDraft {
     buttons: ButtonChoice[]
 }
 
+/** The DPI the mouse starts on: its starting DPI stage when it has stages
+ *  (they own the DPI), else `cpi`. */
+function startDpi(m: ConfigMouse | undefined): number | undefined {
+    return m?.dpiStages ? m.dpiStages[m.dpiStage ?? 0] : m?.cpi
+}
+
 export function mouseDraft(m: ConfigMouse | undefined): MouseDraft {
     const flags = {} as Record<MouseFlag, boolean>
     for (const k of MOUSE_FLAGS) flags[k] = m?.[k] ?? false
     const map = m?.buttonMap ?? MOUSE_BUTTON_MAP_IDENTITY
+    const dpi = startDpi(m)
     return {
-        cpi: m?.cpi === undefined || m.cpi === 0 ? '' : String(m.cpi),
+        cpi: dpi === undefined || dpi === 0 ? '' : String(dpi),
         flags,
         scrollDivisor:
             m?.scrollDivisor === undefined ? '' : String(m.scrollDivisor),
@@ -261,13 +268,26 @@ export function mouseFromDraft(
 
     const mouse = compactSection<ConfigMouse>({
         ...stored,
-        cpi: cpi.value,
+        ...dpiFields(stored, cpi.value),
         accel: curve.accel,
         scrollDivisor: div.value,
         buttonMap,
         ...flags,
     })
     return { mouse, errors }
+}
+
+/** The edited DPI as document fields: with DPI stages it is the starting
+ *  stage's DPI (clearing it keeps the stage), else `cpi`. */
+function dpiFields(
+    stored: ConfigMouse | undefined,
+    value: number | undefined,
+): Pick<ConfigMouse, 'cpi' | 'dpiStages'> {
+    if (!stored?.dpiStages) return { cpi: value }
+    if (value === undefined) return {}
+    const stages = [...stored.dpiStages]
+    stages[stored.dpiStage ?? 0] = value
+    return { dpiStages: stages }
 }
 
 /* ── document ───────────────────────────────────────────────────────────── */
