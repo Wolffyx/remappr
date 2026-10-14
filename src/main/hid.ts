@@ -3,6 +3,7 @@
 // Uses node-hid; loaded lazily so packaging without the native module
 // (e.g. browser-only Vite preview) doesn't blow up at import time.
 
+import type { HidMousePayload } from '../shared/ipc-types'
 import { createLogger } from '../shared/logger'
 
 const log = createLogger('hid')
@@ -137,6 +138,45 @@ export async function listHidDevices(
         return devices
     } catch (err) {
         log.error('list failed:', err)
+        return []
+    }
+}
+
+const GENERIC_DESKTOP_PAGE = 0x01
+const MOUSE_USAGE = 0x02
+
+function mouseName(d: NodeHidDevice): string {
+    return d.product || (d.manufacturer ? `${d.manufacturer} mouse` : 'Mouse')
+}
+
+// pattern-check: skip — second enumeration beside listHidDevices; filters the
+// same node-hid list by usage, no GoF abstraction.
+/**
+ * Every HID mouse the OS lists, one per unit (a mouse exposes several
+ * collections; vid:pid:serial collapses them). Enumeration only: the paths are
+ * NOT added to knownDevicePaths, so none of these can be opened through
+ * HID_CONNECT.
+ */
+export async function listHidMice(): Promise<HidMousePayload[]> {
+    const mod = await loadNodeHid()
+    if (!mod) return []
+    try {
+        const units = new Map<string, HidMousePayload>()
+        for (const d of mod.devices()) {
+            if (d.usagePage !== GENERIC_DESKTOP_PAGE) continue
+            if (d.usage !== MOUSE_USAGE) continue
+            const key = `${d.vendorId}:${d.productId}:${d.serialNumber ?? ''}`
+            if (units.has(key)) continue
+            units.set(key, {
+                name: mouseName(d),
+                vendorId: d.vendorId,
+                productId: d.productId,
+                ...(d.serialNumber ? { serialNumber: d.serialNumber } : {}),
+            })
+        }
+        return [...units.values()]
+    } catch (err) {
+        log.error('mouse list failed:', err)
         return []
     }
 }

@@ -30,6 +30,7 @@ import {
     hasActiveHidConnection,
     type HidDiscoveryFilter,
     listHidDevices,
+    listHidMice,
     writeHid,
 } from './hid'
 import { registerSecretHandlers } from './secret-store'
@@ -186,6 +187,8 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
         const filters = parseHidDiscovery(arg)
         return await listHidDevices(filters)
     })
+
+    ipcMain.handle(IpcChannels.HID_LIST_MICE, async () => await listHidMice())
 
     ipcMain.handle(IpcChannels.HID_CONNECT, async (_, arg: unknown) => {
         const a = arg as { device?: { id?: unknown; label?: unknown } }

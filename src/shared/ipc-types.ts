@@ -34,6 +34,16 @@ export interface HidDiscoveryPayload {
     filters: HidDiscoveryFilter[]
 }
 
+// pattern-check: skip — flat IPC DTO, no behavior
+/** A mouse the OS lists as a HID pointer (usage page 0x01, usage 0x02). Only
+ *  enumerated, never opened: the app views and live-tests it. */
+export interface HidMousePayload {
+    name: string
+    vendorId: number
+    productId: number
+    serialNumber?: string
+}
+
 // --- IPC Channel Names ---
 
 /** Request/response channels (renderer invokes, main handles) */
@@ -56,6 +66,8 @@ export const IpcChannels = {
     // HID device operations (raw USB HID via node-hid)
     HID_LIST_DEVICES: 'hid:list-devices',
     HID_CONNECT: 'hid:connect',
+    // Mice the OS lists (enumerated only; view + live test, never opened)
+    HID_LIST_MICE: 'hid:list-mice',
 
     // Platform info
     GET_PLATFORM: 'platform:get',
@@ -157,6 +169,10 @@ export interface IpcInvokeMap {
     [IpcChannels.HID_CONNECT]: {
         params: { device: AvailableDevice }
         result: { ok: boolean; label?: string; error?: string }
+    }
+    [IpcChannels.HID_LIST_MICE]: {
+        params: void
+        result: HidMousePayload[]
     }
     [IpcChannels.GET_PLATFORM]: {
         params: void
