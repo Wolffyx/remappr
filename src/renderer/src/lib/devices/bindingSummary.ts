@@ -98,9 +98,11 @@ const FORMAT: Formatters = {
         const up = ix.action(b.up)
         return { text: `${b.ways}-way · ${up.label}`, cat: up.cat }
     },
-    sensor: (b) => ({
+    sensor: (b, ix) => ({
         text: `${b.stages[b.active] ?? b.stages[0] ?? 0} DPI`,
-        sub: `${b.poll} Hz`,
+        sub: supportsField(ix.catalog.fields, 'sensor', 'poll')
+            ? `${b.poll} Hz`
+            : undefined,
         cat: 'mouse',
     }),
     encoder: (b, ix) => {
