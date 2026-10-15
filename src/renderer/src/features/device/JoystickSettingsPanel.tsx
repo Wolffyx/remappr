@@ -19,6 +19,9 @@ import { Button } from '@/ui/button'
 import { SettingsSection } from './SettingRows'
 
 const POLL_MS = 100
+/** Failed reads in a row before the readout gives up. One is a busy moment (a
+ *  calibration step writing flash); a run of them is a stick gone away. */
+const MAX_FAILED_READS = 5
 const AXIS_NAMES = ['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz']
 
 type Phase = 'idle' | 'sweeping' | 'centred'
@@ -33,6 +36,15 @@ const REFUSED: Readonly<Partial<Record<JoystickCalStep, string>>> = {
     finish: 'Move the stick to every edge, let it go and set the centre first.',
 }
 
+/** What a step that went through means, shown under the readout. */
+const STEP_NOTE: Readonly<Record<JoystickCalStep, string>> = {
+    begin: 'Move the stick to every edge, a few times round. Then let it go and set the centre.',
+    centre: 'Centre set. Finish saves the calibration on the stick.',
+    finish: 'Calibration saved on the stick.',
+    cancel: 'Cancelled. The stick keeps its previous calibration.',
+    reset: 'Calibration reset to the default.',
+}
+
 const NEXT_PHASE: Readonly<Record<JoystickCalStep, Phase>> = {
     begin: 'sweeping',
     centre: 'centred',
@@ -41,21 +53,40 @@ const NEXT_PHASE: Readonly<Record<JoystickCalStep, Phase>> = {
     reset: 'idle',
 }
 
+/** What stands in for the input rows while there are none. */
+function lostOrEmpty(state: AxisState | null, lost: boolean): string {
+    if (lost)
+        return 'Could not read the joystick. Close this dialog and reconnect it.'
+    if (!state) return 'Reading…'
+    return 'This joystick has no analog inputs.'
+}
+
 /** Where `v` sits between `lo` and `hi`, 0..100. */
 const pct = (v: number, lo: number, hi: number): number =>
     hi > lo ? Math.min(100, Math.max(0, ((v - lo) * 100) / (hi - lo))) : 50
 
-function useLiveState(api: JoystickApi): AxisState | null {
+function useLiveState(api: JoystickApi): {
+    state: AxisState | null
+    lost: boolean
+} {
     const [state, setState] = useState<AxisState | null>(null)
+    const [lost, setLost] = useState(false)
     useEffect(() => {
         let busy = false
+        let failed = 0
         const id = setInterval(() => {
             if (busy) return
             busy = true
             api.getState()
-                .then(setState)
+                .then((s) => {
+                    failed = 0
+                    setState(s)
+                })
                 .catch((e: unknown) => {
+                    failed += 1
+                    if (failed < MAX_FAILED_READS) return
                     clearInterval(id)
+                    setLost(true)
                     toast.error('Failed to read the joystick', {
                         description: message(e),
                     })
@@ -66,7 +97,7 @@ function useLiveState(api: JoystickApi): AxisState | null {
         }, POLL_MS)
         return () => clearInterval(id)
     }, [api])
-    return state
+    return { state, lost }
 }
 
 function InputRow({
@@ -116,10 +147,11 @@ export function JoystickSettingsPanel({
 }: {
     joystick: JoystickApi
 }): JSX.Element {
-    const state = useLiveState(joystick)
+    const { state, lost } = useLiveState(joystick)
     const [config, setConfig] = useState<AxisConfig | null>(null)
     const [phase, setPhase] = useState<Phase>('idle')
     const [busy, setBusy] = useState(false)
+    const [note, setNote] = useState<string | null>(null)
 
     const readConfig = useCallback(async (): Promise<void> => {
         try {
@@ -141,7 +173,11 @@ export function JoystickSettingsPanel({
         try {
             await joystick.calibrate(s)
             setPhase(NEXT_PHASE[s])
-            if (s === 'finish' || s === 'reset') await readConfig()
+            setNote(STEP_NOTE[s])
+            if (s === 'finish' || s === 'reset') {
+                await readConfig()
+                toast.success(STEP_NOTE[s])
+            }
         } catch (e) {
             toast.error('Calibration step refused', {
                 description: REFUSED[s] ?? message(e),
@@ -160,9 +196,7 @@ export function JoystickSettingsPanel({
             >
                 {inputs.length === 0 && (
                     <p className="text-xs text-muted-foreground">
-                        {state
-                            ? 'This joystick has no analog inputs.'
-                            : 'Reading…'}
+                        {lostOrEmpty(state, lost)}
                     </p>
                 )}
                 {inputs.map((s, i) => (
@@ -174,6 +208,9 @@ export function JoystickSettingsPanel({
                         cfg={config?.axes[i]}
                     />
                 ))}
+                {note && (
+                    <p className="text-xs text-muted-foreground">{note}</p>
+                )}
                 <div className="flex flex-wrap gap-2 pt-1">
                     <Button
                         size="sm"
