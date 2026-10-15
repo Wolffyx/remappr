@@ -135,8 +135,11 @@ export function DeviceWorkbench({
     const model = loaded?.model
     const banner = !!model?.defaulted
 
+    // `isolate` keeps the stage's own z-scale (the sheet and dock at 80, the
+    // palette at 85) inside this box, so a dialog or tooltip portalled to the
+    // body at z-50 still opens over them.
     return (
-        <main className="workbench-bg relative min-h-0 min-w-0 flex-1 overflow-hidden">
+        <main className="workbench-bg relative isolate min-h-0 min-w-0 flex-1 overflow-hidden">
             <div
                 className="pointer-events-none absolute top-3.5 left-0 z-10 flex items-center justify-between px-[18px] transition-[right] duration-200"
                 style={{ right: dockWidth }}
