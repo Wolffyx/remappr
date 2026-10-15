@@ -27,6 +27,7 @@ export function DevicePreviewCapture(): null {
     const service = useConnectionStore((s) => s.service)
     const communication = useConnectionStore((s) => s.communication)
     const lastConnectedDevice = useConnectionStore((s) => s.lastConnectedDevice)
+    const viewingNode = useConnectionStore((s) => s.parentService !== null)
     const saveSnapshot = useDevicePreviewStore((s) => s.saveSnapshot)
     const lastSignature = useRef<string | null>(null)
 
@@ -38,6 +39,9 @@ export function DevicePreviewCapture(): null {
         // Demo keyboards never appear in the discovered-device list, so their
         // snapshots can't be shown — capturing one only risks clobbering a real slot.
         if (service.capabilities.demo) return
+        // A node opened through the dongle is not the device the card lists:
+        // its snapshot would land on the dongle's card.
+        if (viewingNode) return
         const layout = layouts[selectedPhysicalLayoutIndex]
         if (!layout || keymap.layers.length === 0) return
 
@@ -90,6 +94,7 @@ export function DevicePreviewCapture(): null {
         selectedPhysicalLayoutIndex,
         communication,
         lastConnectedDevice,
+        viewingNode,
         saveSnapshot,
     ])
 

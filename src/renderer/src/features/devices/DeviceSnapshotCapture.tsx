@@ -14,6 +14,7 @@ export function DeviceSnapshotCapture(): null {
     const service = useConnectionStore((s) => s.service)
     const communication = useConnectionStore((s) => s.communication)
     const lastConnectedDevice = useConnectionStore((s) => s.lastConnectedDevice)
+    const viewingNode = useConnectionStore((s) => s.parentService !== null)
     const loaded = useDeviceEditorStore((s) => s.loaded)
     const profileCount = useDeviceEditorStore((s) => s.profiles.length)
     const bindings = useDeviceEditorStore(selectActiveBindings)
@@ -26,6 +27,9 @@ export function DeviceSnapshotCapture(): null {
         // tile previews itself from its source.
         if (!service || !loaded || !ready || service.capabilities.demo) return
         if (service.deviceInfo.firmware === GENERIC_FIRMWARE) return
+        // A node opened through the dongle is not the device the card lists:
+        // its snapshot would land on the dongle's card.
+        if (viewingNode) return
         const { model, index } = loaded
         const categories = Object.fromEntries(
             model.controls.map((c) => [
@@ -54,6 +58,7 @@ export function DeviceSnapshotCapture(): null {
         profileCount,
         communication,
         lastConnectedDevice,
+        viewingNode,
         saveSnapshot,
     ])
     return null
