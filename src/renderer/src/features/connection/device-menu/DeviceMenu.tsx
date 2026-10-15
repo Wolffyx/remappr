@@ -7,7 +7,6 @@ import { useShallow } from 'zustand/react/shallow'
 import {
     ArrowLeft,
     Check,
-    Cpu,
     Power,
     RotateCcw,
     Settings as SettingsIcon,
@@ -28,6 +27,7 @@ import useUserSettingsStore from '@/stores/userSettingsStore'
 import useProfileBackupStore, { backupKey } from '@/stores/profileBackupStore'
 import { applyRestore } from '@/features/connection/applyRestore'
 import type { NodeView } from '@firmware/service'
+import { NodeIcon } from '@/features/devices/NodeIcon'
 
 export const DeviceMenu = (): JSX.Element => {
     // useShallow-scoped subscription — a bare useConnectionStore() re-renders
@@ -239,7 +239,10 @@ export const DeviceMenu = (): JSX.Element => {
                                             void handleOpenNode(n.id)
                                         }}
                                     >
-                                        <Cpu className="mr-2 h-4 w-4 shrink-0" />
+                                        <NodeIcon
+                                            kind={n.kind}
+                                            className="mr-2 h-4 w-4 shrink-0"
+                                        />
                                         <span className="flex-1 truncate">
                                             {n.label}
                                         </span>
