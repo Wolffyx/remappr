@@ -1,9 +1,11 @@
 # Roadmap
 
 Remappr is a **universal device manager**: one app to connect, remap, light up,
-and build your devices — across firmwares. Today it speaks **ZMK, QMK, VIA, Vial and
-Keychron**; the architecture is deliberately pluggable so **more firmwares** can
-join (see [Future firmwares](#future-firmwares)).
+and build your devices — keyboards, mice and controllers — across firmwares. Today
+it speaks **ZMK, QMK, VIA, Vial and Keychron**, plus its own
+[Remappr Firmware](#remappr-firmware), in development; the architecture is
+deliberately pluggable so **more firmwares** can join (see
+[Future firmwares](#future-firmwares)).
 
 Status: <Badge type="tip" text="✅ Done" /> <Badge type="warning" text="🚧 In Progress" /> <Badge type="info" text="🗓️ Planned" /> <Badge type="danger" text="🔮 Future" />
 
@@ -17,26 +19,28 @@ the builder/compiler but cannot be edited live on a board, by protocol design.
 
 ## At a glance
 
-| Area                                                                   | Status                                     |                                    |
-| ---------------------------------------------------------------------- | ------------------------------------------ | ---------------------------------- |
-| [Keyboard Builder](#keyboard-builder)                                  | <Badge type="tip" text="✅ Done" />        | Design a board end-to-end          |
-| [Config & compilers](#config-multi-firmware-compilers)                 | <Badge type="tip" text="✅ Done" />        | One config → 4 firmwares           |
-| [Editor tools](#editor-tools)                                          | <Badge type="tip" text="✅ Done" />        | Heatmap, key test, RGB paint       |
-| [Live editing — ZMK](#zmk-live-editor)                                 | <Badge type="tip" text="✅ Core" />        | Narrow by protocol                 |
-| [Live editing — QMK/Vial/Keychron](#qmk-via-vial-keychron-live-editor) | <Badge type="tip" text="✅ Broad" />       | Rich VIA/Vial surface              |
-| [Build & flash pipeline](#build-flash-pipeline)                        | <Badge type="warning" text="🚧 Partial" /> | Cloud build works; flasher planned |
-| [Future firmwares](#future-firmwares)                                  | <Badge type="danger" text="🔮 Future" />   | First-party Remappr Firmware       |
+| Area                                                                   | Status                                         |                                    |
+| ---------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------- |
+| [Keyboard Builder](#keyboard-builder)                                  | <Badge type="tip" text="✅ Done" />            | Design a board end-to-end          |
+| [Config & compilers](#config-multi-firmware-compilers)                 | <Badge type="tip" text="✅ Done" />            | One config → 4 firmwares           |
+| [Editor tools](#editor-tools)                                          | <Badge type="tip" text="✅ Done" />            | Heatmap, key test, RGB paint       |
+| [Live editing — ZMK](#zmk-live-editor)                                 | <Badge type="tip" text="✅ Core" />            | Narrow by protocol                 |
+| [Live editing — QMK/Vial/Keychron](#qmk-via-vial-keychron-live-editor) | <Badge type="tip" text="✅ Broad" />           | Rich VIA/Vial surface              |
+| [Build & flash pipeline](#build-flash-pipeline)                        | <Badge type="warning" text="🚧 Partial" />     | Cloud build works; flasher planned |
+| [Mice & controllers](#mice-controllers)                                | <Badge type="tip" text="✅ Done" />            | Device editor, live test, builder  |
+| [Remappr Firmware](#remappr-firmware)                                  | <Badge type="warning" text="🚧 In Progress" /> | Mice & joysticks editable          |
+| [Future firmwares](#future-firmwares)                                  | <Badge type="danger" text="🔮 Future" />       | Built to add more                  |
 
 ## Firmware support matrix
 
-| Firmware                              | Live editor | Builder / export | Status                                   |
-| ------------------------------------- | :---------: | :--------------: | ---------------------------------------- |
-| **ZMK** (wireless, BLE)               |     ✅      |        ✅        | <Badge type="tip" text="Supported" />    |
-| **QMK**                               |     ✅      |        ✅        | <Badge type="tip" text="Supported" />    |
-| **VIA**                               |     ✅      |        ✅        | <Badge type="tip" text="Supported" />    |
-| **Vial**                              |     ✅      |        ✅        | <Badge type="tip" text="Supported" />    |
-| **Keychron**                          |     ✅      |        ✅        | <Badge type="tip" text="Supported" />    |
-| **Remappr Firmware** (first-party) ✨ |      —      |        —         | <Badge type="danger" text="🔮 Future" /> |
+| Firmware                              | Live editor | Builder / export | Status                                         |
+| ------------------------------------- | :---------: | :--------------: | ---------------------------------------------- |
+| **ZMK** (wireless, BLE)               |     ✅      |        ✅        | <Badge type="tip" text="Supported" />          |
+| **QMK**                               |     ✅      |        ✅        | <Badge type="tip" text="Supported" />          |
+| **VIA**                               |     ✅      |        ✅        | <Badge type="tip" text="Supported" />          |
+| **Vial**                              |     ✅      |        ✅        | <Badge type="tip" text="Supported" />          |
+| **Keychron**                          |     ✅      |        ✅        | <Badge type="tip" text="Supported" />          |
+| **Remappr Firmware** (first-party) ✨ |     🚧      |        —         | <Badge type="warning" text="🚧 In Progress" /> |
 
 > More firmwares can be added over time — the [adapter + compiler
 > architecture](#future-firmwares) is built for it. None besides Remappr Firmware
@@ -156,6 +160,38 @@ behaviors is limited by the ZMK Studio protocol.
 
 ---
 
+## Mice & controllers
+
+Devices that are not keyboards open in the
+[device editor](/guide/devices/overview), drawn in their own shape.
+
+| Feature                                                                                         | Status                             |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------- |
+| [Device editor](/guide/devices/device-editor): stage, callouts, per-control inspector, profiles | <Badge type="tip" text="✅" />     |
+| Demo mouse, gamepad, flight stick and layout-less controller                                    | <Badge type="tip" text="✅" />     |
+| [Generic controllers & mice](/guide/devices/generic-hid): view + live test                      | <Badge type="tip" text="✅" />     |
+| [Builder device layouts](/guide/builder/device-layout): design or re-draw a device              | <Badge type="tip" text="✅" />     |
+| [Remappr Firmware mice & joysticks](#remappr-firmware): full editing                            | <Badge type="warning" text="🚧" /> |
+| Other vendors' mice (Keychron mice, QMK pointing devices)                                       | <Badge type="info" text="🗓️" />    |
+
+## Remappr Firmware
+
+Remappr's own firmware, written alongside the app, is in active development.
+Its devices tell Remappr what they are and where their controls sit, so the
+app draws and edits them with no per-model setup.
+
+| Feature                                                                                                                                         | Status                             |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| [Mice](/guide/devices/mice#remappr-firmware-mice): button actions, DPI stages & sniper, polling rate, pointer & acceleration settings           | <Badge type="warning" text="🚧" /> |
+| [Joysticks](/guide/devices/gamepads#remappr-firmware-joysticks): gamepad or flight stick, stick deadzones & curves, hat, calibration, live view | <Badge type="warning" text="🚧" /> |
+| 2.4 GHz dongle: a mouse behind the dongle, read-only                                                                                            | <Badge type="warning" text="🚧" /> |
+| A joystick behind the dongle                                                                                                                    | <Badge type="info" text="🗓️" />    |
+| Keyboards                                                                                                                                       | <Badge type="warning" text="🚧" /> |
+| Editing a device through the dongle                                                                                                             | <Badge type="info" text="🗓️" />    |
+
+🚧 here means built and working in the app, with hardware verification still
+under way.
+
 ## Future firmwares
 
 ::: tip ✨ The north star: Remappr Firmware
@@ -168,7 +204,8 @@ removes that ceiling: everything you can design in the
 from one [config](/reference/config/overview). Until then, every feature lands on
 the firmwares below.
 
-<Badge type="danger" text="🔮 Future" /> — early vision, no ship date yet.
+<Badge type="warning" text="🚧 In Progress" /> — mice and joysticks first, see
+[Remappr Firmware](#remappr-firmware).
 :::
 
 Remappr's goal is to be **firmware-agnostic**. Two extension points make new
@@ -183,9 +220,9 @@ firmwares tractable:
 
 On the plan:
 
-| Firmware                | Notes                                                         | Status                                   |
-| ----------------------- | ------------------------------------------------------------- | ---------------------------------------- |
-| **Remappr Firmware** ✨ | First-party firmware — full live control, no protocol ceiling | <Badge type="danger" text="🔮 Future" /> |
+| Firmware                | Notes                                                         | Status                                         |
+| ----------------------- | ------------------------------------------------------------- | ---------------------------------------------- |
+| **Remappr Firmware** ✨ | First-party firmware — full live control, no protocol ceiling | <Badge type="warning" text="🚧 In Progress" /> |
 
 No other firmwares are planned right now — but thanks to those two extension
 points, new ones (a CircuitPython firmware, a vendor's VIA/Vial channels, bare

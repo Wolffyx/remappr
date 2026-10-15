@@ -28,9 +28,21 @@ button.
     - **ZMK** — USB/serial (CDC-ACM) or BLE; the board needs ZMK Studio enabled.
     - **QMK / VIA / Vial** — raw HID via the VIA protocol.
     - **Keychron** — VIA/QMK + a BLE radio.
+    - **Remappr Firmware** — USB; keyboards, [mice](/guide/devices/mice) and
+      [joysticks](/guide/devices/gamepads).
 
 Pick a device and Remappr opens the [keymap editor](/guide/editor) on its live
-keymap, showing only the features that firmware supports.
+keymap, showing only the features that firmware supports. A mouse or a
+controller opens in the [device editor](/guide/devices/device-editor) instead.
+
+## Controllers & mice
+
+Below the firmware devices, **Controllers & mice** lists the game controllers
+and mice Remappr can see without a vendor protocol: _"View and live test · no
+vendor protocol"_. Click one to open it read-only and test it live. Browsers
+only reveal a controller after it has been used, hence _"Controller not
+listed? Press any button on it."_ See
+[Generic controllers & mice](/guide/devices/generic-hid).
 
 ## Unlocking
 
@@ -93,11 +105,13 @@ builder**; at GA it becomes premium (**🔒 Premium**).
 
 ## Try Demo Mode
 
-**Try Demo Mode** — _"Explore Remappr with a simulated keyboard — no device
-required."_ Opens the editor against a simulated 36-key Corne with a rotary
-encoder, the same config-driven flow as a real device. Every screenshot in this
-section of the docs was taken in demo mode, so you can follow along without
-hardware.
+**Try Demo Mode** — _"Explore Remappr with simulated keyboards, a mouse and
+controllers — no device required."_ **Try Demo** opens _"Try a demo device"_:
+pick the 36-key **Corne** (with a rotary encoder) for the keymap editor, or a
+macro pad, mouse, gamepad or flight stick (see
+[the demo devices](/guide/devices/overview#try-it-without-hardware)). It is the
+same config-driven flow as a real device. Every screenshot in this section of
+the docs was taken in demo mode, so you can follow along without hardware.
 
 The demo keeps nothing: there is no **Save** button (there is no device to
 write to), and **Disconnect** returns to the Start Page with the board as it

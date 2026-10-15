@@ -36,6 +36,12 @@ firmware family and only shows the features that firmware actually supports
 - **ZMK** — USB/serial (CDC-ACM) or BLE. The board must have ZMK Studio enabled.
 - **QMK / VIA / Vial** — raw HID via the VIA protocol.
 - **Keychron** — VIA/QMK + a BLE radio, with the per-key RGB and wireless panels.
+- **Remappr Firmware** — Remappr's own firmware (in development), for
+  keyboards, mice and joysticks.
+
+Mice, gamepads and flight sticks open in the
+[device editor](/guide/devices/overview) instead, drawn in their own shape. Any
+other controller or mouse can be viewed and tested live there too.
 
 ### Create a keyboard
 
@@ -45,9 +51,10 @@ design a board, write its keymap, and export a buildable firmware project
 entirely offline.
 
 ::: tip Demo mode
-No keyboard? Choose **Try Demo Mode** on the Start Page to explore the editor
-against a simulated 36-key Corne. It is the same config-driven flow as a real
-device — a good way to learn the editor before you connect hardware.
+No device? Choose **Try Demo Mode** on the Start Page and pick a simulated
+device: a 36-key Corne, a macro pad, a mouse, a gamepad or a flight stick. It
+is the same config-driven flow as a real device — a good way to learn the
+editors before you connect hardware.
 :::
 
 ## Where to go next
@@ -60,6 +67,7 @@ device — a good way to learn the editor before you connect hardware.
 | Lay out keys / wire the matrix      | [Building the layout](/guide/builder/layout)               |
 | Set up layers and key bindings      | [Layers & bindings](/guide/builder/layers-and-bindings)    |
 | Turn a design into firmware         | [Export, build & flash](/guide/builder/export-build-flash) |
+| Set up a mouse or a controller      | [Mice & controllers](/guide/devices/overview)              |
 | Understand or hand-write the config | [Config reference](/reference/config/overview)             |
 | See what's built vs planned         | [Roadmap](/guide/roadmap)                                  |
 | Extend the compilers                | [Developer docs](/dev/project-structure)                   |
