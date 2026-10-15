@@ -73,18 +73,23 @@ export function CurveGraph({
     )
 }
 
-/** The stick's travel circle: inner deadzone, outer saturation ring, live dot. */
+/** The stick's travel circle: inner deadzone, outer saturation ring, live dot.
+ *  Round deadzones act on the stick's distance from centre; per-axis ones
+ *  (round false) make a square. */
 export function DeadzoneViz({
     inner,
     outer,
+    round = true,
     pos,
 }: {
     inner: number
     outer: number
+    round?: boolean
     pos?: { x: number; y: number }
 }): JSX.Element {
     const S = 132
     const p = pos ?? { x: 0, y: 0 }
+    const shape = round ? 'rounded-full' : 'rounded-[3px]'
     return (
         <div
             className="relative shrink-0 rounded-full border border-border bg-secondary"
@@ -93,11 +98,11 @@ export function DeadzoneViz({
             <div className="absolute inset-y-2 left-1/2 w-px bg-border" />
             <div className="absolute inset-x-2 top-1/2 h-px bg-border" />
             <div
-                className="absolute rounded-full border-[1.5px] border-dashed border-primary/70"
+                className={`absolute ${shape} border-[1.5px] border-dashed border-primary/70`}
                 style={{ inset: `${(100 - outer) / 2}%` }}
             />
             <div
-                className="absolute rounded-full border border-destructive/60 bg-destructive/25"
+                className={`absolute ${shape} border border-destructive/60 bg-destructive/25`}
                 style={{ inset: `${50 - inner / 2}%` }}
             />
             <div

@@ -104,6 +104,32 @@ Unplug and replug the keyboard afterwards. (`TAG+="uaccess"` grants access to
 the active logged-in session via systemd-logind — the same rule VIA and Vial
 document.)
 
+#### Remappr joystick deadzones
+
+Linux gives every USB gamepad axis a deadzone of its own (`flat`, an eighth
+of the way out), on top of the one the joystick already applies. Programs
+that honour it, such as SDL games with `SDL_JOYSTICK_LINUX_DEADZONES=1` and
+calibration tools, then add a second dead middle. Turn it off for the Remappr
+Joystick:
+
+```bash
+sudo tee /etc/udev/hwdb.d/61-remappr-joystick.hwdb > /dev/null <<'END'
+# Remappr Joystick: its deadzones are the firmware's.
+evdev:input:b0003v1209p0004*
+ EVDEV_ABS_00=::::0
+ EVDEV_ABS_01=::::0
+ EVDEV_ABS_02=::::0
+ EVDEV_ABS_03=::::0
+ EVDEV_ABS_04=::::0
+ EVDEV_ABS_05=::::0
+END
+sudo systemd-hwdb update && sudo udevadm trigger -s input
+```
+
+The old joystick interface (`/dev/input/js*`) works out its correction when
+the joystick is plugged in, before this rule applies; the few programs that
+still read it keep the extra deadzone unless you reset it with `jscal`.
+
 #### USB serial (ZMK over CDC-ACM)
 
 `/dev/ttyACM*` devices belong to a group — add yourself to it, then log out and

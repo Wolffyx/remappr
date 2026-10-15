@@ -30,12 +30,12 @@ hat and any other button presses the gamepad button of its own number.
 
 ### Sticks
 
-| Section            | Settings                                                                                                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Output**         | The pair of axes the stick drives: **X / Y**, **Rx / Ry**, **Z / Rz**, or **Off**.                                                                                       |
-| **Deadzone**       | **Inner**: how far the stick moves before it counts. **Outer**: how close to the edge counts as full.                                                                    |
-| **Response curve** | **Linear**; **Aggressive** (quick off the centre); **Relaxed** (gentle near the centre); **Precise** (gentler still, for fine aim). **Invert Y axis** flips up and down. |
-| **Stick click**    | The action of pressing the stick in.                                                                                                                                     |
+| Section            | Settings                                                                                                                                                                                                                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Output**         | The pair of axes the stick drives: **X / Y**, **Rx / Ry**, **Z / Rz**, or **Off**.                                                                                                                                                                                                                                                     |
+| **Deadzone**       | **Inner**: how far the stick moves before it counts. **Outer**: how close to the edge counts as full. **Round deadzone** (on by default) measures both from the centre in every direction, so the dead middle is round and full comes at the same push every way; off, each axis has its own (a square), as some flight sticks prefer. |
+| **Response curve** | **Linear**; **Aggressive** (quick off the centre); **Relaxed** (gentle near the centre); **Precise** (gentler still, for fine aim). **Invert Y axis** flips up and down.                                                                                                                                                               |
+| **Stick click**    | The action of pressing the stick in.                                                                                                                                                                                                                                                                                                   |
 
 ![A stick in the inspector: Output, Deadzone, Response curve and Stick click](/images/devices/inspector-stick.webp)
 
@@ -49,22 +49,42 @@ directions cancel out.
 ### Calibration
 
 Every stick is a little different, so a Remappr Firmware joystick is
-calibrated on the stick itself. Open **Device settings** in the toolbar:
+calibrated on the stick itself. Open **Device settings** in the toolbar and
+**Calibrate**:
 
-1. **Begin**.
-2. Move the stick to every edge, a few times round.
-3. Let it go, and **Set centre**.
-4. **Finish**.
+1. **Push it round the rim.** Push the stick to its edge and roll it slowly
+   all the way round, twice each way. The ring round each stick fills as you
+   go; **Next** unlocks when it is full, or after 15 seconds.
+2. **Let it go from each corner.** Push the stick into a corner and let it
+   snap back. Each corner ticks once the stick has settled. Do all four, let
+   go, and **Finish**.
 
-Each analog input has a row with a live bar, its raw reading and its
-calibrated minimum, centre and maximum, so you can watch the stick as you
-sweep it. **Cancel** stops a calibration halfway, **Start over** restarts it,
-and **Reset to default** forgets the calibration. If a step comes too early,
-Remappr says what is missing: _"Begin first."_, or _"Move the stick to every
-edge, let it go and set the centre first."_
+A stick let go from one side stops a little short of its middle on that side,
+so the centre is the middle of where it came to rest from all four corners,
+not wherever it stopped last. Finish also:
+
+- sizes a **noise filter** from how much the reading jitters at rest (shown as
+  _filter N_ on the input's row), so a stick left alone reports a still value;
+- **suggests deadzones** for each stick: an inner one that covers where it came
+  to rest, and an outer one so that full deflection is reached in every
+  direction. **Apply** stages them like any edit, and **Save** writes them.
+
+Then the **Test** opens. Roll the stick slowly round its edge: its output
+traces how far it reaches every way, and red marks show directions that fall
+short of full. **Zoom on the centre** enlarges the middle tenfold, with the
+inner deadzone in red: let the stick go a few times, and its dots should settle
+inside it. **Test** opens it again at any time.
+
+Each analog input also has a row with a live bar, its raw reading, its
+calibrated minimum, centre and maximum, and its noise filter. **Undo
+calibration** goes back to the calibration before (and **Undo** again comes
+forward) until the joystick restarts. **Cancel** stops a calibration halfway,
+and **Reset to default** forgets the calibration.
 
 The calibration is _"kept on the stick, not in the saved settings"_: saving or
 importing settings never resets it.
+
+On Linux, see also [joystick deadzones](/guide/installation#remappr-joystick-deadzones).
 
 ### Live view
 

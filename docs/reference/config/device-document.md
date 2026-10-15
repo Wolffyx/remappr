@@ -98,16 +98,19 @@ How a mouse talks to its dongle over 2.4 GHz.
 
 ### Axis entry
 
-| Field    | Type                                      | Notes                                                                        |
-| -------- | ----------------------------------------- | ---------------------------------------------------------------------------- |
-| `input`  | 0–5                                       | The analog input. Input _n_ defaults to the \_n_th axis (0 → `x`, 1 → `y`…). |
-| `out`    | `x` `y` `z` `rx` `ry` `rz`, or `null`     | The report axis it drives; `null` turns it off.                              |
-| `invert` | boolean                                   |                                                                              |
-| `curve`  | `linear` `aggressive` `relaxed` `precise` | Default `linear`.                                                            |
-| `inner`  | 0–99                                      | Inner deadzone, % of travel.                                                 |
-| `outer`  | 0–99                                      | Outer deadzone, %. `inner` + `outer` must stay under 100.                    |
+| Field    | Type                                      | Notes                                                                                               |
+| -------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `input`  | 0–5                                       | The analog input. Input _n_ defaults to the \_n_th axis (0 → `x`, 1 → `y`…).                        |
+| `out`    | `x` `y` `z` `rx` `ry` `rz`, or `null`     | The report axis it drives; `null` turns it off.                                                     |
+| `invert` | boolean                                   |                                                                                                     |
+| `radial` | boolean                                   | With the other input of its stick: deadzones and curve on the stick's distance from centre (round). |
+| `curve`  | `linear` `aggressive` `relaxed` `precise` | Default `linear`.                                                                                   |
+| `inner`  | 0–99                                      | Inner deadzone, % of travel.                                                                        |
+| `outer`  | 0–99                                      | Outer deadzone, %. `inner` + `outer` must stay under 100.                                           |
 
-A stick is two inputs: stick _n_ reads inputs 2*n* and 2*n*+1.
+A stick is two inputs: stick _n_ reads inputs 2*n* and 2*n*+1. When both carry
+`radial`, the stick's deadzones are round. An input of a stick with no entry is
+round by default; an entry without `radial` is per axis.
 
 ### Joystick button actions
 

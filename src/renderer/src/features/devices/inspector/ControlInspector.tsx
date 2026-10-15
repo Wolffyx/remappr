@@ -233,6 +233,7 @@ const STICK: Partial<Record<SectionId, View<'stick'>>> = {
                 <DeadzoneViz
                     inner={x.b.inner}
                     outer={x.b.outer}
+                    round={x.b.round ?? true}
                     pos={x.live ? analogXY(x.analog) : undefined}
                 />
                 <div className="min-w-0 flex-1">
@@ -256,6 +257,15 @@ const STICK: Partial<Record<SectionId, View<'stick'>>> = {
                     />
                 </div>
             </div>
+            {x.can('round') && (
+                <SwitchRow
+                    label="Round deadzone"
+                    hint="Measure from the centre in every direction, not along each axis"
+                    checked={x.b.round ?? true}
+                    disabled={!x.editable}
+                    onChange={(round) => x.set({ round })}
+                />
+            )}
         </InSection>
     ),
     curve: (x) => {

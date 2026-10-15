@@ -45,7 +45,7 @@ const SECTIONS: SectionTable = {
     ],
     stick: [
         ['output', ['out']],
-        ['deadzone', ['inner', 'outer']],
+        ['deadzone', ['inner', 'outer', 'round']],
         ['curve', ['curve', 'invY']],
         ['click', ['click']],
     ],
