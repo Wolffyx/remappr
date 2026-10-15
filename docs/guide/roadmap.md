@@ -185,7 +185,7 @@ app draws and edits them with no per-model setup.
 | [Mice](/guide/devices/mice#remappr-firmware-mice): button actions, DPI stages & sniper, polling rate, pointer & acceleration settings           | <Badge type="warning" text="🚧" /> |
 | [Joysticks](/guide/devices/gamepads#remappr-firmware-joysticks): gamepad or flight stick, stick deadzones & curves, hat, calibration, live view | <Badge type="warning" text="🚧" /> |
 | 2.4 GHz dongle: a mouse behind the dongle, read-only                                                                                            | <Badge type="warning" text="🚧" /> |
-| A joystick behind the dongle                                                                                                                    | <Badge type="info" text="🗓️" />    |
+| 2.4 GHz dongle: a joystick behind the dongle, read-only                                                                                         | <Badge type="warning" text="🚧" /> |
 | Keyboards                                                                                                                                       | <Badge type="warning" text="🚧" /> |
 | Editing a device through the dongle                                                                                                             | <Badge type="info" text="🗓️" />    |
 

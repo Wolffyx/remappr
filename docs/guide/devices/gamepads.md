@@ -96,9 +96,22 @@ second.
 
 Bindings, stick settings and the d-pad mode are staged and written with
 **Save**. **Export profiles** downloads them as `remappr.device.json`, the
-[device document](/reference/config/device-document). Joysticks connect over
-USB today; pairing a joystick to a Remappr dongle is
-[on the roadmap](/guide/roadmap#remappr-firmware).
+[device document](/reference/config/device-document).
+
+### Through a dongle
+
+A joystick built for the 2.4 GHz radio pairs with a Remappr dongle like a
+mouse. Unplugged from USB, it reports through the dongle, which shows up on
+the computer as a gamepad as well as a keyboard and mouse; plugged in, it
+reports over USB again. The dongle's gamepad is there even when no joystick
+is paired, so games may list an idle controller.
+
+The joystick then shows up under **Mesh nodes** in the dongle's device menu.
+Opening it there gives a read-only view: its bindings, stick settings and
+live readout, read through the dongle. To change them or calibrate, connect
+the joystick over USB. Device settings says so: _"Read-only through the
+dongle. Connect the joystick over USB to calibrate it or change its
+settings."_
 
 ## Any other controller
 

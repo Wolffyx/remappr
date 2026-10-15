@@ -7,6 +7,7 @@
 // shows how far the result reaches every way and where it settles at rest;
 // undo goes back to the calibration before. The live readout polls the
 // joystick while the panel is open.
+import { Info } from 'lucide-react'
 import { JSX, useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import type {
@@ -290,6 +291,15 @@ export function JoystickSettingsPanel({
     const moveOn = ready(phase, capture.progress, elapsed)
     return (
         <div className="flex flex-col gap-4">
+            {!joystick.writable && (
+                <div className="flex items-start gap-2 rounded-[10px] border border-border bg-muted/40 p-3 text-xs">
+                    <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                    <span>
+                        Read-only through the dongle. Connect the joystick over
+                        USB to calibrate it or change its settings.
+                    </span>
+                </div>
+            )}
             <SettingsSection
                 title="Calibration"
                 description="Kept on the stick, not in the saved settings. Calibrate measures where the stick rests and how far it reaches, and suggests deadzones."
