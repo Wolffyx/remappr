@@ -10,12 +10,14 @@ import { toast } from 'sonner'
 import type {
     AxisConfig,
     AxisState,
+    DeadzoneSuggestion,
     JoystickApi,
     JoystickCalStep,
 } from '@firmware/service'
 
 import { Button } from '@/ui/button'
 
+import { DeadzoneSuggestions } from './DeadzoneSuggestions'
 import { SettingsSection } from './SettingRows'
 
 const POLL_MS = 100
@@ -38,8 +40,8 @@ const REFUSED: Readonly<Partial<Record<JoystickCalStep, string>>> = {
 
 /** What a step that went through means, shown under the readout. */
 const STEP_NOTE: Readonly<Record<JoystickCalStep, string>> = {
-    begin: 'Move the stick to every edge, a few times round. Then let it go and set the centre.',
-    centre: 'Centre set. Finish saves the calibration on the stick.',
+    begin: 'Move the stick to every edge a few times, holding it there a moment. Then let it go and set the centre.',
+    centre: 'Centre set. Flick the stick and let it go two or three times, then Finish.',
     finish: 'Calibration saved on the stick.',
     cancel: 'Cancelled. The stick keeps its previous calibration.',
     reset: 'Calibration reset to the default.',
@@ -152,6 +154,11 @@ export function JoystickSettingsPanel({
     const [phase, setPhase] = useState<Phase>('idle')
     const [busy, setBusy] = useState(false)
     const [note, setNote] = useState<string | null>(null)
+    const [suggestions, setSuggestions] = useState<
+        readonly DeadzoneSuggestion[]
+    >([])
+    // A new calibration's suggestions start un-applied.
+    const [round, setRound] = useState(0)
 
     const readConfig = useCallback(async (): Promise<void> => {
         try {
@@ -171,7 +178,11 @@ export function JoystickSettingsPanel({
     const step = async (s: JoystickCalStep): Promise<void> => {
         setBusy(true)
         try {
-            await joystick.calibrate(s)
+            const measured = await joystick.calibrate(s)
+            if (s === 'finish' || s === 'begin') {
+                setSuggestions(measured)
+                setRound((r) => r + 1)
+            }
             setPhase(NEXT_PHASE[s])
             setNote(STEP_NOTE[s])
             if (s === 'finish' || s === 'reset') {
@@ -211,6 +222,7 @@ export function JoystickSettingsPanel({
                 {note && (
                     <p className="text-xs text-muted-foreground">{note}</p>
                 )}
+                <DeadzoneSuggestions key={round} suggestions={suggestions} />
                 <div className="flex flex-wrap gap-2 pt-1">
                     <Button
                         size="sm"
