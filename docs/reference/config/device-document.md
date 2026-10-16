@@ -33,6 +33,7 @@ a document that validates is never refused for a range.
 | `personality`   | `"mouse"` \| `"joystick"` \| `"dongle"`     | Which device the document is for. A device refuses a document for another. |
 | `mouse`         | [Mouse](#mouse)                             | Mouse only.                                                                |
 | `radio`         | [Radio](#radio)                             | Mouse only.                                                                |
+| `sensor`        | [Sensor](#sensor)                           | Mouse only.                                                                |
 | `joystick`      | [Joystick](#joystick)                       | Joystick only.                                                             |
 | `dongle`        | [Dongle](#dongle)                           | Dongle only.                                                               |
 
@@ -87,6 +88,43 @@ How a mouse talks to its dongle over 2.4 GHz.
 | `keepaliveMs`  | 20–1000   | Idle re-send period (default 40). Keep it below the dongle's failsafe. |
 | `beaconLossMs` | 200–10000 | No dongle beacon for this long means the link is lost (default 600).   |
 | `inputRepeats` | 1–8       | Sends per input change (default 3).                                    |
+
+## Sensor
+
+The settings of the mouse's sensor that you changed, by name. Which settings
+exist is the sensor's to say: the device editor shows the ones it has (see
+[Sensor settings](/guide/devices/mice#sensor-settings)). A setting left out
+stays on the mouse's default.
+
+| Field      | Type         | Notes                                                                                 |
+| ---------- | ------------ | ------------------------------------------------------------------------------------- |
+| `settings` | name → value | A switch as `true` / `false`, a number as a number, a choice as its name or its code. |
+| `index`    | 0–255        | Which of the device's sensors (default 0, the first). A mouse has one.                |
+
+| Name                                                                                                        | Value                                                          |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `liftCutoff`                                                                                                | `"1mm"` (10), `"2mm"` (20), `"calibrated"` (0)                 |
+| `angleSnap`                                                                                                 | boolean                                                        |
+| `angleTune`                                                                                                 | degrees                                                        |
+| `performanceMode`                                                                                           | `"high"` (0), `"lowPower"` (1), `"office"` (2), `"corded"` (3) |
+| `stayAwake`                                                                                                 | boolean                                                        |
+| `motionSync`                                                                                                | boolean                                                        |
+| `runDownshiftMs`, `rest1PeriodMs`, `rest1DownshiftMs`, `rest2PeriodMs`, `rest2DownshiftMs`, `rest3PeriodMs` | ms                                                             |
+
+```json
+"sensor": {
+    "settings": { "liftCutoff": "2mm", "angleSnap": false, "angleTune": -5 }
+}
+```
+
+The ranges are the sensor's, so they are checked when the document is saved
+to the mouse, not when it is read: a setting the mouse's sensor does not have,
+or a value outside its range, is left out of what is written (the document
+keeps it). A name Remappr does not know yet is kept and never written. Read
+back from a mouse, a choice comes back as its code.
+
+A lift-off calibration is not in the document: it is kept on the mouse. See
+[Sensor procedures](/guide/devices/mice#sensor-procedures-and-readings).
 
 ## Joystick
 

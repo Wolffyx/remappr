@@ -183,6 +183,7 @@ app draws and edits them with no per-model setup.
 | Feature                                                                                                                                         | Status                             |
 | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | [Mice](/guide/devices/mice#remappr-firmware-mice): button actions, DPI stages & sniper, polling rate, pointer & acceleration settings           | <Badge type="warning" text="🚧" /> |
+| [Mouse sensor](/guide/devices/mice#sensor-settings): the settings its sensor has, lift-off calibration, live readings                           | <Badge type="warning" text="🚧" /> |
 | [Joysticks](/guide/devices/gamepads#remappr-firmware-joysticks): gamepad or flight stick, stick deadzones & curves, hat, calibration, live view | <Badge type="warning" text="🚧" /> |
 | 2.4 GHz dongle: a mouse behind the dongle, read-only                                                                                            | <Badge type="warning" text="🚧" /> |
 | 2.4 GHz dongle: a joystick behind the dongle, read-only                                                                                         | <Badge type="warning" text="🚧" /> |
