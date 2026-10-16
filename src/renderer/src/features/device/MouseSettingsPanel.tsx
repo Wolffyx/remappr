@@ -1,7 +1,8 @@
 // Pattern check: no GoF pattern (-) — rejected — view over the mouse's staged document: the existing mouse sections write into the shared draft (DeviceConfigDraft) instead of saving on their own.
 //
 // The mouse settings the device stage does not show — pointer flags and
-// wheel, the acceleration curve, the 2.4 GHz link, and the live controls —
+// wheel, the acceleration curve, the 2.4 GHz link, the live controls, and the
+// sensor's readings and procedures —
 // inside the device editor. Edits go into the same staged document as the
 // button and CPI edits on the stage, so the header's Save writes them all.
 // Through the dongle the panel reads the stored settings, read-only.
@@ -9,7 +10,11 @@ import { JSX, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import type { MotionConfig } from '@firmware'
 import type { ConfigDevice } from '@firmware/config'
-import type { DeviceConfigApi, MouseMotionApi } from '@firmware/service'
+import type {
+    DeviceConfigApi,
+    MouseMotionApi,
+    SensorApi,
+} from '@firmware/service'
 import {
     type DpiRange,
     type MouseDraft,
@@ -22,6 +27,7 @@ import {
     withSections,
 } from './deviceForm'
 import { MouseLiveSection } from './MouseLiveSection'
+import { SensorPanel } from './SensorPanel'
 import {
     MouseCurveSection,
     MousePointerSection,
@@ -62,9 +68,11 @@ function useSettingsSource(device: DeviceConfigApi): {
 export function MouseSettingsPanel({
     device,
     motion,
+    sensor,
 }: {
     device: DeviceConfigApi
     motion?: MouseMotionApi
+    sensor?: SensorApi
 }): JSX.Element {
     const draft = device.draft
     const { doc, loading, error } = useSettingsSource(device)
@@ -131,6 +139,7 @@ export function MouseSettingsPanel({
                     onConfig={setMotionCfg}
                 />
             )}
+            {sensor && <SensorPanel sensor={sensor} />}
             {loading && !doc ? (
                 <p className="text-sm text-muted-foreground">
                     Reading settings…
