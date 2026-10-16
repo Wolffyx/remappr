@@ -27,6 +27,7 @@ import {
 import { analogXY } from '../model/liveInputStore'
 import { DpiStages } from './DpiStages'
 import { HatGrid } from './HatGrid'
+import { SensorSettings } from './SensorSettings'
 import { ActionChip, InSection, LiveTag, OutSelect, SwitchRow } from './parts'
 import { CurveGraph, DeadzoneViz, TriggerViz } from './viz'
 
@@ -435,46 +436,16 @@ const SENSOR: Partial<Record<SectionId, View<'sensor'>>> = {
         )
     },
     tracking: (x) => {
-        const lods = x.ix.catalog.sensor?.lods ?? []
+        const specs = x.ix.catalog.sensor?.settings ?? []
+        if (specs.length === 0) return null
         return (
-            <InSection label="Tracking">
-                {x.can('lod') && lods.length > 0 && (
-                    <div
-                        className={cn(
-                            'flex items-center justify-between pt-1 pb-2',
-                            !x.editable && 'pointer-events-none opacity-60',
-                        )}
-                    >
-                        <span className="text-[13px] font-semibold">
-                            Lift-off distance
-                        </span>
-                        <Segmented
-                            value={x.b.lod}
-                            options={lods.map((l) => ({
-                                value: l.id,
-                                label: l.label,
-                            }))}
-                            onChange={(lod) => x.set({ lod })}
-                        />
-                    </div>
-                )}
-                {x.can('snap') && (
-                    <SwitchRow
-                        label="Angle snapping"
-                        hint="Straightens near-horizontal motion"
-                        checked={x.b.snap}
-                        disabled={!x.editable}
-                        onChange={(snap) => x.set({ snap })}
-                    />
-                )}
-                {x.can('motionSync') && (
-                    <SwitchRow
-                        label="Motion sync"
-                        checked={x.b.motionSync}
-                        disabled={!x.editable}
-                        onChange={(motionSync) => x.set({ motionSync })}
-                    />
-                )}
+            <InSection label="Sensor">
+                <SensorSettings
+                    specs={specs}
+                    settings={x.b.settings ?? {}}
+                    disabled={!x.editable}
+                    onChange={(settings) => x.set({ settings })}
+                />
             </InSection>
         )
     },

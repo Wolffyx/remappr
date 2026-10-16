@@ -60,7 +60,7 @@ const SECTIONS: SectionTable = {
     sensor: [
         ['stages', ['stages', 'active']],
         ['poll', ['poll']],
-        ['tracking', ['lod', 'snap', 'motionSync']],
+        ['tracking', ['settings']],
     ],
     encoder: [
         ['rotation', ['cw', 'ccw', 'press']],
