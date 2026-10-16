@@ -183,4 +183,18 @@ describe('withSections', () => {
             mouse: { cpi: 1600 },
         })
     })
+
+    it('keeps the sections these pages do not edit', () => {
+        const base: ConfigDevice = {
+            schemaVersion: 1,
+            kind: 'remappr.device',
+            meta: { name: 'Mouse' },
+            personality: 'mouse',
+            mouse: { cpi: 800 },
+            sensor: { settings: { angleSnap: true } },
+        }
+        expect(withSections(base, { mouse: undefined }).sensor).toEqual({
+            settings: { angleSnap: true },
+        })
+    })
 })

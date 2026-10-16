@@ -307,7 +307,9 @@ export function sameSection(
     return sortedJson(a) === sortedJson(b)
 }
 
-/** `base` with its device sections replaced (an undefined one is removed). */
+/** `base` with its dongle / mouse / radio sections replaced (an undefined
+ *  one is removed). The sections these pages do not edit (the sensor's,
+ *  the joystick's) are kept as they are. */
 export function withSections(
     base: ConfigDevice,
     sections: Pick<ConfigDevice, 'dongle' | 'mouse' | 'radio'>,
@@ -318,6 +320,8 @@ export function withSections(
         meta: base.meta,
         personality: base.personality,
     }
+    if (base.sensor) out.sensor = base.sensor
+    if (base.joystick) out.joystick = base.joystick
     if (sections.dongle) out.dongle = sections.dongle
     if (sections.mouse) out.mouse = sections.mouse
     if (sections.radio) out.radio = sections.radio
