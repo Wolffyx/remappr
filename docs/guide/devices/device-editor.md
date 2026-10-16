@@ -5,7 +5,7 @@ same layout as the [keymap editor](/guide/editor): a sidebar on the left, the
 device in the middle, a toolbar in the header. The device is drawn from its
 controls, so a mouse looks like a mouse and a flight stick like a flight stick.
 
-![The Halo M2 demo mouse with its sensor selected: the DPI stages, polling rate and tracking sections in the sheet below the mouse](/images/devices/editor-mouse.webp)
+![The Halo M2 demo mouse with its sensor selected: the DPI stages, polling rate and the sensor's own settings in the sheet below the mouse](/images/devices/editor-mouse.webp)
 
 ## The sidebar
 

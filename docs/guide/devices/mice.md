@@ -62,6 +62,8 @@ puts it back to the mouse's default. A mouse built from a
 [JSON config](/reference/config/overview) can carry its own defaults, so
 "default" is the product's choice, not always the sensor's.
 
+![The sensor's settings in the inspector: Lift-off distance with Calibrated greyed out and a note to run the calibration in Device settings, Angle snapping, Motion sync, Angle tune, Performance mode and Advanced](/images/devices/sensor-settings.webp){width=400}
+
 **Calibrated** needs a lift-off calibration first. Until the mouse holds one,
 the option is greyed out with a note that says so; it opens the moment a
 calibration in Device settings finishes, and closes again if you forget the
@@ -89,6 +91,8 @@ The **Sensor** section of Device settings shows what the sensor reads right
 now, as meters: **Surface quality** (how well it sees the surface under it;
 higher is better, so slide the mouse over a few pads to compare them) and
 **Lifted**. The readings pause while a procedure needs the sensor.
+
+![Device settings, Sensor: the Surface quality meter, Lifted, and the Lift-off calibration done, with "A result is stored on this device", Run again and Forget the result](/images/devices/sensor-procedures.webp){width=560}
 
 It also runs the sensor's procedures. A PAW3395 has a **Lift-off
 calibration**, which measures your surface so the lift-off height fits it:

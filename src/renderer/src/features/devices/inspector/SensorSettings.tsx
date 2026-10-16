@@ -160,7 +160,7 @@ function EnumRow({
                         disabled={disabled}
                         onValueChange={pick}
                     >
-                        <SelectTrigger className="h-8 w-40">
+                        <SelectTrigger className="h-8 w-48">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
