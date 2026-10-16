@@ -10,7 +10,6 @@ export type Landing =
     | 'unlock'
     | 'devices'
     | 'dongle'
-    | 'mouse'
     | 'keymap'
 
 export interface LandingState {
@@ -34,7 +33,6 @@ const RULES: readonly Rule[] = [
     // A device driven as controls opens the device editor, whatever its kind.
     ['devices', (s) => !!s.service?.controls],
     ['dongle', (s) => s.service?.kind === 'dongle'],
-    ['mouse', (s) => s.service?.kind === 'mouse'],
 ]
 
 export function resolveLanding(state: LandingState): Landing {
@@ -44,6 +42,6 @@ export function resolveLanding(state: LandingState): Landing {
 
 /** Landings without a header of their own: the app adds the standalone title
  *  bar (drag region + window controls) above them. */
-const BARE: ReadonlySet<Landing> = new Set(['unlock', 'dongle', 'mouse'])
+const BARE: ReadonlySet<Landing> = new Set(['unlock', 'dongle'])
 
 export const needsTitleBar = (landing: Landing): boolean => BARE.has(landing)

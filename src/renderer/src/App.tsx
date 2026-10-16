@@ -4,7 +4,6 @@ import { pickAdapter } from '@firmware'
 import { rememberConnectedDeviceName } from '@/transport/web-serial'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
 import { DongleLanding } from '@/features/connection/DongleLanding'
-import { MouseLanding } from '@/features/device/MouseLanding'
 import { DeviceEditor } from '@/features/devices/DeviceEditor'
 import useConnectionStore from '@/stores/connectionStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
@@ -207,7 +206,6 @@ function App(): JSX.Element {
         unlock: () => <UnlockPanel layout="screen" />,
         devices: () => <DeviceEditor controls={service!.controls!} />,
         dongle: () => <DongleLanding />,
-        mouse: () => <MouseLanding />,
         keymap: () => (
             <SidebarProvider className="!min-h-0 h-full" style={SIDEBAR_STYLE}>
                 <Drawer />

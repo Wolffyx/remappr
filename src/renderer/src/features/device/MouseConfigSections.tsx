@@ -1,14 +1,13 @@
 // Pattern check: no GoF pattern (-) — rejected — presentational sections, each
 // editing one slice of the mouse page's draft; plain composition.
 //
-// The saved mouse settings (TBL_MOUSE, TBL_RADIO): pointer, acceleration curve,
-// button map and the radio link. Each section edits the draft only; the page
+// The saved mouse settings (TBL_MOUSE, TBL_RADIO): pointer, acceleration curve
+// and the radio link (the buttons are on the device stage). Each section edits the draft only; the page
 // pushes the whole document on Save.
 import type { JSX } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import {
     MOUSE_ACCEL_POINTS_MAX,
-    MOUSE_BUTTON_NAMES,
     MOUSE_SCROLL_DIVISOR_FIELD,
     RADIO_FIELDS,
 } from '@firmware/config'
@@ -17,16 +16,8 @@ import { cn } from '@/lib/cn'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/ui/select'
 
 import type {
-    ButtonChoice,
     CurvePointDraft,
     DpiRange,
     DraftErrors,
@@ -222,61 +213,6 @@ export function MouseCurveSection({
             {errors.curve && (
                 <p className="text-[11px] text-destructive">{errors.curve}</p>
             )}
-        </SettingsSection>
-    )
-}
-
-const OFF = 'off'
-
-export function MouseButtonsSection({
-    value,
-    onChange,
-    disabled,
-}: Omit<SectionProps<ButtonChoice[]>, 'errors'>): JSX.Element {
-    return (
-        <SettingsSection
-            title="Buttons"
-            description="What each physical button reports as. Off = the button sends nothing."
-        >
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {MOUSE_BUTTON_NAMES.map((name, i) => (
-                    <div key={name} className="flex items-center gap-2">
-                        <Label className="w-24 shrink-0 text-xs">{name}</Label>
-                        <Select
-                            value={String(value[i])}
-                            disabled={disabled}
-                            onValueChange={(v) =>
-                                onChange(
-                                    value.map((b, j) =>
-                                        j === i
-                                            ? v === OFF
-                                                ? OFF
-                                                : Number(v)
-                                            : b,
-                                    ),
-                                )
-                            }
-                        >
-                            <SelectTrigger
-                                className={cn(
-                                    'h-8 w-36',
-                                    value[i] !== i && 'border-primary/60',
-                                )}
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {MOUSE_BUTTON_NAMES.map((out, j) => (
-                                    <SelectItem key={out} value={String(j)}>
-                                        {out}
-                                    </SelectItem>
-                                ))}
-                                <SelectItem value={OFF}>Off</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                ))}
-            </div>
         </SettingsSection>
     )
 }

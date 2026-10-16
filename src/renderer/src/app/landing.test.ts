@@ -37,20 +37,17 @@ describe('resolveLanding', () => {
     })
 
     it('asks to unlock an editor-locked device first', () => {
-        const s = service({ kind: 'mouse', lock: 'editor' })
+        const s = service({ kind: 'mouse', lock: 'editor', controls: true })
         expect(resolveLanding(state({ service: s, lockState: 'locked' }))).toBe(
             'unlock',
         )
-        expect(resolveLanding(state({ service: s }))).toBe('mouse')
+        expect(resolveLanding(state({ service: s }))).toBe('devices')
     })
 
-    it('lands keyless devices on their own pages', () => {
+    it('lands a dongle on its own page', () => {
         expect(
             resolveLanding(state({ service: service({ kind: 'dongle' }) })),
         ).toBe('dongle')
-        expect(
-            resolveLanding(state({ service: service({ kind: 'mouse' }) })),
-        ).toBe('mouse')
     })
 
     it('opens the device editor for any device driven as controls', () => {
