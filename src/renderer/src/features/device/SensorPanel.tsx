@@ -121,7 +121,9 @@ function SensorReadings({
 
 /** One procedure: its steps, progress and result, and the buttons that move
  *  it on. The status is polled while it runs (a counting phase ends by
- *  itself). */
+ *  itself). A result kept from an earlier run (the status's `hasResult`) is
+ *  shown while idle, and only then can it be forgotten; a device that does
+ *  not say keeps the button. */
 function ProcedureRunner({
     api,
     index,
@@ -170,6 +172,11 @@ function ProcedureRunner({
     }
 
     const disabled = busy || !api.writable
+    // A device that does not say whether a result is stored: a finished run
+    // left one.
+    const stored = status?.hasResult ?? (state === 'done' && proc.hasResult)
+    const canForget =
+        proc.hasResult && status !== null && status.hasResult !== false
     const phase = status?.phase ?? 0
     const counting = state === 'running' && (status?.total ?? 0) > 0
     const pct = counting ? (status!.progress / status!.total) * 100 : 0
@@ -215,9 +222,10 @@ function ProcedureRunner({
                 </ol>
             )}
 
-            {state === 'done' && proc.hasResult && (
+            {state !== 'running' && stored && (
                 <p className="text-[11px] text-muted-foreground">
-                    The result stays on this device, whatever settings you save.
+                    A result is stored on this device. It stays, whatever
+                    settings you save.
                 </p>
             )}
 
@@ -249,9 +257,11 @@ function ProcedureRunner({
                             disabled={disabled}
                             onClick={() => void run('begin')}
                         >
-                            {state === 'idle' ? 'Start' : 'Run again'}
+                            {state === 'idle' && !stored
+                                ? 'Start'
+                                : 'Run again'}
                         </Button>
-                        {proc.hasResult && (
+                        {canForget && (
                             <Button
                                 size="sm"
                                 variant="ghost"

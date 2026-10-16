@@ -98,10 +98,14 @@ calibration**, which measures your surface so the lift-off height fits it:
 **Done** means the mouse kept the result. Then choose **Calibrated** under
 Lift-off distance on the sensor. The result belongs to the mouse, not to its
 settings: no **Save** is needed, saving other settings never replaces it, and
-it is not part of an export. Calibrate again after changing pads.
-**Forget the result** removes it, and a lift-off distance set to Calibrated
-goes back to its default. If you press Next without having moved the mouse,
-the calibration ends with **Did not finish**; run it again.
+it is not part of an export. It also survives a restart: when the mouse
+already holds one, the section says _"A result is stored on this device"_
+and the button reads **Run again**. Calibrate again after changing pads.
+**Forget the result**, shown only while a result is stored, removes it, and
+a lift-off distance set to Calibrated goes back to its default. **Cancel**
+during a run keeps the result the mouse already had. If you press Next
+without having moved the mouse, the calibration ends with **Did not
+finish**; run it again.
 
 ### Saving and exporting
 
