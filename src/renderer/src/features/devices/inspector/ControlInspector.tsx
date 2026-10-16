@@ -442,6 +442,8 @@ const SENSOR: Partial<Record<SectionId, View<'sensor'>>> = {
             <InSection label="Sensor">
                 <SensorSettings
                     specs={specs}
+                    procedures={x.ix.catalog.sensor?.procedures ?? []}
+                    index={x.ix.catalog.sensor?.index}
                     settings={x.b.settings ?? {}}
                     disabled={!x.editable}
                     onChange={(settings) => x.set({ settings })}

@@ -21,6 +21,7 @@ import type {
 } from '@firmware/service'
 
 import { cn } from '@/lib/cn'
+import useSensorResultsStore from '@/stores/sensorResultsStore'
 import { Button } from '@/ui/button'
 
 import { SettingsSection } from './SettingRows'
@@ -123,7 +124,8 @@ function SensorReadings({
  *  it on. The status is polled while it runs (a counting phase ends by
  *  itself). A result kept from an earlier run (the status's `hasResult`) is
  *  shown while idle, and only then can it be forgotten; a device that does
- *  not say keeps the button. */
+ *  not say keeps the button. Every status goes to the shared results store,
+ *  which the inspector reads. */
 function ProcedureRunner({
     api,
     index,
@@ -146,6 +148,14 @@ function ProcedureRunner({
                 }),
             )
     }, [api, index, proc])
+
+    // Whatever the device says about a stored result, the inspector hears:
+    // "Calibrated" opens the moment a calibration ends.
+    useEffect(() => {
+        if (status) {
+            useSensorResultsStore.getState().note(api, index, proc.name, status)
+        }
+    }, [api, index, proc.name, status])
 
     useEffect(() => {
         if (state !== 'running') return

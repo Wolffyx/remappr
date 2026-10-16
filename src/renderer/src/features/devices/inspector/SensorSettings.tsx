@@ -5,17 +5,20 @@
 // (a number field when its range is too wide to slide), an ENUM as a
 // segmented control (a select past three options). Advanced ones fold away.
 // A setting the user set shows a reset; one left out shows the device's
-// default.
+// default. An option that needs a procedure's result is greyed out while the
+// connected device says none is stored (Device settings runs it).
 import { useState, type JSX } from 'react'
 import { ChevronRight, RotateCcw } from 'lucide-react'
 import type {
     SensorBinding,
+    SensorProcedureSpec,
     SensorSettingSpec,
     SensorSettingType,
     SensorSettingValue,
     SensorUnit,
 } from '@firmware/devices/types'
 import { RangeRow } from '@/components/RangeRow'
+import { useStoredResults } from '@/features/device/useStoredResults'
 import { cn } from '@/lib/cn'
 import { Input } from '@/ui/input'
 import { Segmented } from '@/ui/segmented'
@@ -47,6 +50,9 @@ interface RowProps {
     value: SensorSettingValue
     disabled: boolean
     onChange: (v: SensorSettingValue) => void
+    /** The label of the procedure an option needs, while it has no result
+     *  stored; undefined when the option is free (or nobody knows). */
+    blocked: (needs: string) => string | undefined
 }
 
 function BoolRow({ s, value, disabled, onChange }: RowProps): JSX.Element {
@@ -112,44 +118,75 @@ function IntRow(props: RowProps): JSX.Element {
     )
 }
 
-function EnumRow({ s, value, disabled, onChange }: RowProps): JSX.Element {
-    const options = (s.options ?? []).map((o) => ({
-        value: String(o.value),
-        label: o.label,
-    }))
+function EnumRow({
+    s,
+    value,
+    disabled,
+    onChange,
+    blocked,
+}: RowProps): JSX.Element {
+    const options = (s.options ?? []).map((o) => {
+        const proc = o.needs ? blocked(o.needs) : undefined
+        return {
+            value: String(o.value),
+            label: o.label,
+            disabled: proc !== undefined,
+            title: proc && `Run the ${proc} in Device settings first`,
+            hint:
+                proc &&
+                `"${o.label}" needs a ${proc} first: run it in Device settings.`,
+        }
+    })
+    const hints = options.flatMap((o) => (o.hint ? [o.hint] : []))
     const pick = (v: string): void => onChange(Number(v))
     return (
-        <div
-            className={cn(
-                'flex items-center justify-between gap-2 py-[7px]',
-                disabled && 'pointer-events-none opacity-60',
-            )}
-        >
-            <span className="text-[13px] font-semibold">{s.label}</span>
-            {options.length <= SEGMENTED_MAX ? (
-                <Segmented
-                    value={String(value)}
-                    options={options}
-                    onChange={pick}
-                />
-            ) : (
-                <Select
-                    value={String(value)}
-                    disabled={disabled}
-                    onValueChange={pick}
-                >
-                    <SelectTrigger className="h-8 w-40">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {options.map((o) => (
-                            <SelectItem key={o.value} value={o.value}>
-                                {o.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            )}
+        <div>
+            <div
+                className={cn(
+                    'flex items-center justify-between gap-2 py-[7px]',
+                    disabled && 'pointer-events-none opacity-60',
+                )}
+            >
+                <span className="text-[13px] font-semibold">{s.label}</span>
+                {options.length <= SEGMENTED_MAX ? (
+                    <Segmented
+                        value={String(value)}
+                        options={options}
+                        onChange={pick}
+                    />
+                ) : (
+                    <Select
+                        value={String(value)}
+                        disabled={disabled}
+                        onValueChange={pick}
+                    >
+                        <SelectTrigger className="h-8 w-40">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {options.map((o) => (
+                                <SelectItem
+                                    key={o.value}
+                                    value={o.value}
+                                    disabled={o.disabled}
+                                    title={o.title}
+                                >
+                                    {o.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            </div>
+            {!disabled &&
+                hints.map((h) => (
+                    <p
+                        key={h}
+                        className="pb-1 text-[11px] text-muted-foreground"
+                    >
+                        {h}
+                    </p>
+                ))}
         </div>
     )
 }
@@ -167,11 +204,13 @@ function SettingRow({
     settings,
     disabled,
     onChange,
+    blocked,
 }: {
     s: SensorSettingSpec
     settings: SensorBinding['settings']
     disabled: boolean
     onChange: (next: SensorBinding['settings']) => void
+    blocked: RowProps['blocked']
 }): JSX.Element {
     const Row = ROWS[s.type]
     const set = s.name in settings
@@ -188,6 +227,7 @@ function SettingRow({
                 value={settings[s.name] ?? s.default}
                 disabled={disabled}
                 onChange={(v) => onChange({ ...settings, [s.name]: v })}
+                blocked={blocked}
             />
             {set && !disabled && (
                 <button
@@ -204,19 +244,40 @@ function SettingRow({
     )
 }
 
-/** Every setting the sensor describes, the advanced ones folded away. */
+/** The procedures some option of `specs` needs, each once. */
+const neededProcedures = (specs: readonly SensorSettingSpec[]): string[] => [
+    ...new Set(
+        specs.flatMap((s) =>
+            (s.options ?? []).flatMap((o) => (o.needs ? [o.needs] : [])),
+        ),
+    ),
+]
+
+/** Every setting the sensor describes, the advanced ones folded away.
+ *  `index` names the sensor on the connected device, to ask whether the
+ *  results its options need are stored; without it nothing is greyed out. */
 export function SensorSettings({
     specs,
+    procedures,
+    index,
     settings,
     disabled,
     onChange,
 }: {
     specs: readonly SensorSettingSpec[]
+    procedures: readonly SensorProcedureSpec[]
+    index: number | undefined
     settings: SensorBinding['settings']
     disabled: boolean
     onChange: (next: SensorBinding['settings']) => void
 }): JSX.Element {
     const [open, setOpen] = useState(false)
+    const stored = useStoredResults(index, neededProcedures(specs))
+    const blocked = (needs: string): string | undefined => {
+        if (stored(needs) !== false) return undefined
+        const label = procedures.find((p) => p.name === needs)?.label
+        return (label ?? needs).toLowerCase()
+    }
     const basic = specs.filter((s) => !s.advanced)
     const advanced = specs.filter((s) => s.advanced)
     const row = (s: SensorSettingSpec): JSX.Element => (
@@ -226,6 +287,7 @@ export function SensorSettings({
             settings={settings}
             disabled={disabled}
             onChange={onChange}
+            blocked={blocked}
         />
     )
     return (

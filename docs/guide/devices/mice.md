@@ -62,8 +62,11 @@ puts it back to the mouse's default. A mouse built from a
 [JSON config](/reference/config/overview) can carry its own defaults, so
 "default" is the product's choice, not always the sensor's.
 
-**Calibrated** needs a lift-off calibration first; until one has run, the mouse
-refuses it and says so.
+**Calibrated** needs a lift-off calibration first. Until the mouse holds one,
+the option is greyed out with a note that says so; it opens the moment a
+calibration in Device settings finishes, and closes again if you forget the
+result. (A mouse whose firmware does not report a stored result leaves it
+open and refuses it when picked.)
 
 ### Device settings
 
