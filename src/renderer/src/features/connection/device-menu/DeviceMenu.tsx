@@ -154,7 +154,7 @@ export const DeviceMenu = (): JSX.Element => {
         deviceName?.trim() || service?.deviceInfo.name?.trim() || 'Device'
     const connLabel = communication === 'ble' ? 'BLE' : 'USB'
     const statusLabel = viewingNode
-        ? 'Node · read-only'
+        ? `Node · ${readOnly ? 'read-only' : 'via dongle'}`
         : connected
           ? `Connected · ${connLabel}`
           : 'Offline'

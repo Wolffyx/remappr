@@ -295,8 +295,8 @@ export function JoystickSettingsPanel({
                 <div className="flex items-start gap-2 rounded-[10px] border border-border bg-muted/40 p-3 text-xs">
                     <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                     <span>
-                        Read-only through the dongle. Connect the joystick over
-                        USB to calibrate it or change its settings.
+                        Read-only view. Connect the joystick over USB to
+                        calibrate it or change its settings.
                     </span>
                 </div>
             )}

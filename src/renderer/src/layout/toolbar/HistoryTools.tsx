@@ -29,6 +29,9 @@ export function HistoryTools(): JSX.Element {
     const canRedo = undoRedoStore((s) => s.redoStack.length > 0)
 
     const [unsaved, setUnsaved] = useState<boolean>(false)
+    // A push can take a moment (a node behind the dongle: 1–2 s), so the pill
+    // says it is saving and takes no second click meanwhile.
+    const [saving, setSaving] = useState(false)
     // One Save button for every saveable firmware, driven by the Auto-save
     // setting via the save-mode controller (lib/saveMode.ts — attached to
     // every saveable service at connect; mock 'none' and read-only views stay
@@ -69,6 +72,7 @@ export function HistoryTools(): JSX.Element {
 
     const save = useCallback(async (): Promise<void> => {
         if (!service) return
+        setSaving(true)
         try {
             await service.commit()
             // The push succeeded, but a device silently ignores config fields
@@ -93,6 +97,8 @@ export function HistoryTools(): JSX.Element {
             toast.error(
                 e instanceof Error ? e.message : 'Failed to save changes',
             )
+        } finally {
+            setSaving(false)
         }
     }, [service])
 
@@ -155,7 +161,9 @@ export function HistoryTools(): JSX.Element {
                     <TooltipTrigger asChild>
                         <button
                             type="button"
-                            disabled={autoSaveActive || !unsaved || !service}
+                            disabled={
+                                autoSaveActive || !unsaved || !service || saving
+                            }
                             onClick={save}
                             data-dirty={unsaved && !autoSaveActive}
                             data-autosave={autoSaveActive}
@@ -164,10 +172,12 @@ export function HistoryTools(): JSX.Element {
                             <Save className="size-3.5" />
                             {autoSaveActive
                                 ? 'Auto-save'
-                                : unsaved
-                                  ? 'Save'
-                                  : 'Saved'}
-                            {unsaved && !autoSaveActive && (
+                                : saving
+                                  ? 'Saving…'
+                                  : unsaved
+                                    ? 'Save'
+                                    : 'Saved'}
+                            {unsaved && !autoSaveActive && !saving && (
                                 <span className="size-1.5 rounded-full bg-current" />
                             )}
                         </button>

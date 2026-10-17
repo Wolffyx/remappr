@@ -4,8 +4,8 @@
 // reading, e.g. how well it sees the surface) and the procedures it offers
 // (e.g. a lift-off calibration), drawn from what the sensor describes. A
 // procedure's result belongs to the unit, not to the saved settings, so a
-// run here takes effect at once and no Save is involved. Through the dongle
-// the readings show and the procedures cannot be run.
+// run here takes effect at once and no Save is involved. A read-only view
+// shows the readings and cannot run the procedures.
 import { JSX, useCallback, useEffect, useState } from 'react'
 import { Check, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'

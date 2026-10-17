@@ -4,6 +4,7 @@ import useConnectionStore from './connectionStore'
 import useConfigStore from './configStore'
 import useLayerSelectionStore from './layerSelectionStore'
 import type { KeyboardService, NodeView } from '@firmware/service'
+import { isSaveModeManaged, unwrapSaveMode } from '@/lib/saveMode'
 
 /* A behind-dongle node view: read-only, shares the dongle RPC, so its own
  * disconnect is a no-op on the transport (tracked here to prove the store
@@ -116,6 +117,25 @@ describe('connectionStore node views', () => {
         expect(s.deviceName).toBe('Remappr Node 0x0007')
         // communication is carried over so the chip still shows BLE/USB.
         expect(s.communication).toBe('ble')
+        // A read-only view has nothing to save.
+        expect(isSaveModeManaged(s.service!)).toBe(false)
+    })
+
+    it('gives an editable node the save-mode controller', async () => {
+        const { service: dongle } = makeDongle(ROSTER)
+        const editable = makeNodeView(0x0007)
+        Object.assign(editable.capabilities, {
+            readOnly: undefined,
+            saveMode: 'manual',
+        })
+        Object.assign(dongle.nodes!, { open: async () => editable })
+        useConnectionStore.getState().setService(dongle, 'hid')
+
+        await useConnectionStore.getState().openNode(0x0007)
+
+        const s = useConnectionStore.getState()
+        expect(isSaveModeManaged(s.service!)).toBe(true)
+        expect(unwrapSaveMode(s.service!)).toBe(editable)
     })
 
     it('openNode is a no-op on a direct (non-dongle) device', async () => {

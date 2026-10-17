@@ -5,7 +5,7 @@
 // sensor's readings and procedures —
 // inside the device editor. Edits go into the same staged document as the
 // button and CPI edits on the stage, so the header's Save writes them all.
-// Through the dongle the panel reads the stored settings, read-only.
+// A read-only view reads the stored settings and changes nothing.
 import { JSX, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import type { MotionConfig } from '@firmware'
@@ -127,8 +127,8 @@ export function MouseSettingsPanel({
                 <div className="flex items-start gap-2 rounded-[10px] border border-border bg-muted/40 p-3 text-xs">
                     <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                     <span>
-                        Read-only through the dongle. Connect the mouse over USB
-                        to change its settings.
+                        Read-only view. Connect the mouse over USB to change its
+                        settings.
                     </span>
                 </div>
             )}

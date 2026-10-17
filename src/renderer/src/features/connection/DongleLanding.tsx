@@ -4,8 +4,9 @@
 //
 // Where a host lands after connecting to a ROLE_DONGLE device: the dongle has no
 // keymap of its own, so instead of the editor we show its bonded node roster.
-// Clicking an online node opens a (read-only) view of it via the store's
-// openNode, which swaps the active service to the relayed node.
+// Clicking an online node opens a view of it via the store's openNode, which
+// swaps the active service to the relayed node: a mouse or a joystick to edit
+// through the relay, a keyboard read-only.
 import { JSX, useCallback, useEffect, useState } from 'react'
 import {
     Cpu,

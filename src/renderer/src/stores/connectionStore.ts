@@ -7,6 +7,8 @@ import type { KeyboardService } from '@firmware/service'
 import type { LockState } from '@firmware/types'
 import useDynamicCatalogStore from '@/stores/dynamicCatalogStore'
 import useConfigStore from '@/stores/configStore'
+import useUserSettingsStore from '@/stores/userSettingsStore'
+import { withSaveMode } from '@/lib/saveMode'
 import useLayerSelectionStore from '@/stores/layerSelectionStore'
 import useKeymapStore from '@/stores/keymapStore'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
@@ -303,7 +305,13 @@ const useConnectionStore = create<ConnectionState>()(
                 // Relayed read of the node's device-info + active config (may throw
                 // on an offline node); only swap once it resolves. The returned view
                 // shares the dongle's RPC, so we keep the dongle alive as parent.
-                const view = await dongle.nodes.open(id)
+                // An editable node (a mouse or a joystick) saves like a device on
+                // its own transport, so it gets the same save-mode controller; a
+                // read-only one passes through unwrapped.
+                const view = withSaveMode(
+                    await dongle.nodes.open(id),
+                    useUserSettingsStore.getState().autosave,
+                )
                 set({
                     parentService: dongle,
                     activeNodeId: id,
