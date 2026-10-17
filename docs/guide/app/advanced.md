@@ -238,8 +238,9 @@ key behaviour"_:
 - **Restore Stock Settings** — from the device menu, resets to the stock keymap.
 - **Restore backup** — re-apply Remappr's own backup of this device's layout, see
   [Backup & restore](/guide/app/connecting#backup-restore).
-- **Mesh nodes** — open the keymap of a node behind a dongle or coordinator
-  (read-only today), see [The device menu](/guide/app/connecting#the-device-menu).
+- **Mesh nodes** — open a node behind a dongle or coordinator: a mouse or a
+  joystick to edit, a keyboard's keymap read-only, see
+  [The device menu](/guide/app/connecting#the-device-menu).
 
 ## See also
 

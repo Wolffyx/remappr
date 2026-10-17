@@ -124,11 +124,15 @@ as `remappr.device.json`, the
 ### Through a dongle
 
 A mouse paired to a Remappr dongle shows up under **Mesh nodes** in the
-dongle's device menu. Opening it there gives a read-only view: its bindings,
-DPI stages and settings read through the dongle, and the sensor's readings
-live. To change them or run a calibration, connect the mouse over USB. Device
-settings says so: _"Read-only through the dongle. Connect the mouse over USB
-to change its settings."_
+dongle's device menu. Opening it there gives the same editor as over USB, with
+every change sent through the dongle: bindings, DPI stages, settings, the live
+DPI and polling rate, sensor settings and the lift-off calibration. The device
+chip reads _Node · via dongle_.
+
+**Save** takes a second or two through the dongle, and the button reads
+_Saving…_ meanwhile. If the radio loses a reply part way, Remappr starts the
+save over; if it loses the last one, it asks the mouse which settings it ended
+up with before saying the save failed.
 
 ## Any other mouse
 

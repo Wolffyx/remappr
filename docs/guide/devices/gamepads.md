@@ -107,11 +107,10 @@ reports over USB again. The dongle's gamepad is there even when no joystick
 is paired, so games may list an idle controller.
 
 The joystick then shows up under **Mesh nodes** in the dongle's device menu.
-Opening it there gives a read-only view: its bindings, stick settings and
-live readout, read through the dongle. To change them or calibrate, connect
-the joystick over USB. Device settings says so: _"Read-only through the
-dongle. Connect the joystick over USB to calibrate it or change its
-settings."_
+Opening it there gives the same editor as over USB, with every change sent
+through the dongle: bindings, stick settings and calibration. The live
+readout updates four times a second, since each reading is a radio round
+trip. **Save** takes a second or two and reads _Saving…_ meanwhile.
 
 ## Any other controller
 

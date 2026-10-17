@@ -63,9 +63,10 @@ Entries depend on the device and the firmware:
 
 - **Mesh nodes** — only on devices that report other nodes behind them (a dongle
   or a split coordinator). Lists each node, marks the one you are viewing with a
-  check and offline nodes as _offline_; picking one opens that node's keymap.
-  While viewing a node the first entry becomes **Back to _(parent)_**. Node views
-  are read-only today.
+  check and offline nodes as _offline_; picking one opens that node. While
+  viewing a node the first entry becomes **Back to _(parent)_**. A mouse or a
+  joystick opens in the device editor and is edited through the dongle; a
+  keyboard's keymap opens read-only.
 - **Auto-connect on launch** — a checkbox, shown once the device has been paired
   at least once. When ticked, Remappr reconnects to this device automatically the
   next time it starts. A manual **Disconnect** stops the reconnect loop for that

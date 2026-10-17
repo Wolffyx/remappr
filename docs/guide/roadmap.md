@@ -145,18 +145,19 @@ behaviors is limited by the ZMK Studio protocol.
 
 ## App-level
 
-| Feature                                           | Status                          |
-| ------------------------------------------------- | ------------------------------- |
-| Electron shell                                    | <Badge type="tip" text="✅" />  |
-| Firmware adapter abstraction (plug-in per vendor) | <Badge type="tip" text="✅" />  |
-| Capability-gated UI                               | <Badge type="tip" text="✅" />  |
-| Keymap import / export (Remappr JSON config)      | <Badge type="tip" text="✅" />  |
-| Auto-save ⇄ manual save, per firmware family      | <Badge type="tip" text="✅" />  |
-| Per-device auto-connect on launch                 | <Badge type="tip" text="✅" />  |
-| Local profile backup & restore (ZMK)              | <Badge type="tip" text="✅" />  |
-| Read-only view of nodes behind a dongle           | <Badge type="tip" text="✅" />  |
-| Editing a node behind a dongle                    | <Badge type="info" text="🗓️" /> |
-| Cloud sync / backup · profile sharing             | <Badge type="info" text="🗓️" /> |
+| Feature                                           | Status                             |
+| ------------------------------------------------- | ---------------------------------- |
+| Electron shell                                    | <Badge type="tip" text="✅" />     |
+| Firmware adapter abstraction (plug-in per vendor) | <Badge type="tip" text="✅" />     |
+| Capability-gated UI                               | <Badge type="tip" text="✅" />     |
+| Keymap import / export (Remappr JSON config)      | <Badge type="tip" text="✅" />     |
+| Auto-save ⇄ manual save, per firmware family      | <Badge type="tip" text="✅" />     |
+| Per-device auto-connect on launch                 | <Badge type="tip" text="✅" />     |
+| Local profile backup & restore (ZMK)              | <Badge type="tip" text="✅" />     |
+| Read-only view of nodes behind a dongle           | <Badge type="tip" text="✅" />     |
+| Editing a mouse or joystick behind a dongle       | <Badge type="warning" text="🚧" /> |
+| Editing a keyboard behind a dongle                | <Badge type="info" text="🗓️" />    |
+| Cloud sync / backup · profile sharing             | <Badge type="info" text="🗓️" />    |
 
 ---
 
@@ -185,10 +186,10 @@ app draws and edits them with no per-model setup.
 | [Mice](/guide/devices/mice#remappr-firmware-mice): button actions, DPI stages & sniper, polling rate, pointer & acceleration settings           | <Badge type="warning" text="🚧" /> |
 | [Mouse sensor](/guide/devices/mice#sensor-settings): the settings its sensor has, lift-off calibration, live readings                           | <Badge type="warning" text="🚧" /> |
 | [Joysticks](/guide/devices/gamepads#remappr-firmware-joysticks): gamepad or flight stick, stick deadzones & curves, hat, calibration, live view | <Badge type="warning" text="🚧" /> |
-| 2.4 GHz dongle: a mouse behind the dongle, read-only                                                                                            | <Badge type="warning" text="🚧" /> |
-| 2.4 GHz dongle: a joystick behind the dongle, read-only                                                                                         | <Badge type="warning" text="🚧" /> |
+| 2.4 GHz dongle: a mouse behind the dongle, edited through it                                                                                    | <Badge type="warning" text="🚧" /> |
+| 2.4 GHz dongle: a joystick behind the dongle, edited through it                                                                                 | <Badge type="warning" text="🚧" /> |
 | Keyboards                                                                                                                                       | <Badge type="warning" text="🚧" /> |
-| Editing a device through the dongle                                                                                                             | <Badge type="info" text="🗓️" />    |
+| Editing a keyboard through the dongle                                                                                                           | <Badge type="info" text="🗓️" />    |
 
 🚧 here means built and working in the app, with hardware verification still
 under way.
