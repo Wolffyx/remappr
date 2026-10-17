@@ -91,8 +91,21 @@ const CHOICES: Record<LeaveChoice, (p: Pending) => Promise<void>> = {
     cancel: async (p) => finish(p, false),
 }
 
-function hasUnsaved(service: KeyboardService): boolean {
-    return isSaveModeManaged(service) && service.hasPendingChanges()
+/** Whether `service` holds edits that leaving it would lose. */
+export function hasUnsavedChanges(service: KeyboardService | null): boolean {
+    return (
+        !!service && isSaveModeManaged(service) && service.hasPendingChanges()
+    )
+}
+
+/** A `beforeunload` handler that holds the window open (the platform then
+ *  asks) while the service `getService` returns holds unsaved edits. */
+export function unloadGuard(
+    getService: () => KeyboardService | null,
+): (e: Pick<BeforeUnloadEvent, 'preventDefault'>) => void {
+    return (e) => {
+        if (hasUnsavedChanges(getService())) e.preventDefault()
+    }
 }
 
 /** With Auto-save on, save what the debounce has not yet. False when that
@@ -129,7 +142,7 @@ function ask(service: KeyboardService): Promise<boolean> {
 export async function confirmLeave(
     service: KeyboardService | null,
 ): Promise<boolean> {
-    if (!service || !hasUnsaved(service)) return true
+    if (!service || !hasUnsavedChanges(service)) return true
     if (pending?.service === service) return pending.promise
     if (await flushAutoSave(service)) return true
     return ask(service)

@@ -86,6 +86,11 @@ the changes and then leaves; if the device refuses them the dialog stays open.
 [Auto-save](/guide/app/settings#communication) on, changes still waiting to be
 written are saved on the way out without asking. Demo devices never ask.
 
+The window's own close button (Windows and Linux) asks the same question. Any
+other way of closing the window, quitting or reloading it cannot wait for a
+save, so it asks _"Leave without saving?"_ with **Leave** and **Stay** instead
+(in a browser tab, the browser's own _"Leave site?"_).
+
 ## Backup & restore
 
 Remappr keeps a local backup of each device's layout, keyed per device, and

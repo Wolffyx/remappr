@@ -9,7 +9,9 @@ import useConnectionStore from './connectionStore'
 import useLeaveGuardStore, {
     confirmLeave,
     dismissLeavePrompt,
+    unloadGuard,
 } from './leaveGuardStore'
+import useUndoRedoStore from './undoRedoStore'
 import useUserSettingsStore from './userSettingsStore'
 import { withSaveMode } from '@/lib/saveMode'
 import { openService } from '@/features/connection/openService'
@@ -369,5 +371,62 @@ describe('openService (switching to another device)', () => {
         expect(disconnect).toHaveBeenCalledTimes(1)
         expect(open).toHaveBeenCalledTimes(1)
         expect(useConnectionStore.getState().service).toBe(next)
+    })
+})
+
+describe('unloadGuard (closing or reloading the window)', () => {
+    const fire = (service: KeyboardService | null): boolean => {
+        const preventDefault = vi.fn()
+        unloadGuard(() => service)({ preventDefault })
+        return preventDefault.mock.calls.length > 0
+    }
+
+    it('holds the window while a device holds unsaved edits', () => {
+        const { service } = makeDevice('Mouse', { pending: true })
+        expect(fire(withSaveMode(service, false))).toBe(true)
+    })
+
+    it('lets it go with nothing unsaved, no device, or nothing to save', () => {
+        const clean = makeDevice('Mouse')
+        const demo = makeDevice('Demo', { pending: true, saveMode: 'none' })
+        expect(fire(withSaveMode(clean.service, false))).toBe(false)
+        expect(fire(withSaveMode(demo.service, false))).toBe(false)
+        expect(fire(null)).toBe(false)
+    })
+})
+
+describe('edit history across a node swap', () => {
+    const pushEdit = (): Promise<void> =>
+        useUndoRedoStore.getState().doIt(async () => async () => undefined)
+
+    beforeEach(() => useUndoRedoStore.getState().reset())
+
+    it('starts a fresh history on the next node and back on the dongle', async () => {
+        const node = makeDevice('Mouse 0x0002')
+        const { service: dongle } = makeDongle(() => node.service)
+        connect(dongle)
+        await pushEdit()
+
+        await useConnectionStore.getState().openNode(0x0002)
+        expect(useUndoRedoStore.getState().undoStack).toHaveLength(0)
+
+        await pushEdit()
+        await useConnectionStore.getState().returnToParent()
+        expect(useUndoRedoStore.getState().undoStack).toHaveLength(0)
+    })
+
+    it('keeps the history when the user stays on the node', async () => {
+        const node = makeDevice('Mouse 0x0002', { pending: true })
+        const { service: dongle } = makeDongle(() => node.service)
+        connect(dongle)
+        await useConnectionStore.getState().openNode(0x0002)
+        await pushEdit()
+
+        const back = useConnectionStore.getState().returnToParent()
+        await promptOpen()
+        choose('cancel')
+        await back
+
+        expect(useUndoRedoStore.getState().undoStack).toHaveLength(1)
     })
 })

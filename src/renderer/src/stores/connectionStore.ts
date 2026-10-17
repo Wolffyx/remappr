@@ -12,6 +12,7 @@ import { withSaveMode } from '@/lib/saveMode'
 import { confirmLeave, dismissLeavePrompt } from '@/stores/leaveGuardStore'
 import useLayerSelectionStore from '@/stores/layerSelectionStore'
 import useKeymapStore from '@/stores/keymapStore'
+import useUndoRedoStore from '@/stores/undoRedoStore'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
 import { createOsBackedKeyTest } from '@/features/keymap/keyboard/stage/osBackedKeyTest'
 
@@ -324,6 +325,9 @@ const useConnectionStore = create<ConnectionState>()(
                     await dongle.nodes.open(id),
                     useUserSettingsStore.getState().autosave,
                 )
+                // The edit history drives the device being left; undoing it
+                // on the next one would edit the wrong device.
+                useUndoRedoStore.getState().reset()
                 set({
                     parentService: dongle,
                     activeNodeId: id,
@@ -336,6 +340,7 @@ const useConnectionStore = create<ConnectionState>()(
                 if (!(await confirmLeave(get().service))) return
                 const { parentService, communication } = get()
                 if (!parentService) return
+                useUndoRedoStore.getState().reset()
                 // Clear before the swap so setService's null-guard can't fight it.
                 set({
                     parentService: null,

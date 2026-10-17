@@ -3,6 +3,11 @@
 // The unsaved-changes prompt: shown while a leave (disconnect, back to the
 // dongle, another node) waits on stores/leaveGuardStore. Closing it any other
 // way (Esc, the overlay, ✕) is Cancel.
+//
+// Closing or reloading the window can't wait for this dialog, so it gets the
+// platform's own prompt instead: the browser's "Leave site?", or in Electron
+// the main process's Leave / Stay box (will-prevent-unload).
+import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -15,7 +20,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/ui/dialog'
-import useLeaveGuardStore from '@/stores/leaveGuardStore'
+import useConnectionStore from '@/stores/connectionStore'
+import useLeaveGuardStore, { unloadGuard } from '@/stores/leaveGuardStore'
 
 export function LeaveGuardDialog(): JSX.Element {
     const { deviceName, busy, choose } = useLeaveGuardStore(
@@ -26,6 +32,14 @@ export function LeaveGuardDialog(): JSX.Element {
         })),
     )
     const open = deviceName !== null
+
+    useEffect(() => {
+        const onBeforeUnload = unloadGuard(
+            () => useConnectionStore.getState().service,
+        )
+        window.addEventListener('beforeunload', onBeforeUnload)
+        return () => window.removeEventListener('beforeunload', onBeforeUnload)
+    }, [])
 
     return (
         <Dialog
