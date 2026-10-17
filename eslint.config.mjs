@@ -127,5 +127,13 @@ export default defineConfig(
             '@typescript-eslint/explicit-function-return-type': 'off',
         },
     },
+    {
+        // Plain-JS scripts (build-mock and the mock's Tweaks panel) can't carry
+        // TypeScript return types.
+        files: ['scripts/**/*.{js,mjs}'],
+        rules: {
+            '@typescript-eslint/explicit-function-return-type': 'off',
+        },
+    },
     eslintConfigPrettier,
 )
