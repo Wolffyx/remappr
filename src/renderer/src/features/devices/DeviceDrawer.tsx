@@ -1,6 +1,6 @@
-// Pattern check: no GoF pattern (-) — rejected — presentational sidebar of the device editor (device card, demo switcher, profiles, legend, device menu) on the shared @/ui/sidebar primitives.
+// Pattern check: no GoF pattern (-) — rejected — presentational sidebar of the device editor (device card, device switcher, profiles, legend, device menu) on the shared @/ui/sidebar primitives.
 import { useEffect, useRef, useState, type JSX } from 'react'
-import { ArrowRight, Check, Plus } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
 import { DEMO_DEVICES } from '@firmware'
 import type { DeviceProfile } from '@firmware/devices/types'
 import {
@@ -26,6 +26,7 @@ import {
 } from '@/lib/devices/deviceCategory'
 import { deviceSummary, FORM_LABEL } from '@/lib/devices/labels'
 import { FORM_ICON } from './formIcons'
+import { DeviceSwitcher, SwitchRow } from './DeviceSwitcher'
 import useDeviceEditorStore from './model/deviceEditorStore'
 
 const GROUP_LABEL =
@@ -64,31 +65,15 @@ function DemoSwitcher(): JSX.Element | null {
                 Switch device
             </SidebarGroupLabel>
             <SidebarGroupContent className="flex flex-col gap-[3px]">
-                {others.map((d) => {
-                    const Icon = FORM_ICON[d.form]
-                    return (
-                        <button
-                            key={d.id}
-                            type="button"
-                            onClick={() => void connectDemo(d.id)}
-                            className="flex w-full items-center gap-2 rounded-[9px] px-2 py-[7px] text-left text-sidebar-foreground transition-colors hover:bg-accent"
-                        >
-                            <span className="grid size-[26px] shrink-0 place-items-center rounded-[7px] bg-foreground/[.08] text-muted-foreground">
-                                <Icon className="size-3.5" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                                <span className="block truncate text-[12.5px] font-semibold">
-                                    {d.name}
-                                </span>
-                                <span className="block text-[10.5px] text-muted-foreground">
-                                    {FORM_LABEL[d.form]}
-                                    {d.ready ? '' : ' · no layout'}
-                                </span>
-                            </span>
-                            <ArrowRight className="size-[13px] text-muted-foreground" />
-                        </button>
-                    )
-                })}
+                {others.map((d) => (
+                    <SwitchRow
+                        key={d.id}
+                        icon={FORM_ICON[d.form]}
+                        name={d.name}
+                        detail={`${FORM_LABEL[d.form]}${d.ready ? '' : ' · no layout'}`}
+                        onClick={() => void connectDemo(d.id)}
+                    />
+                ))}
             </SidebarGroupContent>
         </SidebarGroup>
     )
@@ -275,6 +260,7 @@ export function DeviceDrawer(): JSX.Element {
                     </SidebarGroupContent>
                 </SidebarGroup>
                 <DemoSwitcher />
+                <DeviceSwitcher />
                 <Profiles />
                 <SidebarGroup className="mt-auto">
                     <ActionLegend />

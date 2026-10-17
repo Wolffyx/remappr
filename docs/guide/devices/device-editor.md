@@ -12,10 +12,15 @@ controls, so a mouse looks like a mouse and a flight stick like a flight stick.
 | Section           | What it holds                                                                                                               |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | **Device**        | The device's name and summary, e.g. _"Mouse · 7 controls"_. A device drawn from a generic layout adds _"· default layout"_. |
-| **Switch device** | Demo sessions only: the other demo devices, one click away.                                                                 |
+| **Switch device** | The other devices you can connect (in a demo, the other demos), one click away. Shown when there is another device.         |
 | **Profiles**      | The device's profiles, each with its colour and number (P1, P2…).                                                           |
 | **Action types**  | The colour legend: Mouse, Keyboard, Gamepad, Media, Macro, System, Layer / profile.                                         |
 | Device card       | At the bottom, as in the keymap editor: connection state and the device menu.                                               |
+
+**Switch device.** The list follows what is plugged in. Picking a device first
+asks about unsaved changes (see [the device menu](/guide/app/connecting#the-device-menu)),
+then connects the new device before the current one closes: if the new one
+fails to connect, you stay where you were.
 
 **Profiles.** Click a profile to edit it. Where the device supports more than
 one, **+ Add profile** creates _"Profile N"_ and double-clicking a profile

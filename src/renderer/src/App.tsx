@@ -1,7 +1,4 @@
 import { JSX, Suspense, lazy, useCallback, useEffect } from 'react'
-import type { Transport } from '@firmware'
-import { pickAdapter } from '@firmware'
-import { rememberConnectedDeviceName } from '@/transport/web-serial'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
 import { LeaveGuardDialog } from '@/features/connection/LeaveGuardDialog'
 import { DongleLanding } from '@/features/connection/DongleLanding'
@@ -20,7 +17,6 @@ import { DevicePreviewCapture } from '@/features/connection/DevicePreviewCapture
 import { ProfileRestoreManager } from '@/features/connection/ProfileRestoreManager'
 // import { Footer } from '@/layout/Footer'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
-import { toast } from 'sonner'
 import { StartPage } from '@/features/connection/start-page/StartPage'
 import useBuilderStore from '@/stores/builderStore'
 import { CoachmarkTour } from '@/features/onboarding/CoachmarkTour'
@@ -29,9 +25,8 @@ import { WhatsNewDialog } from '@/features/news/WhatsNewDialog'
 import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
-import { withSaveMode } from '@/lib/saveMode'
-import { withUnlockPrompt } from '@/lib/unlockPrompt'
 import { connectDemo } from '@/features/connection/demo/connectDemo'
+import { connectTransport } from '@/features/connection/connectTransport'
 import { categoryForFirmware } from '@/lib/adapterCategories'
 import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
@@ -42,21 +37,12 @@ const Builder = lazy(() =>
     import('@/features/builder').then((m) => ({ default: m.Builder })),
 )
 
-// Abort a connection attempt whose adapter handshake never answers (e.g. a
-// silent / half-flashed device) so the UI recovers instead of hanging on
-// "Connecting" forever. Generous enough not to trip a slow-but-valid BLE link.
-const CONNECT_TIMEOUT_MS = 15_000
-
 function App(): JSX.Element {
     // pattern-check: skip — UI sweep, replace store-connection with store-service
     // Field-scoped selectors — a bare useConnectionStore() re-renders the app
     // shell (and the whole editor subtree) on every unrelated field change.
     const service = useConnectionStore((s) => s.service)
-    const setService = useConnectionStore((s) => s.setService)
-    const publishService = useConnectionStore((s) => s.publishService)
-    const setDeviceName = useConnectionStore((s) => s.setDeviceName)
     const setLockState = useConnectionStore((s) => s.setLockState)
-    const setConnectionAbort = useConnectionStore((s) => s.setConnectionAbort)
     const lockState = useConnectionStore((s) => s.lockState)
     const reset = undoRedoStore((s) => s.reset)
 
@@ -99,76 +85,6 @@ function App(): JSX.Element {
         if (category) setPreferredAdapterCategory(category)
     }, [service, setPreferredAdapterCategory])
 
-    const onConnect = async (
-        t: Transport,
-        communication: 'serial' | 'ble' | 'hid',
-    ): Promise<boolean> => {
-        const adapter = await pickAdapter(t, { transportKind: communication })
-        if (!adapter) {
-            toast.error('Failed to connect to the selected device.', {
-                description: 'No firmware adapter handled the device.',
-            })
-            return false
-        }
-        // Fresh controller per attempt: the handshake below can hang on a silent
-        // device, so a timeout aborts it (adapter.connect honours the signal).
-        // A previously-aborted controller would poison the retry, so publish a
-        // new one to the store — disconnect still aborts whichever is live.
-        const abort = new AbortController()
-        setConnectionAbort(abort)
-        const timeout = setTimeout(
-            () => abort.abort(new Error('Connection timed out')),
-            CONNECT_TIMEOUT_MS,
-        )
-        try {
-            const next = await adapter.connect(t, abort.signal)
-            // Re-apply a previously imported QMK/VIA/Keychron layout BEFORE the
-            // service is exposed, so the first keymap read (Drawer) already
-            // reflects it. Doing it here — rather than in a sibling effect —
-            // keeps it off the same transport at the same time as the initial
-            // getKeymap, avoiding a last-writer-wins race on the keymap store.
-            try {
-                await next.sideload?.restoreCached?.()
-            } catch (err) {
-                console.warn('Failed to restore cached layout', err)
-            }
-            next.onClosed((): void => {
-                setDeviceName(null)
-                setService(null)
-            })
-            setDeviceName(next.deviceInfo.name)
-            if (communication === 'serial') {
-                rememberConnectedDeviceName(next.deviceInfo.name)
-            }
-            // Attach the save-mode controller (Settings → Communication →
-            // Auto-save, default off): automatic firmwares stage keymap edits
-            // until Save in manual mode; manual firmwares (ZMK/Remappr)
-            // auto-commit debounced in auto mode. Toggling later just flips
-            // the wrapper's flag — the service is never swapped.
-            // An 'actions' lock (Vial) refuses some operations while the
-            // board is locked; the unlock prompt catches those and retries.
-            const svc = withUnlockPrompt(
-                withSaveMode(next, useUserSettingsStore.getState().autosave),
-            )
-            await publishService(svc, communication)
-            // The client's own notes on how this connection was made (e.g. it
-            // had to fall back to a reduced mode) — shown once, never silent.
-            for (const notice of next.connectNotices ?? []) {
-                toast[notice.level](notice.title, {
-                    description: notice.description,
-                })
-            }
-            return true
-        } catch (err) {
-            toast.error('Failed to connect to the selected device.', {
-                description: err instanceof Error ? err.message : String(err),
-            })
-            return false
-        } finally {
-            clearTimeout(timeout)
-        }
-    }
-
     const isElectron = isElectronEnv()
 
     useEffect(() => {
@@ -200,7 +116,7 @@ function App(): JSX.Element {
         ),
         start: () => (
             <StartPage
-                onTransportCreated={onConnect}
+                onTransportCreated={connectTransport}
                 onDemoConnect={connectDemo}
             />
         ),
