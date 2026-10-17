@@ -48,12 +48,6 @@ export interface KeyActionPickerProps {
      *  hold/tap chips — e.g. an encoder's direction chips, so they sit inline
      *  like mod-tap's slots instead of stacked above the dropdown. */
     headerExtra?: ReactNode
-    /** Assign as soon as an action type is picked, with its slots' first
-     *  values (spares a click on a keyboard). False waits until the user
-     *  picks the value too, so browsing the types binds nothing: a device's
-     *  types are lists of actions, and the first one is rarely what a look
-     *  at the type meant. Default true. */
-    assignOnTypeChange?: boolean
 }
 
 // pattern-check: skip mechanical move of pure slot helpers to sibling utils
@@ -65,7 +59,6 @@ export const KeyActionPicker = ({
     codec,
     catalog,
     headerExtra,
-    assignOnTypeChange = true,
 }: KeyActionPickerProps): JSX.Element => {
     // Reverse-map the committed action to a (possibly composite) selection: a key
     // bound to &mkp / &mmv / &msc re-selects the unified Mouse type + its command.
@@ -161,16 +154,12 @@ export const KeyActionPicker = ({
         providedParams?: number[],
     ): void => {
         const target = actionTypes.find((t) => t.id === selectedId)
-        const targetSlots = target?.slots ?? []
-        // A tile (providedParams) or a type without slots is a complete pick.
-        const assign =
-            assignOnTypeChange || !!providedParams || targetSlots.length === 0
         const nextParams =
-            providedParams ?? (assign ? paramsForSlots([], targetSlots) : [])
+            providedParams ?? paramsForSlots([], target?.slots ?? [])
         setKind(selectedId)
         setParams(nextParams)
         setActiveSlotIndex(0)
-        if (assign) dispatch(selectedId, nextParams)
+        dispatch(selectedId, nextParams)
     }
 
     // pattern-check: skip — gating an existing slot handler, no new abstraction
