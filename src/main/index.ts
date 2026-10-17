@@ -9,7 +9,7 @@ import { setupSerialDeviceSelection } from './serial-picker'
 import { startSerialDevicePolling } from './serial'
 import { silenceConsoleInProduction } from '../shared/logger'
 import { checkForUpdates, registerUpdateIpc } from './update-checker'
-import { registerWindowControlsIpc } from './window-controls'
+import { guardWindowLeave, registerWindowControlsIpc } from './window-controls'
 
 // Origin allowlist: file:// (packaged app) and the dev-server URL (HMR).
 // Used by permission/device handlers and `will-navigate` lockdown so an
@@ -173,23 +173,10 @@ function createWindow(): void {
         cb({ confirmed: false })
     })
 
-    // The renderer blocks unload (beforeunload) while a device holds unsaved
-    // edits: closing the window, quitting or reloading then stops here, and
-    // this box decides. The app's own close button asks Save / Discard /
-    // Cancel in the renderer first, so it only lands here when the edits
-    // could not be dropped.
-    mainWindow.webContents.on('will-prevent-unload', (event): void => {
-        const choice = dialog.showMessageBoxSync(mainWindow, {
-            type: 'question',
-            buttons: ['Leave', 'Stay'],
-            defaultId: 1,
-            cancelId: 1,
-            title: 'Unsaved changes',
-            message: 'Leave without saving?',
-            detail: 'Some changes are not saved on the device yet.',
-        })
-        if (choice === 0) event.preventDefault()
-    })
+    // Closing, quitting or reloading with unsaved device edits waits on the
+    // renderer's Save / Discard / Cancel prompt. The reload keys only reload
+    // in dev (the optimizer blocks them in a packaged build).
+    guardWindowLeave(mainWindow, { reloadKeys: is.dev })
 
     // Safety-net handler for any stray navigator.serial.requestPort() calls.
     setupSerialDeviceSelection(mainWindow)

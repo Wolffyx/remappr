@@ -5,8 +5,6 @@ import { Copy, Minus, Square, X } from 'lucide-react'
 import { IpcChannels } from '../../../shared/ipc-types'
 import { getApi, getPlatform } from '@/electron/api'
 import { useWindowMaximized } from '@/hooks/use-window-maximized'
-import useConnectionStore from '@/stores/connectionStore'
-import { confirmLeave } from '@/stores/leaveGuardStore'
 
 /**
  * Native window min/max/close controls for the custom (frameless) Electron titlebar.
@@ -30,10 +28,9 @@ export function WindowControls(): JSX.Element | null {
         // useWindowMaximized — no local bookkeeping needed.
         void api.invoke(IpcChannels.WINDOW_MAXIMIZE_TOGGLE)
     }
-    // Our own close button can wait for the in-app Save / Discard / Cancel
-    // prompt; once the edits are saved or dropped, nothing blocks the unload.
-    const onClose = async (): Promise<void> => {
-        if (!(await confirmLeave(useConnectionStore.getState().service))) return
+    // With unsaved device edits, main holds the close and the in-app
+    // Save / Discard / Cancel prompt decides (windowLeaveGuard).
+    const onClose = (): void => {
         void api.invoke(IpcChannels.WINDOW_CLOSE)
     }
 
@@ -64,7 +61,7 @@ export function WindowControls(): JSX.Element | null {
             </button>
             <button
                 type="button"
-                onClick={(): void => void onClose()}
+                onClick={onClose}
                 className="flex h-full w-11 items-center justify-center text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
                 aria-label="Close"
             >

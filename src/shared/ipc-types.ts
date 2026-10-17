@@ -84,6 +84,11 @@ export const IpcChannels = {
     WINDOW_MAXIMIZE_TOGGLE: 'window:maximize-toggle',
     WINDOW_CLOSE: 'window:close',
     WINDOW_IS_MAXIMIZED: 'window:is-maximized',
+    // Unsaved-changes guard: the renderer says whether a device holds unsaved
+    // edits (main then holds a window close and asks it), and answers that
+    // request once the user chose.
+    WINDOW_SET_UNSAVED: 'window:set-unsaved',
+    WINDOW_LEAVE_DECIDED: 'window:leave-decided',
 
     // Secret storage (OS-encrypted via safeStorage) — e.g. the GitHub token,
     // kept out of plain localStorage.
@@ -104,6 +109,8 @@ export const IpcEvents = {
     BLE_DEVICES_DISCOVERED: 'ble:devices-discovered',
     SERIAL_DEVICES_CHANGED: 'serial:devices-changed',
     UPDATE_AVAILABLE: 'update:available',
+    /** A close or quit waits on the renderer's unsaved-changes prompt. */
+    WINDOW_LEAVE_REQUESTED: 'window:leave-requested',
 } as const
 
 // pattern-check: skip — flat IPC DTO, no behavior
@@ -206,6 +213,15 @@ export interface IpcInvokeMap {
         params: void
         result: boolean
     }
+    [IpcChannels.WINDOW_SET_UNSAVED]: {
+        params: boolean
+        result: void
+    }
+    /** true = leave (close, or finish the quit); false = the user stays. */
+    [IpcChannels.WINDOW_LEAVE_DECIDED]: {
+        params: boolean
+        result: void
+    }
     [IpcChannels.SECRET_GET]: {
         params: { key: string }
         result: string | null
@@ -230,6 +246,7 @@ export interface IpcEventMap {
     [IpcEvents.CONNECTION_DISCONNECTED]: void
     [IpcEvents.BLE_DEVICES_DISCOVERED]: AvailableDevice[]
     [IpcEvents.UPDATE_AVAILABLE]: UpdateAvailablePayload
+    [IpcEvents.WINDOW_LEAVE_REQUESTED]: void
 }
 
 // --- Preload API Surface ---

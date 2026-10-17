@@ -4,9 +4,11 @@
 // dongle, another node) waits on stores/leaveGuardStore. Closing it any other
 // way (Esc, the overlay, ✕) is Cancel.
 //
-// Closing or reloading the window can't wait for this dialog, so it gets the
-// platform's own prompt instead: the browser's "Leave site?", or in Electron
-// the main process's Leave / Stay box (will-prevent-unload).
+// In Electron, closing the window, quitting and the reload keys wait on this
+// dialog too (windowLeaveGuard). What can't wait for it (a reload from the
+// menu, closing or reloading a browser tab) gets the platform's own prompt:
+// the browser's "Leave site?", or in Electron the main process's Leave /
+// Stay box (will-prevent-unload).
 import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
@@ -22,6 +24,8 @@ import {
 } from '@/ui/dialog'
 import useConnectionStore from '@/stores/connectionStore'
 import useLeaveGuardStore, { unloadGuard } from '@/stores/leaveGuardStore'
+import { getApi } from '@/electron/api'
+import { installWindowLeaveGuard } from './windowLeaveGuard'
 
 export function LeaveGuardDialog(): JSX.Element {
     const { deviceName, busy, choose } = useLeaveGuardStore(
@@ -39,6 +43,12 @@ export function LeaveGuardDialog(): JSX.Element {
         )
         window.addEventListener('beforeunload', onBeforeUnload)
         return () => window.removeEventListener('beforeunload', onBeforeUnload)
+    }, [])
+
+    useEffect(() => {
+        const api = getApi()
+        if (!api) return
+        return installWindowLeaveGuard(api)
     }, [])
 
     return (

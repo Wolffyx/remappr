@@ -86,10 +86,11 @@ the changes and then leaves; if the device refuses them the dialog stays open.
 [Auto-save](/guide/app/settings#communication) on, changes still waiting to be
 written are saved on the way out without asking. Demo devices never ask.
 
-The window's own close button (Windows and Linux) asks the same question. Any
-other way of closing the window, quitting or reloading it cannot wait for a
-save, so it asks _"Leave without saving?"_ with **Leave** and **Stay** instead
-(in a browser tab, the browser's own _"Leave site?"_).
+In the desktop app, closing the window (its close button, Alt+F4, the taskbar),
+quitting, or reloading it with Ctrl+R asks the same question. A reload from the
+app menu cannot wait for a save, so it asks _"Leave without saving?"_ with
+**Leave** and **Stay** instead. In a browser tab, closing or reloading shows the
+browser's own _"Leave site?"_.
 
 ## Backup & restore
 
