@@ -3,6 +3,7 @@ import type { Transport } from '@firmware'
 import { pickAdapter } from '@firmware'
 import { rememberConnectedDeviceName } from '@/transport/web-serial'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
+import { LeaveGuardDialog } from '@/features/connection/LeaveGuardDialog'
 import { DongleLanding } from '@/features/connection/DongleLanding'
 import { DeviceEditor } from '@/features/devices/DeviceEditor'
 import useConnectionStore from '@/stores/connectionStore'
@@ -239,6 +240,7 @@ function App(): JSX.Element {
             <WhatsNewDialog />
             <Toaster richColors position="top-center" />
             <UnlockPanel layout="card" />
+            <LeaveGuardDialog />
         </ThemeProvider>
     )
 }

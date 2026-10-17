@@ -9,6 +9,7 @@ import useDynamicCatalogStore from '@/stores/dynamicCatalogStore'
 import useConfigStore from '@/stores/configStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import { withSaveMode } from '@/lib/saveMode'
+import { confirmLeave, dismissLeavePrompt } from '@/stores/leaveGuardStore'
 import useLayerSelectionStore from '@/stores/layerSelectionStore'
 import useKeymapStore from '@/stores/keymapStore'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
@@ -101,12 +102,16 @@ interface ConnectionState {
      *  modal, Builder) right before they read — keeps the post-save hot path free
      *  of the full device config read. */
     reseedConfigIfStale: () => void
-    /** Open a read-only view of a behind-dongle node and make it the active
-     *  service, stashing the current (dongle) service as `parentService`. */
+    /** Open a view of a behind-dongle node and make it the active service,
+     *  stashing the current (dongle) service as `parentService`. Asks first
+     *  when the device being left holds unsaved edits (leaveGuardStore). */
     openNode: (id: number) => Promise<void>
-    /** Return from a node view to the stashed dongle service. No-op off a node. */
-    returnToParent: () => void
-    disconnect: () => Promise<void>
+    /** Return from a node view to the stashed dongle service. No-op off a node.
+     *  Asks first when the node holds unsaved edits. */
+    returnToParent: () => Promise<void>
+    /** Close the device. Asks first when it holds unsaved edits; resolves false
+     *  when the user chose to stay, true once it is closed. */
+    disconnect: () => Promise<boolean>
 }
 
 const connectionMiddleware =
@@ -141,7 +146,12 @@ const useConnectionStore = create<ConnectionState>()(
                 // dropped dongle transport) also drops any node-view back-pointer,
                 // so a later reconnect can't read a stale dongle as the node roster
                 // source. Swaps to a node view pass a non-null service and skip this.
-                if (!service) set({ parentService: null, activeNodeId: null })
+                if (!service) {
+                    set({ parentService: null, activeNodeId: null })
+                    // The device went away under an open unsaved-changes
+                    // prompt: nothing is left to save.
+                    dismissLeavePrompt()
+                }
                 // A demo device has no switch matrix, so give it an
                 // OS-event-backed keyTest facade — Key Test then works in demo
                 // through the same path real hardware would, and the Header gate
@@ -299,6 +309,8 @@ const useConnectionStore = create<ConnectionState>()(
             openNode: async (id) => {
                 // The node roster lives on the dongle. When already viewing a node
                 // the dongle is the stashed parent; otherwise it's the live service.
+                if (!(get().parentService ?? get().service)?.nodes) return
+                if (!(await confirmLeave(get().service))) return
                 const { service, parentService, communication } = get()
                 const dongle = parentService ?? service
                 if (!dongle?.nodes) return
@@ -319,7 +331,9 @@ const useConnectionStore = create<ConnectionState>()(
                 })
                 get().setService(view, communication ?? undefined)
             },
-            returnToParent: () => {
+            returnToParent: async () => {
+                if (!get().parentService) return
+                if (!(await confirmLeave(get().service))) return
                 const { parentService, communication } = get()
                 if (!parentService) return
                 // Clear before the swap so setService's null-guard can't fight it.
@@ -357,6 +371,7 @@ const useConnectionStore = create<ConnectionState>()(
             setShowConnectionModal: (visible) =>
                 set({ showConnectionModal: visible }),
             disconnect: async () => {
+                if (!(await confirmLeave(get().service))) return false
                 const {
                     service,
                     parentService,
@@ -364,7 +379,7 @@ const useConnectionStore = create<ConnectionState>()(
                     resetConnection,
                 } = get()
                 if (!service) {
-                    return
+                    return true
                 }
 
                 try {
@@ -389,6 +404,7 @@ const useConnectionStore = create<ConnectionState>()(
                 connectionAbort.abort('User disconnected')
                 resetConnection()
                 set({ connectionAbort: new AbortController() })
+                return true
             },
         })),
         {

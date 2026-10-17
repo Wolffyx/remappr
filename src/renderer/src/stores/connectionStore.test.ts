@@ -161,7 +161,7 @@ describe('connectionStore node views', () => {
         useConnectionStore.getState().setService(dongle, 'ble')
         await useConnectionStore.getState().openNode(0x0007)
 
-        useConnectionStore.getState().returnToParent()
+        await useConnectionStore.getState().returnToParent()
 
         const s = useConnectionStore.getState()
         expect(s.service).toBe(dongle)

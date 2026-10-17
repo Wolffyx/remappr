@@ -97,6 +97,8 @@ All four are covered in
 | 🗑       | **Discard changes**         | Revert all pending changes.                                                                                                                                                                              |
 | **Save** | **Save keymap to keyboard** | Commit changes to the device. With [Auto-save](/guide/app/settings#communication) on it becomes a pulsing auto-save indicator instead. Not shown for firmwares that save on their own, nor in demo mode. |
 
+Leaving the device with unsaved changes asks to **Save**, **Discard** or **Cancel** first (see [the device menu](/guide/app/connecting#the-device-menu)).
+
 ## Layers
 
 The **LAYERS** sidebar lists layers with a colour dot and an `L0`/`L1` badge.

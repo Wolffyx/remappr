@@ -78,6 +78,14 @@ Entries depend on the device and the firmware:
   Remappr and restores the stock keymap."_
 - **App settings** — opens the [Settings dialog](/guide/app/settings).
 
+Leaving a device that holds unsaved changes (**Disconnect**, the Remappr logo,
+**Back to _(parent)_**, another node, or another device) first asks _"Save
+changes to (device)?"_ with **Save**, **Discard** and **Cancel**. **Save** writes
+the changes and then leaves; if the device refuses them the dialog stays open.
+**Discard** drops them and leaves. **Cancel** stays where you are. With
+[Auto-save](/guide/app/settings#communication) on, changes still waiting to be
+written are saved on the way out without asking. Demo devices never ask.
+
 ## Backup & restore
 
 Remappr keeps a local backup of each device's layout, keyed per device, and
