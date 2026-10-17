@@ -84,12 +84,19 @@ can use.
 
 ## Assigning an action
 
-Click an action field to open **Assign action**. Search, or narrow the list
-with the group chips (**All**, Mouse, Keyboard, Media, Gamepad, System, Macro,
-Profile / layer; a device offers only the groups it can send). **Disabled**
-turns the control off.
+Click an action field to open **Assign action**: the same picker the keymap
+editor uses for a key. Its action list holds what the device can send:
 
-![Assign action for the Halo M2's rear side button: the search box, group chips, Disabled, and the Mouse and Keyboard groups](/images/devices/action-picker.webp)
+- **Key press**: every keyboard and media key the device can send, in the
+  keycode grid with its tabs and search, as on a keyboard.
+- The device's other groups (Mouse, Gamepad, System, Macro, Profile / layer,
+  and so on), each picked from its list.
+- **Disabled** turns the control off.
+
+A device offers only the actions it can send. The picker stays open after a
+pick, so you can try a few; **←** goes back to the inspector.
+
+![Assign action for the Halo M2's rear side button: the action list and the Key press keycode grid](/images/devices/action-picker.webp)
 
 In the **Command** workspace, **⌘K** (**Ctrl+K**) opens the same list as a
 palette, _"Assign action to …"_, with **Disabled** first.

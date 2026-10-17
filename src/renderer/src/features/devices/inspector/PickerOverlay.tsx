@@ -1,11 +1,11 @@
-// Pattern check: no GoF pattern (-) — rejected — connects the store's pick target to the ActionPicker and writes the picked action through the undoable mutations.
+// Pattern check: no GoF pattern (-) — rejected — connects the store's pick target to the device action picker and writes the picked action through the undoable mutations.
 import type { JSX } from 'react'
 import { bindingOf } from '@firmware/devices/defaults'
 import { useBindingMutations } from '../model/bindingMutations'
 import useDeviceEditorStore, {
     selectActiveBindings,
 } from '../model/deviceEditorStore'
-import { ActionPicker } from './ActionPicker'
+import { DeviceActionPicker } from './DeviceActionPicker'
 
 /** The action picker over its container while a slot is being assigned. */
 export function PickerOverlay(): JSX.Element | null {
@@ -23,15 +23,12 @@ export function PickerOverlay(): JSX.Element | null {
         loaded.index.catalog,
     ) as unknown as Record<string, unknown>
     return (
-        <ActionPicker
+        <DeviceActionPicker
             key={pick.field + pick.title}
             title={pick.title}
             value={current[pick.field] as string | null | undefined}
-            index={loaded.index}
-            onPick={(id) => {
-                patch(c.id, { [pick.field]: id })
-                setPick(null)
-            }}
+            catalog={loaded.index.catalog}
+            onPick={(id) => patch(c.id, { [pick.field]: id })}
             onClose={() => setPick(null)}
         />
     )
