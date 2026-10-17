@@ -93,8 +93,10 @@ editor uses for a key. Its action list holds what the device can send:
   and so on), each picked from its list.
 - **Disabled** turns the control off.
 
-A device offers only the actions it can send. The picker stays open after a
-pick, so you can try a few; **←** goes back to the inspector.
+A device offers only the actions it can send. Choosing a type in the list
+binds nothing yet: the action is set when you pick it from that type. The
+picker stays open after a pick, so you can try a few; **←** goes back to the
+inspector.
 
 ![Assign action for the Halo M2's rear side button: the action list and the Key press keycode grid](/images/devices/action-picker.webp)
 

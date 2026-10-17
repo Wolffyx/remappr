@@ -47,6 +47,7 @@ export function DeviceActionPicker({
                     layers={[]}
                     codec={picker.codec}
                     catalog={picker.catalog}
+                    assignOnTypeChange={false}
                     onChange={(draft) => {
                         const id = picker.fromDraft(draft)
                         if (id !== undefined) onPick(id)
