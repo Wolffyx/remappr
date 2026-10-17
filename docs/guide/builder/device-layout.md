@@ -92,9 +92,11 @@ it connects it is drawn your way.
 ## Layout JSON
 
 **Layout JSON** (or **View / edit layout JSON** in the Layout panel) opens
-_"Device layout"_: the whole layout as JSON, positions in key units. Edit it
-and **Apply layout**, or **Revert** to the drawing on the canvas. The JSON is
-checked before it is applied.
+_"Device layout"_: the whole layout as JSON, positions in key units, in the
+same editor as the keymap's JSON. Mistakes are underlined as you type, and
+**Ctrl/⌘+Space** suggests fields and values. Edit it and **Apply layout**, or
+**Revert** to the drawing on the canvas. The JSON is checked again before it is
+applied.
 
 ## Next
 

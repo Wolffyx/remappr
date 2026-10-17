@@ -1,10 +1,13 @@
-// Pattern check: no GoF pattern (-) — rejected — modal with a JSON textarea validated through the firmware's parseDeviceLayout before it replaces the layout.
-import { useState, type JSX } from 'react'
+// Pattern check: no GoF pattern (-) — rejected — modal with a lazily loaded Monaco JSON editor, validated through the firmware's parseDeviceLayout before it replaces the layout.
+import { lazy, Suspense, useState, type JSX } from 'react'
 import { Check, Code } from 'lucide-react'
 import { layoutFromModel, parseDeviceLayout } from '@firmware/devices/schema'
 import type { DeviceModel } from '@firmware/devices/types'
 import { Button } from '@/ui/button'
 import { Modal } from '@/ui/modal'
+
+// Monaco is multi-MB: load it only when the modal first opens.
+const LayoutJsonEditor = lazy(() => import('./LayoutJsonEditor'))
 
 const toText = (m: DeviceModel): string =>
     JSON.stringify(layoutFromModel(m), null, 2)
@@ -56,7 +59,13 @@ export function LayoutJsonModal({
                     ) : (
                         <span className="flex-1" />
                     )}
-                    <Button variant="secondary" onClick={() => setText(null)}>
+                    <Button
+                        variant="secondary"
+                        onClick={() => {
+                            setText(null)
+                            setError(null)
+                        }}
+                    >
                         Revert
                     </Button>
                     <Button onClick={apply}>
@@ -65,17 +74,21 @@ export function LayoutJsonModal({
                 </div>
             }
         >
-            <textarea
-                aria-label="Layout JSON"
-                value={text ?? toText(model)}
-                onChange={(e) => {
-                    setText(e.target.value)
-                    setError(null)
-                }}
-                spellCheck={false}
-                className="h-[380px] w-full resize-y rounded-[10px] border border-input bg-background p-3 font-mono text-xs leading-relaxed outline-none aria-invalid:border-destructive"
-                aria-invalid={!!error}
-            />
+            <Suspense
+                fallback={
+                    <div className="grid h-[380px] place-items-center rounded-[10px] border border-input text-xs text-muted-foreground">
+                        Loading editor…
+                    </div>
+                }
+            >
+                <LayoutJsonEditor
+                    value={text ?? toText(model)}
+                    onChange={(next) => {
+                        setText(next)
+                        setError(null)
+                    }}
+                />
+            </Suspense>
         </Modal>
     )
 }
