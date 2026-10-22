@@ -6,6 +6,7 @@
 // coordinator, its input forward mode, and — for a mode-A coordinator — the cluster
 // address map (hardware UID → position/encoder/pointer base). Edits local state,
 // stages one setNode() patch of the changed fields, and pushes on commit().
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useRef, useState } from 'react'
 import { Waypoints, Plus, Trash2 } from 'lucide-react'
 
@@ -132,6 +133,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
             opened={opened}
             onClose={onClose}
             title="Node & cluster"
@@ -269,8 +271,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                     <Label className="text-xs">
                                         Position base
                                     </Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={0}
                                         value={n.positionBase}
                                         onChange={(e) =>
@@ -284,8 +285,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <Label className="text-xs">Rows</Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={1}
                                         value={n.rows}
                                         onChange={(e) =>
@@ -297,8 +297,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <Label className="text-xs">Cols</Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={1}
                                         value={n.cols}
                                         onChange={(e) =>
@@ -314,8 +313,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                     <Label className="text-xs">
                                         Encoder base (optional)
                                     </Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={0}
                                         value={n.encoderBase ?? ''}
                                         onChange={(e) =>
@@ -331,8 +329,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                     <Label className="text-xs">
                                         Pointer base (optional)
                                     </Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={0}
                                         value={n.pointerBase ?? ''}
                                         onChange={(e) =>

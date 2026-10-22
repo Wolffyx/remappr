@@ -147,9 +147,7 @@ export function ExportPanel({
 
             {/* Per-target project downloads — compact button row */}
             <div className="space-y-2">
-                <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                    Build projects
-                </p>
+                <p className="eyebrow">Build projects</p>
                 <div className="flex flex-wrap gap-2">
                     {targets.map((t) => {
                         const covers = alsoCovers(config, t)
@@ -179,9 +177,7 @@ export function ExportPanel({
 
             {/* Per-firmware readiness checklist */}
             <div className="space-y-2">
-                <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                    Firmware readiness
-                </p>
+                <p className="eyebrow">Firmware readiness</p>
                 <ul className="space-y-1.5">
                     {readiness.map((r) => (
                         <li

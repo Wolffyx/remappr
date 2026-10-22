@@ -34,10 +34,10 @@ export function RestoreStockModal(props: RestoreStockModalProps): JSX.Element {
             </DropdownMenuItem>
 
             <Modal
+                size="lg"
                 opened={showModal}
                 onClose={handleClose}
                 onOk={handleOk}
-                customModalBoxClass="w-11/12 max-w-5xl"
                 success="Restore Stock Settings"
                 close="Cancel"
                 title="Restore Stock Settings"

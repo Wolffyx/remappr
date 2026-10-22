@@ -289,6 +289,15 @@
     --radius-modal: calc(var(--radius) + 6px);
 }
 
+/* Design-system eyebrow: the section label above a group of controls. */
+@utility eyebrow {
+    font-size: var(--text-caption);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted-foreground);
+}
+
 /*---break---*/
 @layer base {
     * {

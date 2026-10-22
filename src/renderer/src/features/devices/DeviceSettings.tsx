@@ -59,13 +59,13 @@ export function DeviceSettingsButton(): JSX.Element | null {
                 onClick={() => setOpen(true)}
             />
             <Modal
+                size="md"
+                kind="live"
                 opened={open}
                 onClose={() => setOpen(false)}
                 title="Device settings"
                 subtitle={service?.deviceInfo.name}
                 headerIcon={<SlidersHorizontal />}
-                customModalBoxClass="w-11/12 max-w-2xl"
-                showFooter={false}
                 isDismissable
             >
                 {open ? render() : null}

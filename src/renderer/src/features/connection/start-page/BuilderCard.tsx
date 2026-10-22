@@ -9,6 +9,7 @@
 // firmware. At GA, access falls back to the premium entitlement and this toasts
 // the locked state instead. Opening flips builderStore.open; App swaps the start
 // page for the full-screen <Builder/>.
+import { Badge } from '@/ui/badge'
 import { ArrowRight, Lock, Ruler, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { useBuilderAccess, useBuilderStage } from '@/hooks/use-premium'
@@ -73,15 +74,13 @@ export function BuilderCard(): JSX.Element {
                         BUILDER
                     </span>
                     {free && (
-                        <span
-                            className="inline-flex items-center gap-1 rounded-full px-[7px] py-0.5 text-meta font-bold uppercase text-success"
-                            style={{
-                                background:
-                                    'color-mix(in oklab, var(--primary) 10%, transparent)',
-                            }}
+                        <Badge
+                            size="sm"
+                            tone="success"
+                            className="rounded-full"
                         >
-                            <Sparkles size={10} /> {stage} · FREE
-                        </span>
+                            <Sparkles /> {stage} · Free
+                        </Badge>
                     )}
                 </div>
                 <div className="mt-1 text-panel-title text-muted-foreground">

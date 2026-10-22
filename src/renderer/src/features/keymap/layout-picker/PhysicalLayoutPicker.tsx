@@ -38,9 +38,7 @@ export const PhysicalLayoutPicker = ({
 
     return (
         <SidebarGroupContent>
-            <SidebarGroupLabel className="text-caption font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Layouts
-            </SidebarGroupLabel>
+            <SidebarGroupLabel className="eyebrow">Layouts</SidebarGroupLabel>
             <SidebarGroupAction title="Add Layout">
                 <Plus /> <span className="sr-only">Add Layout</span>
             </SidebarGroupAction>
@@ -112,7 +110,7 @@ export const PhysicalLayoutPicker = ({
                                     }
                                     className="pointer-events-none w-auto p-2"
                                 >
-                                    <div className="mb-1 px-1 text-meta font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                                    <div className="eyebrow mb-1 px-1">
                                         {layout.name} · {layout.keys.length}{' '}
                                         keys
                                     </div>

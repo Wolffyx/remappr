@@ -1,4 +1,5 @@
 // pattern-check: skip — Keychron Advanced-Mode settings modal; reads/writes through service.advanced + service.wireless facades
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useState } from 'react'
 import { Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -7,7 +8,6 @@ import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
-import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
 import { Switch } from '@/ui/switch'
 
@@ -116,6 +116,8 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
+            kind="live"
             opened={opened}
             onClose={onClose}
             title="Advanced Mode"
@@ -152,9 +154,8 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                             >
                                 Mode (raw)
                             </Label>
-                            <Input
+                            <NumberInput
                                 id="debounce-mode"
-                                type="number"
                                 min={0}
                                 max={255}
                                 value={debounceMode}
@@ -163,7 +164,6 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                                         parseInt(e.target.value, 10) || 0,
                                     )
                                 }
-                                className="w-24"
                                 disabled={loading}
                             />
                             <span className="text-meta text-muted-foreground">
@@ -190,9 +190,8 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                             >
                                 Value (raw)
                             </Label>
-                            <Input
+                            <NumberInput
                                 id="report-rate"
-                                type="number"
                                 min={0}
                                 max={255}
                                 value={reportRate}
@@ -201,7 +200,6 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                                         parseInt(e.target.value, 10) || 0,
                                     )
                                 }
-                                className="w-24"
                                 disabled={loading}
                             />
                         </div>

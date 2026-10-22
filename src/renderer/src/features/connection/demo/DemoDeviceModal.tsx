@@ -41,13 +41,13 @@ export function DemoDeviceModal({
 }): JSX.Element {
     return (
         <Modal
+            size="md"
+            kind="readonly"
             opened={opened}
             onClose={onClose}
             title="Try a demo device"
             subtitle="Simulated devices — nothing is written anywhere"
             headerIcon={<Sparkles />}
-            customModalBoxClass="w-11/12 max-w-3xl"
-            showFooter={false}
             isDismissable
         >
             <div className="grid grid-cols-[repeat(auto-fill,minmax(196px,1fr))] gap-2.5">

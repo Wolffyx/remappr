@@ -68,9 +68,7 @@ function HoverCard({
             className="pointer-events-none absolute z-[5] -translate-x-1/2 -translate-y-full rounded-[9px] border border-border bg-popover px-[11px] py-[7px] whitespace-nowrap shadow-[0_10px_28px_rgba(0,0,0,.4)]"
             style={{ left: box.x + box.w / 2, top: box.y - 10 }}
         >
-            <div className="text-[10px] font-bold tracking-[.07em] text-muted-foreground uppercase">
-                {control.name}
-            </div>
+            <div className="eyebrow">{control.name}</div>
             <div className="flex items-center gap-1.5 text-[13px] font-bold">
                 <span
                     className="size-[7px] rounded-[3px]"

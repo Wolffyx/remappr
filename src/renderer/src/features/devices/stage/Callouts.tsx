@@ -128,9 +128,7 @@ export function Callout({
             )}
             style={{ top: y, [left ? 'left' : 'right']: CALL_M }}
         >
-            <span className="text-[9.5px] font-bold tracking-[.08em] text-muted-foreground uppercase">
-                {control.name}
-            </span>
+            <span className="eyebrow">{control.name}</span>
             <span
                 className={cn(
                     'flex max-w-full items-center gap-1.5',

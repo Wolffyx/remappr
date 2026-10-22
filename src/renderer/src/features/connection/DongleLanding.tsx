@@ -7,6 +7,7 @@
 // Clicking an online node opens a view of it via the store's openNode, which
 // swaps the active service to the relayed node: a mouse or a joystick to edit
 // through the relay, a keyboard read-only.
+import { Badge } from '@/ui/badge'
 import { JSX, useCallback, useEffect, useState } from 'react'
 import {
     Cpu,
@@ -292,9 +293,7 @@ export function DongleLanding(): JSX.Element {
                         )
                     }
                 >
-                    <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Nodes
-                    </h2>
+                    <h2 className="eyebrow mb-3 font-medium">Nodes</h2>
                     {loading && nodes.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
                             Scanning for nodes…
@@ -345,13 +344,15 @@ export function DongleLanding(): JSX.Element {
                                                     {n.label}
                                                 </span>
                                                 {n.isMaster && (
-                                                    <span
+                                                    <Badge
+                                                        size="sm"
+                                                        tone="warning"
                                                         title="Topology master (§5 election)"
-                                                        className="inline-flex shrink-0 items-center gap-0.5 rounded bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-warning"
+                                                        className="shrink-0"
                                                     >
-                                                        <Crown className="size-2.5" />
+                                                        <Crown />
                                                         Master
-                                                    </span>
+                                                    </Badge>
                                                 )}
                                             </div>
                                             <div className="text-caption text-muted-foreground">

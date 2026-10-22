@@ -2,7 +2,6 @@
 import type { JSX, ReactNode } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 import type { ActionId, ControlOption } from '@firmware/devices/types'
-import { Switch } from '@/ui/switch'
 import { cn } from '@/lib/cn'
 import type { CatalogIndex } from '@/lib/devices/bindingSummary'
 import {
@@ -22,9 +21,7 @@ export function InSection({
     return (
         <section className="border-t border-border px-4 py-3.5">
             <div className="mb-2.5 flex items-center justify-between">
-                <span className="text-caption font-bold tracking-[.08em] text-muted-foreground uppercase">
-                    {label}
-                </span>
+                <span className="eyebrow">{label}</span>
                 {right}
             </div>
             {children}
@@ -168,36 +165,4 @@ export function OutSelect({
 }
 
 /** A label (and hint) with a switch on the right. */
-export function SwitchRow({
-    label,
-    hint,
-    checked,
-    disabled,
-    onChange,
-}: {
-    label: string
-    hint?: string
-    checked: boolean
-    disabled?: boolean
-    onChange: (v: boolean) => void
-}): JSX.Element {
-    return (
-        <label className="flex cursor-pointer items-center gap-2.5 py-[7px]">
-            <span className="flex-1">
-                <span className="block text-panel-title font-semibold">
-                    {label}
-                </span>
-                {hint ? (
-                    <span className="block text-xs text-muted-foreground">
-                        {hint}
-                    </span>
-                ) : null}
-            </span>
-            <Switch
-                checked={checked}
-                disabled={disabled}
-                onCheckedChange={onChange}
-            />
-        </label>
-    )
-}
+export { SwitchRow } from '@/ui/switch-row'

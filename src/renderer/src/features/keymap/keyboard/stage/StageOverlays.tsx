@@ -1,4 +1,5 @@
 // pattern-check: skip — presentational stage overlays extracted from KeyboardView
+import { Badge } from '@/ui/badge'
 import { Eraser, Eye, SquarePen, Wand2, X } from 'lucide-react'
 import { CATEGORY_META, layerAccent } from '@/lib/keymap/keyCategory'
 import { KeyCapPreview } from '../KeyCapPreview'
@@ -7,13 +8,17 @@ import type { KeyPosition } from '../PhysicalLayoutCanvas'
 /** The pulsing green LIVE chip shown while live view is on. */
 export function LivePill(): JSX.Element {
     return (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-success/40 bg-success/15 px-2.5 py-1 text-caption font-bold uppercase tracking-[0.04em] text-success">
+        <Badge
+            size="sm"
+            tone="success"
+            className="gap-1.5 rounded-full border-success/40 px-2.5 py-1 text-caption"
+        >
             <span className="relative flex size-[7px]">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
                 <span className="relative inline-flex size-[7px] rounded-full bg-success" />
             </span>
-            LIVE
-        </span>
+            Live
+        </Badge>
     )
 }
 

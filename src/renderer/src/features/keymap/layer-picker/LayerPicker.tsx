@@ -88,9 +88,7 @@ export const LayerPicker = ({
 
     return (
         <>
-            <SidebarGroupLabel className="text-caption font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Layers
-            </SidebarGroupLabel>
+            <SidebarGroupLabel className="eyebrow">Layers</SidebarGroupLabel>
             <SidebarGroupAction
                 title="Add Layer"
                 onClick={add}

@@ -106,6 +106,8 @@ export function UnicodeInputModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
+            kind="live"
             opened={opened}
             onClose={onClose}
             title="Unicode Input"

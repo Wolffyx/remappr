@@ -37,10 +37,10 @@ export default function LayerNameDialog(
 
     return (
         <Modal
+            size="sm"
             success="Update"
             onOk={handleSave}
             onClose={props.onClose}
-            customModalBoxClass="w-11/14 max-w-2xl"
             text="Rename"
             type="text"
         >

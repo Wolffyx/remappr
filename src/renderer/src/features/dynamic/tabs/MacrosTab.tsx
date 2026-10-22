@@ -1,4 +1,5 @@
 // pattern-check: skip — form tab composing primitives, mirrors sibling *Tab.tsx
+import { DockActions } from '@/ui/dock-shell'
 import { Circle, Plus } from 'lucide-react'
 import { useState } from 'react'
 
@@ -145,14 +146,11 @@ export function MacrosTab({ service, opened }: Props): JSX.Element | null {
                             Press keys to capture…
                         </span>
                     )}
-                    <Button
-                        onClick={save}
-                        size="sm"
-                        disabled={!actions}
-                        className="ml-auto"
-                    >
-                        Save
-                    </Button>
+                    <DockActions>
+                        <Button onClick={save} size="sm" disabled={!actions}>
+                            Save
+                        </Button>
+                    </DockActions>
                 </div>
             )}
         </div>

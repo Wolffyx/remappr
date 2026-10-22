@@ -6,6 +6,7 @@
 // timing / flags) and mod-morph defs (trigger + kept modifiers), stages the
 // changed fields via setHoldTap/setModMorph, and pushes on commit(). A flag whose
 // firmware feature bit is absent is annotated as ignored, not hidden.
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useRef, useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 
@@ -17,7 +18,6 @@ import { saveWithToast } from '@/lib/saveWithToast'
 import { cn } from '@/lib/cn'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
-import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
 import { Switch } from '@/ui/switch'
 import {
@@ -129,6 +129,7 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
             opened={opened}
             onClose={onClose}
             title="Behaviors"
@@ -195,8 +196,7 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                         <Label className="w-28 text-xs">
                                             {f.label}
                                         </Label>
-                                        <Input
-                                            type="number"
+                                        <NumberInput
                                             min={f.min}
                                             max={f.max}
                                             value={h[f.key] ?? 0}
@@ -209,7 +209,6 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                                         ) || 0,
                                                 })
                                             }
-                                            className="w-24"
                                             disabled={saving}
                                         />
                                         <span className="text-meta text-muted-foreground">

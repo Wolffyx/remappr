@@ -1,4 +1,5 @@
 // pattern-check: skip — form tab composing shared primitives
+import { DockActions } from '@/ui/dock-shell'
 import { layerAccent } from '@/lib/keymap/keyCategory'
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
@@ -107,9 +108,11 @@ export function TapDanceTab({
                             </span>
                         </Pair>
                     </EntryCard>
-                    <Button onClick={save} size="sm">
-                        Save
-                    </Button>
+                    <DockActions>
+                        <Button onClick={save} size="sm">
+                            Save
+                        </Button>
+                    </DockActions>
                 </>
             )}
         </div>

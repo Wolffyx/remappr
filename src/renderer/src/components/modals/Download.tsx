@@ -192,16 +192,16 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
 
     return (
         <Modal
+            size="md"
+            kind="readonly"
             opened={opened}
             onClose={onClose}
             title="Configuration Export"
             subtitle="Compile your keymap to firmware config"
             headerIcon={<DownloadIcon />}
-            customModalBoxClass="w-11/14 max-w-3xl"
             type="icon"
             icon={<DownloadIcon />}
             variant="ghost"
-            showFooter={false}
         >
             <div className="min-w-0 space-y-6">
                 {config ? (
@@ -220,9 +220,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
 
                         {service && (
                             <div>
-                                <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                                    Export
-                                </p>
+                                <p className="eyebrow mb-2">Export</p>
                                 <div className="flex flex-wrap gap-2">
                                     <Button
                                         onClick={handleNativeExport}
@@ -244,9 +242,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                         )}
 
                         <div>
-                            <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                                Import
-                            </p>
+                            <p className="eyebrow mb-2">Import</p>
                             {importButton}
                         </div>
                     </div>
@@ -266,9 +262,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
 
                 {/* instructions */}
                 <div>
-                    <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                        Flash to your keyboard
-                    </p>
+                    <p className="eyebrow mb-2">Flash to your keyboard</p>
                     <ol className="space-y-2.5 text-sm text-muted-foreground">
                         {[
                             'Download a firmware tab\'s "project (.zip)" for a ready-to-build repo (config + GitHub Actions workflow + README).',

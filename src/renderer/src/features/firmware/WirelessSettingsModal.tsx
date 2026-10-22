@@ -1,4 +1,5 @@
 // pattern-check: skip — Keychron wireless settings modal; reads/writes through service.wireless facade
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useState } from 'react'
 import { Wifi } from 'lucide-react'
 import { toast } from 'sonner'
@@ -8,7 +9,6 @@ import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
-import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
 import { Switch } from '@/ui/switch'
 
@@ -112,6 +112,8 @@ export function WirelessSettingsModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
+            kind="live"
             opened={opened}
             onClose={onClose}
             title="Wireless Settings"
@@ -152,14 +154,12 @@ export function WirelessSettingsModal({ opened, onClose }: Props): JSX.Element {
                         <Label htmlFor="lpm-timeout" className="w-28 text-xs">
                             Timeout (ms)
                         </Label>
-                        <Input
+                        <NumberInput
                             id="lpm-timeout"
-                            type="number"
                             value={lpmTimeout}
                             onChange={(e) =>
                                 setLpmTimeout(parseInt(e.target.value, 10) || 0)
                             }
-                            className="w-32"
                             disabled={loading}
                         />
                     </div>

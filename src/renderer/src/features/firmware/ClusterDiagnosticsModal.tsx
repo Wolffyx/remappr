@@ -1,5 +1,6 @@
 // pattern-check: skip — cluster-diagnostics view; reads/subscribes through the
 // service.cluster facade (§N4b-3), mirrors WirelessSettingsModal. No abstraction.
+import { Badge } from '@/ui/badge'
 import { useEffect, useState } from 'react'
 import { Activity, Cpu, Crown, Network, RefreshCw, User } from 'lucide-react'
 import { toast } from 'sonner'
@@ -29,31 +30,24 @@ const hex2 = (n: number): string => `0x${n.toString(16).padStart(2, '0')}`
 /** coordinator = amber crown chip; follower = muted user chip. */
 function RoleBadge({ coordinator }: { coordinator: boolean }): JSX.Element {
     return coordinator ? (
-        <span className="inline-flex items-center gap-1 rounded bg-warning/15 px-1.5 py-0.5 text-caption font-semibold uppercase tracking-wide text-warning">
-            <Crown className="size-3" />
+        <Badge size="sm" tone="warning">
+            <Crown />
             Coordinator
-        </span>
+        </Badge>
     ) : (
-        <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
-            <User className="size-3" />
+        <Badge size="sm" tone="muted">
+            <User />
             Follower
-        </span>
+        </Badge>
     )
 }
 
 /** ready/seen state pill: green when the flag is set, muted otherwise. */
 function StateChip({ label, ok }: { label: string; ok: boolean }): JSX.Element {
     return (
-        <span
-            className={cn(
-                'inline-flex items-center rounded px-1.5 py-0.5 text-meta font-semibold uppercase tracking-wide',
-                ok
-                    ? 'bg-success/15 text-success'
-                    : 'bg-muted text-muted-foreground',
-            )}
-        >
+        <Badge size="sm" tone={ok ? 'success' : 'muted'}>
             {label}
-        </span>
+        </Badge>
     )
 }
 
@@ -132,6 +126,8 @@ export function ClusterDiagnosticsModal({
 
     return (
         <Modal
+            size="lg"
+            kind="readonly"
             opened={opened}
             onClose={onClose}
             title="Cluster Diagnostics"

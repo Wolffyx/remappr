@@ -25,9 +25,7 @@ const LEGEND: { cat: KeyCategory; label?: string }[] = [
 export function KeyTypeLegend(): JSX.Element {
     return (
         <>
-            <SidebarGroupLabel className="text-caption font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Key types
-            </SidebarGroupLabel>
+            <SidebarGroupLabel className="eyebrow">Key types</SidebarGroupLabel>
             <SidebarGroupContent>
                 <ul className="flex flex-wrap gap-x-3 gap-y-1.5 px-2 py-1 group-data-[collapsible=icon]:hidden">
                     {LEGEND.map(({ cat, label }) => {

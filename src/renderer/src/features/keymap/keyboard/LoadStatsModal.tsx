@@ -115,14 +115,14 @@ export function LoadStatsModal({
 
     return (
         <Modal
+            size="lg"
+            kind="readonly"
             opened={opened}
             onClose={onClose}
             title="Typing load"
             subtitle="Hand balance & per-finger load"
             headerIcon={<BarChart3 />}
-            customModalBoxClass="w-11/14 max-w-2xl"
             xButton
-            showFooter={false}
         >
             {stats.total === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">
@@ -134,9 +134,7 @@ export function LoadStatsModal({
                     {/* hand balance + total */}
                     <div className="flex flex-col gap-3 sm:flex-row">
                         <div className="flex-1 rounded-xl border bg-background p-4">
-                            <p className="mb-2.5 text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                                Hand balance
-                            </p>
+                            <p className="eyebrow mb-2.5">Hand balance</p>
                             <div className="flex items-center gap-2.5">
                                 <span
                                     className="text-xs font-bold"
@@ -170,9 +168,7 @@ export function LoadStatsModal({
                             </p>
                         </div>
                         <div className="rounded-xl border bg-background p-4 text-center sm:w-36">
-                            <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                                Total
-                            </p>
+                            <p className="eyebrow mb-2">Total</p>
                             <div className="text-2xl font-extrabold tabular-nums">
                                 {totalLabel}
                             </div>
@@ -187,9 +183,7 @@ export function LoadStatsModal({
                         {(['Left hand', 'Right hand'] as const).map(
                             (handLabel, hand) => (
                                 <div key={handLabel} className="flex-1">
-                                    <p className="mb-3 text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                                        {handLabel}
-                                    </p>
+                                    <p className="eyebrow mb-3">{handLabel}</p>
                                     {FINGERS.map((finger, fi) => {
                                         const v = stats.fingers[hand][fi]
                                         const pct = Math.round(

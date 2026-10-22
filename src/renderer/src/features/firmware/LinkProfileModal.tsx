@@ -11,6 +11,8 @@
 // enforces at COMMIT, so the editor never offers — or saves — an out-of-range or
 // cross-knob-inconsistent combo. Edits local state, stages one setNode({
 // linkProfile }) patch, and pushes on commit().
+import { FormGrid, FormRow } from '@/ui/form-row'
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useRef, useState } from 'react'
 import { Gauge, RotateCcw } from 'lucide-react'
 
@@ -25,7 +27,6 @@ import { saveWithToast } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
-import { Input } from '@/ui/input'
 import {
     Select,
     SelectContent,
@@ -128,6 +129,7 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
             opened={opened}
             onClose={onClose}
             title="Link profile"
@@ -186,82 +188,82 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
                         re-validates every value at save.
                     </p>
 
-                    {LINK_KNOB_FIELDS.map((field) => {
-                        const value = linkKnobValue(form, field.knob)
-                        const range = linkKnobRange(field.knob, liveOrUndef)
-                        const base = LINK_PROFILE_BASE[form.profile][field.knob]
-                        const overridden = value !== base
-                        return (
-                            <div
-                                key={field.knob}
-                                className="flex flex-col gap-1"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <Label className="text-xs">
-                                        {field.label}
-                                        {field.unit ? ` (${field.unit})` : ''}
-                                    </Label>
-                                    {overridden && (
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            onClick={() =>
-                                                setKnob(field.knob, base)
+                    <FormGrid>
+                        {LINK_KNOB_FIELDS.map((field) => {
+                            const value = linkKnobValue(form, field.knob)
+                            const range = linkKnobRange(field.knob, liveOrUndef)
+                            const base =
+                                LINK_PROFILE_BASE[form.profile][field.knob]
+                            const overridden = value !== base
+                            return (
+                                <FormRow
+                                    key={field.knob}
+                                    label={field.label}
+                                    hint={`${field.help}${
+                                        field.enumOptions
+                                            ? ''
+                                            : ` · ${range.min}–${range.max}`
+                                    }${overridden ? ' · changed' : ''}`}
+                                    action={
+                                        overridden && (
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="size-6"
+                                                onClick={() =>
+                                                    setKnob(field.knob, base)
+                                                }
+                                                disabled={saving}
+                                                aria-label={`Reset ${field.label} to the profile default`}
+                                            >
+                                                <RotateCcw className="size-3.5" />
+                                            </Button>
+                                        )
+                                    }
+                                >
+                                    {field.enumOptions ? (
+                                        <Select
+                                            value={String(value)}
+                                            onValueChange={(v) =>
+                                                setKnob(
+                                                    field.knob,
+                                                    parseInt(v, 10),
+                                                )
                                             }
-                                            disabled={saving}
-                                            aria-label={`Reset ${field.label} to the profile default`}
                                         >
-                                            <RotateCcw className="size-4" />
-                                        </Button>
+                                            <SelectTrigger className="w-56">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {field.enumOptions.map((o) => (
+                                                    <SelectItem
+                                                        key={o.value}
+                                                        value={String(o.value)}
+                                                    >
+                                                        {o.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <NumberInput
+                                            unit={field.unit}
+                                            min={range.min}
+                                            max={range.max}
+                                            value={value}
+                                            onChange={(e) =>
+                                                setKnob(
+                                                    field.knob,
+                                                    num(e.target.value),
+                                                )
+                                            }
+                                        />
                                     )}
-                                </div>
-                                {field.enumOptions ? (
-                                    <Select
-                                        value={String(value)}
-                                        onValueChange={(v) =>
-                                            setKnob(field.knob, parseInt(v, 10))
-                                        }
-                                    >
-                                        <SelectTrigger className="w-64">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {field.enumOptions.map((o) => (
-                                                <SelectItem
-                                                    key={o.value}
-                                                    value={String(o.value)}
-                                                >
-                                                    {o.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                ) : (
-                                    <Input
-                                        type="number"
-                                        min={range.min}
-                                        max={range.max}
-                                        value={value}
-                                        onChange={(e) =>
-                                            setKnob(
-                                                field.knob,
-                                                num(e.target.value),
-                                            )
-                                        }
-                                    />
-                                )}
-                                <p className="text-xs text-muted-foreground">
-                                    {field.help}
-                                    {!field.enumOptions &&
-                                        ` · ${range.min}–${range.max}`}
-                                    {overridden
-                                        ? ' · overridden'
-                                        : ' · default'}
-                                </p>
-                            </div>
-                        )
-                    })}
+                                </FormRow>
+                            )
+                        })}
+                    </FormGrid>
 
                     {error && (
                         <span className="text-xs text-destructive">

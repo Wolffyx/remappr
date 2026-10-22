@@ -57,14 +57,13 @@ export function SupportModal(): JSX.Element {
             </Button>
 
             <Modal
+                size="sm"
                 opened={open}
                 onClose={(): void => setOpen(false)}
                 title="Support this project"
                 subtitle="Help keep Remappr free and open-source"
                 headerIcon={<Heart />}
-                customModalBoxClass="w-11/12 max-w-md"
-                close="Close"
-                success={false}
+                kind="readonly"
             >
                 <div className="flex flex-col gap-2 py-2">
                     {OPTIONS.map((opt) => (

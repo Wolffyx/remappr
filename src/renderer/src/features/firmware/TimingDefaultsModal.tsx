@@ -7,6 +7,9 @@
 // stage via setConfigDefaults() and push on commit(); fields the connected
 // firmware does not advertise are annotated as ignored rather than hidden, so a
 // config authored for newer firmware is still explicit about what won't apply.
+import { FormGrid, FormRow } from '@/ui/form-row'
+import { NumberInput } from '@/ui/number-input'
+import { SectionLabel } from '@/ui/section-label'
 import { useEffect, useRef, useState } from 'react'
 import { Timer } from 'lucide-react'
 
@@ -15,11 +18,8 @@ import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
-import { cn } from '@/lib/cn'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
-import { Input } from '@/ui/input'
-import { Label } from '@/ui/label'
 
 import {
     TIMING_FIELDS,
@@ -87,6 +87,7 @@ export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
             opened={opened}
             onClose={onClose}
             title="Timing & Defaults"
@@ -107,31 +108,32 @@ export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
                 </>
             }
         >
-            <div className="flex flex-col gap-4 p-2 text-sm">
+            <div className="flex flex-col gap-5 text-sm">
                 {groupedTimingFields().map(([group, fields]) => (
-                    <section key={group} className="flex flex-col gap-2">
-                        <h3 className="font-semibold">{group}</h3>
-                        {fields.map((f) => {
-                            const supported = fieldSupported(f, featureBitmask)
-                            return (
-                                <div
-                                    key={f.key}
-                                    className="flex flex-col gap-1"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Label
-                                            htmlFor={f.key}
-                                            className={cn(
-                                                'w-44 text-xs',
-                                                !supported &&
-                                                    'text-muted-foreground',
-                                            )}
-                                        >
-                                            {f.label}
-                                        </Label>
-                                        <Input
+                    <section key={group} className="flex flex-col gap-1">
+                        <SectionLabel>{group}</SectionLabel>
+                        <FormGrid>
+                            {fields.map((f) => {
+                                const supported = fieldSupported(
+                                    f,
+                                    featureBitmask,
+                                )
+                                return (
+                                    <FormRow
+                                        key={f.key}
+                                        label={f.label}
+                                        htmlFor={f.key}
+                                        disabled={!supported}
+                                        tone={supported ? undefined : 'warning'}
+                                        hint={
+                                            supported
+                                                ? f.description
+                                                : 'This firmware ignores this setting — update the firmware to use it.'
+                                        }
+                                    >
+                                        <NumberInput
                                             id={f.key}
-                                            type="number"
+                                            unit="ms"
                                             min={f.min}
                                             max={f.max}
                                             value={values[f.key]}
@@ -145,28 +147,12 @@ export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
                                                         ) || 0,
                                                 }))
                                             }
-                                            className="w-24"
                                             disabled={saving}
                                         />
-                                        <span className="text-meta text-muted-foreground">
-                                            ms
-                                        </span>
-                                    </div>
-                                    <p
-                                        className={cn(
-                                            'text-caption',
-                                            supported
-                                                ? 'text-muted-foreground'
-                                                : 'text-warning',
-                                        )}
-                                    >
-                                        {supported
-                                            ? f.description
-                                            : 'This firmware ignores this setting — update the firmware to use it.'}
-                                    </p>
-                                </div>
-                            )
-                        })}
+                                    </FormRow>
+                                )
+                            })}
+                        </FormGrid>
                     </section>
                 ))}
             </div>

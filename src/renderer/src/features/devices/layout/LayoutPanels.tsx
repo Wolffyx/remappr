@@ -315,9 +315,7 @@ export function ShellPanel({
                             key={k}
                             className="flex-1 rounded-md border border-border bg-secondary px-[11px] py-[9px]"
                         >
-                            <div className="text-meta font-bold tracking-[.07em] text-muted-foreground uppercase">
-                                {k}
-                            </div>
+                            <div className="eyebrow">{k}</div>
                             <div className="mt-0.5 font-mono text-sm font-bold">
                                 {v}
                             </div>

@@ -43,9 +43,7 @@ export function Pair({
 }): JSX.Element {
     return (
         <label className="flex flex-col gap-1">
-            <span className="text-meta font-semibold uppercase tracking-wide text-muted-foreground">
-                {label}
-            </span>
+            <span className="eyebrow">{label}</span>
             <div className="flex items-center gap-1.5">{children}</div>
         </label>
     )

@@ -43,12 +43,12 @@ export function LayoutJsonModal({
     }
     return (
         <Modal
+            size="md"
             opened={opened}
             onClose={close}
             title="Device layout"
             subtitle={`${model.name} · positions in key units (1U = 19.05 mm)`}
             headerIcon={<Code />}
-            customModalBoxClass="w-11/12 max-w-2xl"
             isDismissable
             footer={
                 <div className="flex w-full items-center gap-2">

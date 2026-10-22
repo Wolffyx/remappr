@@ -309,7 +309,7 @@ export function KeycodePickerGrid({
                                 >
                                     {section.title && (
                                         <div className="mb-2 flex items-baseline gap-2">
-                                            <span className="text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <span className="eyebrow">
                                                 {section.title}
                                             </span>
                                             <span className="text-[10px] tabular-nums text-muted-foreground/60">

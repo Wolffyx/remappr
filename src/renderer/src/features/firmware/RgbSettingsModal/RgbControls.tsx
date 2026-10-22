@@ -67,9 +67,7 @@ export function RgbControls({
 
             {/* Effect */}
             <div>
-                <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                    Effect
-                </p>
+                <p className="eyebrow mb-2">Effect</p>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                     {effects.map((e, i) => {
                         const on = effectIndex === i
@@ -93,9 +91,7 @@ export function RgbControls({
             {/* Colour */}
             {showColor && (
                 <div>
-                    <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
-                        Colour
-                    </p>
+                    <p className="eyebrow mb-2">Colour</p>
                     <div className="flex items-center gap-1.5">
                         {HUE_SWATCHES.map((h) => {
                             const on = model.hue === h

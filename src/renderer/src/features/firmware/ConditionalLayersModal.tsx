@@ -112,6 +112,7 @@ export function ConditionalLayersModal({
 
     return (
         <Modal
+            size="lg"
             opened={opened}
             onClose={onClose}
             title="Conditional layers"

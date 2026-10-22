@@ -139,17 +139,17 @@ export function Settings({
 
     return (
         <Modal
+            size="lg"
             opened={opened}
             onClose={handleClose}
             onOk={() => {
                 committedRef.current = true
             }}
-            success="Done"
+            success="Save"
             close="Cancel"
             title="Settings"
             subtitle="Appearance, keycaps, workspace, start page & device"
             headerIcon={<SettingsIcon />}
-            customModalBoxClass="w-11/14 max-w-4xl"
             type="icon"
             icon={<SettingsIcon />}
             variant="ghost"

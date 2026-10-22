@@ -1,13 +1,13 @@
 // Pattern check: no GoF pattern (-) — rejected — presentational rows for the
 // device settings pages (a titled section, a number row, a switch row); plain
 // composition over the ui primitives.
+import { SwitchRow } from '@/ui/switch-row'
 import type { JSX, ReactNode } from 'react'
 import type { DeviceNumberField } from '@firmware/config'
 
 import { cn } from '@/lib/cn'
 import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
-import { Switch } from '@/ui/switch'
 
 export function SettingsSection({
     title,
@@ -90,14 +90,13 @@ export function NumberSettingRow<K extends string>({
 }
 
 export function SwitchSettingRow({
-    id,
     label,
     description,
     checked,
     disabled,
     onChange,
 }: {
-    id: string
+    id?: string
     label: string
     description?: string
     checked: boolean
@@ -105,24 +104,12 @@ export function SwitchSettingRow({
     onChange: (checked: boolean) => void
 }): JSX.Element {
     return (
-        <div className="flex items-start gap-3">
-            <Switch
-                id={id}
-                checked={checked}
-                onCheckedChange={onChange}
-                disabled={disabled}
-                className="mt-0.5"
-            />
-            <div className="min-w-0">
-                <Label htmlFor={id} className="text-xs">
-                    {label}
-                </Label>
-                {description && (
-                    <p className="text-caption text-muted-foreground">
-                        {description}
-                    </p>
-                )}
-            </div>
-        </div>
+        <SwitchRow
+            label={label}
+            hint={description}
+            checked={checked}
+            disabled={disabled}
+            onChange={onChange}
+        />
     )
 }

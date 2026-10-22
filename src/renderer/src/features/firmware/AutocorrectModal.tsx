@@ -97,6 +97,7 @@ export function AutocorrectModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
             opened={opened}
             onClose={onClose}
             title="Autocorrect"

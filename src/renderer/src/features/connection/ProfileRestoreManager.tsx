@@ -131,12 +131,12 @@ export function ProfileRestoreManager(): JSX.Element {
 
     return (
         <Modal
+            size="md"
             opened={!!prompt}
             onClose={(): void => setPrompt(null)}
             title="Restore your layout?"
             subtitle={prompt ? `Last backed up ${savedAt}` : undefined}
             headerIcon={<RotateCcw />}
-            customModalBoxClass="w-11/12 max-w-lg"
             footer={
                 <div className="flex flex-wrap justify-end gap-2">
                     <Button

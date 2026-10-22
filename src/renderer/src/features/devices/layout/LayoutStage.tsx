@@ -91,9 +91,7 @@ function HoverTag({
             className="pointer-events-none absolute z-[5] -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-[11px] py-[7px] whitespace-nowrap shadow-[0_10px_28px_rgba(0,0,0,.4)]"
             style={{ left: box.x + box.w / 2, top: box.y - 10 }}
         >
-            <div className="text-meta font-bold tracking-[.07em] text-muted-foreground uppercase">
-                {c.name}
-            </div>
+            <div className="eyebrow">{c.name}</div>
             <div className="text-panel-title font-bold">
                 {c.shape} · {c.zone ?? 'body'}
             </div>
