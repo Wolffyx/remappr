@@ -1,5 +1,6 @@
 // Pattern check: no GoF pattern (-) — rejected — aggregates heatmap press counts into
 // hand/finger buckets via key geometry; pure computation + presentational bars, no abstraction.
+import { Button } from '@/ui/button'
 import { layerAccent } from '@/lib/keymap/keyCategory'
 import { useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
@@ -112,6 +113,8 @@ export function LoadStatsModal({
     // pattern-check: skip — presentational stats layout, no abstraction
     // Per-hand accents (design): left = layer-1, right = layer-2.
     const HAND_ACCENT = [layerAccent(0), layerAccent(1)] as const
+    const heatmapOn = useHeatmapStore((s) => s.enabled)
+    const setHeatmap = useHeatmapStore((s) => s.setEnabled)
 
     return (
         <Modal
@@ -125,10 +128,17 @@ export function LoadStatsModal({
             xButton
         >
             {stats.total === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                    No presses recorded yet. Enable the heatmap and type on your
-                    keyboard to build up load stats.
-                </p>
+                <div className="flex flex-col items-center gap-3 py-8 text-center">
+                    <p className="text-sm text-muted-foreground">
+                        No presses recorded yet. Turn on the heatmap and type on
+                        your keyboard to build up load stats.
+                    </p>
+                    {!heatmapOn && (
+                        <Button size="sm" onClick={() => setHeatmap(true)}>
+                            Turn on heatmap
+                        </Button>
+                    )}
+                </div>
             ) : (
                 <div className="space-y-5">
                     {/* hand balance + total */}

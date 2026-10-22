@@ -43,7 +43,7 @@ function DeviceCard(): JSX.Element | null {
                 <div className="truncate text-panel-title font-bold">
                     {model.name}
                 </div>
-                <div className="truncate text-caption text-muted-foreground">
+                <div className="text-caption leading-snug text-muted-foreground">
                     {deviceSummary(model.form, model.controls)}
                     {model.defaulted ? ' · default layout' : ''}
                 </div>

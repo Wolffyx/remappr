@@ -196,7 +196,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
             kind="readonly"
             opened={opened}
             onClose={onClose}
-            title="Configuration Export"
+            title="Export and build"
             subtitle="Compile your keymap to firmware config"
             headerIcon={<DownloadIcon />}
             type="icon"

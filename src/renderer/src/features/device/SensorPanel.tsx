@@ -226,6 +226,9 @@ function ProcedureRunner({
                 </div>
             ) : (
                 <ol className="list-decimal pl-4 text-xs text-muted-foreground">
+                    <li className="list-none -ml-4 mb-1">
+                        Press Start, then follow these steps:
+                    </li>
                     {proc.phases.map((p) => (
                         <li key={p}>{p}</li>
                     ))}

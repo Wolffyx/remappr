@@ -201,7 +201,7 @@ export function ExportPanel({
                                         <li
                                             key={idx}
                                             data-level={i.level}
-                                            className="text-muted-foreground data-[level=error]:text-danger"
+                                            className="text-muted-foreground data-[level=error]:text-danger data-[level=warn]:text-warning"
                                         >
                                             {i.level === 'error' ? '• ' : '· '}
                                             {i.message}

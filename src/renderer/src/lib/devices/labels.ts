@@ -1,6 +1,7 @@
 // pattern-check: skip — pure data: display names for device forms, control kinds, curves and trigger modes.
 import type {
     ControlKind,
+    ControlShape,
     DeviceControl,
     DeviceForm,
     ResponseCurve,
@@ -55,4 +56,21 @@ export function deviceSummary(
     const encoders = controls.filter((c) => c.kind === 'encoder').length
     const enc = encoders ? ` · ${count(encoders, 'encoder')}` : ''
     return `${FORM_LABEL[form]} · ${count(keys, 'key')}${enc}`
+}
+
+export const SHAPE_LABEL: Readonly<Record<ControlShape, string>> = {
+    key: 'Key',
+    round: 'Round',
+    pill: 'Pill',
+    stick: 'Stick',
+    dpad: 'D-pad',
+    hat: 'Hat',
+    trigger: 'Trigger',
+    triggerSide: 'Side trigger',
+    wheel: 'Wheel',
+    ring: 'Ring',
+    knob: 'Knob',
+    sensor: 'Sensor',
+    mouseL: 'Left mouse button',
+    mouseR: 'Right mouse button',
 }

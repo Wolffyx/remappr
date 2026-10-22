@@ -52,7 +52,7 @@ export function ConfigTools(): JSX.Element {
 
     return (
         <>
-            <ToolbarSlot tooltip="Flash & export config">
+            <ToolbarSlot tooltip="Export and build">
                 <DownloadModal />
             </ToolbarSlot>
             <ToolbarButton

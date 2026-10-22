@@ -47,7 +47,25 @@ export interface LayoutStageProps {
     onMove: (id: string, x: number, y: number) => void
     onDragEnd: () => void
     className?: string
+    /** Pan/zoom over the fitted layout (zoom 1 = fit; pan in viewport px),
+     *  the builder's view model. Wheel zooms about the cursor, middle-drag or
+     *  Space-drag pans. Omitted: always fitted. */
+    view?: StageView
+    onView?: (view: StageView) => void
+    /** Move freely instead of on the quarter-unit grid (⌥ also frees a drag). */
+    free?: boolean
 }
+
+export interface StageView {
+    zoom: number
+    panX: number
+    panY: number
+}
+
+const FIT: StageView = { zoom: 1, panX: 0, panY: 0 }
+const Z_MIN = 0.25
+const Z_MAX = 4
+const clampZoom = (z: number): number => Math.min(Z_MAX, Math.max(Z_MIN, z))
 
 const NEUTRAL: BindingSummary = { text: '', cat: 'none' }
 const NOOP_HOVER = (): void => {}
@@ -107,6 +125,9 @@ export function LayoutStage({
     onMove,
     onDragEnd,
     className,
+    view = FIT,
+    onView,
+    free = false,
 }: LayoutStageProps): JSX.Element {
     const wrapRef = useRef<HTMLDivElement>(null)
     const size = useBoxSize(wrapRef)
@@ -116,10 +137,56 @@ export function LayoutStage({
         () => computeLayout(model, { compact: true, frozen: drag?.frame }),
         [model, drag?.frame],
     )
-    const scale = Math.max(
-        0.3,
-        Math.min(size.w / L.W, size.h / L.H, 1.35) * 0.96,
-    )
+    const fit = Math.max(0.3, Math.min(size.w / L.W, size.h / L.H, 1.35) * 0.96)
+    const scale = fit * view.zoom
+    const spacePan = useSpaceHeld(!!onView)
+    const viewRef = useRef(view)
+    useLayoutEffect(() => {
+        viewRef.current = view
+    })
+
+    // Wheel zoom about the cursor (non-passive so the page does not scroll).
+    useEffect(() => {
+        const el = wrapRef.current
+        if (!el || !onView) return
+        const onWheel = (e: WheelEvent): void => {
+            e.preventDefault()
+            const v = viewRef.current
+            const rect = el.getBoundingClientRect()
+            const cx = e.clientX - rect.left - rect.width / 2
+            const cy = e.clientY - rect.top - rect.height / 2
+            const nz = clampZoom(v.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12))
+            if (nz === v.zoom) return
+            const k = nz / v.zoom
+            onView({
+                zoom: nz,
+                panX: cx - (cx - v.panX) * k,
+                panY: cy - (cy - v.panY) * k,
+            })
+        }
+        el.addEventListener('wheel', onWheel, { passive: false })
+        return () => el.removeEventListener('wheel', onWheel)
+    }, [onView])
+
+    const startPan = (e: ReactPointerEvent): void => {
+        if (!onView) return
+        e.preventDefault()
+        const sx = e.clientX
+        const sy = e.clientY
+        const v0 = viewRef.current
+        const move = (ev: PointerEvent): void =>
+            onView({
+                ...v0,
+                panX: v0.panX + ev.clientX - sx,
+                panY: v0.panY + ev.clientY - sy,
+            })
+        const up = (): void => {
+            window.removeEventListener('pointermove', move)
+            window.removeEventListener('pointerup', up)
+        }
+        window.addEventListener('pointermove', move)
+        window.addEventListener('pointerup', up)
+    }
     // Latest callbacks for the window listeners of an ongoing drag.
     const cb = useRef({ onDragStart, onMove, onDragEnd })
     useLayoutEffect(() => {
@@ -141,8 +208,8 @@ export function LayoutStage({
             const k = DEV_S * scale
             cb.current.onMove(
                 drag.id,
-                snapU(drag.x0 + (e.clientX - drag.sx) / k, e.altKey),
-                snapU(drag.y0 + (e.clientY - drag.sy) / k, e.altKey),
+                snapU(drag.x0 + (e.clientX - drag.sx) / k, free || e.altKey),
+                snapU(drag.y0 + (e.clientY - drag.sy) / k, free || e.altKey),
             )
         }
         const up = (): void => {
@@ -155,7 +222,7 @@ export function LayoutStage({
             window.removeEventListener('pointermove', move)
             window.removeEventListener('pointerup', up)
         }
-    }, [drag, scale])
+    }, [drag, scale, free])
 
     const onPress = useCallback(
         (id: string, e: ReactPointerEvent) => {
@@ -182,17 +249,21 @@ export function LayoutStage({
     return (
         <div
             ref={wrapRef}
-            onPointerDown={() => onSelect(null)}
+            onPointerDown={(e) => {
+                if (spacePan || e.button === 1) return startPan(e)
+                onSelect(null)
+            }}
             className={
                 className ?? 'absolute inset-[56px_0_56px] overflow-hidden'
             }
+            style={spacePan ? { cursor: 'grab' } : undefined}
         >
             <div
                 className="absolute top-1/2 left-1/2"
                 style={{
                     width: L.W,
                     height: L.H,
-                    transform: `translate(-50%, -50%) scale(${scale})`,
+                    transform: `translate(calc(-50% + ${view.panX}px), calc(-50% + ${view.panY}px)) scale(${scale})`,
                 }}
             >
                 <div className="relative" style={{ width: L.W, height: L.H }}>
@@ -233,4 +304,30 @@ export function LayoutStage({
             </div>
         </div>
     )
+}
+
+/** True while Space is held outside a text field (temporary pan mode). */
+function useSpaceHeld(enabled: boolean): boolean {
+    const [held, setHeld] = useState(false)
+    useEffect(() => {
+        if (!enabled) return
+        const typing = (t: EventTarget | null): boolean =>
+            t instanceof HTMLElement &&
+            (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
+        const dn = (e: KeyboardEvent): void => {
+            if (e.code !== 'Space' || typing(e.target)) return
+            e.preventDefault()
+            setHeld(true)
+        }
+        const up = (e: KeyboardEvent): void => {
+            if (e.code === 'Space') setHeld(false)
+        }
+        window.addEventListener('keydown', dn)
+        window.addEventListener('keyup', up)
+        return () => {
+            window.removeEventListener('keydown', dn)
+            window.removeEventListener('keyup', up)
+        }
+    }, [enabled])
+    return held
 }

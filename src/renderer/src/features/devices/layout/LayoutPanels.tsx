@@ -17,7 +17,7 @@ import { Button } from '@/ui/button'
 import { Segmented } from '@/ui/segmented'
 import { RangeRow } from '@/components/RangeRow'
 import { cn } from '@/lib/cn'
-import { KIND_LABEL } from '@/lib/devices/labels'
+import { KIND_LABEL, SHAPE_LABEL } from '@/lib/devices/labels'
 import { InSection, SwitchRow } from '../inspector/parts'
 import { NumField } from './NumField'
 
@@ -39,10 +39,13 @@ function Chips<T extends string>({
     options,
     value,
     onChange,
+    labels,
 }: {
     options: readonly T[]
     value: T
     onChange: (v: T) => void
+    /** Display names; the raw id shows when one is missing. */
+    labels?: Readonly<Partial<Record<T, string>>>
 }): JSX.Element {
     return (
         <div className="flex flex-wrap gap-[5px]">
@@ -58,7 +61,7 @@ function Chips<T extends string>({
                             : 'border-border bg-secondary',
                     )}
                 >
-                    {o}
+                    {labels?.[o] ?? o}
                 </button>
             ))}
         </div>
@@ -176,6 +179,7 @@ export function GeometryPanel({
             <InSection label="Shape">
                 <Chips
                     options={CONTROL_SHAPES}
+                    labels={SHAPE_LABEL}
                     value={c.shape}
                     onChange={(shape) => onPatch({ shape })}
                 />
@@ -294,7 +298,8 @@ export function ShellPanel({
     canAdd: boolean
     onShell: (patch: Record<string, number>) => void
     onAdd: (kind: ControlKind) => void
-    onOpenJson: () => void
+    /** Shows a "View / edit layout JSON" button when given. */
+    onOpenJson?: () => void
 }): JSX.Element {
     const shell = model.shell as unknown as Record<string, number>
     return (
@@ -356,15 +361,17 @@ export function ShellPanel({
                     </div>
                 </InSection>
             )}
-            <InSection label="Device layout">
-                <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={onOpenJson}
-                >
-                    <Code className="size-3.5" /> View / edit layout JSON
-                </Button>
-            </InSection>
+            {onOpenJson && (
+                <InSection label="Device layout">
+                    <Button
+                        variant="secondary"
+                        className="w-full"
+                        onClick={onOpenJson}
+                    >
+                        <Code className="size-3.5" /> View / edit layout JSON
+                    </Button>
+                </InSection>
+            )}
         </>
     )
 }
