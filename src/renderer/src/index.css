@@ -55,7 +55,8 @@
 /*  display: inline-flex;*/
 /*}*/
 
-:root {
+:root,
+[data-palette='default'] {
     /* lightness of the start-page news tag colours (features/news) */
     --news-tone-l: 0.56;
     --background: oklch(1 0 0);
@@ -123,9 +124,22 @@
     --cap-face-top-l: 0.96;
     --cap-edge-l: 0.55;
     --cap-dot-l: 0.55;
+    /* Status + layer accents (design system). Not palette-specific: they
+       follow light/dark only. Status = text, icons, dots and 15–20% fills,
+       always beside a word. Layers cycle every four. */
+    --success: oklch(0.627 0.194 149.214);
+    --warning: oklch(0.666 0.179 58.318);
+    --info: oklch(0.623 0.214 259.815);
+    --danger: oklch(0.637 0.237 25.331);
+    --layer-1: oklch(0.7 0.15 286);
+    --layer-2: oklch(0.7 0.15 210);
+    --layer-3: oklch(0.7 0.15 152);
+    --layer-4: oklch(0.7 0.15 80);
 }
 
-.dark {
+/* [data-palette] scopes a palette to one element (Settings swatches). */
+.dark,
+.dark [data-palette='default'] {
     --news-tone-l: 0.74;
     --background: oklch(0.21 0 0);
     --foreground: oklch(0.985 0 0);
@@ -188,6 +202,10 @@
     --cap-face-top-l: 0.37;
     --cap-edge-l: 0.62;
     --cap-dot-l: 0.62;
+    --success: oklch(0.792 0.209 151.711);
+    --warning: oklch(0.828 0.189 84.429);
+    --info: oklch(0.623 0.214 259.815);
+    --danger: oklch(0.704 0.191 22.216);
 }
 
 @theme inline {
@@ -223,6 +241,14 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-info: var(--info);
+    --color-danger: var(--danger);
+    --color-layer-1: var(--layer-1);
+    --color-layer-2: var(--layer-2);
+    --color-layer-3: var(--layer-3);
+    --color-layer-4: var(--layer-4);
 
     --font-sans: var(--font-sans);
     --font-mono: var(--font-mono);
@@ -243,6 +269,24 @@
     --shadow-lg: var(--shadow-lg);
     --shadow-xl: var(--shadow-xl);
     --shadow-2xl: var(--shadow-2xl);
+}
+
+/* Design-system type scale (font-size only, so line-height still comes from
+   the surrounding leading). Pairs with Tailwind's text-sm (body 14) and
+   text-xs (small 12). Keycap legends size themselves per key and are not on
+   this scale. */
+@theme {
+    --text-hero: 40px;
+    --text-title-xl: 21px;
+    --text-title-lg: 19px;
+    --text-title: 17px;
+    --text-brand: 14.5px;
+    --text-panel-title: 13px;
+    --text-control: 12.5px;
+    --text-caption: 11px;
+    --text-meta: 10.5px;
+    /* Modal: 16px at the default radius, follows each palette. */
+    --radius-modal: calc(var(--radius) + 6px);
 }
 
 /*---break---*/
@@ -266,12 +310,12 @@
         background:
             radial-gradient(
                 120% 80% at 50% 0%,
-                color-mix(in oklch, var(--primary) 9%, transparent),
+                color-mix(in oklab, var(--primary) 9%, transparent),
                 transparent 60%
             ),
             radial-gradient(
                 60% 50% at 50% 100%,
-                color-mix(in oklch, var(--foreground) 4%, transparent),
+                color-mix(in oklab, var(--foreground) 4%, transparent),
                 transparent 70%
             );
         position: relative;
@@ -282,7 +326,7 @@
         position: absolute;
         inset: 0;
         background-image: radial-gradient(
-            color-mix(in oklch, var(--foreground) 7%, transparent) 1px,
+            color-mix(in oklab, var(--foreground) 7%, transparent) 1px,
             transparent 1px
         );
         background-size: 26px 26px;
@@ -321,7 +365,7 @@
    editor share one look instead of the OS default. */
 * {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklch, var(--foreground) 16%, transparent)
+    scrollbar-color: color-mix(in oklab, var(--foreground) 16%, transparent)
         transparent;
 }
 ::-webkit-scrollbar {
@@ -332,16 +376,16 @@
     background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: color-mix(in oklch, var(--foreground) 16%, transparent);
+    background: color-mix(in oklab, var(--foreground) 16%, transparent);
     border-radius: 99px;
     border: 2px solid transparent;
     background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in oklch, var(--foreground) 28%, transparent);
+    background: color-mix(in oklab, var(--foreground) 28%, transparent);
 }
 ::selection {
-    background: color-mix(in oklch, var(--primary) 40%, transparent);
+    background: color-mix(in oklab, var(--primary) 40%, transparent);
 }
 
 /* Design-prototype modal overlay blur. Keyed on Radix/shadcn's stable

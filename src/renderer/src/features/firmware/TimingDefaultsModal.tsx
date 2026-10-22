@@ -148,16 +148,16 @@ export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
                                             className="w-24"
                                             disabled={saving}
                                         />
-                                        <span className="text-[10.5px] text-muted-foreground">
+                                        <span className="text-meta text-muted-foreground">
                                             ms
                                         </span>
                                     </div>
                                     <p
                                         className={cn(
-                                            'text-[11px]',
+                                            'text-caption',
                                             supported
                                                 ? 'text-muted-foreground'
-                                                : 'text-amber-600 dark:text-amber-500',
+                                                : 'text-warning',
                                         )}
                                     >
                                         {supported

@@ -47,17 +47,17 @@ export function DeviceTile({
         <button
             type="button"
             onClick={onPick}
-            className="flex min-w-0 flex-col rounded-[14px] border border-border bg-[color-mix(in_oklch,var(--primary)_5%,var(--card))] p-3 text-left text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_16px_36px_-14px_color-mix(in_oklch,var(--primary)_60%,transparent)]"
+            className="flex min-w-0 flex-col rounded-xl border border-border bg-[color-mix(in_oklab,var(--primary)_5%,var(--card))] p-3 text-left text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_16px_36px_-14px_color-mix(in_oklab,var(--primary)_60%,transparent)]"
         >
             <div className="flex min-w-0 items-center gap-2">
-                <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold">
+                <span className="min-w-0 flex-1 truncate text-panel-title font-bold">
                     {name}
                 </span>
                 <span
                     className="shrink-0 rounded-full px-[7px] py-0.5 text-[9.5px] font-bold"
                     style={{
                         color: `oklch(0.76 0.15 ${badge.hue})`,
-                        background: `color-mix(in oklch, oklch(0.72 0.16 ${badge.hue}) 16%, transparent)`,
+                        background: `color-mix(in oklab, oklch(0.72 0.16 ${badge.hue}) 16%, transparent)`,
                     }}
                 >
                     {badge.text}
@@ -79,7 +79,7 @@ export function DeviceTile({
                     className="inset-0"
                 />
             </div>
-            <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+            <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                 <Icon className="size-[13px] shrink-0" />
                 <span className="truncate">
                     {summary ?? defaultSummary(model)}

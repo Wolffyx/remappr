@@ -134,10 +134,10 @@ function InputRow({
                     style={{ left: `${pct(raw, lo, hi)}%` }}
                 />
             </div>
-            <span className="w-32 shrink-0 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+            <span className="w-32 shrink-0 text-right font-mono text-caption tabular-nums text-muted-foreground">
                 {raw} · {Math.round((value * 100) / 32767)}%
             </span>
-            <span className="w-44 shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+            <span className="w-44 shrink-0 font-mono text-caption tabular-nums text-muted-foreground">
                 {cfg ? `${cfg.min}…${cfg.centre}…${cfg.max}${filter}` : ''}
             </span>
         </div>
@@ -292,7 +292,7 @@ export function JoystickSettingsPanel({
     return (
         <div className="flex flex-col gap-4">
             {!joystick.writable && (
-                <div className="flex items-start gap-2 rounded-[10px] border border-border bg-muted/40 p-3 text-xs">
+                <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs">
                     <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                     <span>
                         Read-only view. Connect the joystick over USB to

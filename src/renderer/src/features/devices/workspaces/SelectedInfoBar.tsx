@@ -32,7 +32,7 @@ export function SelectedInfoBar({
     return (
         <div
             className={cn(
-                'fade-in absolute bottom-[18px] z-10 flex items-center gap-3 rounded-[11px] border border-border bg-card px-3.5 py-2.5 shadow-[0_8px_24px_-10px_rgba(0,0,0,.5)]',
+                'fade-in absolute bottom-[18px] z-10 flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5 shadow-[0_8px_24px_-10px_rgba(0,0,0,.5)]',
                 indent ? 'left-11' : 'left-[18px]',
             )}
         >
@@ -40,7 +40,7 @@ export function SelectedInfoBar({
                 className="size-[9px] rounded-[3px]"
                 style={{ background: categoryAccent(sum.cat) }}
             />
-            <span className="max-w-[220px] truncate text-[17px] font-extrabold">
+            <span className="max-w-[220px] truncate text-title font-extrabold">
                 {sum.text}
             </span>
             <div className="text-xs">

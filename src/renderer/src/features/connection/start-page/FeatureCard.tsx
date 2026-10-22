@@ -21,17 +21,17 @@ export function FeatureCard({
         <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-5 text-center">
             {Icon && (
                 <div
-                    className="mb-3 grid size-10 place-items-center rounded-[10px] text-primary"
+                    className="mb-3 grid size-10 place-items-center rounded-lg text-primary"
                     style={{
                         background:
-                            'color-mix(in oklch, var(--primary) 12%, transparent)',
+                            'color-mix(in oklab, var(--primary) 12%, transparent)',
                     }}
                 >
                     <Icon size={20} />
                 </div>
             )}
-            <div className="text-[14.5px] font-bold">{title}</div>
-            <p className="mx-0 mb-4 mt-1.5 text-[13px] leading-normal text-muted-foreground">
+            <div className="text-brand font-bold">{title}</div>
+            <p className="mx-0 mb-4 mt-1.5 text-panel-title leading-normal text-muted-foreground">
                 {description}
             </p>
             <div className="mt-auto">{action}</div>

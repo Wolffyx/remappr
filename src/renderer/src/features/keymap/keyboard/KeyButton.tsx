@@ -273,14 +273,14 @@ const KeyButtonViewImpl = ({
         ? selectionRing(oneU)
         : multiSelected
           ? {
-                boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in oklch, var(--primary) 70%, transparent)`,
+                boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in oklab, var(--primary) 70%, transparent)`,
             }
           : {}
     const pressedStyle: CSSProperties = pressed
         ? {
               background:
                   'linear-gradient(180deg, oklch(0.72 0.18 150), oklch(0.6 0.18 150))',
-              boxShadow: `0 0 ${oneU * 0.6}px color-mix(in oklch, oklch(0.7 0.2 150) 70%, transparent)`,
+              boxShadow: `0 0 ${oneU * 0.6}px color-mix(in oklab, oklch(0.7 0.2 150) 70%, transparent)`,
           }
         : {}
 
@@ -290,7 +290,7 @@ const KeyButtonViewImpl = ({
         seen && !pressed && !selected && !multiSelected
             ? {
                   boxShadow:
-                      'inset 0 0 0 2px color-mix(in oklch, oklch(0.7 0.18 150) 80%, transparent)',
+                      'inset 0 0 0 2px color-mix(in oklab, oklch(0.7 0.18 150) 80%, transparent)',
               }
             : {}
 
@@ -300,8 +300,8 @@ const KeyButtonViewImpl = ({
         : F.heat
           ? 'rgba(255,255,255,.78)'
           : accentLegend
-            ? `color-mix(in oklch, ${accentLegend} 92%, transparent)`
-            : 'color-mix(in oklch, var(--foreground) 44%, transparent)'
+            ? `color-mix(in oklab, ${accentLegend} 92%, transparent)`
+            : 'color-mix(in oklab, var(--foreground) 44%, transparent)'
 
     // pattern-check: skip — render-body restructure (compose chips + tap-hold), no new abstraction
     const tapTop = tapPos !== 'bottom'
@@ -317,7 +317,7 @@ const KeyButtonViewImpl = ({
     // Modifier chips (chord) — rendered ABOVE the tap legend, joined by "+".
     // Compose WITH a tap-hold (design's "mod-tap + chord": chips + tap + HOLD).
     const chipInk = accentLegend ?? F.legend
-    const chipBg = `color-mix(in oklch, ${accentEdge} 26%, var(--card))`
+    const chipBg = `color-mix(in oklab, ${accentEdge} 26%, var(--card))`
     const labeledChip = !!mods && mods.length === 1
     const chipsRow = hasChips ? (
         <div
@@ -335,7 +335,7 @@ const KeyButtonViewImpl = ({
                         borderRadius: 99,
                         background: chipBg,
                         color: chipInk,
-                        border: `1px solid color-mix(in oklch, ${accentEdge} 45%, transparent)`,
+                        border: `1px solid color-mix(in oklab, ${accentEdge} 45%, transparent)`,
                         lineHeight: 1,
                     }}
                 >
@@ -358,7 +358,7 @@ const KeyButtonViewImpl = ({
             <span
                 style={{
                     fontSize: plusSize,
-                    color: 'color-mix(in oklch, var(--foreground) 55%, transparent)',
+                    color: 'color-mix(in oklab, var(--foreground) 55%, transparent)',
                     fontWeight: 600,
                 }}
             >
@@ -432,7 +432,7 @@ const KeyButtonViewImpl = ({
                             fontSize: eyebrow,
                             fontWeight: 700,
                             letterSpacing: '.12em',
-                            color: `color-mix(in oklch, ${holdTone} 62%, transparent)`,
+                            color: `color-mix(in oklab, ${holdTone} 62%, transparent)`,
                         }}
                     >
                         HOLD
@@ -457,7 +457,7 @@ const KeyButtonViewImpl = ({
                     height: 1,
                     alignSelf: 'stretch',
                     margin: `0 ${S * 0.03}px`,
-                    background: `color-mix(in oklch, ${accentEdge} 38%, transparent)`,
+                    background: `color-mix(in oklab, ${accentEdge} 38%, transparent)`,
                 }}
             />
         )
@@ -491,7 +491,7 @@ const KeyButtonViewImpl = ({
                 ...ringStyle,
             }}
             className={`relative transition-[box-shadow] duration-100 box-border text-secondary-foreground grow flex flex-col items-center justify-center w-full h-full ${chrome.className} ${
-                pressed ? 'text-white translate-y-[2px]' : ''
+                pressed ? 'text-primary-foreground translate-y-[2px]' : ''
             }`}
         >
             {chrome.face && !pressed && <div style={chrome.face} aria-hidden />}

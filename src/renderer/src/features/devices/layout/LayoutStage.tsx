@@ -70,7 +70,7 @@ function CoordBadge({
 }): JSX.Element {
     return (
         <div
-            className="pointer-events-none absolute z-[6] -translate-x-1/2 rounded-[7px] bg-primary px-2 py-1 font-mono text-[11px] font-semibold whitespace-nowrap text-primary-foreground"
+            className="pointer-events-none absolute z-[6] -translate-x-1/2 rounded-md bg-primary px-2 py-1 font-mono text-caption font-semibold whitespace-nowrap text-primary-foreground"
             style={{ left: box.x + box.w / 2, top: box.y + box.h + 10 }}
         >
             {c.x.toFixed(2)}, {c.y.toFixed(2)} · {c.w}×{c.h}U
@@ -88,13 +88,13 @@ function HoverTag({
 }): JSX.Element {
     return (
         <div
-            className="pointer-events-none absolute z-[5] -translate-x-1/2 -translate-y-full rounded-[9px] border border-border bg-popover px-[11px] py-[7px] whitespace-nowrap shadow-[0_10px_28px_rgba(0,0,0,.4)]"
+            className="pointer-events-none absolute z-[5] -translate-x-1/2 -translate-y-full rounded-md border border-border bg-popover px-[11px] py-[7px] whitespace-nowrap shadow-[0_10px_28px_rgba(0,0,0,.4)]"
             style={{ left: box.x + box.w / 2, top: box.y - 10 }}
         >
-            <div className="text-[10px] font-bold tracking-[.07em] text-muted-foreground uppercase">
+            <div className="text-meta font-bold tracking-[.07em] text-muted-foreground uppercase">
                 {c.name}
             </div>
-            <div className="text-[13px] font-bold">
+            <div className="text-panel-title font-bold">
                 {c.shape} · {c.zone ?? 'body'}
             </div>
         </div>
@@ -199,10 +199,10 @@ export function LayoutStage({
             >
                 <div className="relative" style={{ width: L.W, height: L.H }}>
                     <div
-                        className="absolute inset-0 rounded-[14px] opacity-60"
+                        className="absolute inset-0 rounded-xl opacity-60"
                         style={{
                             backgroundImage:
-                                'radial-gradient(color-mix(in oklch, var(--foreground) 22%, transparent) 1.2px, transparent 1.2px)',
+                                'radial-gradient(color-mix(in oklab, var(--foreground) 22%, transparent) 1.2px, transparent 1.2px)',
                             backgroundSize: `${DEV_S}px ${DEV_S}px`,
                             backgroundPosition: `${(L.ox % DEV_S) - DEV_S / 2}px ${(L.oy % DEV_S) - DEV_S / 2}px`,
                         }}

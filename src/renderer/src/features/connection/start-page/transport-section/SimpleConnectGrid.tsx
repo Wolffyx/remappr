@@ -21,7 +21,7 @@ export function SimpleConnectGrid({
                     onClick={() => onSimpleConnect(t)}
                 >
                     {t.isWireless ? (
-                        <span className="text-blue-500">Bluetooth</span>
+                        <span className="text-info">Bluetooth</span>
                     ) : (
                         <span>USB</span>
                     )}

@@ -88,7 +88,7 @@ export function MacrosTab({ service, opened }: Props): JSX.Element | null {
     return (
         <div className="space-y-3">
             {!editable && (
-                <div className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                <div className="rounded border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
                     This firmware doesn’t support editing macros from Remappr —
                     macros are defined at build time. Showing them read-only.
                 </div>

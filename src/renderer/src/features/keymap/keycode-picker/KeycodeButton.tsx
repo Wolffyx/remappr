@@ -47,7 +47,7 @@ export default function KeycodeButton({
     const cs = catStyle(cat, colorMode)
     const tinted = !!cs.face
 
-    const tintedBorder = `color-mix(in oklch, ${cs.edge} 40%, transparent)`
+    const tintedBorder = `color-mix(in oklab, ${cs.edge} 40%, transparent)`
     const restingBorder = isSelected
         ? 'var(--primary)'
         : tinted
@@ -77,7 +77,7 @@ export default function KeycodeButton({
         color: tinted ? cs.legend : 'var(--foreground)',
         transform: hovered ? 'translateY(-2px)' : 'none',
         boxShadow: isSelected
-            ? '0 0 0 1px var(--primary), 0 0 0 4px color-mix(in oklch, var(--primary) 25%, transparent)'
+            ? '0 0 0 1px var(--primary), 0 0 0 4px color-mix(in oklab, var(--primary) 25%, transparent)'
             : 'none',
         transition: 'transform .12s ease, border-color .12s ease',
     }

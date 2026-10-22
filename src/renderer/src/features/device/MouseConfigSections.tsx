@@ -86,12 +86,12 @@ export function MousePointerSection({
                         )}
                     />
                     {errors.cpi && (
-                        <span className="text-[11px] text-destructive">
+                        <span className="text-caption text-destructive">
                             {errors.cpi}
                         </span>
                     )}
                 </div>
-                <p className="pl-[10.5rem] text-[11px] text-muted-foreground">
+                <p className="pl-[10.5rem] text-caption text-muted-foreground">
                     {range ? `${range.min}–${range.max}. ` : ''}
                     Empty = the sensor&apos;s own resolution.
                 </p>
@@ -165,7 +165,7 @@ export function MouseCurveSection({
                 </p>
             ) : (
                 <div className="flex flex-col gap-1.5">
-                    <div className="flex gap-2 text-[11px] text-muted-foreground">
+                    <div className="flex gap-2 text-caption text-muted-foreground">
                         <span className="w-28">Speed from</span>
                         <span className="w-28">Multiplier</span>
                     </div>
@@ -191,7 +191,7 @@ export function MouseCurveSection({
                                 disabled={disabled}
                                 className="h-8 w-20"
                             />
-                            <span className="text-[10.5px] text-muted-foreground">
+                            <span className="text-meta text-muted-foreground">
                                 %
                             </span>
                             <Button
@@ -211,7 +211,7 @@ export function MouseCurveSection({
                 </div>
             )}
             {errors.curve && (
-                <p className="text-[11px] text-destructive">{errors.curve}</p>
+                <p className="text-caption text-destructive">{errors.curve}</p>
             )}
         </SettingsSection>
     )

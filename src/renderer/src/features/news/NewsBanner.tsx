@@ -32,17 +32,17 @@ export function NewsBanner({
         <Alert
             className="relative z-[3] flex shrink-0 flex-wrap items-center gap-3 rounded-none border-x-0 border-t-0 px-5 py-2.5"
             style={{
-                background: `color-mix(in oklch, ${c} 12%, var(--background))`,
-                borderColor: `color-mix(in oklch, ${c} 30%, var(--border))`,
+                background: `color-mix(in oklab, ${c} 12%, var(--background))`,
+                borderColor: `color-mix(in oklab, ${c} 30%, var(--border))`,
             }}
         >
             <PinnedMark size={14} style={{ color: c }} />
-            <div className="min-w-0 flex-[1_1_300px] text-[13.5px]">
+            <div className="min-w-0 flex-[1_1_300px] text-panel-title">
                 <AlertTitle className="mb-0 inline font-bold tracking-normal">
                     {n.title}
                 </AlertTitle>
                 {n.body && (
-                    <AlertDescription className="inline text-[13.5px] text-muted-foreground">
+                    <AlertDescription className="inline text-panel-title text-muted-foreground">
                         {' — '}
                         {n.body}
                     </AlertDescription>
@@ -61,7 +61,7 @@ export function NewsBanner({
                         >
                             <ChevronLeft />
                         </Button>
-                        <span className="font-mono text-[11px] text-muted-foreground">
+                        <span className="font-mono text-caption text-muted-foreground">
                             {i + 1}/{items.length}
                         </span>
                         <Button

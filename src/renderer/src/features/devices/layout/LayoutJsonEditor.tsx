@@ -23,7 +23,7 @@ export default function LayoutJsonEditor({
     return (
         <div
             aria-label="Layout JSON"
-            className="h-[380px] overflow-hidden rounded-[10px] border border-input"
+            className="h-[380px] overflow-hidden rounded-lg border border-input"
         >
             <Editor
                 path={MODEL_PATH}

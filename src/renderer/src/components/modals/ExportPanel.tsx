@@ -147,7 +147,7 @@ export function ExportPanel({
 
             {/* Per-target project downloads — compact button row */}
             <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">
                     Build projects
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -167,7 +167,7 @@ export function ExportPanel({
                                     .zip
                                 </span>
                                 {covers.length > 0 && (
-                                    <span className="text-[11px] font-normal text-muted-foreground">
+                                    <span className="text-caption font-normal text-muted-foreground">
                                         · covers {covers.join(' · ')}
                                     </span>
                                 )}
@@ -179,7 +179,7 @@ export function ExportPanel({
 
             {/* Per-firmware readiness checklist */}
             <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">
                     Firmware readiness
                 </p>
                 <ul className="space-y-1.5">
@@ -188,24 +188,24 @@ export function ExportPanel({
                             key={r.firmware}
                             className="rounded-lg border border-border p-2.5"
                         >
-                            <div className="flex items-center gap-2 text-[13px] font-semibold">
+                            <div className="flex items-center gap-2 text-panel-title font-semibold">
                                 {r.ready ? (
-                                    <CheckCircle2 className="size-4 text-emerald-500" />
+                                    <CheckCircle2 className="size-4 text-success" />
                                 ) : (
-                                    <TriangleAlert className="size-4 text-red-500" />
+                                    <TriangleAlert className="size-4 text-danger" />
                                 )}
                                 {r.label}
-                                <span className="text-[11px] font-normal text-muted-foreground">
+                                <span className="text-caption font-normal text-muted-foreground">
                                     {r.ready ? 'ready to build' : 'needs setup'}
                                 </span>
                             </div>
                             {r.issues.length > 0 && (
-                                <ul className="mt-1.5 space-y-1 pl-6 text-[11.5px]">
+                                <ul className="mt-1.5 space-y-1 pl-6 text-xs">
                                     {r.issues.map((i, idx) => (
                                         <li
                                             key={idx}
                                             data-level={i.level}
-                                            className="text-muted-foreground data-[level=error]:text-red-400"
+                                            className="text-muted-foreground data-[level=error]:text-danger"
                                         >
                                             {i.level === 'error' ? '• ' : '· '}
                                             {i.message}
@@ -220,7 +220,7 @@ export function ExportPanel({
 
             {/* Source-of-truth remappr config — full-width JSON preview */}
             <div className="min-w-0 space-y-2">
-                <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+                <div className="flex items-center gap-2 text-control text-muted-foreground">
                     <FileJson className="size-3.5 shrink-0" />
                     <span>
                         The source-of-truth remappr config. Firmware projects
@@ -228,7 +228,7 @@ export function ExportPanel({
                         above.
                     </span>
                 </div>
-                <pre className="m-0 max-h-[34vh] w-full overflow-auto rounded-xl border border-border bg-[oklch(0.16_0_0)] p-3.5 font-mono text-[12px] leading-relaxed text-[oklch(0.9_0_0)]">
+                <pre className="m-0 max-h-[34vh] w-full overflow-auto rounded-xl border border-border bg-muted p-3.5 font-mono text-xs leading-relaxed text-foreground">
                     <code>{code || '— empty —'}</code>
                 </pre>
             </div>

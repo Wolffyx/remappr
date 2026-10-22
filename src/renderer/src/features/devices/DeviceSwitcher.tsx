@@ -25,7 +25,7 @@ import useDevicePreviewStore, {
 import { FORM_ICON } from './formIcons'
 
 export const SWITCH_GROUP_LABEL =
-    'text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase'
+    'text-caption font-bold tracking-[0.08em] text-muted-foreground uppercase'
 
 /** One device to switch to: icon, name, a short kind line. */
 export function SwitchRow({
@@ -48,16 +48,16 @@ export function SwitchRow({
             type="button"
             onClick={onClick}
             disabled={disabled}
-            className="flex w-full items-center gap-2 rounded-[9px] px-2 py-[7px] text-left text-sidebar-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
+            className="flex w-full items-center gap-2 rounded-md px-2 py-[7px] text-left text-sidebar-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
         >
-            <span className="grid size-[26px] shrink-0 place-items-center rounded-[7px] bg-foreground/[.08] text-muted-foreground">
+            <span className="grid size-[26px] shrink-0 place-items-center rounded-md bg-foreground/[.08] text-muted-foreground">
                 <Icon className="size-3.5" />
             </span>
             <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12.5px] font-semibold">
+                <span className="block truncate text-control font-semibold">
                     {name}
                 </span>
-                <span className="block text-[10.5px] text-muted-foreground">
+                <span className="block text-meta text-muted-foreground">
                     {detail}
                 </span>
             </span>

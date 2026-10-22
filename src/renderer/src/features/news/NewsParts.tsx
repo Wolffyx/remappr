@@ -56,7 +56,7 @@ export function NewsTag({
     return (
         <Badge
             variant={solid ? 'tone-solid' : 'tone'}
-            className="shrink-0 whitespace-nowrap rounded-full px-2 py-[3px] text-[10.5px] font-bold uppercase leading-none tracking-[.02em]"
+            className="shrink-0 whitespace-nowrap rounded-full px-2 py-[3px] text-meta font-bold uppercase leading-none tracking-[.02em]"
             style={{ '--badge-tone': newsTone(tag) } as CSSProperties}
         >
             {NEWS_TAGS[tag].label}
@@ -65,7 +65,7 @@ export function NewsTag({
 }
 
 // The design's text link: 12.5px semibold with a trailing arrow.
-const LINK_CLASS = 'h-auto gap-[5px] px-0 text-[12.5px] font-semibold'
+const LINK_CLASS = 'h-auto gap-[5px] px-0 text-control font-semibold'
 
 /** An external link styled as a link Button, with a trailing arrow. `tone`
  *  colours it with a news tag's colour; `muted` greys it out. */

@@ -42,7 +42,7 @@ export function CurveGraph({
                     y={0}
                     width={(dz / 100) * W}
                     height={H}
-                    fill="color-mix(in oklch, var(--destructive) 14%, transparent)"
+                    fill="color-mix(in oklab, var(--destructive) 14%, transparent)"
                 />
             ) : null}
             <line
@@ -50,7 +50,7 @@ export function CurveGraph({
                 y1={H}
                 x2={W}
                 y2={0}
-                stroke="color-mix(in oklch, var(--foreground) 18%, transparent)"
+                stroke="color-mix(in oklab, var(--foreground) 18%, transparent)"
                 strokeDasharray="3 4"
             />
             <polyline
@@ -127,13 +127,13 @@ export function TriggerViz({
 }): JSX.Element {
     return (
         <div>
-            <div className="relative h-[26px] overflow-hidden rounded-[7px] border border-border bg-secondary">
+            <div className="relative h-[26px] overflow-hidden rounded-md border border-border bg-secondary">
                 <div
                     className="absolute inset-y-0 left-0"
                     style={{
                         width: `${start}%`,
                         background:
-                            'repeating-linear-gradient(135deg, color-mix(in oklch, var(--destructive) 22%, transparent) 0 4px, transparent 4px 8px)',
+                            'repeating-linear-gradient(135deg, color-mix(in oklab, var(--destructive) 22%, transparent) 0 4px, transparent 4px 8px)',
                     }}
                 />
                 <div
@@ -141,7 +141,7 @@ export function TriggerViz({
                     style={{
                         width: `${100 - end}%`,
                         background:
-                            'repeating-linear-gradient(135deg, color-mix(in oklch, var(--foreground) 12%, transparent) 0 4px, transparent 4px 8px)',
+                            'repeating-linear-gradient(135deg, color-mix(in oklab, var(--foreground) 12%, transparent) 0 4px, transparent 4px 8px)',
                     }}
                 />
                 <div
@@ -156,7 +156,7 @@ export function TriggerViz({
                     />
                 ))}
             </div>
-            <div className="mt-[5px] flex justify-between font-mono text-[10.5px] text-muted-foreground">
+            <div className="mt-[5px] flex justify-between font-mono text-meta text-muted-foreground">
                 <span>released</span>
                 <span>{Math.round(value * 100)}%</span>
                 <span>full pull</span>

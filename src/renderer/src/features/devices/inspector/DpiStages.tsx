@@ -3,8 +3,7 @@ import type { JSX } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import type { SensorBinding, SensorSpec } from '@firmware/devices/types'
 import { cn } from '@/lib/cn'
-
-const STAGE_HUES = [25, 80, 152, 210, 286] as const
+import { layerAccent } from '@/lib/keymap/keyCategory'
 
 export function DpiStages({
     b,
@@ -29,7 +28,7 @@ export function DpiStages({
         <div className="flex flex-col gap-[5px]">
             {b.stages.map((v, i) => {
                 const on = i === b.active
-                const hue = `oklch(0.72 0.15 ${STAGE_HUES[i % STAGE_HUES.length]})`
+                const hue = layerAccent(i)
                 return (
                     <div
                         key={i}
@@ -41,9 +40,9 @@ export function DpiStages({
                                 onChange({ active: i })
                         }}
                         className={cn(
-                            'flex cursor-pointer items-center gap-2.5 rounded-[9px] border py-1.5 pr-2 pl-2.5',
+                            'flex cursor-pointer items-center gap-2.5 rounded-md border py-1.5 pr-2 pl-2.5',
                             on
-                                ? 'border-primary/55 bg-[color-mix(in_oklch,var(--primary)_14%,var(--secondary))]'
+                                ? 'border-primary/55 bg-[color-mix(in_oklab,var(--primary)_14%,var(--secondary))]'
                                 : 'border-border bg-secondary',
                         )}
                     >
@@ -54,7 +53,7 @@ export function DpiStages({
                                 boxShadow: on ? `0 0 8px ${hue}` : 'none',
                             }}
                         />
-                        <span className="w-11 text-[11px] font-bold text-muted-foreground">
+                        <span className="w-11 text-caption font-bold text-muted-foreground">
                             Stage {i + 1}
                         </span>
                         <span className="flex-1 font-mono text-sm font-bold">

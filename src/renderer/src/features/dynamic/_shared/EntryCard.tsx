@@ -7,20 +7,21 @@ import { clampInt, parseIntSafe } from '@/lib/clampInt'
 // Rounded entry card with a hue-tinted "#index" badge (design vocabulary).
 export function EntryCard({
     index,
-    accentHue,
+    accent,
     children,
 }: {
     index: number
-    accentHue: number
+    /** CSS colour of the #index chip, e.g. layerAccent(n). */
+    accent: string
     children: ReactNode
 }): JSX.Element {
     return (
         <div className="flex items-center gap-4 rounded-xl border bg-background p-4">
             <span
-                className="grid size-7 shrink-0 place-items-center rounded-md font-mono text-[11px] font-bold"
+                className="grid size-7 shrink-0 place-items-center rounded-md font-mono text-caption font-bold"
                 style={{
-                    background: `color-mix(in oklch, oklch(0.7 0.15 ${accentHue}) 18%, transparent)`,
-                    color: `oklch(0.78 0.15 ${accentHue})`,
+                    background: `color-mix(in oklab, ${accent} 18%, transparent)`,
+                    color: accent,
                 }}
             >
                 #{index}
@@ -42,7 +43,7 @@ export function Pair({
 }): JSX.Element {
     return (
         <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-meta font-semibold uppercase tracking-wide text-muted-foreground">
                 {label}
             </span>
             <div className="flex items-center gap-1.5">{children}</div>

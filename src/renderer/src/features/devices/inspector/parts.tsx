@@ -22,7 +22,7 @@ export function InSection({
     return (
         <section className="border-t border-border px-4 py-3.5">
             <div className="mb-2.5 flex items-center justify-between">
-                <span className="text-[11px] font-bold tracking-[.08em] text-muted-foreground uppercase">
+                <span className="text-caption font-bold tracking-[.08em] text-muted-foreground uppercase">
                     {label}
                 </span>
                 {right}
@@ -35,10 +35,10 @@ export function InSection({
 /** The pulsing green LIVE tag of a section reading live input. */
 export function LiveTag(): JSX.Element {
     return (
-        <span className="inline-flex items-center gap-[5px] text-[10.5px] font-bold tracking-[.05em] text-green-600 dark:text-green-400">
+        <span className="inline-flex items-center gap-[5px] text-meta font-bold tracking-[.05em] text-success">
             <span className="relative flex size-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-green-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-success" />
             </span>
             LIVE
         </span>
@@ -90,8 +90,8 @@ export function ActionChip({
                     off
                         ? undefined
                         : {
-                              background: `color-mix(in oklch, ${accent} 10%, var(--secondary))`,
-                              borderColor: `color-mix(in oklch, ${accent} 35%, var(--border))`,
+                              background: `color-mix(in oklab, ${accent} 10%, var(--secondary))`,
+                              borderColor: `color-mix(in oklab, ${accent} 35%, var(--border))`,
                           }
                 }
             >
@@ -102,10 +102,10 @@ export function ActionChip({
                     )}
                     style={off ? undefined : { background: accent }}
                 />
-                <span className="flex-1 truncate text-[13px] font-semibold">
+                <span className="flex-1 truncate text-panel-title font-semibold">
                     {a.label}
                 </span>
-                <span className="text-[10.5px] font-semibold text-muted-foreground">
+                <span className="text-meta font-semibold text-muted-foreground">
                     {DEVICE_CATEGORY_META[a.cat].label}
                 </span>
                 <ChevronDown className="size-[13px] text-muted-foreground" />
@@ -147,9 +147,9 @@ export function OutSelect({
                         disabled={disabled}
                         onClick={() => onChange(o.id)}
                         className={cn(
-                            'flex items-center gap-[7px] rounded-lg border px-2.5 py-2 text-left text-[12.5px] font-semibold disabled:cursor-default disabled:opacity-60',
+                            'flex items-center gap-[7px] rounded-lg border px-2.5 py-2 text-left text-control font-semibold disabled:cursor-default disabled:opacity-60',
                             on
-                                ? 'border-primary/55 bg-[color-mix(in_oklch,var(--primary)_16%,var(--secondary))]'
+                                ? 'border-primary/55 bg-[color-mix(in_oklab,var(--primary)_16%,var(--secondary))]'
                                 : 'border-border bg-secondary',
                         )}
                     >
@@ -184,9 +184,11 @@ export function SwitchRow({
     return (
         <label className="flex cursor-pointer items-center gap-2.5 py-[7px]">
             <span className="flex-1">
-                <span className="block text-[13px] font-semibold">{label}</span>
+                <span className="block text-panel-title font-semibold">
+                    {label}
+                </span>
                 {hint ? (
-                    <span className="block text-[11.5px] text-muted-foreground">
+                    <span className="block text-xs text-muted-foreground">
                         {hint}
                     </span>
                 ) : null}

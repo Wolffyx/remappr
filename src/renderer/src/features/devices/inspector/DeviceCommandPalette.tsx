@@ -19,10 +19,10 @@ import useDeviceEditorStore, {
 function Dot({ color }: { color: string }): JSX.Element {
     return (
         <span
-            className="grid size-[30px] shrink-0 place-items-center rounded-[7px] border"
+            className="grid size-[30px] shrink-0 place-items-center rounded-md border"
             style={{
-                background: `color-mix(in oklch, ${color} 16%, var(--secondary))`,
-                borderColor: `color-mix(in oklch, ${color} 45%, transparent)`,
+                background: `color-mix(in oklab, ${color} 16%, var(--secondary))`,
+                borderColor: `color-mix(in oklab, ${color} 45%, transparent)`,
             }}
         >
             <span
@@ -97,7 +97,7 @@ export function DeviceCommandPalette(): JSX.Element | null {
                                     {a.id === current && (
                                         <Check className="size-3.5 text-primary" />
                                     )}
-                                    <span className="text-[11px] text-muted-foreground">
+                                    <span className="text-caption text-muted-foreground">
                                         {g.label}
                                     </span>
                                 </CommandItem>

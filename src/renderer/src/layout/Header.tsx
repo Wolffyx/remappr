@@ -66,10 +66,10 @@ export function Header({
                                 onClick={disconnect}
                                 className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 text-foreground transition-colors hover:bg-accent"
                             >
-                                <span className="grid size-7 place-items-center rounded-md bg-[linear-gradient(150deg,var(--primary),color-mix(in_oklch,var(--primary)_65%,#000))] text-white">
+                                <span className="grid size-7 place-items-center rounded-md bg-[linear-gradient(150deg,var(--primary),color-mix(in_oklab,var(--primary)_65%,#000))] text-primary-foreground">
                                     <BrandIcon className="size-4" />
                                 </span>
-                                <span className="text-[14.5px] font-bold">
+                                <span className="text-brand font-bold">
                                     Remappr
                                 </span>
                             </button>
@@ -84,7 +84,7 @@ export function Header({
                                 <button
                                     type="button"
                                     onClick={returnToBuilder}
-                                    className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                    className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-panel-title font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                                 >
                                     <Blocks className="size-4" />
                                     Builder

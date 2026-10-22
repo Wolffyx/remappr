@@ -1,4 +1,5 @@
 // pattern-check: skip — form tab composing shared primitives
+import { layerAccent } from '@/lib/keymap/keyCategory'
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 
@@ -73,7 +74,7 @@ export function AltRepeatKeyTab({ service, opened }: Props): JSX.Element {
             )}
             {entry && (
                 <>
-                    <EntryCard index={idx} accentHue={80}>
+                    <EntryCard index={idx} accent={layerAccent(3)}>
                         <Pair label="After key">
                             <HexChip
                                 value={entry.keycode}

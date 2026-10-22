@@ -53,11 +53,11 @@ function DefaultedBanner({
     if (!open) return null
     return (
         <div className="fade-in pointer-events-none absolute inset-x-[18px] top-[58px] z-[11] flex justify-center">
-            <div className="pointer-events-auto flex max-w-[560px] items-center gap-[11px] rounded-[11px] border border-border bg-card py-[9px] pr-[9px] pl-[13px] shadow-[0_8px_24px_-10px_rgba(0,0,0,.5)]">
+            <div className="pointer-events-auto flex max-w-[560px] items-center gap-[11px] rounded-lg border border-border bg-card py-[9px] pr-[9px] pl-[13px] shadow-[0_8px_24px_-10px_rgba(0,0,0,.5)]">
                 <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
                     <Lightbulb className="size-[15px]" />
                 </span>
-                <div className="flex-1 text-[12.5px] leading-snug text-pretty">
+                <div className="flex-1 text-control leading-snug text-pretty">
                     <b>Default {form.toLowerCase()} layout.</b>{' '}
                     <span className="text-muted-foreground">
                         This device didn’t report a layout

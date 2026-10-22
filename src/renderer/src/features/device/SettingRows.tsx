@@ -21,7 +21,7 @@ export function SettingsSection({
     children: ReactNode
 }): JSX.Element {
     return (
-        <section className="rounded-[10px] border border-border bg-card p-4">
+        <section className="rounded-lg border border-border bg-card p-4">
             <div className="mb-3 flex items-start gap-3">
                 <div className="min-w-0 flex-1">
                     <h3 className="text-sm font-semibold">{title}</h3>
@@ -71,17 +71,17 @@ export function NumberSettingRow<K extends string>({
                     className={cn('h-8 w-28', error && 'border-destructive')}
                 />
                 {field.unit && (
-                    <span className="text-[10.5px] text-muted-foreground">
+                    <span className="text-meta text-muted-foreground">
                         {field.unit}
                     </span>
                 )}
                 {error && (
-                    <span className="text-[11px] text-destructive">
+                    <span className="text-caption text-destructive">
                         {error}
                     </span>
                 )}
             </div>
-            <p className="pl-[10.5rem] text-[11px] text-muted-foreground">
+            <p className="pl-[10.5rem] text-caption text-muted-foreground">
                 {field.description} Empty = default ({field.defaultValue}
                 {field.unit && ` ${field.unit}`}).
             </p>
@@ -118,7 +118,7 @@ export function SwitchSettingRow({
                     {label}
                 </Label>
                 {description && (
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-caption text-muted-foreground">
                         {description}
                     </p>
                 )}

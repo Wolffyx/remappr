@@ -27,7 +27,7 @@ const CORNER_AT: Readonly<Record<Corner, Vec>> = {
 }
 
 const mix = (pct: number, color = 'var(--foreground)'): string =>
-    `color-mix(in oklch, ${color} ${pct}%, transparent)`
+    `color-mix(in oklab, ${color} ${pct}%, transparent)`
 
 /** A point of the dial, `v` scaled by `zoom` and kept on the view. */
 function place(v: Vec, zoom: number): Vec {

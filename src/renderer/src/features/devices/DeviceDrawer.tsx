@@ -30,20 +30,20 @@ import { DeviceSwitcher, SwitchRow } from './DeviceSwitcher'
 import useDeviceEditorStore from './model/deviceEditorStore'
 
 const GROUP_LABEL =
-    'text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase'
+    'text-caption font-bold tracking-[0.08em] text-muted-foreground uppercase'
 
 function DeviceCard(): JSX.Element | null {
     const model = useDeviceEditorStore((s) => s.loaded?.model)
     if (!model) return null
     const Icon = FORM_ICON[model.form]
     return (
-        <div className="flex items-center gap-2.5 rounded-[10px] border border-primary/30 bg-[color-mix(in_oklch,var(--primary)_12%,var(--sidebar))] px-[11px] py-2.5">
+        <div className="flex items-center gap-2.5 rounded-lg border border-primary/30 bg-[color-mix(in_oklab,var(--primary)_12%,var(--sidebar))] px-[11px] py-2.5">
             <Icon className="size-4 shrink-0 text-primary" />
             <div className="min-w-0 flex-1">
-                <div className="truncate text-[13.5px] font-bold">
+                <div className="truncate text-panel-title font-bold">
                     {model.name}
                 </div>
-                <div className="truncate text-[11px] text-muted-foreground">
+                <div className="truncate text-caption text-muted-foreground">
                     {deviceSummary(model.form, model.controls)}
                     {model.defaulted ? ' · default layout' : ''}
                 </div>
@@ -113,14 +113,14 @@ function ProfileRow({
             }}
             onDoubleClick={() => onRename && setEditing(true)}
             className={cn(
-                'flex cursor-pointer items-center gap-2 rounded-[9px] border py-2 pr-2 pl-2.5 transition-colors',
+                'flex cursor-pointer items-center gap-2 rounded-md border py-2 pr-2 pl-2.5 transition-colors',
                 active ? '' : 'border-transparent hover:bg-accent',
             )}
             style={
                 active
                     ? {
-                          background: `color-mix(in oklch, ${accent} 16%, var(--sidebar))`,
-                          borderColor: `color-mix(in oklch, ${accent} 40%, transparent)`,
+                          background: `color-mix(in oklab, ${accent} 16%, var(--sidebar))`,
+                          borderColor: `color-mix(in oklab, ${accent} 40%, transparent)`,
                       }
                     : undefined
             }
@@ -142,19 +142,19 @@ function ProfileRow({
                         if (e.key === 'Enter') finish(e.currentTarget.value)
                         if (e.key === 'Escape') setEditing(false)
                     }}
-                    className="min-w-0 flex-1 rounded border border-input bg-background px-1 text-[13px] outline-none"
+                    className="min-w-0 flex-1 rounded border border-input bg-background px-1 text-panel-title outline-none"
                 />
             ) : (
                 <span
                     className={cn(
-                        'min-w-0 flex-1 truncate text-[13.5px]',
+                        'min-w-0 flex-1 truncate text-panel-title',
                         active ? 'font-bold' : 'font-medium',
                     )}
                 >
                     {profile.name}
                 </span>
             )}
-            <span className="font-mono text-[11px] text-muted-foreground">
+            <span className="font-mono text-caption text-muted-foreground">
                 P{index + 1}
             </span>
         </div>
@@ -208,7 +208,7 @@ function Profiles(): JSX.Element {
                     <button
                         type="button"
                         onClick={addNext}
-                        className="mt-1 flex w-full items-center gap-2 rounded-[9px] border border-dashed border-sidebar-border px-2.5 py-2 text-[13px] font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                        className="mt-1 flex w-full items-center gap-2 rounded-md border border-dashed border-sidebar-border px-2.5 py-2 text-panel-title font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
                     >
                         <Plus className="size-4" /> Add profile
                     </button>
@@ -229,7 +229,7 @@ function ActionLegend(): JSX.Element {
                     {LEGEND_CATEGORIES.map((cat) => (
                         <li
                             key={cat}
-                            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                            className="flex items-center gap-1.5 text-caption text-muted-foreground"
                         >
                             <span
                                 aria-hidden

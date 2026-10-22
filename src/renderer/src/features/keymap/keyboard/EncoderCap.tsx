@@ -102,7 +102,7 @@ const EncoderCapImpl = ({
     const selected = selectedDir !== null
     const lit = (d: EncoderDir): boolean => selectedDir === d
     const arrowCol = (d: EncoderDir): string =>
-        lit(d) ? ink : `color-mix(in oklch, ${edge} 55%, transparent)`
+        lit(d) ? ink : `color-mix(in oklab, ${edge} 55%, transparent)`
     const marker = `enc-arr-${knob.slot}`
     const stroke = Math.max(1.5, S * 0.016)
     const angle = !selectedDir
@@ -119,8 +119,8 @@ const EncoderCapImpl = ({
     const headerHidden = !showHeaderTag || keyDisplayMode === 'hidden'
     const isBindingMode = keyDisplayMode === 'binding'
     const headerColor = accent
-        ? `color-mix(in oklch, ${accent.legend} 92%, transparent)`
-        : 'color-mix(in oklch, var(--foreground) 44%, transparent)'
+        ? `color-mix(in oklab, ${accent.legend} 92%, transparent)`
+        : 'color-mix(in oklab, var(--foreground) 44%, transparent)'
 
     const dirLabel = (d: EncoderDir): JSX.Element => {
         const side = knob[d]
@@ -176,10 +176,10 @@ const EncoderCapImpl = ({
 
     // Knob surfaces derived from the cap face, so the knob follows the key's
     // tint and theme: a contrasting ridged grip and a lit dome.
-    const gripLight = `color-mix(in oklch, ${F.face} 62%, ${F.legend})`
-    const gripDark = `color-mix(in oklch, ${F.face} 78%, #000)`
-    const domeLight = `color-mix(in oklch, ${F.faceTop} 78%, #fff)`
-    const domeDark = `color-mix(in oklch, ${F.face} 88%, #000)`
+    const gripLight = `color-mix(in oklab, ${F.face} 62%, ${F.legend})`
+    const gripDark = `color-mix(in oklab, ${F.face} 78%, #000)`
+    const domeLight = `color-mix(in oklab, ${F.faceTop} 78%, #fff)`
+    const domeDark = `color-mix(in oklab, ${F.face} 88%, #000)`
 
     return (
         <div style={{ position: 'relative', width: W, height: H }}>

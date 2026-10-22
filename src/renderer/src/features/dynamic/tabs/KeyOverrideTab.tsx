@@ -1,4 +1,5 @@
 // pattern-check: skip — form tab composing shared primitives
+import { layerAccent } from '@/lib/keymap/keyCategory'
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 
@@ -72,7 +73,7 @@ export function KeyOverrideTab({ service, count, opened }: Props): JSX.Element {
             )}
             {entry && (
                 <>
-                    <EntryCard index={idx} accentHue={152}>
+                    <EntryCard index={idx} accent={layerAccent(2)}>
                         <Pair label="Trigger">
                             <HexChip
                                 value={entry.trigger}
@@ -101,7 +102,7 @@ export function KeyOverrideTab({ service, count, opened }: Props): JSX.Element {
                         </Pair>
                     </EntryCard>
 
-                    <EntryCard index={idx} accentHue={152}>
+                    <EntryCard index={idx} accent={layerAccent(2)}>
                         <Pair label="Layer mask">
                             <HexChip
                                 value={entry.layers}

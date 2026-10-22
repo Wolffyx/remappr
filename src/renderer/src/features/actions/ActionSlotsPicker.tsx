@@ -60,9 +60,7 @@ export const ActionSlotsPicker = ({
     return (
         <div className="flex flex-col gap-2 mt-3">
             {holdInvalidHint && safeIndex === 1 && (
-                <p className="text-xs text-amber-500 italic">
-                    {holdInvalidHint}
-                </p>
+                <p className="text-xs text-warning italic">{holdInvalidHint}</p>
             )}
             <div className="flex flex-row flex-wrap items-center gap-2">
                 <SlotValuePicker

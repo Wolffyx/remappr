@@ -79,7 +79,7 @@ export function SupportModal(): JSX.Element {
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
-                                <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary/15 text-primary">
+                                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
                                     {opt.icon}
                                 </span>
                                 <span className="flex flex-col gap-0.5">

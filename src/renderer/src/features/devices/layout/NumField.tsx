@@ -27,7 +27,7 @@ export function NumField({
         'h-full w-7 shrink-0 text-[15px] text-muted-foreground hover:text-foreground'
     return (
         <label className="flex min-w-0 flex-col gap-[5px]">
-            <span className="text-[11.5px] font-semibold text-muted-foreground">
+            <span className="text-xs font-semibold text-muted-foreground">
                 {label}
             </span>
             <span className="flex h-[34px] items-center overflow-hidden rounded-lg border border-input bg-background">
@@ -46,10 +46,10 @@ export function NumField({
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') apply(e.currentTarget.value)
                     }}
-                    className="w-full min-w-0 flex-1 bg-transparent text-center font-mono text-[13px] font-semibold outline-none"
+                    className="w-full min-w-0 flex-1 bg-transparent text-center font-mono text-panel-title font-semibold outline-none"
                 />
                 {unit ? (
-                    <span className="pr-0.5 text-[10.5px] text-muted-foreground">
+                    <span className="pr-0.5 text-meta text-muted-foreground">
                         {unit}
                     </span>
                 ) : null}

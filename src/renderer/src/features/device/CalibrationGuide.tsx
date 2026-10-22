@@ -67,7 +67,7 @@ export function CalibrationGuide({
                                 }
                             />
                             <span className="text-xs">{st.name}</span>
-                            <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+                            <span className="font-mono text-caption text-muted-foreground tabular-nums">
                                 {statusOf(phase, p)}
                             </span>
                         </div>

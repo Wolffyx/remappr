@@ -53,7 +53,7 @@ export function NewsFeed({ pinned, latest }: NewsView): JSX.Element | null {
                     <CardTitle className="text-[15px] font-bold tracking-normal">
                         What’s new
                     </CardTitle>
-                    <CardDescription className="mt-0.5 text-[13px]">
+                    <CardDescription className="mt-0.5 text-panel-title">
                         Releases, firmware support and announcements
                     </CardDescription>
                 </div>
@@ -62,13 +62,13 @@ export function NewsFeed({ pinned, latest }: NewsView): JSX.Element | null {
                     value={filter}
                     onValueChange={(v) => v && setFilter(v as FeedFilter)}
                     aria-label="Filter news"
-                    className="gap-1 rounded-[9px] border border-border bg-secondary p-[3px]"
+                    className="gap-1 rounded-md border border-border bg-secondary p-[3px]"
                 >
                     {FILTERS.map((f) => (
                         <ToggleGroupItem
                             key={f.id}
                             value={f.id}
-                            className="h-auto min-w-0 rounded-[7px] px-2.5 py-[5px] text-[12px] font-semibold text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-[0_1px_3px_rgba(0,0,0,.25)]"
+                            className="h-auto min-w-0 rounded-md px-2.5 py-[5px] text-xs font-semibold text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-[0_1px_3px_rgba(0,0,0,.25)]"
                         >
                             {f.label}
                         </ToggleGroupItem>
@@ -82,7 +82,7 @@ export function NewsFeed({ pinned, latest }: NewsView): JSX.Element | null {
                         key={n.id}
                         className="flex gap-3.5 border-b border-border px-5 py-3.5"
                         style={{
-                            background: `color-mix(in oklch, ${newsTone(n.tag)} 8%, transparent)`,
+                            background: `color-mix(in oklab, ${newsTone(n.tag)} 8%, transparent)`,
                         }}
                     >
                         <PinnedMark
@@ -93,15 +93,13 @@ export function NewsFeed({ pinned, latest }: NewsView): JSX.Element | null {
                         <div className="min-w-0 flex-1">
                             <div className="mb-1 flex items-center gap-2">
                                 <NewsTag tag={n.tag} />
-                                <span className="text-[12px] text-muted-foreground">
+                                <span className="text-xs text-muted-foreground">
                                     {formatNewsDate(n.date, now)}
                                 </span>
                             </div>
-                            <div className="text-[14px] font-bold">
-                                {n.title}
-                            </div>
+                            <div className="text-sm font-bold">{n.title}</div>
                             {n.body && (
-                                <div className="mt-0.5 text-[13px] leading-normal text-muted-foreground">
+                                <div className="mt-0.5 text-panel-title leading-normal text-muted-foreground">
                                     {n.body}
                                 </div>
                             )}
@@ -120,7 +118,7 @@ export function NewsFeed({ pinned, latest }: NewsView): JSX.Element | null {
                         <NewsTag tag={n.tag} />
                     </span>
                     <div className="min-w-0">
-                        <div className="text-[13.5px] font-semibold">
+                        <div className="text-panel-title font-semibold">
                             {n.version && !n.notes && (
                                 <span
                                     className="mr-1.5 text-muted-foreground"
@@ -132,12 +130,12 @@ export function NewsFeed({ pinned, latest }: NewsView): JSX.Element | null {
                             {n.title}
                         </div>
                         {n.body && (
-                            <div className="mt-0.5 text-pretty text-[12.5px] leading-normal text-muted-foreground">
+                            <div className="mt-0.5 text-pretty text-control leading-normal text-muted-foreground">
                                 {n.body}
                             </div>
                         )}
                     </div>
-                    <span className="text-[12px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                         {formatNewsDate(n.date, now)}
                     </span>
                 </NewsItemLink>

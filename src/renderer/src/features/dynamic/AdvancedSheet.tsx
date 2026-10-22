@@ -86,7 +86,7 @@ export function AdvancedSheet({ onClose }: Props): JSX.Element | null {
                                                 : undefined
                                         }
                                         className={cn(
-                                            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors',
+                                            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-panel-title font-medium transition-colors',
                                             activeSection === id
                                                 ? 'bg-accent text-accent-foreground'
                                                 : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',

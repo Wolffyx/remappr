@@ -23,10 +23,10 @@ export function InputDeviceGrid({
             {devices.length > 0 && (
                 <>
                     <div className="flex items-baseline justify-between gap-3 pt-1">
-                        <span className="text-[11px] font-bold tracking-[.08em] text-muted-foreground uppercase">
+                        <span className="text-caption font-bold tracking-[.08em] text-muted-foreground uppercase">
                             Controllers &amp; mice
                         </span>
-                        <span className="text-[11.5px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                             View and live test · no vendor protocol
                         </span>
                     </div>

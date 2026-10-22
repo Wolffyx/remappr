@@ -233,7 +233,7 @@ export function DeviceCard({
         cardClickable &&
             'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         isConnected && 'border-primary/50 bg-primary/5',
-        isConnecting && 'border-amber-500/50',
+        isConnecting && 'border-warning/50',
         disabled && 'opacity-50 pointer-events-none',
         preview ? 'p-5' : 'p-4',
     )
@@ -272,7 +272,7 @@ export function DeviceCard({
                     className="pointer-events-none absolute inset-0 opacity-40"
                     style={{
                         backgroundImage:
-                            'radial-gradient(color-mix(in oklch, var(--muted-foreground) 22%, transparent) 1px, transparent 1px)',
+                            'radial-gradient(color-mix(in oklab, var(--muted-foreground) 22%, transparent) 1px, transparent 1px)',
                         backgroundSize: '16px 16px',
                         maskImage:
                             'radial-gradient(120% 80% at 50% 40%, black 30%, transparent 75%)',
@@ -335,11 +335,11 @@ export function DeviceCard({
                         className={cn(
                             'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors duration-300',
                             isWireless
-                                ? 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500/20'
+                                ? 'bg-info/10 text-info group-hover:bg-info/20'
                                 : 'bg-muted text-muted-foreground group-hover:bg-muted/80',
                             isConnected &&
                                 (isWireless
-                                    ? 'bg-blue-500/20'
+                                    ? 'bg-info/20'
                                     : 'bg-primary/10 text-primary'),
                         )}
                     >

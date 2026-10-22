@@ -52,9 +52,9 @@ function Chips<T extends string>({
                     type="button"
                     onClick={() => onChange(o)}
                     className={cn(
-                        'rounded-[7px] border px-2.5 py-1.5 text-xs font-semibold',
+                        'rounded-md border px-2.5 py-1.5 text-xs font-semibold',
                         o === value
-                            ? 'border-primary/60 bg-[color-mix(in_oklch,var(--primary)_18%,var(--secondary))]'
+                            ? 'border-primary/60 bg-[color-mix(in_oklab,var(--primary)_18%,var(--secondary))]'
                             : 'border-border bg-secondary',
                     )}
                 >
@@ -88,7 +88,7 @@ function NameField({
             onKeyDown={(e) => {
                 if (e.key === 'Enter') apply(e.currentTarget.value)
             }}
-            className="mt-[5px] block h-[34px] w-full rounded-lg border border-input bg-background px-2.5 text-[13px] outline-none"
+            className="mt-[5px] block h-[34px] w-full rounded-lg border border-input bg-background px-2.5 text-panel-title outline-none"
         />
     )
 }
@@ -111,7 +111,7 @@ export function GeometryPanel({
             <InSection
                 label="Position (U)"
                 right={
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-caption text-muted-foreground">
                         drag · ⌥ for free
                     </span>
                 }
@@ -145,9 +145,9 @@ export function GeometryPanel({
                             type="button"
                             onClick={() => onPatch({ w, h })}
                             className={cn(
-                                'rounded-md border border-border px-2 py-1 font-mono text-[11px] font-semibold',
+                                'rounded-md border border-border px-2 py-1 font-mono text-caption font-semibold',
                                 c.w === w && c.h === h
-                                    ? 'bg-[color-mix(in_oklch,var(--primary)_18%,var(--secondary))] text-foreground'
+                                    ? 'bg-[color-mix(in_oklab,var(--primary)_18%,var(--secondary))] text-foreground'
                                     : 'text-muted-foreground',
                             )}
                         >
@@ -181,7 +181,7 @@ export function GeometryPanel({
                 />
             </InSection>
             <InSection label="Shell">
-                <p className="mb-2 text-[11.5px] leading-normal text-muted-foreground">
+                <p className="mb-2 text-xs leading-normal text-muted-foreground">
                     Which part of the body this control sits on. The shell
                     refits around its zone.
                 </p>
@@ -222,7 +222,7 @@ export function GeometryPanel({
                     />
                 </div>
                 <div className="mt-2.5">
-                    <span className="text-[11.5px] font-semibold text-muted-foreground">
+                    <span className="text-xs font-semibold text-muted-foreground">
                         Name
                     </span>
                     <NameField
@@ -313,9 +313,9 @@ export function ShellPanel({
                     ].map(([k, v]) => (
                         <div
                             key={k}
-                            className="flex-1 rounded-[9px] border border-border bg-secondary px-[11px] py-[9px]"
+                            className="flex-1 rounded-md border border-border bg-secondary px-[11px] py-[9px]"
                         >
-                            <div className="text-[10.5px] font-bold tracking-[.07em] text-muted-foreground uppercase">
+                            <div className="text-meta font-bold tracking-[.07em] text-muted-foreground uppercase">
                                 {k}
                             </div>
                             <div className="mt-0.5 font-mono text-sm font-bold">
@@ -349,7 +349,7 @@ export function ShellPanel({
                                 key={k}
                                 type="button"
                                 onClick={() => onAdd(k)}
-                                className="flex items-center gap-[7px] rounded-lg border border-dashed border-border bg-secondary px-2.5 py-2 text-left text-[12.5px] font-semibold hover:border-primary"
+                                className="flex items-center gap-[7px] rounded-lg border border-dashed border-border bg-secondary px-2.5 py-2 text-left text-control font-semibold hover:border-primary"
                             >
                                 <Plus className="size-[13px] text-primary" />
                                 {KIND_LABEL[k]}

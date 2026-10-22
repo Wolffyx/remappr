@@ -76,7 +76,7 @@ export function LayoutJsonModal({
         >
             <Suspense
                 fallback={
-                    <div className="grid h-[380px] place-items-center rounded-[10px] border border-input text-xs text-muted-foreground">
+                    <div className="grid h-[380px] place-items-center rounded-lg border border-input text-xs text-muted-foreground">
                         Loading editor…
                     </div>
                 }

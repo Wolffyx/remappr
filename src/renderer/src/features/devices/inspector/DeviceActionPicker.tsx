@@ -34,8 +34,10 @@ export function DeviceActionPicker({
                     <ArrowLeft className="size-[15px]" />
                 </button>
                 <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-bold">Assign action</div>
-                    <div className="truncate text-[11.5px] text-muted-foreground">
+                    <div className="text-panel-title font-bold">
+                        Assign action
+                    </div>
+                    <div className="truncate text-xs text-muted-foreground">
                         {title}
                     </div>
                 </div>

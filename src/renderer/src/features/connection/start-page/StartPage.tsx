@@ -41,10 +41,10 @@ import { useInputDevices } from '../input-devices/useInputDevices'
 // The hero's "works with" pill; the chip news layout takes its place.
 const COMPAT_BADGE = (
     <div
-        className="mb-5 inline-flex items-center gap-[7px] rounded-full border px-3 py-[5px] text-[12px] font-semibold text-primary"
+        className="mb-5 inline-flex items-center gap-[7px] rounded-full border px-3 py-[5px] text-xs font-semibold text-primary"
         style={{
-            background: 'color-mix(in oklch, var(--primary) 14%, transparent)',
-            borderColor: 'color-mix(in oklch, var(--primary) 30%, transparent)',
+            background: 'color-mix(in oklab, var(--primary) 14%, transparent)',
+            borderColor: 'color-mix(in oklab, var(--primary) 30%, transparent)',
         }}
     >
         <span className="size-[7px] rounded-full bg-primary" />
@@ -124,7 +124,7 @@ export function StartPage({
                 className="h-[3px] shrink-0"
                 style={{
                     background:
-                        'linear-gradient(90deg, transparent, color-mix(in oklch, var(--primary) 70%, transparent), transparent)',
+                        'linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 70%, transparent), transparent)',
                 }}
             />
 
@@ -140,19 +140,19 @@ export function StartPage({
                     <TrafficLightInset />
                     <div className="flex items-center gap-3" style={NO_DRAG}>
                         <span
-                            className="grid size-[38px] place-items-center rounded-xl text-white"
+                            className="grid size-[38px] place-items-center rounded-xl text-primary-foreground"
                             style={{
                                 background:
-                                    'linear-gradient(150deg, var(--primary), color-mix(in oklch, var(--primary) 70%, #000))',
+                                    'linear-gradient(150deg, var(--primary), color-mix(in oklab, var(--primary) 70%, #000))',
                             }}
                         >
                             <Keyboard size={22} />
                         </span>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-[21px] font-extrabold tracking-tight">
+                            <span className="text-title-xl font-extrabold tracking-tight">
                                 Remappr
                             </span>
-                            <span className="font-mono text-[11px] font-semibold text-muted-foreground">
+                            <span className="font-mono text-caption font-semibold text-muted-foreground">
                                 v{APP_VERSION}
                             </span>
                         </div>
@@ -186,7 +186,7 @@ export function StartPage({
                         ) : (
                             COMPAT_BADGE
                         )}
-                        <h1 className="mb-3 text-[40px] font-extrabold leading-[1.05] tracking-tight">
+                        <h1 className="mb-3 text-hero font-extrabold leading-[1.05] tracking-tight">
                             Configure Your Devices
                         </h1>
                         <p className="text-[16px] leading-normal text-muted-foreground">
@@ -261,7 +261,7 @@ export function StartPage({
                     </div>
                 </main>
 
-                <footer className="border-t border-border py-5 text-center text-[12.5px] text-muted-foreground">
+                <footer className="border-t border-border py-5 text-center text-control text-muted-foreground">
                     <span>
                         &copy; {new Date().getFullYear()} — Remappr Contributors
                     </span>

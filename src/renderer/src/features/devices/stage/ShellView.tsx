@@ -3,9 +3,9 @@ import type { CSSProperties, JSX } from 'react'
 import { DEV_S, type ShellPart } from './geometry'
 
 const LIGHT_FILL =
-    'linear-gradient(170deg, color-mix(in oklch, var(--foreground) 7%, var(--card)), var(--card) 60%)'
+    'linear-gradient(170deg, color-mix(in oklab, var(--foreground) 7%, var(--card)), var(--card) 60%)'
 const DARK_FILL =
-    'linear-gradient(90deg, color-mix(in oklch, var(--foreground) 4%, var(--background)), color-mix(in oklch, var(--foreground) 10%, var(--background)), color-mix(in oklch, var(--foreground) 4%, var(--background)))'
+    'linear-gradient(90deg, color-mix(in oklab, var(--foreground) 4%, var(--background)), color-mix(in oklab, var(--foreground) 10%, var(--background)), color-mix(in oklab, var(--foreground) 4%, var(--background)))'
 
 function partStyle(
     p: ShellPart,
@@ -51,7 +51,7 @@ export function ShellView({
                         style={{
                             ...partStyle(p, ox, oy, 1.5),
                             background:
-                                'color-mix(in oklch, var(--foreground) 16%, transparent)',
+                                'color-mix(in oklab, var(--foreground) 16%, transparent)',
                         }}
                     />
                 ))}

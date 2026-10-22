@@ -56,7 +56,7 @@ export function NewsBell({ pinned, latest }: NewsView): JSX.Element | null {
                 >
                     <Bell />
                     {unread > 0 && (
-                        <Badge className="absolute right-[3px] top-[3px] h-4 min-w-4 justify-center rounded-full px-1 text-[10px] font-extrabold leading-none shadow-[0_0_0_2px_var(--background)]">
+                        <Badge className="absolute right-[3px] top-[3px] h-4 min-w-4 justify-center rounded-full px-1 text-meta font-extrabold leading-none shadow-[0_0_0_2px_var(--background)]">
                             {unread}
                         </Badge>
                     )}
@@ -67,7 +67,7 @@ export function NewsBell({ pinned, latest }: NewsView): JSX.Element | null {
                 sideOffset={8}
                 // Same surface as the app's other dialogs (bg-background),
                 // not the lighter popover one the row dividers vanish on.
-                className="w-[380px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[14px] bg-background p-0 text-foreground shadow-[0_24px_60px_-20px_rgba(0,0,0,.7)] focus-visible:outline-none"
+                className="w-[380px] max-w-[calc(100vw-32px)] overflow-hidden rounded-xl bg-background p-0 text-foreground shadow-[0_24px_60px_-20px_rgba(0,0,0,.7)] focus-visible:outline-none"
                 // Focus the panel, not its first button, so opening with the
                 // mouse doesn't ring "Mark all read"; Tab still moves in.
                 onOpenAutoFocus={(e) => {
@@ -77,13 +77,11 @@ export function NewsBell({ pinned, latest }: NewsView): JSX.Element | null {
                 tabIndex={-1}
             >
                 <div className="flex items-center border-b border-border px-4 py-3">
-                    <span className="flex-1 text-[14px] font-bold">
-                        What’s new
-                    </span>
+                    <span className="flex-1 text-sm font-bold">What’s new</span>
                     <Button
                         variant="link"
                         size="sm"
-                        className="h-auto px-0 text-[12px] font-semibold"
+                        className="h-auto px-0 text-xs font-semibold"
                         onClick={() => markRead(items.map((n) => n.id))}
                     >
                         Mark all read
@@ -136,7 +134,7 @@ function BellRow({
             style={
                 n.pinned
                     ? {
-                          background: `color-mix(in oklch, ${c} 7%, transparent)`,
+                          background: `color-mix(in oklab, ${c} 7%, transparent)`,
                       }
                     : undefined
             }
@@ -148,18 +146,18 @@ function BellRow({
                     className="size-[30px] translate-y-0 rounded-lg border-0"
                     style={{
                         color: c,
-                        background: `color-mix(in oklch, ${c} 14%, transparent)`,
+                        background: `color-mix(in oklab, ${c} 14%, transparent)`,
                     }}
                 >
                     {n.pinned ? <PinnedMark size={15} /> : <TagIcon />}
                 </ItemMedia>
                 <ItemContent className="gap-0.5">
-                    <ItemDescription className="text-[11.5px] leading-normal">
+                    <ItemDescription className="text-xs leading-normal">
                         {NEWS_TAGS[n.tag].label} · {formatNewsDate(n.date, now)}
                     </ItemDescription>
                     <ItemTitle
                         className={cn(
-                            'w-auto text-[13px] leading-[1.35]',
+                            'w-auto text-panel-title leading-[1.35]',
                             unread ? 'font-bold' : 'font-medium',
                         )}
                     >

@@ -45,7 +45,7 @@ export function HatGrid({
                     return (
                         <div
                             key={i}
-                            className="grid place-items-center font-mono text-[11px] font-bold text-muted-foreground"
+                            className="grid place-items-center font-mono text-caption font-bold text-muted-foreground"
                         >
                             {b.ways}-way
                         </div>
@@ -63,7 +63,7 @@ export function HatGrid({
                         disabled={dim || disabled}
                         onClick={() => onSlot(dir, glyph)}
                         className={cn(
-                            'flex h-[58px] flex-col items-center justify-center gap-[3px] rounded-[9px] border p-1 disabled:cursor-default',
+                            'flex h-[58px] flex-col items-center justify-center gap-[3px] rounded-md border p-1 disabled:cursor-default',
                             off && 'border-dashed border-border bg-transparent',
                             dim && 'opacity-35',
                         )}
@@ -71,17 +71,17 @@ export function HatGrid({
                             off
                                 ? undefined
                                 : {
-                                      background: `color-mix(in oklch, ${accent} 12%, var(--secondary))`,
-                                      borderColor: `color-mix(in oklch, ${accent} 40%, var(--border))`,
+                                      background: `color-mix(in oklab, ${accent} 12%, var(--secondary))`,
+                                      borderColor: `color-mix(in oklab, ${accent} 40%, var(--border))`,
                                   }
                         }
                     >
-                        <span className="text-[13px] text-muted-foreground">
+                        <span className="text-panel-title text-muted-foreground">
                             {glyph}
                         </span>
                         <span
                             className={cn(
-                                'max-w-full truncate text-[11px] font-bold',
+                                'max-w-full truncate text-caption font-bold',
                                 off && 'text-muted-foreground',
                             )}
                         >

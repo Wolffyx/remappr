@@ -67,7 +67,7 @@ export function RgbControls({
 
             {/* Effect */}
             <div>
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
                     Effect
                 </p>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -80,7 +80,7 @@ export function RgbControls({
                                 type="button"
                                 onClick={() => onEffect(i)}
                                 data-active={on}
-                                className="flex flex-col items-center gap-1.5 rounded-xl border bg-background px-2 py-3 text-center text-[11px] font-medium capitalize text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground data-[active=true]:border-primary data-[active=true]:bg-primary/10 data-[active=true]:text-foreground"
+                                className="flex flex-col items-center gap-1.5 rounded-xl border bg-background px-2 py-3 text-center text-caption font-medium capitalize text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground data-[active=true]:border-primary data-[active=true]:bg-primary/10 data-[active=true]:text-foreground"
                             >
                                 <Icon className="size-4" />
                                 <span className="leading-tight">{e}</span>
@@ -93,7 +93,7 @@ export function RgbControls({
             {/* Colour */}
             {showColor && (
                 <div>
-                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
                         Colour
                     </p>
                     <div className="flex items-center gap-1.5">

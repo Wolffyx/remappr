@@ -78,7 +78,9 @@ function NumberRow({ s, value, disabled, onChange }: RowProps): JSX.Element {
     }
     return (
         <label className="flex items-center gap-2.5 py-[7px]">
-            <span className="flex-1 text-[13px] font-semibold">{s.label}</span>
+            <span className="flex-1 text-panel-title font-semibold">
+                {s.label}
+            </span>
             <Input
                 inputMode="numeric"
                 aria-label={s.label}
@@ -91,7 +93,7 @@ function NumberRow({ s, value, disabled, onChange }: RowProps): JSX.Element {
                 }}
                 className="h-8 w-28 text-right font-mono text-xs"
             />
-            <span className="w-6 text-[11px] text-muted-foreground">
+            <span className="w-6 text-caption text-muted-foreground">
                 {UNIT[s.unit].trim()}
             </span>
         </label>
@@ -147,7 +149,9 @@ function EnumRow({
                     disabled && 'pointer-events-none opacity-60',
                 )}
             >
-                <span className="text-[13px] font-semibold">{s.label}</span>
+                <span className="text-panel-title font-semibold">
+                    {s.label}
+                </span>
                 {options.length <= SEGMENTED_MAX ? (
                     <Segmented
                         value={String(value)}
@@ -182,7 +186,7 @@ function EnumRow({
                 hints.map((h) => (
                     <p
                         key={h}
-                        className="pb-1 text-[11px] text-muted-foreground"
+                        className="pb-1 text-caption text-muted-foreground"
                     >
                         {h}
                     </p>
@@ -299,7 +303,7 @@ export function SensorSettings({
                         type="button"
                         onClick={() => setOpen((o) => !o)}
                         aria-expanded={open}
-                        className="mt-1 flex items-center gap-1 py-1 text-[12px] font-semibold text-muted-foreground hover:text-foreground"
+                        className="mt-1 flex items-center gap-1 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
                     >
                         <ChevronRight
                             className={cn(

@@ -127,7 +127,7 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                     <section className="flex flex-col gap-2">
                         <h3 className="font-semibold">Debounce</h3>
                         <label className="flex flex-col gap-1.5">
-                            <span className="flex items-center justify-between text-[13px] font-medium">
+                            <span className="flex items-center justify-between text-panel-title font-medium">
                                 Response time
                                 <span className="font-mono text-xs text-muted-foreground">
                                     {debounceMs} ms
@@ -166,7 +166,7 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                                 className="w-24"
                                 disabled={loading}
                             />
-                            <span className="text-[10.5px] text-muted-foreground">
+                            <span className="text-meta text-muted-foreground">
                                 enum TBD on hardware
                             </span>
                         </div>

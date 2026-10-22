@@ -37,10 +37,10 @@ export function ControlList(): JSX.Element | null {
                                 className="size-2 shrink-0 rounded-[3px]"
                                 style={{ background: categoryAccent(s.cat) }}
                             />
-                            <span className="w-[108px] shrink-0 truncate text-[12.5px] text-muted-foreground">
+                            <span className="w-[108px] shrink-0 truncate text-control text-muted-foreground">
                                 {c.name}
                             </span>
-                            <span className="flex-1 truncate text-[12.5px] font-bold">
+                            <span className="flex-1 truncate text-control font-bold">
                                 {s.text}
                             </span>
                         </button>

@@ -56,9 +56,9 @@ function Meter({
                 <span className="font-medium">{spec.label}</span>
                 <span
                     className={cn(
-                        'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                        'rounded-full px-2 py-0.5 text-caption font-semibold',
                         value
-                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                            ? 'bg-warning/15 text-warning'
                             : 'bg-muted text-muted-foreground',
                     )}
                 >
@@ -108,7 +108,7 @@ function SensorReadings({
                 />
             ))}
             {failing && (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                     Readings pause while the sensor is busy.
                 </p>
             )}
@@ -196,7 +196,7 @@ function ProcedureRunner({
             <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold">{proc.label}</span>
                 {state === 'done' && (
-                    <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                    <span className="flex items-center gap-1 text-xs text-success">
                         <Check className="size-3.5" /> Done
                     </span>
                 )}
@@ -233,7 +233,7 @@ function ProcedureRunner({
             )}
 
             {state !== 'running' && stored && (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                     A result is stored on this device. It stays, whatever
                     settings you save.
                 </p>

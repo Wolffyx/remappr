@@ -18,6 +18,8 @@ export type KeyCategory =
     | 'media'
     | 'mouse'
     | 'system'
+    | 'conn'
+    | 'light'
     | 'space'
     | 'trans'
 
@@ -38,16 +40,18 @@ export const CATEGORY_META: Record<
     media: { label: 'Media', hue: 348 },
     mouse: { label: 'Mouse', hue: 42 },
     system: { label: 'System', hue: 25 },
+    conn: { label: 'Bluetooth & output', hue: 185 },
+    light: { label: 'Lighting', hue: 320 },
     space: { label: 'Space', hue: null },
     trans: { label: 'Pass-thru', hue: null },
 }
 
 // pattern-check: skip — hoisting a pure helper above an existing interface
-// Per-layer accent hues (Base/Lower/Raise/Nav…), matching the design's
-// LAYER_ACCENTS. Shared by the layer picker, the colour rail, and the stage pill.
-export const LAYER_ACCENT_HUES = [286, 210, 152, 80]
+// Per-layer accent (Base/Lower/Raise/Nav…): the design system's layer-1…4
+// tokens, cycling every four. Shared by the layer picker, the colour rail, the
+// stage pill, and any other per-index accent (profiles, DPI stages, entries).
 export const layerAccent = (index: number): string =>
-    `oklch(0.7 0.15 ${LAYER_ACCENT_HUES[index % LAYER_ACCENT_HUES.length]})`
+    `var(--layer-${(index % 4) + 1})`
 
 export interface CategoryStyle {
     /** legend / text colour */
@@ -156,6 +160,47 @@ const LAYER_PREFIXES = new Set([
 ])
 const MOUSE_PREFIXES = new Set(['&mkp', '&mmv', '&msc'])
 
+// Neutral legend-icon id (declared by each adapter on its behaviors and values,
+// see @firmware/legendIcons) → category. Non-HID behaviors — Bluetooth, output,
+// lighting, power — carry no usage to classify, so their icon decides.
+const ICON_CATEGORY: Readonly<Record<string, KeyCategory>> = {
+    bluetooth: 'conn',
+    next: 'conn',
+    prev: 'conn',
+    clear: 'conn',
+    'clear-all': 'conn',
+    disconnect: 'conn',
+    output: 'conn',
+    usb: 'conn',
+    ble: 'conn',
+    wireless: 'conn',
+    underglow: 'light',
+    backlight: 'light',
+    power: 'system',
+    'power-off': 'system',
+    reset: 'system',
+    bootloader: 'system',
+    unlock: 'system',
+    battery: 'system',
+    lock: 'system',
+    mouse: 'mouse',
+    'mouse-button': 'mouse',
+    'mouse-left': 'mouse',
+    'mouse-right': 'mouse',
+    'mouse-move': 'mouse',
+    'mouse-scroll': 'mouse',
+}
+
+/** Category from a non-HID binding's legend icons (first one that maps). */
+function iconCategory(b: BindingCategoryInput): KeyCategory | undefined {
+    if (b.bindingParam1 != null) return undefined
+    for (const part of b.paramParts ?? []) {
+        const cat = part.icon ? ICON_CATEGORY[part.icon] : undefined
+        if (cat) return cat
+    }
+    return undefined
+}
+
 /** The fields of a resolved binding we need to classify it. */
 export interface BindingCategoryInput {
     actionLabel?: string // bindingPrefix, e.g. '&kp' / '&mt' / '&lt' / '&trans'
@@ -164,6 +209,8 @@ export interface BindingCategoryInput {
     outOfRange?: boolean
     isHoldTap?: boolean
     holdIsLayer?: boolean
+    /** Legend parts; their neutral icon ids classify non-HID behaviors. */
+    paramParts?: readonly { icon?: string }[]
 }
 
 // pattern-check: skip — splits one classifier into face/accent variants, pure mapper, no abstraction
@@ -188,7 +235,7 @@ export function categoryForBinding(b: BindingCategoryInput): KeyCategory {
     if (prefix && LAYER_PREFIXES.has(prefix)) return 'layer'
     if (prefix && MOUSE_PREFIXES.has(prefix)) return 'mouse'
 
-    return categoryForUsage(b.bindingParam1)
+    return iconCategory(b) ?? categoryForUsage(b.bindingParam1)
 }
 
 /**
@@ -212,7 +259,7 @@ export function faceCategoryForBinding(b: BindingCategoryInput): KeyCategory {
     }
     if (prefix && LAYER_PREFIXES.has(prefix)) return 'layer'
     if (prefix && MOUSE_PREFIXES.has(prefix)) return 'mouse'
-    return categoryForUsage(b.bindingParam1)
+    return iconCategory(b) ?? categoryForUsage(b.bindingParam1)
 }
 
 // ---- Heatmap colour ramp (used by the heatmap overlay) -------------------

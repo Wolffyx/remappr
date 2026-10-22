@@ -23,9 +23,9 @@ export function KeyTestPanel({
 }: KeyTestPanelProps): JSX.Element {
     const done = total > 0 && seenCount >= total
     return (
-        <div className="absolute top-3.5 left-1/2 z-[15] flex -translate-x-1/2 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-[11px] font-semibold text-muted-foreground shadow-sm">
+        <div className="absolute top-3.5 left-1/2 z-[15] flex -translate-x-1/2 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-caption font-semibold text-muted-foreground shadow-sm">
             {done ? (
-                <span className="inline-flex items-center gap-1 text-[oklch(0.62_0.18_150)]">
+                <span className="inline-flex items-center gap-1 text-success">
                     <Check className="size-3" /> All keys tested
                 </span>
             ) : (
@@ -47,7 +47,7 @@ export function KeyTestPanel({
             </button>
             <span className="mx-0.5 h-3.5 w-px bg-border" />
             <span
-                className="text-[10px] font-medium"
+                className="text-meta font-medium"
                 title={
                     hardware
                         ? 'Reading the keyboard switch matrix over the wire.'

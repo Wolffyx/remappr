@@ -38,7 +38,7 @@ export const PhysicalLayoutPicker = ({
 
     return (
         <SidebarGroupContent>
-            <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+            <SidebarGroupLabel className="text-caption font-bold uppercase tracking-[0.08em] text-muted-foreground">
                 Layouts
             </SidebarGroupLabel>
             <SidebarGroupAction title="Add Layout">
@@ -52,14 +52,14 @@ export const PhysicalLayoutPicker = ({
                             <Popover key={layout.name} open={hovered === index}>
                                 <PopoverTrigger asChild>
                                     <SidebarMenuButton
-                                        className="h-auto items-center gap-2.5 rounded-[10px] border px-2.5 py-2.5 data-[active=true]:bg-transparent"
+                                        className="h-auto items-center gap-2.5 rounded-lg border px-2.5 py-2.5 data-[active=true]:bg-transparent"
                                         style={
                                             selected
                                                 ? {
                                                       background:
-                                                          'color-mix(in oklch, var(--primary) 12%, var(--sidebar))',
+                                                          'color-mix(in oklab, var(--primary) 12%, var(--sidebar))',
                                                       borderColor:
-                                                          'color-mix(in oklch, var(--primary) 32%, transparent)',
+                                                          'color-mix(in oklab, var(--primary) 32%, transparent)',
                                                   }
                                                 : {
                                                       borderColor:
@@ -85,10 +85,10 @@ export const PhysicalLayoutPicker = ({
                                             }}
                                         />
                                         <div className="min-w-0 flex-1">
-                                            <h3 className="truncate text-[13.5px] font-bold leading-tight">
+                                            <h3 className="truncate text-panel-title font-bold leading-tight">
                                                 {layout.name}
                                             </h3>
-                                            <p className="truncate text-[11px] text-muted-foreground">
+                                            <p className="truncate text-caption text-muted-foreground">
                                                 {layout.keys.length} keys ·
                                                 hover to preview
                                             </p>
@@ -112,7 +112,7 @@ export const PhysicalLayoutPicker = ({
                                     }
                                     className="pointer-events-none w-auto p-2"
                                 >
-                                    <div className="mb-1 px-1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                                    <div className="mb-1 px-1 text-meta font-bold uppercase tracking-[0.06em] text-muted-foreground">
                                         {layout.name} · {layout.keys.length}{' '}
                                         keys
                                     </div>

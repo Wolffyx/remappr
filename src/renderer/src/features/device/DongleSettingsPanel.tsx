@@ -71,7 +71,7 @@ export function DongleSettingsPanel({
     }
     if (error && !snapshot) {
         return (
-            <div className="rounded-[10px] border border-destructive/40 p-4 text-sm">
+            <div className="rounded-lg border border-destructive/40 p-4 text-sm">
                 <p className="font-medium">
                     Could not read the dongle settings
                 </p>
@@ -152,7 +152,7 @@ export function DongleSettingsPanel({
                     Revert
                 </Button>
                 {blocked && (
-                    <span className="text-[11px] text-destructive">
+                    <span className="text-caption text-destructive">
                         Fix the marked fields to save.
                     </span>
                 )}

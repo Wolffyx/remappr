@@ -145,7 +145,8 @@ describe('colours and labels', () => {
     })
 
     it('cycles profile accents and summarises a device', () => {
-        expect(profileAccent(0)).toBe(profileAccent(7))
+        expect(profileAccent(0)).toBe(profileAccent(4))
+        expect(profileAccent(0)).toBe('var(--layer-1)')
         expect(deviceSummary('mouse', mouse.controls)).toBe(
             'Mouse · 7 controls',
         )

@@ -61,6 +61,7 @@ export function LayerKeyboardPreview({
                     actionLabel: p.actionLabel,
                     bindingParam1: p.bindingParam1,
                     actionTypeName: p.actionTypeName,
+                    paramParts: p.paramParts,
                     outOfRange: p.outOfRange,
                     isHoldTap: !!p.holdTap,
                     holdIsLayer: p.holdTap?.holdNodeKind === 'layer',

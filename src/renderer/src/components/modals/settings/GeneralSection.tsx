@@ -16,52 +16,17 @@ import {
     useTheme,
 } from '@/providers/ThemeProvider'
 
-// Swatch colours per theme (bg + primary), ported 1:1 from the prototype so the
-// grid previews each theme's palette without mounting it.
-const THEME_SWATCH: Record<
-    ThemeName,
-    { name: string; bg: string; primary: string }
-> = {
-    default: {
-        name: 'Default',
-        bg: 'oklch(0.21 0 0)',
-        primary: 'oklch(0.55 0.224 286)',
-    },
-    claude: {
-        name: 'Claude',
-        bg: 'oklch(0.268 0.004 106)',
-        primary: 'oklch(0.672 0.131 39)',
-    },
-    supabase: {
-        name: 'Supabase',
-        bg: 'oklch(0.182 0 0)',
-        primary: 'oklch(0.55 0.13 157)',
-    },
-    't3-chat': {
-        name: 'T3 Chat',
-        bg: 'oklch(0.241 0.02 307)',
-        primary: 'oklch(0.53 0.19 4)',
-    },
-    vercel: {
-        name: 'Vercel',
-        bg: 'oklch(0.05 0 0)',
-        primary: 'oklch(0.96 0 0)',
-    },
-    twitter: {
-        name: 'Twitter',
-        bg: 'oklch(0.04 0 0)',
-        primary: 'oklch(0.669 0.16 245)',
-    },
-    bubblegum: {
-        name: 'Bubblegum',
-        bg: 'oklch(0.25 0.03 234)',
-        primary: 'oklch(0.83 0.1 87)',
-    },
-    catppuccin: {
-        name: 'Catppuccin',
-        bg: 'oklch(0.215 0.025 284)',
-        primary: 'oklch(0.787 0.12 304)',
-    },
+// Display names for the swatch grid. Each swatch scopes its palette with
+// data-palette, so its colours come from themes.css, never a copied list.
+const THEME_LABEL: Record<ThemeName, string> = {
+    default: 'Default',
+    claude: 'Claude',
+    supabase: 'Supabase',
+    't3-chat': 'T3 Chat',
+    vercel: 'Vercel',
+    twitter: 'Twitter',
+    bubblegum: 'Bubblegum',
+    catppuccin: 'Catppuccin',
 }
 
 const DARK_MODES: { value: Theme; label: string }[] = [
@@ -85,7 +50,7 @@ function Row({
             <div>
                 <div className="text-sm font-semibold">{label}</div>
                 {desc && (
-                    <div className="mt-0.5 text-[12.5px] text-muted-foreground">
+                    <div className="mt-0.5 text-control text-muted-foreground">
                         {desc}
                     </div>
                 )}
@@ -113,32 +78,28 @@ export function GeneralSection(): JSX.Element {
                 {/* swatch grid */}
                 <div className="grid grid-cols-4 gap-2 border-b border-border py-3.5">
                     {THEME_NAMES.map((name) => {
-                        const s = THEME_SWATCH[name]
                         const active = themeName === name
                         return (
                             <button
                                 key={name}
                                 type="button"
                                 onClick={() => setThemeName(name)}
-                                className="flex items-center gap-2 rounded-[9px] p-1.5 text-left"
+                                className="flex items-center gap-2 rounded-md p-1.5 text-left"
                                 style={{
                                     background: active
-                                        ? 'color-mix(in oklch, var(--primary) 12%, transparent)'
+                                        ? 'color-mix(in oklab, var(--primary) 12%, transparent)'
                                         : 'var(--secondary)',
                                     border: `1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
                                 }}
                             >
                                 <span
-                                    className="relative size-[22px] shrink-0 rounded-md border border-border"
-                                    style={{ background: s.bg }}
+                                    data-palette={name}
+                                    className="relative size-[22px] shrink-0 rounded-md border border-border bg-background"
                                 >
-                                    <span
-                                        className="absolute inset-1 rounded-[3px]"
-                                        style={{ background: s.primary }}
-                                    />
+                                    <span className="absolute inset-1 rounded-[3px] bg-primary" />
                                 </span>
-                                <span className="truncate text-[11.5px] font-semibold">
-                                    {s.name}
+                                <span className="truncate text-xs font-semibold">
+                                    {THEME_LABEL[name]}
                                 </span>
                             </button>
                         )

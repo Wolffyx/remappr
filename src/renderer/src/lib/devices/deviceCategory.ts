@@ -5,6 +5,7 @@
 // legends, dots and edges follows the theme mode through the same `--cap-*-l`
 // variables the keycaps use, so a control reads in light and dark alike.
 import type { DeviceActionCategory } from '@firmware/devices/types'
+import { layerAccent } from '@/lib/keymap/keyCategory'
 
 export const DEVICE_CATEGORY_META: Readonly<
     Record<DeviceActionCategory, { label: string; hue: number | null }>
@@ -47,9 +48,9 @@ export interface ControlColors {
 }
 
 const NEUTRAL: ControlColors = {
-    face: 'color-mix(in oklch, var(--foreground) 7%, var(--card))',
-    top: 'color-mix(in oklch, var(--foreground) 11%, var(--card))',
-    edge: 'color-mix(in oklch, var(--foreground) 22%, transparent)',
+    face: 'color-mix(in oklab, var(--foreground) 7%, var(--card))',
+    top: 'color-mix(in oklab, var(--foreground) 11%, var(--card))',
+    edge: 'color-mix(in oklab, var(--foreground) 22%, transparent)',
     ink: 'var(--card-foreground)',
     glow: 'var(--primary)',
 }
@@ -63,16 +64,14 @@ export function controlColors(
     const hue = DEVICE_CATEGORY_META[cat].hue
     if (mono || hue == null) return NEUTRAL
     return {
-        face: `color-mix(in oklch, oklch(0.6 0.14 ${hue}) 16%, var(--card))`,
-        top: `color-mix(in oklch, oklch(0.62 0.14 ${hue}) 24%, var(--card))`,
+        face: `color-mix(in oklab, oklch(0.6 0.14 ${hue}) 16%, var(--card))`,
+        top: `color-mix(in oklab, oklch(0.62 0.14 ${hue}) 24%, var(--card))`,
         edge: `oklch(var(--cap-edge-l) 0.13 ${hue} / 0.55)`,
         ink: `oklch(var(--cap-legend-l) 0.11 ${hue})`,
         glow: `oklch(0.7 0.16 ${hue})`,
     }
 }
 
-/** Accent hues of a device's profiles, by index (Default, Gaming, Work, …). */
-const PROFILE_HUES = [286, 25, 152, 210, 80, 348, 252] as const
-
-export const profileAccent = (index: number): string =>
-    `oklch(0.7 0.15 ${PROFILE_HUES[index % PROFILE_HUES.length]})`
+/** Accent of a device's profile, by index (Default, Gaming, Work, …) — the
+ *  same layer-1…4 cycle a keyboard's layers use. */
+export const profileAccent = (index: number): string => layerAccent(index)

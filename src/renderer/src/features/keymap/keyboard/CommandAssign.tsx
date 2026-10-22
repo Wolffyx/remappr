@@ -49,7 +49,7 @@ function Chip({
         background: tinted
             ? `linear-gradient(180deg, ${cs.faceTop}, ${cs.face})`
             : 'var(--secondary)',
-        border: `1px solid ${tinted ? `color-mix(in oklch, ${cs.edge} 45%, transparent)` : 'var(--border)'}`,
+        border: `1px solid ${tinted ? `color-mix(in oklab, ${cs.edge} 45%, transparent)` : 'var(--border)'}`,
         color: tinted ? cs.legend : 'var(--foreground)',
         fontFamily:
             cat === 'alpha'
@@ -58,7 +58,7 @@ function Chip({
     }
     return (
         <span
-            className="inline-flex h-7 min-w-7 max-w-[5.5rem] shrink-0 items-center justify-center overflow-hidden rounded-md px-2 text-[12px] font-bold"
+            className="inline-flex h-7 min-w-7 max-w-[5.5rem] shrink-0 items-center justify-center overflow-hidden rounded-md px-2 text-xs font-bold"
             style={style}
         >
             <span className="truncate">{label}</span>
@@ -168,7 +168,7 @@ export function CommandAssign({
                     </CommandGroup>
                 ))}
             </CommandList>
-            <div className="flex items-center gap-4 border-t px-4 py-2.5 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-4 border-t px-4 py-2.5 text-caption text-muted-foreground">
                 <span>
                     <b className="font-mono">↑↓</b> navigate
                 </span>

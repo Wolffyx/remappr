@@ -143,10 +143,10 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
         <div className="flex items-center gap-3 rounded-xl border bg-background p-4">
             <span
                 data-ready={!!config || !!service}
-                className="size-2 shrink-0 rounded-full bg-muted-foreground data-[ready=true]:bg-emerald-500 data-[ready=true]:shadow-[0_0_8px] data-[ready=true]:shadow-emerald-500/60"
+                className="size-2 shrink-0 rounded-full bg-muted-foreground data-[ready=true]:bg-success data-[ready=true]:shadow-[0_0_8px] data-[ready=true]:shadow-success/60"
             />
             <div className="flex-1">
-                <div className="text-[13px] font-semibold">
+                <div className="text-panel-title font-semibold">
                     {config
                         ? config.meta.name
                         : service
@@ -164,7 +164,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                 </div>
             </div>
             {(config || service) && (
-                <FileText className="size-4 text-emerald-500" />
+                <FileText className="size-4 text-success" />
             )}
         </div>
     )
@@ -220,7 +220,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
 
                         {service && (
                             <div>
-                                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
                                     Export
                                 </p>
                                 <div className="flex flex-wrap gap-2">
@@ -244,7 +244,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                         )}
 
                         <div>
-                            <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
                                 Import
                             </p>
                             {importButton}
@@ -253,8 +253,8 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                 )}
 
                 {error && (
-                    <div className="flex gap-2 rounded-lg border border-red-500/40 bg-red-500/5 p-2 text-xs">
-                        <AlertTriangle className="size-3.5 shrink-0 text-red-500" />
+                    <div className="flex gap-2 rounded-lg border border-danger/40 bg-danger/5 p-2 text-xs">
+                        <AlertTriangle className="size-3.5 shrink-0 text-danger" />
                         <span>
                             <span className="font-semibold">Import:</span>{' '}
                             {error}
@@ -266,7 +266,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
 
                 {/* instructions */}
                 <div>
-                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <p className="mb-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
                         Flash to your keyboard
                     </p>
                     <ol className="space-y-2.5 text-sm text-muted-foreground">
@@ -277,7 +277,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                             'Download the firmware artifact and flash it to your keyboard.',
                         ].map((step, i) => (
                             <li key={i} className="flex gap-3">
-                                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-secondary font-mono text-[11px] font-bold text-foreground">
+                                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-secondary font-mono text-caption font-bold text-foreground">
                                     {i + 1}
                                 </span>
                                 <span className="pt-0.5">{step}</span>

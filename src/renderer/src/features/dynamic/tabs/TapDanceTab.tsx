@@ -1,4 +1,5 @@
 // pattern-check: skip — form tab composing shared primitives
+import { layerAccent } from '@/lib/keymap/keyCategory'
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 
@@ -60,7 +61,7 @@ export function TapDanceTab({
             )}
             {entry && (
                 <>
-                    <EntryCard index={idx} accentHue={286}>
+                    <EntryCard index={idx} accent={layerAccent(0)}>
                         <Pair label="Tap">
                             <KeycodeField
                                 value={entry.onTap}
@@ -101,7 +102,7 @@ export function TapDanceTab({
                                     setEntry({ ...entry, tappingTerm: v })
                                 }
                             />
-                            <span className="text-[11px] text-muted-foreground">
+                            <span className="text-caption text-muted-foreground">
                                 ms
                             </span>
                         </Pair>

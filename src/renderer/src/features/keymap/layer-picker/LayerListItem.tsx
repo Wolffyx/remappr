@@ -84,12 +84,12 @@ export function LayerListItem({
                 onClick={() => onSelect(item.index)}
                 // Active row is tinted with the layer's own accent (design spec),
                 // overriding shadcn's neutral bg-sidebar-accent via inline style.
-                className="rounded-[9px] border border-transparent data-[active=true]:bg-transparent"
+                className="rounded-md border border-transparent data-[active=true]:bg-transparent"
                 style={
                     active
                         ? {
-                              background: `color-mix(in oklch, ${ac} 16%, var(--sidebar))`,
-                              borderColor: `color-mix(in oklch, ${ac} 40%, transparent)`,
+                              background: `color-mix(in oklab, ${ac} 16%, var(--sidebar))`,
+                              borderColor: `color-mix(in oklab, ${ac} 40%, transparent)`,
                           }
                         : undefined
                 }
@@ -104,11 +104,11 @@ export function LayerListItem({
                         }}
                     />
                     <span
-                        className={`flex-1 truncate text-[13.5px] ${active ? 'font-bold' : 'font-medium'}`}
+                        className={`flex-1 truncate text-panel-title ${active ? 'font-bold' : 'font-medium'}`}
                     >
                         {item.name}
                     </span>
-                    <span className="font-mono text-[11px] text-muted-foreground">
+                    <span className="font-mono text-caption text-muted-foreground">
                         L{item.index}
                     </span>
                 </span>

@@ -36,7 +36,7 @@ export const RangeRow = memo(function RangeRow({
     return (
         <div className={cn('py-2', disabled && 'opacity-50')}>
             <span className="mb-[7px] flex items-center justify-between">
-                <span className="text-[13px] font-semibold">{label}</span>
+                <span className="text-panel-title font-semibold">{label}</span>
                 <span className="font-mono text-xs text-muted-foreground">
                     {shown}
                     {suffix}

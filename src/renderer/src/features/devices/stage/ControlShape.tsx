@@ -151,7 +151,7 @@ function KeyCapFace({ col, summary, preview }: BodyProps): JSX.Element {
     const size = t.length > 6 ? 8.5 : t.length > 2 ? 10.5 : 15
     return (
         <div
-            className="absolute inset-[3px_4px_7px] grid place-items-center rounded-[7px] border border-white/5 p-1 text-center"
+            className="absolute inset-[3px_4px_7px] grid place-items-center rounded-[7px] border border-foreground/5 p-1 text-center"
             style={{
                 background: `linear-gradient(180deg, ${col.top}, ${col.face})`,
             }}
@@ -266,7 +266,7 @@ function surfaceStyle(
     if (c.shape === 'ring') {
         return {
             border: `2px dashed ${col.edge}`,
-            background: `color-mix(in oklch, ${col.glow} ${active ? 14 : 6}%, transparent)`,
+            background: `color-mix(in oklab, ${col.glow} ${active ? 14 : 6}%, transparent)`,
         }
     }
     const dashed = c.back || c.shape === 'sensor'
@@ -296,12 +296,12 @@ function shadowOf(
     },
 ): string {
     const ring = flags.selected
-        ? '0 0 0 2px var(--primary), 0 0 22px color-mix(in oklch, var(--primary) 55%, transparent)'
+        ? '0 0 0 2px var(--primary), 0 0 22px color-mix(in oklab, var(--primary) 55%, transparent)'
         : flags.hovered
           ? `0 0 0 1.5px ${col.glow}`
           : flags.flat
             ? 'none'
-            : 'inset 0 1px 0 color-mix(in oklch, #fff 8%, transparent), 0 2px 4px rgba(0,0,0,.25)'
+            : 'inset 0 1px 0 color-mix(in oklab, #fff 8%, transparent), 0 2px 4px rgba(0,0,0,.25)'
     return flags.pressed ? `${ring}, 0 0 26px ${col.glow}` : ring
 }
 

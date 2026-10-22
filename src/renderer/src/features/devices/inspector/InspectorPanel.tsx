@@ -76,10 +76,10 @@ export function InspectorPanel({
                 }
             >
                 <span
-                    className="grid h-10 min-w-10 place-items-center rounded-[10px] border px-2 font-mono text-[13px] font-bold"
+                    className="grid h-10 min-w-10 place-items-center rounded-lg border px-2 font-mono text-panel-title font-bold"
                     style={{
-                        background: `color-mix(in oklch, ${accent} 18%, var(--card))`,
-                        borderColor: `color-mix(in oklch, ${accent} 50%, transparent)`,
+                        background: `color-mix(in oklab, ${accent} 18%, var(--card))`,
+                        borderColor: `color-mix(in oklab, ${accent} 50%, transparent)`,
                         color: accent,
                     }}
                 >

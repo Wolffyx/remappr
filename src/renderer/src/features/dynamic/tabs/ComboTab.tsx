@@ -1,4 +1,5 @@
 // pattern-check: skip — form tab composing shared primitives
+import { layerAccent } from '@/lib/keymap/keyCategory'
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 
@@ -58,7 +59,7 @@ export function ComboTab({ service, count, opened }: Props): JSX.Element {
             )}
             {entry && (
                 <>
-                    <EntryCard index={idx} accentHue={210}>
+                    <EntryCard index={idx} accent={layerAccent(1)}>
                         <Pair label="Trigger keys">
                             <div className="flex items-center gap-1.5">
                                 {entry.keys.map((k, i) => (

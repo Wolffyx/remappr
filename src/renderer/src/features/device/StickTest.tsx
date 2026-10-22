@@ -88,7 +88,7 @@ export function StickTest({
                             />
                         )}
                         <span className="text-xs">{st.name}</span>
-                        <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+                        <span className="font-mono text-caption text-muted-foreground tabular-nums">
                             {zoomed
                                 ? `Centre, ${ZOOM}× zoom`
                                 : summary(stats[k])}

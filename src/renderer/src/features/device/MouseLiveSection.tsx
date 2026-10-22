@@ -130,7 +130,7 @@ export function MouseLiveSection({
                     Apply
                 </Button>
                 {cfg && (
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-caption text-muted-foreground">
                         {ranged
                             ? `${cfg.dpiMin}–${cfg.dpiMax}, step ${cfg.dpiStep}`
                             : 'This mouse has a fixed resolution'}
@@ -154,7 +154,7 @@ export function MouseLiveSection({
                         }
                     />
                 </div>
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-caption text-muted-foreground">
                     Curve = the saved acceleration curve.
                 </span>
             </div>

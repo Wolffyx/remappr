@@ -167,24 +167,24 @@ export const DeviceMenu = (): JSX.Element => {
                     if (open) void loadNodes()
                 }}
             >
-                <div className="flex items-center gap-2.5 rounded-[10px] border border-border bg-card px-2.5 py-2">
+                <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-2.5 py-2">
                     <span
                         aria-hidden
                         className="size-2 shrink-0 rounded-full"
                         style={{
                             background: connected
-                                ? 'oklch(0.72 0.16 152)'
+                                ? 'var(--success)'
                                 : 'var(--muted-foreground)',
                             boxShadow: connected
-                                ? '0 0 8px oklch(0.72 0.16 152)'
+                                ? '0 0 8px var(--success)'
                                 : 'none',
                         }}
                     />
                     <div className="min-w-0 flex-1">
-                        <div className="truncate text-[12.5px] font-semibold">
+                        <div className="truncate text-control font-semibold">
                             {connected ? displayName : 'No Device Connected'}
                         </div>
-                        <div className="text-[10.5px] text-muted-foreground">
+                        <div className="text-meta text-muted-foreground">
                             {statusLabel}
                         </div>
                     </div>
@@ -221,7 +221,7 @@ export const DeviceMenu = (): JSX.Element => {
 
                     {(nodes.length > 0 || nodesLoading) && (
                         <>
-                            <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">
+                            <DropdownMenuLabel className="text-caption font-normal text-muted-foreground">
                                 Mesh nodes
                             </DropdownMenuLabel>
                             {nodesLoading && nodes.length === 0 ? (
@@ -250,7 +250,7 @@ export const DeviceMenu = (): JSX.Element => {
                                             <Check className="h-4 w-4 shrink-0" />
                                         ) : (
                                             !n.online && (
-                                                <span className="text-[10px] text-muted-foreground">
+                                                <span className="text-meta text-muted-foreground">
                                                     offline
                                                 </span>
                                             )

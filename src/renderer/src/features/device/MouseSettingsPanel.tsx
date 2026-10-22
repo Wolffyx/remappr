@@ -124,7 +124,7 @@ export function MouseSettingsPanel({
     return (
         <div className="flex flex-col gap-4">
             {disabled && (
-                <div className="flex items-start gap-2 rounded-[10px] border border-border bg-muted/40 p-3 text-xs">
+                <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs">
                     <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                     <span>
                         Read-only view. Connect the mouse over USB to change its
@@ -170,7 +170,7 @@ export function MouseSettingsPanel({
                         disabled={disabled}
                     />
                     {draft && (
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-caption text-muted-foreground">
                             {Object.keys(errors).length
                                 ? 'Fix the marked fields — they are not staged.'
                                 : 'Changes are staged with the rest of the device; Save in the header writes them.'}

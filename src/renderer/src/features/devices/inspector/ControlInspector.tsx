@@ -126,7 +126,7 @@ const BUTTON: Partial<Record<SectionId, View<'button'>>> = {
                     <button
                         type="button"
                         onClick={() => x.pick('hold', `${x.c.name} · hold`)}
-                        className="text-[11.5px] font-bold text-primary"
+                        className="text-xs font-bold text-primary"
                     >
                         + Add hold action
                     </button>
@@ -400,7 +400,7 @@ const SENSOR: Partial<Record<SectionId, View<'sensor'>>> = {
         <InSection
             label="DPI stages"
             right={
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-caption text-muted-foreground">
                     DPI button cycles
                 </span>
             }

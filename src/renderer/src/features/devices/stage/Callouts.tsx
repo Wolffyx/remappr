@@ -44,7 +44,7 @@ export function CalloutLines({
                         stroke={
                             on
                                 ? 'var(--primary)'
-                                : 'color-mix(in oklch, var(--foreground) 22%, transparent)'
+                                : 'color-mix(in oklab, var(--foreground) 22%, transparent)'
                         }
                         strokeWidth={on ? 1.6 : 1}
                     />
@@ -121,7 +121,7 @@ export function Callout({
                 'absolute flex h-[50px] w-[182px] cursor-pointer flex-col justify-center gap-px rounded-[10px] border px-[11px] text-foreground transition-[top,background-color] duration-150',
                 left ? 'items-end text-right' : 'items-start text-left',
                 selected
-                    ? 'border-primary/60 bg-[color-mix(in_oklch,var(--primary)_16%,var(--card))]'
+                    ? 'border-primary/60 bg-[color-mix(in_oklab,var(--primary)_16%,var(--card))]'
                     : hovered
                       ? 'border-border bg-card'
                       : 'border-transparent bg-card/55',

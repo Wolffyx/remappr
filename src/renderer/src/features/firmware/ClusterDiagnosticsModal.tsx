@@ -29,12 +29,12 @@ const hex2 = (n: number): string => `0x${n.toString(16).padStart(2, '0')}`
 /** coordinator = amber crown chip; follower = muted user chip. */
 function RoleBadge({ coordinator }: { coordinator: boolean }): JSX.Element {
     return coordinator ? (
-        <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+        <span className="inline-flex items-center gap-1 rounded bg-warning/15 px-1.5 py-0.5 text-caption font-semibold uppercase tracking-wide text-warning">
             <Crown className="size-3" />
             Coordinator
         </span>
     ) : (
-        <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
             <User className="size-3" />
             Follower
         </span>
@@ -46,9 +46,9 @@ function StateChip({ label, ok }: { label: string; ok: boolean }): JSX.Element {
     return (
         <span
             className={cn(
-                'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                'inline-flex items-center rounded px-1.5 py-0.5 text-meta font-semibold uppercase tracking-wide',
                 ok
-                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-success/15 text-success'
                     : 'bg-muted text-muted-foreground',
             )}
         >
@@ -59,7 +59,7 @@ function StateChip({ label, ok }: { label: string; ok: boolean }): JSX.Element {
 
 function MetaChip({ children }: { children: React.ReactNode }): JSX.Element {
     return (
-        <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+        <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-meta font-medium text-muted-foreground">
             {children}
         </span>
     )
@@ -186,7 +186,7 @@ export function ClusterDiagnosticsModal({
                             {diag.peers.map((p, i) => (
                                 <div
                                     key={i}
-                                    className="flex items-center gap-3 rounded-[10px] border border-border bg-card px-3 py-2.5"
+                                    className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
                                 >
                                     <Cpu className="size-5 shrink-0 text-muted-foreground" />
                                     <div className="min-w-0 flex-1">

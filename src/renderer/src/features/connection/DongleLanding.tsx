@@ -221,7 +221,7 @@ export function DongleLanding(): JSX.Element {
                     <div className="truncate text-sm font-semibold">
                         {dongleName}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="text-caption text-muted-foreground">
                         Dongle · Connected · {connLabel}
                     </div>
                 </div>
@@ -300,7 +300,7 @@ export function DongleLanding(): JSX.Element {
                             Scanning for nodes…
                         </p>
                     ) : nodes.length === 0 ? (
-                        <div className="rounded-[10px] border border-dashed border-border p-6 text-center">
+                        <div className="rounded-lg border border-dashed border-border p-6 text-center">
                             <Cpu className="mx-auto mb-2 size-6 text-muted-foreground" />
                             <p className="text-sm font-medium">
                                 No paired nodes
@@ -327,13 +327,13 @@ export function DongleLanding(): JSX.Element {
                             {nodes.map((n) => (
                                 <div
                                     key={n.id}
-                                    className="flex items-center gap-1 rounded-[10px] border border-border bg-card pr-1.5 transition-colors hover:border-foreground/30"
+                                    className="flex items-center gap-1 rounded-lg border border-border bg-card pr-1.5 transition-colors hover:border-foreground/30"
                                 >
                                     <button
                                         type="button"
                                         disabled={!n.online}
                                         onClick={() => void handleOpen(n.id)}
-                                        className="flex min-w-0 flex-1 items-center gap-3 rounded-l-[10px] px-3.5 py-3 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex min-w-0 flex-1 items-center gap-3 rounded-l-lg px-3.5 py-3 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <NodeIcon
                                             kind={n.kind}
@@ -347,14 +347,14 @@ export function DongleLanding(): JSX.Element {
                                                 {n.isMaster && (
                                                     <span
                                                         title="Topology master (§5 election)"
-                                                        className="inline-flex shrink-0 items-center gap-0.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400"
+                                                        className="inline-flex shrink-0 items-center gap-0.5 rounded bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-warning"
                                                     >
                                                         <Crown className="size-2.5" />
                                                         Master
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="text-[11px] text-muted-foreground">
+                                            <div className="text-caption text-muted-foreground">
                                                 {n.online
                                                     ? 'Online'
                                                     : 'Offline'}

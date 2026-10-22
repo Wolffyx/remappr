@@ -133,14 +133,14 @@ function CommandWorkspace(): JSX.Element {
                     <div
                         role="presentation"
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="flex max-h-[78%] w-[min(400px,92%)] flex-col overflow-hidden rounded-[14px] border border-border bg-popover shadow-[0_30px_70px_-20px_rgba(0,0,0,.7)] animate-in fade-in zoom-in-95"
+                        className="flex max-h-[78%] w-[min(400px,92%)] flex-col overflow-hidden rounded-xl border border-border bg-popover shadow-[0_30px_70px_-20px_rgba(0,0,0,.7)] animate-in fade-in zoom-in-95"
                     >
                         <div className="flex-1 overflow-x-hidden overflow-y-auto">
                             <InspectorPanel
                                 onClose={() => setPanelOpen(false)}
                             />
                         </div>
-                        <div className="flex items-center gap-3.5 border-t border-border px-4 py-[9px] text-[11px] text-muted-foreground">
+                        <div className="flex items-center gap-3.5 border-t border-border px-4 py-[9px] text-caption text-muted-foreground">
                             <span>click an action to open the palette</span>
                             <span className="ml-auto inline-flex items-center gap-1">
                                 <X className="size-3" />{' '}
