@@ -25,6 +25,7 @@ import {
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
+import type { PanelFrame } from './clusterFrame'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
 import {
@@ -49,6 +50,8 @@ import {
 interface Props {
     opened: boolean
     onClose: () => void
+    /** The dialog chrome; the merged Cluster dialog passes a tab frame. */
+    frame?: PanelFrame
 }
 
 type Profile = ConfigLinkProfile['profile']
@@ -58,7 +61,11 @@ const cloneProfile = (lp: ConfigLinkProfile): ConfigLinkProfile => ({
     ...(lp.overrides ? { overrides: lp.overrides.map((o) => ({ ...o })) } : {}),
 })
 
-export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
+export function LinkProfileModal({
+    opened,
+    onClose,
+    frame: Frame = Modal,
+}: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
     const configEditing = supportsConfigEditing(service) ? service : null
 
@@ -128,7 +135,7 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
     )?.help
 
     return (
-        <Modal
+        <Frame
             size="md"
             opened={opened}
             onClose={onClose}
@@ -272,6 +279,6 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
                     )}
                 </div>
             </div>
-        </Modal>
+        </Frame>
     )
 }

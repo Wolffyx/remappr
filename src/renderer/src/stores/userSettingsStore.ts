@@ -34,13 +34,7 @@ export const TOOLBAR_STYLES = [
 ] as const
 export type ToolbarStyle = (typeof TOOLBAR_STYLES)[number]
 /** Tools on the bar in the 'pinned' style, by tool id (layout/toolbar/tools). */
-export const DEFAULT_PINNED_TOOLS = [
-    'heatmap',
-    'live',
-    'tap-dance',
-    'macros',
-    'lighting',
-]
+export const DEFAULT_PINNED_TOOLS = ['heatmap', 'live', 'dynamic', 'lighting']
 
 const DEFAULT_FIRMWARE_KEY = '_default'
 
@@ -155,7 +149,7 @@ const useUserSettingsStore = create<UserSettingsState>()(
             {
                 name: 'user-settings-store',
                 storage: createJSONStorage(() => localStorage),
-                version: 10,
+                version: 11,
                 migrate: (persisted: unknown, version: number) => {
                     if (!persisted || typeof persisted !== 'object') {
                         return persisted as Partial<UserSettingsState>
@@ -256,6 +250,25 @@ const useUserSettingsStore = create<UserSettingsState>()(
                         }
                         if (!Array.isArray(p.pinnedTools)) {
                             p.pinnedTools = DEFAULT_PINNED_TOOLS
+                        }
+                    }
+                    if (version < 11) {
+                        // f13: tap dance + macros became one "dynamic" tool, and
+                        // the three cluster dialogs one "cluster" tool.
+                        const merged: Record<string, string> = {
+                            'tap-dance': 'dynamic',
+                            macros: 'dynamic',
+                            'node-config': 'cluster',
+                            'link-profile': 'cluster',
+                        }
+                        if (Array.isArray(p.pinnedTools)) {
+                            p.pinnedTools = [
+                                ...new Set(
+                                    (p.pinnedTools as string[]).map(
+                                        (id) => merged[id] ?? id,
+                                    ),
+                                ),
+                            ]
                         }
                     }
                     return p as Partial<UserSettingsState>

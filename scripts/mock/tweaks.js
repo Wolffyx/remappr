@@ -27,7 +27,7 @@
         mock: 'remappr-mock',
         goto: 'remappr-mock-goto',
     }
-    const SETTINGS_VERSION = 10
+    const SETTINGS_VERSION = 11
 
     // ---------- storage ----------
     function readJson(key) {
@@ -250,8 +250,12 @@
             [...corne, click(byPrefix('Mod-TapA'), 700)],
         ],
         lighting: ['Keyboard', 'Lighting dock', tool('lightbulb')],
-        tapdance: ['Keyboard', 'Tap dance & combos', tool('sliders-vertical')],
-        macros: ['Keyboard', 'Macros', tool('sparkles')],
+        tapdance: ['Keyboard', 'Dynamic entries', tool('sliders-vertical')],
+        macros: [
+            'Keyboard',
+            'Macros',
+            [...tool('sliders-vertical'), click(byPrefix('Macros'), 600)],
+        ],
         settings: ['Dialogs', 'Settings', tool('settings')],
         export: ['Dialogs', 'Configuration export', tool('download')],
         'typing-load': ['Dialogs', 'Typing load', tool('chart-column')],
@@ -259,9 +263,7 @@
         timing: ['Dialogs', 'Timing & defaults', tool('timer')],
         'cond-layers': ['Dialogs', 'Conditional layers', tool('layers')],
         autocorrect: ['Dialogs', 'Autocorrect', tool('spell-check')],
-        cluster: ['Dialogs', 'Cluster diagnostics', tool('network')],
-        node: ['Dialogs', 'Node & cluster', tool('waypoints')],
-        link: ['Dialogs', 'Link profile', tool('link-2')],
+        cluster: ['Dialogs', 'Cluster', tool('network')],
         builder: ['Builder', 'Keyboard builder', builder],
         'builder-key': [
             'Builder',

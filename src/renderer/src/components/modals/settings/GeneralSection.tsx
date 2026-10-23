@@ -3,10 +3,9 @@
 // abstraction warranted.
 //
 // General settings, matched to the design prototype's SettingsDialog "General"
-// pane: an Appearance group (theme select + 8-theme swatch grid + segmented
+// pane: an Appearance group (8-theme swatch grid + segmented
 // light/dark/system) and a Keymap Display group (key header + colour-coding).
 import { Segmented } from '@/ui/segmented'
-import { ThemePicker } from '@/components/ThemePicker'
 import { KeyDisplayModePicker } from '@/components/KeyDisplayModePicker'
 import { ColorCodingPicker } from '@/components/ColorCodingPicker'
 import {
@@ -69,41 +68,42 @@ export function GeneralSection(): JSX.Element {
                 <h3 className="mb-1 text-lg font-bold tracking-tight">
                     Appearance
                 </h3>
-                <Row
-                    label="Theme"
-                    desc="Choose a colour theme — light & dark variants included"
-                >
-                    <ThemePicker />
-                </Row>
-                {/* swatch grid */}
-                <div className="grid grid-cols-4 gap-2 border-b border-border py-3.5">
-                    {THEME_NAMES.map((name) => {
-                        const active = themeName === name
-                        return (
-                            <button
-                                key={name}
-                                type="button"
-                                onClick={() => setThemeName(name)}
-                                className="flex items-center gap-2 rounded-md p-1.5 text-left"
-                                style={{
-                                    background: active
-                                        ? 'color-mix(in oklab, var(--primary) 12%, transparent)'
-                                        : 'var(--secondary)',
-                                    border: `1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
-                                }}
-                            >
-                                <span
-                                    data-palette={name}
-                                    className="relative size-[22px] shrink-0 rounded-md border border-border bg-background"
+                {/* One way to pick the theme: the swatch grid (the old
+                    dropdown beside it set the same value). */}
+                <div className="border-b border-border py-3.5">
+                    <div className="text-sm font-semibold">Theme</div>
+                    <div className="mt-0.5 text-control text-muted-foreground">
+                        Choose a colour theme — light & dark variants included
+                    </div>
+                    <div className="mt-3 grid grid-cols-4 gap-2">
+                        {THEME_NAMES.map((name) => {
+                            const active = themeName === name
+                            return (
+                                <button
+                                    key={name}
+                                    type="button"
+                                    onClick={() => setThemeName(name)}
+                                    className="flex items-center gap-2 rounded-md p-1.5 text-left"
+                                    style={{
+                                        background: active
+                                            ? 'color-mix(in oklab, var(--primary) 12%, transparent)'
+                                            : 'var(--secondary)',
+                                        border: `1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
+                                    }}
                                 >
-                                    <span className="absolute inset-1 rounded-[3px] bg-primary" />
-                                </span>
-                                <span className="truncate text-xs font-semibold">
-                                    {THEME_LABEL[name]}
-                                </span>
-                            </button>
-                        )
-                    })}
+                                    <span
+                                        data-palette={name}
+                                        className="relative size-[22px] shrink-0 rounded-md border border-border bg-background"
+                                    >
+                                        <span className="absolute inset-1 rounded-[3px] bg-primary" />
+                                    </span>
+                                    <span className="truncate text-xs font-semibold">
+                                        {THEME_LABEL[name]}
+                                    </span>
+                                </button>
+                            )
+                        })}
+                    </div>
                 </div>
                 <Row label="Dark Mode" desc="Light, dark, or follow the system">
                     <Segmented

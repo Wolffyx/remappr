@@ -8,12 +8,15 @@ import { toast } from 'sonner'
 import type { ClusterDiag, RoleEvent } from '@firmware'
 import useConnectionStore from '@/stores/connectionStore'
 import { Modal } from '@/ui/modal'
+import type { PanelFrame } from './clusterFrame'
 import { Button } from '@/ui/button'
 import { cn } from '@/lib/cn'
 
 interface Props {
     opened: boolean
     onClose: () => void
+    /** The dialog chrome; the merged Cluster dialog passes a tab frame. */
+    frame?: PanelFrame
 }
 
 /** One captured role transition, keyed by a session-monotonic sequence. */
@@ -62,6 +65,7 @@ function MetaChip({ children }: { children: React.ReactNode }): JSX.Element {
 export function ClusterDiagnosticsModal({
     opened,
     onClose,
+    frame: Frame = Modal,
 }: Props): JSX.Element {
     const cluster = useConnectionStore((s) => s.service?.cluster)
 
@@ -125,7 +129,7 @@ export function ClusterDiagnosticsModal({
     if (!cluster) return <></>
 
     return (
-        <Modal
+        <Frame
             size="lg"
             kind="readonly"
             opened={opened}
@@ -262,6 +266,6 @@ export function ClusterDiagnosticsModal({
                     )}
                 </section>
             </div>
-        </Modal>
+        </Frame>
     )
 }

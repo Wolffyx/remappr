@@ -16,6 +16,7 @@ import { supportsConfigEditing } from '@firmware/configEditing'
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
+import type { PanelFrame } from './clusterFrame'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
 import { Input } from '@/ui/input'
@@ -37,6 +38,8 @@ import {
 interface Props {
     opened: boolean
     onClose: () => void
+    /** The dialog chrome; the merged Cluster dialog passes a tab frame. */
+    frame?: PanelFrame
 }
 
 type Role = NonNullable<ConfigNode['role']>
@@ -53,7 +56,11 @@ const sameCluster = (
     b: readonly ConfigClusterNode[],
 ): boolean => JSON.stringify(a) === JSON.stringify(b)
 
-export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
+export function NodeConfigModal({
+    opened,
+    onClose,
+    frame: Frame = Modal,
+}: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
     const configEditing = supportsConfigEditing(service) ? service : null
 
@@ -132,7 +139,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
     const modeA = form.forwardMode === 'physical'
 
     return (
-        <Modal
+        <Frame
             size="md"
             opened={opened}
             onClose={onClose}
@@ -352,6 +359,6 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                     )}
                 </div>
             </div>
-        </Modal>
+        </Frame>
     )
 }

@@ -17,15 +17,12 @@ import {
     Languages,
     Layers,
     Lightbulb,
-    Link2,
     Network,
     ScanLine,
     Sliders,
     SlidersHorizontal,
-    Sparkles,
     SpellCheck,
     Timer,
-    Waypoints,
     Wifi,
     Zap,
     type LucideIcon,
@@ -68,8 +65,7 @@ type ToolAction =
     | 'live'
     | 'key-test'
     | 'load'
-    | 'tap-dance'
-    | 'macros'
+    | 'dynamic'
     | 'lighting'
     | 'dialog'
 
@@ -83,8 +79,9 @@ export interface ToolDef {
     /** One line on what the tool does — menus, launcher and search. */
     description: string
     icon: LucideIcon
-    /** Capability the connected firmware must expose for the tool to show. */
-    feature?: Feature
+    /** Capability the connected firmware must expose for the tool to show;
+     *  with a list, any one of them. */
+    feature?: Feature | readonly Feature[]
     action: ToolAction
 }
 
@@ -126,22 +123,14 @@ export const TOOLS: readonly ToolDef[] = [
         action: 'load',
     },
     {
-        id: 'tap-dance',
+        id: 'dynamic',
         group: 'behaviors',
-        label: 'Tap dance',
-        description: 'A different action for each tap count',
+        label: 'Dynamic entries',
+        short: 'Dynamic',
+        description: 'Tap dance, combos, key overrides, alt-repeat and macros',
         icon: Sliders,
-        feature: 'dynamic',
-        action: 'tap-dance',
-    },
-    {
-        id: 'macros',
-        group: 'behaviors',
-        label: 'Macros',
-        description: 'Record and replay key sequences',
-        icon: Sparkles,
-        feature: 'macros',
-        action: 'macros',
+        feature: ['dynamic', 'macros'],
+        action: 'dynamic',
     },
     {
         id: 'behaviors',
@@ -209,33 +198,12 @@ export const TOOLS: readonly ToolDef[] = [
         action: 'dialog',
     },
     {
-        id: 'link-profile',
-        group: 'device',
-        label: 'Link profile',
-        short: 'Link',
-        description: 'The radio link to the dongle',
-        icon: Link2,
-        feature: 'limits',
-        action: 'dialog',
-    },
-    {
-        id: 'node-config',
-        group: 'device',
-        label: 'Node and cluster',
-        short: 'Nodes',
-        description: 'Devices paired to this dongle',
-        icon: Waypoints,
-        feature: 'limits',
-        action: 'dialog',
-    },
-    {
         id: 'cluster',
         group: 'device',
-        label: 'Cluster diagnostics',
-        short: 'Cluster',
-        description: 'Link health of every node',
+        label: 'Cluster',
+        description: 'Node status, role and the link between nodes',
         icon: Network,
-        feature: 'cluster',
+        feature: ['cluster', 'limits'],
         action: 'dialog',
     },
     {
@@ -311,18 +279,13 @@ export function useEditorTools(): {
             live: () => [live, toggleLive],
             'key-test': () => [keyTest, toggleKeyTest],
             load: () => [false, (): void => openLoad(true)],
-            'tap-dance': () => [
-                advOpen && advSection !== 'macros',
+            // One entry for the dock; it reopens on the last tab used.
+            dynamic: () => [
+                advOpen,
                 (): void => {
+                    if (advOpen) return setAdvOpen(false)
                     setRgbOpen(false)
-                    openAdv('td')
-                },
-            ],
-            macros: () => [
-                advOpen && advSection === 'macros',
-                (): void => {
-                    setRgbOpen(false)
-                    openAdv('macros')
+                    openAdv(advSection)
                 },
             ],
             lighting: () => [
@@ -334,8 +297,11 @@ export function useEditorTools(): {
             ],
             dialog: (t) => [dialog === t.id, (): void => openDialog(t.id)],
         }
-        const available = (t: ToolDef): boolean =>
-            !t.feature || (!!service && !!FEATURE_PROBES[t.feature](service))
+        const has = (f: Feature): boolean =>
+            !!service && !!FEATURE_PROBES[f](service)
+        const available = ({ feature }: ToolDef): boolean =>
+            !feature ||
+            (typeof feature === 'string' ? has(feature) : feature.some(has))
 
         const tools = TOOLS.filter(available).map((t): EditorTool => {
             const [active, run] = actions[t.action](t)
