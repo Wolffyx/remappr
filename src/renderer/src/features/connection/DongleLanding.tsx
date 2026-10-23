@@ -27,6 +27,7 @@ import { Switch } from '@/ui/switch'
 import type { NodeView } from '@firmware/service'
 import { DongleSettingsPanel } from '@/features/device/DongleSettingsPanel'
 import { DongleBody } from '@/features/device/DongleBody'
+import { DongleRadioPanel } from '@/features/device/DongleRadioPanel'
 import { NodeIcon } from '@/features/devices/NodeIcon'
 
 export function DongleLanding(): JSX.Element {
@@ -283,6 +284,7 @@ export function DongleLanding(): JSX.Element {
             {/* Node roster (+ the dongle's own settings when it has a store). */}
             <div className="flex-1 overflow-auto p-5">
                 <DongleBody
+                    radio={nodesApi && <DongleRadioPanel nodes={nodesApi} />}
                     settings={
                         service?.device && (
                             <DongleSettingsPanel
