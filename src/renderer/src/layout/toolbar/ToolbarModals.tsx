@@ -6,14 +6,10 @@
 // wrappers and ten near-identical 23-line JSX blocks in Header — ~290 lines
 // where the only real differences were an icon, two strings and a capability.
 //
-// So the differences live in a table and the shape is written once. Adding a
-// dialog is one entry; nothing in Header changes.
-import {
-    lazy,
-    useState,
-    type ComponentType,
-    type LazyExoticComponent,
-} from 'react'
+// So the differences live in a table and the shape is written once. The
+// toolbar's tool table (tools.tsx) points at these by id and ToolDialogs mounts
+// them; adding a dialog is one entry here and one tool there.
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
 import {
     Gauge,
     Languages,
@@ -27,10 +23,6 @@ import {
     type LucideIcon,
 } from 'lucide-react'
 
-import { Button } from '@/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
-import { MountOnDemand } from '@/components/MountOnDemand'
-import { FeatureGate } from '@/features/firmware/FeatureGate'
 import type { Feature } from '@/features/firmware/useFeatureAvailable'
 
 /** The props every toolbar dialog takes. */
@@ -50,7 +42,7 @@ type LazyModal = LazyExoticComponent<ComponentType<ModalProps>>
 const lazyModal = (load: () => Promise<ComponentType<ModalProps>>): LazyModal =>
     lazy(async () => ({ default: await load() }))
 
-interface ToolbarModalSpec {
+export interface ToolbarModalSpec {
     id: string
     /** Capability the connected firmware must expose for the button to show. */
     feature: Feature
@@ -62,8 +54,9 @@ interface ToolbarModalSpec {
     Modal: LazyModal
 }
 
-// Declaration order IS toolbar order.
-const TOOLBAR_MODALS: readonly ToolbarModalSpec[] = [
+// The tool table (tools.tsx) decides order and grouping; this one only maps
+// a dialog id to its lazily loaded component and capability.
+export const TOOLBAR_MODALS: readonly ToolbarModalSpec[] = [
     {
         id: 'wireless',
         feature: 'wireless',
@@ -185,63 +178,3 @@ const TOOLBAR_MODALS: readonly ToolbarModalSpec[] = [
         ),
     },
 ]
-
-function ToolbarModalButton({
-    spec,
-    disabled,
-}: {
-    spec: ToolbarModalSpec
-    disabled: boolean
-}): JSX.Element {
-    // Open state lives per dialog rather than in Header: a `setXOpen(true)` up
-    // there re-rendered the entire toolbar just to show one dialog.
-    const [open, setOpen] = useState(false)
-    const { icon: Icon, Modal } = spec
-
-    return (
-        <>
-            <FeatureGate feature={spec.feature}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={disabled}
-                            onClick={(): void => setOpen(true)}
-                        >
-                            <Icon aria-label={spec.label} />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>{spec.tooltip}</p>
-                    </TooltipContent>
-                </Tooltip>
-            </FeatureGate>
-            {/* Deliberately OUTSIDE the gate, as it was before: a capability
-                that drops away while the dialog is open (a reconnect to a
-                firmware without it) must not tear the dialog out mid-edit. */}
-            <MountOnDemand when={open}>
-                <Modal opened={open} onClose={(): void => setOpen(false)} />
-            </MountOnDemand>
-        </>
-    )
-}
-
-/** Every capability-gated toolbar dialog, in order. */
-export function ToolbarModals({
-    disabled,
-}: {
-    disabled: boolean
-}): JSX.Element {
-    return (
-        <>
-            {TOOLBAR_MODALS.map((spec) => (
-                <ToolbarModalButton
-                    key={spec.id}
-                    spec={spec}
-                    disabled={disabled}
-                />
-            ))}
-        </>
-    )
-}

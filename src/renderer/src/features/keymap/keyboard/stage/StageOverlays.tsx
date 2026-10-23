@@ -83,7 +83,7 @@ export function PeekBanner({
     const accent = layerAccent(displayLayerIndex)
     return (
         <div
-            className="absolute top-3.5 left-1/2 z-[16] inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold text-foreground"
+            className="absolute top-[calc(var(--toolbar-h,0px)+0.875rem)] left-1/2 z-[16] inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold text-foreground"
             style={{
                 background: `color-mix(in oklab, ${accent} 20%, var(--card))`,
                 borderColor: accent,

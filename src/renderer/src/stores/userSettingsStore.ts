@@ -22,6 +22,25 @@ export const NEWS_STYLES = [
     'none',
 ] as const
 export type NewsStyle = (typeof NEWS_STYLES)[number]
+/** How the editor's floating toolbar lays out its tools; see
+ *  layout/toolbar/FloatingToolbar. */
+export const TOOLBAR_STYLES = [
+    'labelled',
+    'compact',
+    'groups',
+    'expand',
+    'search',
+    'pinned',
+] as const
+export type ToolbarStyle = (typeof TOOLBAR_STYLES)[number]
+/** Tools on the bar in the 'pinned' style, by tool id (layout/toolbar/tools). */
+export const DEFAULT_PINNED_TOOLS = [
+    'heatmap',
+    'live',
+    'tap-dance',
+    'macros',
+    'lighting',
+]
 
 const DEFAULT_FIRMWARE_KEY = '_default'
 
@@ -43,6 +62,8 @@ interface UserSettingsState {
     newsStyle: NewsStyle
     /** Show the pinned-news banner on top of whichever layout is picked. */
     newsPinnedBanner: boolean
+    toolbarStyle: ToolbarStyle
+    pinnedTools: string[]
     seenBuilderTour: boolean
     /** Version of the last launch; a newer one on start opens "what's new".
      *  null until the first launch records it. */
@@ -54,6 +75,8 @@ interface UserSettingsState {
     setWorkspace: (workspace: WorkspaceMode) => void
     setNewsStyle: (style: NewsStyle) => void
     setNewsPinnedBanner: (enabled: boolean) => void
+    setToolbarStyle: (style: ToolbarStyle) => void
+    togglePinnedTool: (id: string) => void
     setTheme: (theme: 'dark' | 'light') => void
     setAutosave: (enabled: boolean) => void
     setAutoLoadLayout: (enabled: boolean) => void
@@ -83,6 +106,8 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 workspace: 'workbench',
                 newsStyle: 'rail',
                 newsPinnedBanner: false,
+                toolbarStyle: 'labelled',
+                pinnedTools: DEFAULT_PINNED_TOOLS,
                 seenBuilderTour: false,
                 lastRunVersion: null,
                 setLastRunVersion: (lastRunVersion) => set({ lastRunVersion }),
@@ -94,6 +119,13 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 setNewsStyle: (newsStyle) => set({ newsStyle }),
                 setNewsPinnedBanner: (newsPinnedBanner) =>
                     set({ newsPinnedBanner }),
+                setToolbarStyle: (toolbarStyle) => set({ toolbarStyle }),
+                togglePinnedTool: (id) =>
+                    set((s) => ({
+                        pinnedTools: s.pinnedTools.includes(id)
+                            ? s.pinnedTools.filter((t) => t !== id)
+                            : [...s.pinnedTools, id],
+                    })),
                 setTheme: (theme) => set({ theme }),
                 setAutosave: (enabled) => set({ autosave: enabled }),
                 setAutoLoadLayout: (enabled) =>
@@ -123,7 +155,7 @@ const useUserSettingsStore = create<UserSettingsState>()(
             {
                 name: 'user-settings-store',
                 storage: createJSONStorage(() => localStorage),
-                version: 9,
+                version: 10,
                 migrate: (persisted: unknown, version: number) => {
                     if (!persisted || typeof persisted !== 'object') {
                         return persisted as Partial<UserSettingsState>
@@ -214,6 +246,16 @@ const useUserSettingsStore = create<UserSettingsState>()(
                         }
                         if (typeof p.newsPinnedBanner !== 'boolean') {
                             p.newsPinnedBanner = false
+                        }
+                    }
+                    if (version < 10) {
+                        // Floating toolbar. Everyone starts on the labelled bar.
+                        const style = p.toolbarStyle
+                        if (!TOOLBAR_STYLES.includes(style as ToolbarStyle)) {
+                            p.toolbarStyle = 'labelled'
+                        }
+                        if (!Array.isArray(p.pinnedTools)) {
+                            p.pinnedTools = DEFAULT_PINNED_TOOLS
                         }
                     }
                     return p as Partial<UserSettingsState>

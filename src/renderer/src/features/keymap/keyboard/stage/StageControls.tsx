@@ -17,7 +17,7 @@ export function StageControls({
     const openLoadStats = useLoadStatsStore((s) => s.setOpen)
     if (!heatmapEnabled) return null
     return (
-        <div className="absolute top-3.5 left-1/2 z-[15] flex -translate-x-1/2 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-caption font-semibold text-muted-foreground shadow-sm">
+        <div className="absolute top-[calc(var(--toolbar-h,0px)+0.875rem)] left-1/2 z-[15] flex -translate-x-1/2 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-caption font-semibold text-muted-foreground shadow-sm">
             <span>Less</span>
             <span
                 className="h-2 w-[110px] rounded-full"

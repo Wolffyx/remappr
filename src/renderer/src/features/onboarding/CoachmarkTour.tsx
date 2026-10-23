@@ -17,7 +17,7 @@ const STEPS: Step[] = [
     {
         selector: '[data-coach="board"]',
         title: 'Your keyboard',
-        body: 'Pan with a drag, zoom with the wheel, and click a key to edit it. Toggle the heatmap and live view from the top-left.',
+        body: 'Pan with a drag, zoom with the wheel, and click a key to edit it. Toggle the heatmap and live view from the toolbar above the board.',
     },
     {
         selector: '[data-coach="layers"]',
@@ -27,7 +27,7 @@ const STEPS: Step[] = [
     {
         selector: '[data-coach="tools"]',
         title: 'Tools',
-        body: 'Settings, typing-load stats, undo/redo, save, and per-feature modals (RGB, macros, wireless…) live up here.',
+        body: 'Every editing tool lives in this bar: view toggles, behaviors, lighting, device settings and firmware. Press / to search for any tool, and pick a toolbar style in Settings → Workspace.',
     },
     {
         selector: null,

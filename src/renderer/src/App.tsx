@@ -12,6 +12,9 @@ import { SidebarInset, SidebarProvider } from '@/ui/sidebar'
 import { ThemeProvider } from '@/providers/ThemeProvider'
 import { Toaster } from '@/ui/sonner'
 import { Header } from '@/layout/Header'
+import { FloatingToolbar } from '@/layout/toolbar/FloatingToolbar'
+import { ToolDialogs } from '@/layout/toolbar/ToolDialogs'
+import { ToolSearch } from '@/layout/toolbar/ToolSearch'
 import { AutoLayoutResolver } from '@/features/firmware/AutoLayoutResolver'
 import { DevicePreviewCapture } from '@/features/connection/DevicePreviewCapture'
 import { ProfileRestoreManager } from '@/features/connection/ProfileRestoreManager'
@@ -127,13 +130,18 @@ function App(): JSX.Element {
             <SidebarProvider className="!min-h-0 h-full" style={SIDEBAR_STYLE}>
                 <Drawer />
                 <SidebarInset>
-                    <Header />
+                    <Header center={<ToolSearch />} />
                     <AutoLayoutResolver />
                     <DevicePreviewCapture />
                     <ProfileRestoreManager />
-                    <ErrorBoundary>
-                        <KeymapEditor />
-                    </ErrorBoundary>
+                    <ToolDialogs />
+                    {/* The floating toolbar overlays the board's top edge. */}
+                    <div className="relative flex min-h-0 flex-1 flex-col">
+                        <FloatingToolbar />
+                        <ErrorBoundary>
+                            <KeymapEditor />
+                        </ErrorBoundary>
+                    </div>
                     {/*<Footer />*/}
                 </SidebarInset>
                 <CoachmarkTour />

@@ -27,7 +27,7 @@
         mock: 'remappr-mock',
         goto: 'remappr-mock-goto',
     }
-    const SETTINGS_VERSION = 9
+    const SETTINGS_VERSION = 10
 
     // ---------- storage ----------
     function readJson(key) {
@@ -77,6 +77,7 @@
             colorMode: s.colorMode || 'subtle',
             keyHeader: kd._default || 'displayName',
             workspace: s.workspace || 'workbench',
+            toolbarStyle: s.toolbarStyle || 'labelled',
             newsStyle: s.newsStyle || 'rail',
             newsPinnedBanner: !!s.newsPinnedBanner,
             autosave: !!s.autosave,
@@ -126,6 +127,10 @@
         },
         workspace: (v) => (
             patchZustand(KEYS.settings, { workspace: v }),
+            'reload'
+        ),
+        toolbarStyle: (v) => (
+            patchZustand(KEYS.settings, { toolbarStyle: v }),
             'reload'
         ),
         newsStyle: (v) => (
@@ -199,8 +204,13 @@
         buttons().find((b) => b.textContent.trim().startsWith(p))
     const byIncludes = (p) => () =>
         buttons().find((b) => b.textContent.includes(p))
+    // Tools sit in the header or the floating toolbar over the board.
     const headerBtn = (icon) => () =>
-        [...document.querySelectorAll('header button')].find((b) => {
+        [
+            ...document.querySelectorAll(
+                'header button, [role=toolbar] button',
+            ),
+        ].find((b) => {
             const svg = b.querySelector('svg')
             return (
                 svg &&
@@ -251,7 +261,7 @@
         autocorrect: ['Dialogs', 'Autocorrect', tool('spell-check')],
         cluster: ['Dialogs', 'Cluster diagnostics', tool('network')],
         node: ['Dialogs', 'Node & cluster', tool('waypoints')],
-        link: ['Dialogs', 'Link profile', tool('gauge')],
+        link: ['Dialogs', 'Link profile', tool('link-2')],
         builder: ['Builder', 'Keyboard builder', builder],
         'builder-key': [
             'Builder',
@@ -528,6 +538,14 @@ select { height: 30px; min-width: 150px; border-radius: 8px; border: 1px solid v
         ['workbench', 'Workbench'],
         ['inspector', 'Inspector'],
         ['command', 'Command'],
+    ])}</div>
+    <div class="row"><span>Toolbar</span>${sel('toolbarStyle', v.toolbarStyle, [
+        ['labelled', 'Labelled'],
+        ['compact', 'Compact'],
+        ['groups', 'Group menus'],
+        ['expand', 'Expanding groups'],
+        ['search', 'Search in bar'],
+        ['pinned', 'Pinned + all tools'],
     ])}</div>
     <div class="row"><span>News layout</span>${sel('newsStyle', v.newsStyle, [
         ['rail', 'Rail'],

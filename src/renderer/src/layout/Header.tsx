@@ -10,8 +10,9 @@
 // the dialog buttons. What stays here is genuinely header-level: window chrome,
 // the brand button and the cluster order.
 //
-// The keymap editor's clusters are the default; another editor (the device
-// editor) passes its own `tools` and brand `icon`.
+// The keymap editor's actions are the default; another editor (the device
+// editor) passes its own `tools` and brand `icon`, and the keymap editor puts
+// its tool search in the `center`.
 import type { ReactNode } from 'react'
 import { Blocks, Keyboard, type LucideIcon } from 'lucide-react'
 
@@ -19,7 +20,7 @@ import useBuilderStore from '@/stores/builderStore'
 import useConnectionStore from '@/stores/connectionStore'
 import { SidebarTrigger, useSidebar } from '@/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
-import { KeymapToolClusters } from '@/layout/toolbar/KeymapToolClusters'
+import { KeymapHeaderActions } from '@/layout/toolbar/KeymapHeaderActions'
 import { CommunityLinks } from '@/layout/toolbar/CommunityLinks'
 import { WindowControls } from '@/layout/WindowControls'
 import { TrafficLightInset } from '@/layout/TrafficLightInset'
@@ -31,11 +32,14 @@ interface HeaderProps {
     icon?: LucideIcon
     /** The right-hand tool clusters; the keymap editor's by default. */
     tools?: ReactNode
+    /** The centre slot; the project links by default. */
+    center?: ReactNode
 }
 
 export function Header({
     icon: BrandIcon = Keyboard,
-    tools = <KeymapToolClusters />,
+    tools = <KeymapHeaderActions />,
+    center = <CommunityLinks />,
 }: HeaderProps = {}): JSX.Element {
     const { state: sidebarState } = useSidebar()
     const disconnect = useConnectionStore((s) => s.disconnect)
@@ -98,16 +102,12 @@ export function Header({
                 </div>
             </div>
 
-            {/* ===== centre: project links ===== */}
-            <CommunityLinks />
+            {/* ===== centre: project links, or the editor's search ===== */}
+            {center}
 
             {/* ===== right: tool clusters + window controls ===== */}
             <div className="flex h-full items-center justify-self-end">
-                <div
-                    className="flex items-center gap-1 pr-1"
-                    data-coach="tools"
-                    style={noDrag}
-                >
+                <div className="flex items-center gap-1 pr-1" style={noDrag}>
                     {tools}
                 </div>
 
