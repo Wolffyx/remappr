@@ -25,6 +25,7 @@ const PANELS: Partial<Record<DeviceKind, Panel>> = {
                     device={s.device}
                     motion={s.motion}
                     sensor={s.sensor}
+                    power={s.capabilities.power}
                 />
             )
         }
@@ -35,7 +36,12 @@ const PANELS: Partial<Record<DeviceKind, Panel>> = {
         s.joystick ? (
             <div className="flex flex-col gap-4">
                 <JoystickSettingsPanel joystick={s.joystick} />
-                {s.device && <DevicePowerPanel device={s.device} />}
+                {s.device && s.capabilities.power?.battery && (
+                    <DevicePowerPanel
+                        device={s.device}
+                        powerOff={s.capabilities.power.powerOff}
+                    />
+                )}
             </div>
         ) : null,
 }

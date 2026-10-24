@@ -12,6 +12,7 @@ import { Info } from 'lucide-react'
 import type { MotionConfig } from '@firmware'
 import type { ConfigDevice } from '@firmware/config'
 import type {
+    Capabilities,
     DeviceConfigApi,
     MouseMotionApi,
     SensorApi,
@@ -72,10 +73,13 @@ export function MouseSettingsPanel({
     device,
     motion,
     sensor,
+    power,
 }: {
     device: DeviceConfigApi
     motion?: MouseMotionApi
     sensor?: SensorApi
+    /** Its power hardware: the Power section shows only with a battery. */
+    power?: Capabilities['power']
 }): JSX.Element {
     const draft = device.draft
     const { doc, loading, error } = useSettingsSource(device)
@@ -172,13 +176,17 @@ export function MouseSettingsPanel({
                         errors={errors}
                         disabled={disabled}
                     />
-                    <PowerSection
-                        value={doc?.power}
-                        disabled={disabled}
-                        onChange={(power) => {
-                            if (draft && doc) draft.set(withPower(doc, power))
-                        }}
-                    />
+                    {power?.battery && (
+                        <PowerSection
+                            powerOff={power.powerOff}
+                            value={doc?.power}
+                            disabled={disabled}
+                            onChange={(power) => {
+                                if (draft && doc)
+                                    draft.set(withPower(doc, power))
+                            }}
+                        />
+                    )}
                     {draft && (
                         <p className="text-caption text-muted-foreground">
                             {Object.keys(errors).length

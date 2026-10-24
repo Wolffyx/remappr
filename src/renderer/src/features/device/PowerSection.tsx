@@ -84,10 +84,13 @@ export function PowerSection({
     value,
     onChange,
     disabled,
+    powerOff,
 }: {
     value: ConfigPowerSettings | undefined
     onChange: (power: ConfigPowerSettings | undefined) => void
     disabled?: boolean
+    /** The device can power off and wake on an input: offer "Power off after". */
+    powerOff: boolean
 }): JSX.Element {
     const set = (key: PowerField['key'], v: number | undefined): void => {
         const next: ConfigPowerSettings = { ...value }
@@ -100,15 +103,17 @@ export function PowerSection({
             title="Power"
             description="On battery, after no input for a while. On USB power nothing sleeps."
         >
-            {POWER_FIELDS.map((f) => (
-                <TimeoutRow
-                    key={f.key}
-                    field={f}
-                    value={value?.[f.key]}
-                    disabled={disabled}
-                    onChange={(v) => set(f.key, v)}
-                />
-            ))}
+            {POWER_FIELDS.filter((f) => powerOff || f.key !== 'offMs').map(
+                (f) => (
+                    <TimeoutRow
+                        key={f.key}
+                        field={f}
+                        value={value?.[f.key]}
+                        disabled={disabled}
+                        onChange={(v) => set(f.key, v)}
+                    />
+                ),
+            )}
         </SettingsSection>
     )
 }
@@ -118,8 +123,10 @@ export function PowerSection({
  *  until the device can stage a document. */
 export function DevicePowerPanel({
     device,
+    powerOff,
 }: {
     device: DeviceConfigApi
+    powerOff: boolean
 }): JSX.Element | null {
     const draft = device.draft
     const [doc, setDoc] = useState<ConfigDevice | null>(
@@ -131,6 +138,7 @@ export function DevicePowerPanel({
         <PowerSection
             value={doc.power}
             onChange={(power) => draft.set(withPower(doc, power))}
+            powerOff={powerOff}
         />
     )
 }
