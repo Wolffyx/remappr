@@ -116,13 +116,17 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
             return
         }
         setSaving(true)
-        const r = await saveWithToast(
-            () => service.commit(),
+        // commit() resolves to nothing, so success is a flag, not the result.
+        const saved = await saveWithToast(
+            async () => {
+                await service.commit()
+                return true
+            },
             'Behaviors saved',
             'Failed to save behaviors',
         )
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
     const empty = holdTaps.length === 0 && modMorphs.length === 0

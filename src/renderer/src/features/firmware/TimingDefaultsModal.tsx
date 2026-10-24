@@ -76,13 +76,17 @@ export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
         setSaving(true)
         // Stage onto the concrete service, then push the whole config via commit.
         configEditing.setConfigDefaults(patch)
-        const r = await saveWithToast(
-            () => service.commit(),
+        // commit() resolves to nothing, so success is a flag, not the result.
+        const saved = await saveWithToast(
+            async () => {
+                await service.commit()
+                return true
+            },
             'Timing defaults saved',
             'Failed to save timing defaults',
         )
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
     return (

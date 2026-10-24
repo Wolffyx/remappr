@@ -121,13 +121,17 @@ export function LinkProfileModal({
         }
         configEditing.setNode({ linkProfile: form })
         setSaving(true)
-        const r = await saveWithToast(
-            () => service.commit(),
+        // commit() resolves to nothing, so success is a flag, not the result.
+        const saved = await saveWithToast(
+            async () => {
+                await service.commit()
+                return true
+            },
             'Link profile saved',
             'Failed to save link profile',
         )
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
     const profileHelp = LINK_PROFILE_OPTIONS.find(

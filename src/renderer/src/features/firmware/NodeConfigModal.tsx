@@ -123,13 +123,17 @@ export function NodeConfigModal({
         }
         configEditing.setNode(patch)
         setSaving(true)
-        const r = await saveWithToast(
-            () => service.commit(),
+        // commit() resolves to nothing, so success is a flag, not the result.
+        const saved = await saveWithToast(
+            async () => {
+                await service.commit()
+                return true
+            },
             'Node settings saved',
             'Failed to save node settings',
         )
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
     const roleHelp = ROLE_OPTIONS.find((o) => o.value === form.role)?.help
