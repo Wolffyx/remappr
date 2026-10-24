@@ -1,8 +1,8 @@
 // Pattern check: Dispatch Map (Tier 0) — applied — device kind → settings panel table; a kind with settings beyond its controls adds one entry.
 //
 // Settings a device has besides what its controls show on the stage (a
-// mouse's pointer flags, curve, radio and sensor procedures; a joystick's
-// calibration), opened from the device editor's toolbar.
+// mouse's pointer flags, curve, radio, power and sensor procedures; a
+// joystick's calibration and power), opened from the device editor's toolbar.
 import { useState, type JSX } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import type { DeviceKind } from '@firmware/devices/types'
@@ -13,6 +13,7 @@ import useConnectionStore from '@/stores/connectionStore'
 import { MouseSettingsPanel } from '@/features/device/MouseSettingsPanel'
 import { JoystickSettingsPanel } from '@/features/device/JoystickSettingsPanel'
 import { SensorPanel } from '@/features/device/SensorPanel'
+import { DevicePowerPanel } from '@/features/device/PowerSection'
 
 type Panel = (service: KeyboardService) => JSX.Element | null
 
@@ -31,7 +32,12 @@ const PANELS: Partial<Record<DeviceKind, Panel>> = {
         return s.sensor ? <SensorPanel sensor={s.sensor} /> : null
     },
     joystick: (s) =>
-        s.joystick ? <JoystickSettingsPanel joystick={s.joystick} /> : null,
+        s.joystick ? (
+            <div className="flex flex-col gap-4">
+                <JoystickSettingsPanel joystick={s.joystick} />
+                {s.device && <DevicePowerPanel device={s.device} />}
+            </div>
+        ) : null,
 }
 
 /** The connected device's settings panel, or null when it has none. */

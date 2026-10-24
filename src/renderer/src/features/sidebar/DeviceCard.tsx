@@ -2,6 +2,8 @@
 import type { JSX } from 'react'
 import { ChevronsUpDown, type LucideIcon } from 'lucide-react'
 import useUserSettingsStore from '@/stores/userSettingsStore'
+import { BatteryIndicator } from '@/features/battery/BatteryIndicator'
+import type { ShownBattery } from '@/features/battery/battery'
 import { DeviceIconButton } from './DeviceIconButton'
 import { STRIP_MAX, stripOrder, type RosterEntry } from './roster'
 
@@ -9,6 +11,8 @@ export interface DeviceIdentity {
     name: string
     summary: string
     icon: LucideIcon
+    /** The open device's battery, when it reports one. */
+    battery?: ShownBattery
 }
 
 /** Up to STRIP_MAX device icons, then "+N" to open the picker. */
@@ -47,7 +51,7 @@ function DeviceStrip({
     )
 }
 
-/** The open device: icon, name and one summary line. The chevron opens the
+/** The open device: icon, name, battery and one summary line. The chevron opens the
  *  device picker; with several devices the strip below switches in one
  *  click. */
 export function DeviceCard({
@@ -71,8 +75,13 @@ export function DeviceCard({
             >
                 <Icon className="size-4 shrink-0 text-primary" />
                 <span className="min-w-0 flex-1">
-                    <span className="block truncate text-panel-title font-bold">
-                        {identity.name}
+                    <span className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate text-panel-title font-bold">
+                            {identity.name}
+                        </span>
+                        {identity.battery && (
+                            <BatteryIndicator battery={identity.battery} />
+                        )}
                     </span>
                     <span className="block text-caption leading-snug text-muted-foreground">
                         {identity.summary}

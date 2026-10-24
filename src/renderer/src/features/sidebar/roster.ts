@@ -4,6 +4,7 @@
 // whatever source knows about it (listed transports, a dongle's nodes, the
 // demo set). The sidebar's strip, rail and picker all read this one list.
 import type { LucideIcon } from 'lucide-react'
+import type { ShownBattery } from '@/features/battery/battery'
 
 /** How a group of devices is reached. */
 export type RosterGroupKind = 'direct' | 'dongle' | 'demo'
@@ -30,6 +31,8 @@ export interface RosterEntry {
     online: boolean
     /** The device the editor is showing. */
     active: boolean
+    /** Its battery, when it reports one. */
+    battery?: ShownBattery
     open: () => Promise<void>
 }
 

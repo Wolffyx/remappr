@@ -28,6 +28,8 @@ import { DevicePicker } from './DevicePicker'
 import { DeviceRail, type FoldItem } from './DeviceRail'
 import { useDeviceRoster } from './useDeviceRoster'
 import { STRIP_MAX } from './roster'
+import { BatteryIndicator } from '@/features/battery/BatteryIndicator'
+import { useLowBatteryWarnings } from '@/features/battery/useLowBatteryWarnings'
 
 type SidebarMode = 'single' | 'card' | 'rail' | 'folded'
 
@@ -115,13 +117,16 @@ export interface EditorSidebarProps {
 
 /** The editor sidebar every device shares. */
 export function EditorSidebar({
-    identity,
+    identity: deviceIdentity,
     header,
     children,
     legend,
     foldItems = [],
 }: EditorSidebarProps): JSX.Element {
     const { entries, refresh } = useDeviceRoster()
+    useLowBatteryWarnings(entries)
+    const battery = entries.find((e) => e.active)?.battery
+    const identity = battery ? { ...deviceIdentity, battery } : deviceIdentity
     const mode = useSidebarMode(entries.length)
     const setFold = useUserSettingsStore((s) => s.setSidebarFoldToRail)
     const [pickerOpen, setPickerOpen] = useState(false)
@@ -139,8 +144,15 @@ export function EditorSidebar({
                     {mode === 'rail' ? (
                         <div className="flex items-start gap-1 px-1 pb-1">
                             <div className="min-w-0 flex-1">
-                                <div className="truncate text-[14px] font-bold">
-                                    {identity.name}
+                                <div className="flex items-center gap-2">
+                                    <span className="min-w-0 flex-1 truncate text-[14px] font-bold">
+                                        {identity.name}
+                                    </span>
+                                    {identity.battery && (
+                                        <BatteryIndicator
+                                            battery={identity.battery}
+                                        />
+                                    )}
                                 </div>
                                 <div className="text-caption text-muted-foreground">
                                     {identity.summary}

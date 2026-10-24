@@ -309,7 +309,7 @@ export function sameSection(
 
 /** `base` with its dongle / mouse / radio sections replaced (an undefined
  *  one is removed). The sections these pages do not edit (the sensor's,
- *  the joystick's) are kept as they are. */
+ *  the joystick's, the power timeouts) are kept as they are. */
 export function withSections(
     base: ConfigDevice,
     sections: Pick<ConfigDevice, 'dongle' | 'mouse' | 'radio'>,
@@ -322,8 +322,20 @@ export function withSections(
     }
     if (base.sensor) out.sensor = base.sensor
     if (base.joystick) out.joystick = base.joystick
+    if (base.power) out.power = base.power
     if (sections.dongle) out.dongle = sections.dongle
     if (sections.mouse) out.mouse = sections.mouse
     if (sections.radio) out.radio = sections.radio
     return out
+}
+
+/** `base` with its power timeouts replaced; an empty or undefined section is
+ *  removed (the device's build defaults). */
+export function withPower(
+    base: ConfigDevice,
+    power: ConfigDevice['power'],
+): ConfigDevice {
+    const out: ConfigDevice = { ...base }
+    delete out.power
+    return power && Object.keys(power).length ? { ...out, power } : out
 }

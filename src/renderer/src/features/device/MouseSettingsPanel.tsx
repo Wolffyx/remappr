@@ -1,7 +1,8 @@
 // Pattern check: no GoF pattern (-) — rejected — view over the mouse's staged document: the existing mouse sections write into the shared draft (DeviceConfigDraft) instead of saving on their own.
 //
 // The mouse settings the device stage does not show — pointer flags and
-// wheel, the acceleration curve, the 2.4 GHz link, the live controls, and the
+// wheel, the acceleration curve, the 2.4 GHz link, the power timeouts, the
+// live controls, and the
 // sensor's readings and procedures —
 // inside the device editor. Edits go into the same staged document as the
 // button and CPI edits on the stage, so the header's Save writes them all.
@@ -24,8 +25,10 @@ import {
     radioDraft,
     radioFromDraft,
     sameSection,
+    withPower,
     withSections,
 } from './deviceForm'
+import { PowerSection } from './PowerSection'
 import { MouseLiveSection } from './MouseLiveSection'
 import { SensorPanel } from './SensorPanel'
 import {
@@ -168,6 +171,13 @@ export function MouseSettingsPanel({
                         onChange={(radio) => update({ ...form, radio })}
                         errors={errors}
                         disabled={disabled}
+                    />
+                    <PowerSection
+                        value={doc?.power}
+                        disabled={disabled}
+                        onChange={(power) => {
+                            if (draft && doc) draft.set(withPower(doc, power))
+                        }}
                     />
                     {draft && (
                         <p className="text-caption text-muted-foreground">

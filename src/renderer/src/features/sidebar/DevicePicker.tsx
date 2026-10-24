@@ -12,6 +12,7 @@ import {
 import { Dialog, DialogContent, DialogTitle } from '@/ui/dialog'
 import { cn } from '@/lib/cn'
 import useUserSettingsStore from '@/stores/userSettingsStore'
+import { BatteryIndicator } from '@/features/battery/BatteryIndicator'
 import { groupRoster, type RosterEntry, type RosterKind } from './roster'
 
 const KIND_CHIPS: readonly { kind: RosterKind | 'all'; label: string }[] = [
@@ -137,6 +138,11 @@ export function DevicePicker({
                                                         </span>
                                                     )}
                                                 </span>
+                                                {e.battery && (
+                                                    <BatteryIndicator
+                                                        battery={e.battery}
+                                                    />
+                                                )}
                                                 <span className="text-caption text-muted-foreground">
                                                     {e.detail}
                                                 </span>

@@ -2,10 +2,11 @@
 import type { JSX } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import { cn } from '@/lib/cn'
+import { batteryText } from '@/features/battery/battery'
 import type { RosterEntry } from './roster'
 
-/** A device as an icon: status dot, tooltip with its name and link, one
- *  click to open it. */
+/** A device as an icon: status dot (red while its battery is low), tooltip
+ *  with its name, link and battery, one click to open it. */
 export function DeviceIconButton({
     entry,
     size = 'strip',
@@ -40,7 +41,11 @@ export function DeviceIconButton({
                         aria-hidden
                         className={cn(
                             'absolute right-0.5 bottom-0.5 size-1.5 rounded-full ring-[1.5px] ring-sidebar',
-                            entry.online ? 'bg-success' : 'bg-muted-foreground',
+                            entry.battery?.low
+                                ? 'bg-destructive'
+                                : entry.online
+                                  ? 'bg-success'
+                                  : 'bg-muted-foreground',
                         )}
                     />
                 </button>
@@ -48,6 +53,11 @@ export function DeviceIconButton({
             <TooltipContent side={side}>
                 <p className="font-semibold">{entry.name}</p>
                 <p className="opacity-80">{entry.detail}</p>
+                {entry.battery && (
+                    <p className="opacity-80">
+                        Battery {batteryText(entry.battery)}
+                    </p>
+                )}
             </TooltipContent>
         </Tooltip>
     )

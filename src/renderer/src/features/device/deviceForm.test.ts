@@ -9,6 +9,7 @@ import {
     mouseFromDraft,
     radioDraft,
     radioFromDraft,
+    withPower,
     withSections,
 } from './deviceForm'
 
@@ -196,5 +197,42 @@ describe('withSections', () => {
         expect(withSections(base, { mouse: undefined }).sensor).toEqual({
             settings: { angleSnap: true },
         })
+    })
+
+    it('keeps the power timeouts', () => {
+        const base: ConfigDevice = {
+            schemaVersion: 1,
+            kind: 'remappr.device',
+            meta: { name: 'Mouse' },
+            personality: 'mouse',
+            power: { sleepMs: 60_000 },
+        }
+        expect(withSections(base, { mouse: { cpi: 800 } }).power).toEqual({
+            sleepMs: 60_000,
+        })
+    })
+})
+
+describe('withPower', () => {
+    const base: ConfigDevice = {
+        schemaVersion: 1,
+        kind: 'remappr.device',
+        meta: { name: 'Stick' },
+        personality: 'joystick',
+        joystick: { hatWays: 4 },
+        power: { idleMs: 5000 },
+    }
+
+    it('replaces the power section and keeps the rest', () => {
+        expect(withPower(base, { offMs: 0 })).toEqual({
+            ...base,
+            power: { offMs: 0 },
+        })
+    })
+
+    it('drops an empty or undefined section', () => {
+        expect(withPower(base, {})).not.toHaveProperty('power')
+        expect(withPower(base, undefined)).not.toHaveProperty('power')
+        expect(withPower(base, undefined).joystick).toEqual({ hatWays: 4 })
     })
 })

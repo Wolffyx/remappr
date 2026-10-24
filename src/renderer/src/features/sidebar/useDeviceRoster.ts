@@ -19,6 +19,11 @@ import useDevicePreviewStore, {
     type DevicePreviewSnapshot,
 } from '@/stores/devicePreviewStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
+import { shownBattery } from '@/features/battery/battery'
+import {
+    BATTERY_POLL_MS,
+    useDeviceBattery,
+} from '@/features/battery/useDeviceBattery'
 import type { RosterEntry, RosterGroup, RosterKind } from './roster'
 
 const FORM_KIND: Readonly<Record<DeviceForm, RosterKind>> = {
@@ -70,7 +75,8 @@ function useListedDevices(enabled: boolean): DeviceWithTransport[] {
     return enabled ? devices : []
 }
 
-/** The nodes behind the connected dongle; empty for any other device. */
+/** The nodes behind the connected dongle, re-listed now and then so their
+ *  link and battery stay current; empty for any other device. */
 function useDongleNodes(dongle: KeyboardService | null): {
     nodes: NodeView[]
     refresh: () => void
@@ -94,6 +100,11 @@ function useDongleNodes(dongle: KeyboardService | null): {
             live = false
         }
     }, [api, tick])
+    useEffect(() => {
+        if (!api) return
+        const id = setInterval(() => setTick((t) => t + 1), BATTERY_POLL_MS)
+        return (): void => clearInterval(id)
+    }, [api])
     const refresh = useCallback((): void => setTick((t) => t + 1), [])
     return { nodes: api ? nodes : [], refresh }
 }
@@ -153,10 +164,16 @@ export function useDeviceRoster(): {
     const listed = useListedDevices(!!service && !demo)
     const dongle = parentService ?? service
     const { nodes, refresh } = useDongleNodes(demo ? null : dongle)
+    // The open device's own reading: its threshold, and fresher than a roster.
+    const battery = useDeviceBattery(service)
 
     const entries = useMemo((): RosterEntry[] => {
         if (!service) return []
-        if (demo) return demoEntries(activeDemo)
+        if (demo) {
+            return demoEntries(activeDemo).map((e) =>
+                e.active && battery ? { ...e, battery } : e,
+            )
+        }
         const out: RosterEntry[] = listed.map((d) => {
             const { icon, label, kind } = describe(d, snapshots[d.device.id])
             const current = d.device.id === currentId
@@ -170,6 +187,7 @@ export function useDeviceRoster(): {
                 group: d.transport.isWireless ? BLE : USB,
                 online: true,
                 active: current && !parentService,
+                ...(current && !parentService && battery ? { battery } : {}),
                 open: async (): Promise<void> => {
                     if (current && parentService) return returnToParent()
                     if (current) return
@@ -185,6 +203,13 @@ export function useDeviceRoster(): {
         }
         for (const n of nodes) {
             const kindLabel = n.kind ? NODE_LABEL[n.kind] : 'Node'
+            const active = n.id === activeNodeId
+            const nodeBattery =
+                active && battery
+                    ? battery
+                    : n.battery
+                      ? shownBattery(n.battery)
+                      : undefined
             out.push({
                 key: `node:${currentId ?? dongleName}:${n.id}`,
                 name: n.label,
@@ -193,7 +218,8 @@ export function useDeviceRoster(): {
                 kind: n.kind ? NODE_KIND[n.kind] : 'other',
                 group: dongleGroup,
                 online: n.online,
-                active: n.id === activeNodeId,
+                active,
+                ...(nodeBattery ? { battery: nodeBattery } : {}),
                 open: () => openNode(n.id),
             })
         }
@@ -211,6 +237,7 @@ export function useDeviceRoster(): {
                 group: USB,
                 online: true,
                 active: true,
+                ...(battery ? { battery } : {}),
                 open: async () => {},
             },
             ...out,
@@ -229,6 +256,7 @@ export function useDeviceRoster(): {
         activeNodeId,
         openNode,
         deviceName,
+        battery,
     ])
 
     const activeKey = entries.find((e) => e.active)?.key

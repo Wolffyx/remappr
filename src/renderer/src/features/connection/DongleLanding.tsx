@@ -29,6 +29,8 @@ import type { NodeView } from '@firmware/service'
 import { DongleSettingsPanel } from '@/features/device/DongleSettingsPanel'
 import { DongleBody } from '@/features/device/DongleBody'
 import { NodeIcon } from '@/features/devices/NodeIcon'
+import { BatteryIndicator } from '@/features/battery/BatteryIndicator'
+import { shownBattery } from '@/features/battery/battery'
 
 export function DongleLanding(): JSX.Element {
     // Field-scoped selectors — avoids re-rendering on unrelated store changes.
@@ -353,6 +355,14 @@ export function DongleLanding(): JSX.Element {
                                                         <Crown />
                                                         Master
                                                     </Badge>
+                                                )}
+                                                {n.battery && (
+                                                    <BatteryIndicator
+                                                        battery={shownBattery(
+                                                            n.battery,
+                                                        )}
+                                                        className="ml-auto"
+                                                    />
                                                 )}
                                             </div>
                                             <div className="text-caption text-muted-foreground">
