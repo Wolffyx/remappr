@@ -11,6 +11,7 @@
 import { useEffect, useMemo } from 'react'
 import {
     BarChart3,
+    BatteryMedium,
     Download,
     Flame,
     Gauge,
@@ -195,6 +196,15 @@ export const TOOLS: readonly ToolDef[] = [
         description: 'Bluetooth profiles and power',
         icon: Wifi,
         feature: 'wireless',
+        action: 'dialog',
+    },
+    {
+        id: 'power',
+        group: 'device',
+        label: 'Power',
+        description: 'When it dims, sleeps and powers off on battery',
+        icon: BatteryMedium,
+        feature: 'power',
         action: 'dialog',
     },
     {
