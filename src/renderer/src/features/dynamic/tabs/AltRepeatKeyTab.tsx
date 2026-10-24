@@ -1,22 +1,18 @@
-// pattern-check: skip — form tab composing shared primitives
-import { DockActions } from '@/ui/dock-shell'
-import { layerAccent } from '@/lib/keymap/keyCategory'
-import { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+// pattern-check: skip — section spec + columns for the shared EntryTable
+import { useMemo } from 'react'
 
 import type {
     AltRepeatKeyEntry,
     AltRepeatKeyOptions,
     KeyboardService,
 } from '@firmware'
-import { Button } from '@/ui/button'
+import { Checkbox } from '@/ui/checkbox'
 
-import { saveWithToast } from '@/lib/saveWithToast'
-
-import { EntryCard, HexChip, Pair } from '../_shared/EntryCard'
-import { IndexInput } from '../_shared/IndexInput'
-import { type OptionDef, OptionGrid } from '../_shared/OptionGrid'
-import { useDynamicEntry } from '../_shared/useDynamicEntry'
+import { HexChip } from '../_shared/EntryCard'
+import { EntryTable, type EntryColumn } from '../_shared/EntryTable'
+import type { EntrySpec } from '../_shared/entryTable'
+import { OptionGrid, type OptionDef } from '../_shared/OptionGrid'
+import { useEntryTable } from '../_shared/useEntryTable'
 
 interface Props {
     service: KeyboardService
@@ -26,96 +22,100 @@ interface Props {
 // Vial soft cap — protocol exposes no per-firmware count for ARK.
 export const ARK_MAX = 31
 
+// `enabled` has its own column; the rest open under the row.
 const ARK_OPTIONS: ReadonlyArray<OptionDef<keyof AltRepeatKeyOptions>> = [
-    { key: 'enabled', label: 'Enabled' },
     { key: 'defaultToThisAltKey', label: 'Default to alt' },
     { key: 'bidirectional', label: 'Bidirectional' },
     { key: 'ignoreModHandedness', label: 'Ignore handedness' },
 ]
 
+type HexField = 'keycode' | 'altKeycode' | 'allowedMods'
+
+const hexColumn = (
+    id: HexField,
+    header: string,
+    mask?: number,
+): EntryColumn<AltRepeatKeyEntry> => ({
+    id,
+    header,
+    cell: (e, set) => (
+        <HexChip
+            value={e[id]}
+            mask={mask}
+            onChange={(v) => set((p) => ({ ...p, [id]: v }))}
+        />
+    ),
+})
+
+const COLUMNS: readonly EntryColumn<AltRepeatKeyEntry>[] = [
+    hexColumn('keycode', 'After key'),
+    hexColumn('altKeycode', 'Repeat sends'),
+    hexColumn('allowedMods', 'Allowed mods', 0xff),
+    {
+        id: 'enabled',
+        header: 'On',
+        className: 'w-16',
+        cell: (e, set) => (
+            <Checkbox
+                aria-label="Enabled"
+                checked={e.options.enabled}
+                onCheckedChange={(v) =>
+                    set((p) => ({
+                        ...p,
+                        options: { ...p.options, enabled: v === true },
+                    }))
+                }
+            />
+        ),
+    },
+]
+
 export function AltRepeatKeyTab({ service, opened }: Props): JSX.Element {
-    const [idx, setIdx] = useState(0)
-    const { entry, setEntry, loading } = useDynamicEntry<AltRepeatKeyEntry>(
-        service,
-        idx,
-        opened,
-        (s, i) => s.dynamic?.getAltRepeatKey?.(i),
-        'alt-repeat-key',
+    const spec = useMemo<EntrySpec<AltRepeatKeyEntry>>(
+        () => ({
+            noun: 'alt repeat',
+            count: ARK_MAX + 1,
+            fetch: (i) => service.dynamic!.getAltRepeatKey!(i),
+            store: (i, e) => service.dynamic!.setAltRepeatKey!(i, e),
+            isEmpty: (e) => !e.keycode && !e.altKeycode,
+            blank: () => ({
+                keycode: 0,
+                altKeycode: 0,
+                allowedMods: 0,
+                options: {
+                    defaultToThisAltKey: false,
+                    bidirectional: false,
+                    ignoreModHandedness: false,
+                    enabled: false,
+                },
+            }),
+        }),
+        [service],
     )
-
-    const setOpt = (k: keyof AltRepeatKeyOptions, v: boolean): void => {
-        if (!entry) return
-        setEntry({ ...entry, options: { ...entry.options, [k]: v } })
-    }
-
-    const save = (): Promise<void> =>
-        saveWithToast(
-            async () => {
-                if (!entry || !service.dynamic?.setAltRepeatKey) return
-                await service.dynamic.setAltRepeatKey(idx, entry)
-            },
-            `Alt-repeat-key #${idx} saved`,
-            'Failed to save alt-repeat-key',
-        )
-
+    const table = useEntryTable(spec, opened)
     return (
-        <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">
+        <div className="space-y-2">
+            <p className="px-3 text-caption text-muted-foreground">
                 Alternate Repeat sends a different key when you repeat the last
                 keypress — e.g. after “a”, repeat emits “o”.
             </p>
-            <IndexInput
-                label="Entry"
-                value={idx}
-                max={ARK_MAX}
-                onChange={setIdx}
-            />
-            {loading && (
-                <p className="text-xs text-muted-foreground">Loading…</p>
-            )}
-            {entry && (
-                <>
-                    <EntryCard index={idx} accent={layerAccent(3)}>
-                        <Pair label="After key">
-                            <HexChip
-                                value={entry.keycode}
-                                onChange={(v) =>
-                                    setEntry({ ...entry, keycode: v })
-                                }
-                            />
-                        </Pair>
-                        <ArrowRight className="mb-2 size-3.5 text-muted-foreground" />
-                        <Pair label="Repeat emits">
-                            <HexChip
-                                value={entry.altKeycode}
-                                onChange={(v) =>
-                                    setEntry({ ...entry, altKeycode: v })
-                                }
-                            />
-                        </Pair>
-                        <Pair label="Allowed mods">
-                            <HexChip
-                                value={entry.allowedMods}
-                                mask={0xff}
-                                onChange={(v) =>
-                                    setEntry({ ...entry, allowedMods: v })
-                                }
-                            />
-                        </Pair>
-                    </EntryCard>
-
+            <EntryTable
+                table={table}
+                columns={COLUMNS}
+                detail={(entry, set) => (
                     <OptionGrid
                         options={ARK_OPTIONS}
                         value={entry.options}
-                        onChange={setOpt}
+                        columns={3}
+                        onChange={(k, v) =>
+                            set((p) => ({
+                                ...p,
+                                options: { ...p.options, [k]: v },
+                            }))
+                        }
                     />
-                    <DockActions>
-                        <Button onClick={save} size="sm">
-                            Save
-                        </Button>
-                    </DockActions>
-                </>
-            )}
+                )}
+            />
         </div>
     )
 }

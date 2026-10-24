@@ -1,14 +1,15 @@
-// pattern-check: skip — form tab composing primitives, mirrors sibling *Tab.tsx
-import { DockActions } from '@/ui/dock-shell'
+// pattern-check: skip — section spec + columns for the shared EntryTable; the step editor is the existing MacroActionRow list
+import { Fragment, useMemo, useState } from 'react'
 import { Circle, Plus } from 'lucide-react'
-import { useState } from 'react'
 
 import type { KeyboardService, MacroAction } from '@firmware'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { HidUsageLabel } from '@/features/keymap/keyboard/HidUsageLabel'
 import { Button } from '@/ui/button'
 
-import { IndexInput } from '../_shared/IndexInput'
-import { useDynamicEntry } from '../_shared/useDynamicEntry'
+import { EntryTable, type EntryColumn } from '../_shared/EntryTable'
+import type { EntrySpec } from '../_shared/entryTable'
+import { rawToPacked } from '../_shared/hidUsage'
+import { useEntryTable } from '../_shared/useEntryTable'
 import { MacroActionRow } from './macros/MacroActionRow'
 import { useKeyboardRecorder } from './macros/useKeyboardRecorder'
 
@@ -17,142 +18,214 @@ interface Props {
     opened: boolean
 }
 
-// pattern-check: skip — macro sequence editor body, extracted from MacroEditorModal
+type Steps = MacroAction[]
+type SetSteps = (f: (p: Steps) => Steps) => void
+
+/** Steps shown in a row before "+N more". */
+const PREVIEW = 6
+
+const Key = ({ code }: { code: number }): JSX.Element => (
+    <span className="inline-flex h-7 min-w-9 items-center justify-center rounded-md border border-border bg-secondary px-2 text-control font-semibold">
+        {code ? (
+            <HidUsageLabel hid_usage={rawToPacked(code)} />
+        ) : (
+            <span className="text-muted-foreground">none</span>
+        )}
+    </span>
+)
+
+const STEP: {
+    readonly [K in MacroAction['kind']]: (
+        a: Extract<MacroAction, { kind: K }>,
+    ) => JSX.Element
+} = {
+    tap: (a) => <Key code={a.keycode} />,
+    down: (a) => (
+        <span className="flex items-center gap-1">
+            <span className="text-caption text-muted-foreground">hold</span>
+            <Key code={a.keycode} />
+        </span>
+    ),
+    up: (a) => (
+        <span className="flex items-center gap-1">
+            <span className="text-caption text-muted-foreground">release</span>
+            <Key code={a.keycode} />
+        </span>
+    ),
+    delay: (a) => (
+        <span className="text-caption text-muted-foreground">
+            wait {a.ms} ms
+        </span>
+    ),
+    text: (a) => (
+        <span className="rounded-md border border-border px-2 py-1 text-control">
+            “{a.text}”
+        </span>
+    ),
+}
+
+function Step({ action }: { action: MacroAction }): JSX.Element {
+    const render = STEP[action.kind] as (a: MacroAction) => JSX.Element
+    return render(action)
+}
+
+function StepsSummary({ steps }: { steps: Steps }): JSX.Element {
+    if (!steps.length)
+        return <span className="text-muted-foreground">No steps yet</span>
+    return (
+        <span className="flex flex-wrap items-center gap-1.5">
+            {steps.slice(0, PREVIEW).map((a, i) => (
+                <Fragment key={i}>
+                    {i > 0 && (
+                        <span className="text-muted-foreground" aria-hidden>
+                            →
+                        </span>
+                    )}
+                    <Step action={a} />
+                </Fragment>
+            ))}
+            {steps.length > PREVIEW && (
+                <span className="text-caption text-muted-foreground">
+                    +{steps.length - PREVIEW} more
+                </span>
+            )}
+        </span>
+    )
+}
+
+const COLUMNS: readonly EntryColumn<Steps>[] = [
+    {
+        id: 'steps',
+        header: 'What it does, in order',
+        cell: (steps) => <StepsSummary steps={steps} />,
+    },
+    {
+        id: 'length',
+        header: 'Length',
+        className: 'w-24',
+        cell: (steps) => (
+            <span className="text-caption text-muted-foreground">
+                {steps.length} {steps.length === 1 ? 'step' : 'steps'}
+            </span>
+        ),
+    },
+]
+
+/** The step editor under an open row: the existing step rows, Add and Record. */
+function StepEditor({
+    steps,
+    set,
+    editable,
+}: {
+    steps: Steps
+    set: SetSteps
+    editable: boolean
+}): JSX.Element {
+    const [recording, setRecording] = useState(false)
+    useKeyboardRecorder(recording, editable, true, (u) =>
+        set((prev) => (typeof u === 'function' ? u(prev) : u) ?? []),
+    )
+
+    const move = (i: number, delta: number): void =>
+        set((p) => {
+            const j = i + delta
+            if (j < 0 || j >= p.length) return p
+            const next = p.slice()
+            const [item] = next.splice(i, 1)
+            next.splice(j, 0, item!)
+            return next
+        })
+
+    return (
+        <div className="space-y-2">
+            {steps.map((a, i) => (
+                <MacroActionRow
+                    key={i}
+                    action={a}
+                    readOnly={!editable}
+                    onChange={(na) =>
+                        set((p) => p.map((x, k) => (k === i ? na : x)))
+                    }
+                    onRemove={() => set((p) => p.filter((_, k) => k !== i))}
+                    onMoveUp={() => move(i, -1)}
+                    onMoveDown={() => move(i, 1)}
+                />
+            ))}
+            {editable && (
+                <div className="flex items-center gap-2 pt-1">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                            set((p) => [...p, { kind: 'tap', keycode: 0 }])
+                        }
+                    >
+                        <Plus className="size-3.5" /> Add step
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant={recording ? 'destructive' : 'outline'}
+                        onClick={() => setRecording((r) => !r)}
+                    >
+                        <Circle
+                            className={`size-3 ${recording ? 'animate-pulse fill-current' : ''}`}
+                        />
+                        {recording ? 'Stop' : 'Record keys'}
+                    </Button>
+                    {recording && (
+                        <span className="text-caption text-muted-foreground">
+                            Press keys to capture…
+                        </span>
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}
+
 export function MacrosTab({ service, opened }: Props): JSX.Element | null {
     const count = service.macros?.getCount() ?? 0
-    const [rawIdx, setIdx] = useState(0)
-    const idx = Math.min(Math.max(0, rawIdx), Math.max(0, count - 1))
-
     // Editable only when the adapter is not view-only AND exposes a writer. ZMK
     // (compile-time macros) exposes `macros` with `readonly: true` and no
-    // `setMacro` — the editor renders view-only. Never gate on a firmware name.
+    // `setMacro` — the table renders view-only. Never gate on a firmware name.
     const editable =
         !!service.macros &&
         !service.macros.readonly &&
         !!service.macros.setMacro
 
-    const {
-        entry: actions,
-        setEntry: setActions,
-        loading,
-    } = useDynamicEntry<MacroAction[]>(
-        service,
-        idx,
-        opened,
-        (s, i) => s.macros?.getMacro(i),
-        'macro',
+    const spec = useMemo<EntrySpec<Steps>>(
+        () => ({
+            noun: 'macro',
+            count,
+            fetch: (i) => service.macros!.getMacro(i),
+            store: editable
+                ? (i, steps) => service.macros!.setMacro!(i, steps)
+                : undefined,
+            isEmpty: (steps) => steps.length === 0,
+            blank: () => [],
+        }),
+        [service, count, editable],
     )
-
-    const [recording, setRecording] = useState(false)
-    useKeyboardRecorder(recording, editable, opened, setActions)
-
-    const handleSetIdx = (n: number): void => {
-        setRecording(false)
-        setIdx(n)
-    }
+    const table = useEntryTable(spec, opened)
 
     if (count === 0) return null
 
-    const update = (i: number, a: MacroAction): void => {
-        if (!actions) return
-        const next = actions.slice()
-        next[i] = a
-        setActions(next)
-    }
-
-    const remove = (i: number): void =>
-        setActions((prev) => (prev ? prev.filter((_, k) => k !== i) : prev))
-
-    const move = (i: number, delta: number): void => {
-        if (!actions) return
-        const j = i + delta
-        if (j < 0 || j >= actions.length) return
-        const next = actions.slice()
-        const [item] = next.splice(i, 1)
-        next.splice(j, 0, item)
-        setActions(next)
-    }
-
-    const add = (): void =>
-        setActions((prev) => [...(prev ?? []), { kind: 'tap', keycode: 0 }])
-
-    const save = (): Promise<void> =>
-        saveWithToast(
-            async () => {
-                if (!actions || !service.macros?.setMacro) return
-                await service.macros.setMacro(idx, actions)
-            },
-            `Macro #${idx} saved`,
-            'Failed to save macro',
-        )
-
     return (
-        <div className="space-y-3">
+        <div className="space-y-2">
             {!editable && (
                 <div className="rounded border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
                     This firmware doesn’t support editing macros from Remappr —
                     macros are defined at build time. Showing them read-only.
                 </div>
             )}
-            <IndexInput
-                label="Macro"
-                value={idx}
-                count={count}
-                onChange={handleSetIdx}
+            <EntryTable
+                table={table}
+                columns={COLUMNS}
+                detailLabel={editable ? 'Edit steps' : 'Show steps'}
+                detail={(steps, set) => (
+                    <StepEditor steps={steps} set={set} editable={editable} />
+                )}
             />
-            {loading && (
-                <p className="text-xs text-muted-foreground">Loading…</p>
-            )}
-            {actions && (
-                <div className="space-y-2">
-                    {actions.map((a, i) => (
-                        <MacroActionRow
-                            key={i}
-                            action={a}
-                            onChange={(na) => update(i, na)}
-                            onRemove={() => remove(i)}
-                            onMoveUp={() => move(i, -1)}
-                            onMoveDown={() => move(i, 1)}
-                            readOnly={!editable}
-                        />
-                    ))}
-                    {actions.length === 0 && (
-                        <p className="text-xs text-muted-foreground italic">
-                            {editable
-                                ? 'Empty macro. Add actions below.'
-                                : 'Empty macro.'}
-                        </p>
-                    )}
-                </div>
-            )}
-            {editable && (
-                <div className="flex items-center gap-2">
-                    <Button onClick={add} size="sm" variant="outline">
-                        <Plus className="h-3 w-3 mr-1" /> Add action
-                    </Button>
-                    <Button
-                        onClick={() => setRecording((r) => !r)}
-                        size="sm"
-                        variant={recording ? 'destructive' : 'outline'}
-                        disabled={!actions}
-                    >
-                        <Circle
-                            className={`h-3 w-3 mr-1 ${recording ? 'fill-current animate-pulse' : ''}`}
-                        />
-                        {recording ? 'Stop' : 'Record'}
-                    </Button>
-                    {recording && (
-                        <span className="text-xs text-muted-foreground">
-                            Press keys to capture…
-                        </span>
-                    )}
-                    <DockActions>
-                        <Button onClick={save} size="sm" disabled={!actions}>
-                            Save
-                        </Button>
-                    </DockActions>
-                </div>
-            )}
         </div>
     )
 }

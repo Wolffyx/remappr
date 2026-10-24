@@ -1,120 +1,80 @@
-// pattern-check: skip — form tab composing shared primitives
-import { DockActions } from '@/ui/dock-shell'
-import { layerAccent } from '@/lib/keymap/keyCategory'
-import { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+// pattern-check: skip — section spec + columns for the shared EntryTable
+import { useMemo } from 'react'
 
 import type { KeyboardService, TapDanceEntry } from '@firmware'
-import { Button } from '@/ui/button'
 
-import { saveWithToast } from '@/lib/saveWithToast'
-
-import { EntryCard, NumChip, Pair } from '../_shared/EntryCard'
-import { IndexInput } from '../_shared/IndexInput'
+import { NumChip } from '../_shared/EntryCard'
+import { EntryTable, type EntryColumn } from '../_shared/EntryTable'
+import type { EntrySpec } from '../_shared/entryTable'
 import { KeycodeField } from '../_shared/KeycodeField'
-import { useDynamicEntry } from '../_shared/useDynamicEntry'
+import { useEntryTable } from '../_shared/useEntryTable'
 
-// pattern-check: skip optional defaultIndex prop add to existing component — mechanical extension
 interface Props {
     service: KeyboardService
     count: number
     opened: boolean
+    /** Slot to focus when opened from a key bound to it. */
     defaultIndex?: number
 }
 
-// pattern-check: skip optional defaultIndex prop add to existing component — mechanical extension
+type Slot = 'onTap' | 'onHold' | 'onDoubleTap' | 'onTapHold'
+
+const keyColumn = (id: Slot, header: string): EntryColumn<TapDanceEntry> => ({
+    id,
+    header,
+    cell: (e, set) => (
+        <KeycodeField
+            value={e[id]}
+            onChange={(v) => set((p) => ({ ...p, [id]: v }))}
+        />
+    ),
+})
+
+const COLUMNS: readonly EntryColumn<TapDanceEntry>[] = [
+    keyColumn('onTap', 'Tap'),
+    keyColumn('onHold', 'Hold'),
+    keyColumn('onDoubleTap', 'Tap twice'),
+    keyColumn('onTapHold', 'Tap, then hold'),
+    {
+        id: 'term',
+        header: 'Timing',
+        className: 'w-32',
+        cell: (e, set) => (
+            <span className="flex items-center gap-1.5">
+                <NumChip
+                    value={e.tappingTerm}
+                    onChange={(v) => set((p) => ({ ...p, tappingTerm: v }))}
+                />
+                <span className="text-caption text-muted-foreground">ms</span>
+            </span>
+        ),
+    },
+]
+
 export function TapDanceTab({
     service,
     count,
     opened,
     defaultIndex,
 }: Props): JSX.Element {
-    const [rawIdx, setIdx] = useState(defaultIndex ?? 0)
-    const idx = Math.min(Math.max(0, rawIdx), Math.max(0, count - 1))
-    const { entry, setEntry, loading } = useDynamicEntry<TapDanceEntry>(
-        service,
-        idx,
-        opened,
-        (s, i) => s.dynamic?.getTapDance(i),
-        'tap-dance',
+    const spec = useMemo<EntrySpec<TapDanceEntry>>(
+        () => ({
+            noun: 'tap dance',
+            count,
+            fetch: (i) => service.dynamic!.getTapDance(i),
+            store: (i, e) => service.dynamic!.setTapDance(i, e),
+            isEmpty: (e) =>
+                !e.onTap && !e.onHold && !e.onDoubleTap && !e.onTapHold,
+            blank: () => ({
+                onTap: 0,
+                onHold: 0,
+                onDoubleTap: 0,
+                onTapHold: 0,
+                tappingTerm: 200,
+            }),
+        }),
+        [service, count],
     )
-
-    const save = (): Promise<void> =>
-        saveWithToast(
-            async () => {
-                if (!entry || !service.dynamic) return
-                await service.dynamic.setTapDance(idx, entry)
-            },
-            `Tap-dance #${idx} saved`,
-            'Failed to save tap-dance',
-        )
-
-    return (
-        <div className="space-y-4">
-            <IndexInput
-                label="Entry"
-                value={idx}
-                count={count}
-                onChange={setIdx}
-            />
-            {loading && (
-                <p className="text-xs text-muted-foreground">Loading…</p>
-            )}
-            {entry && (
-                <>
-                    <EntryCard index={idx} accent={layerAccent(0)}>
-                        <Pair label="Tap">
-                            <KeycodeField
-                                value={entry.onTap}
-                                onChange={(v) =>
-                                    setEntry({ ...entry, onTap: v })
-                                }
-                            />
-                        </Pair>
-                        <ArrowRight className="mb-2 size-3.5 text-muted-foreground" />
-                        <Pair label="Hold">
-                            <KeycodeField
-                                value={entry.onHold}
-                                onChange={(v) =>
-                                    setEntry({ ...entry, onHold: v })
-                                }
-                            />
-                        </Pair>
-                        <Pair label="Double tap">
-                            <KeycodeField
-                                value={entry.onDoubleTap}
-                                onChange={(v) =>
-                                    setEntry({ ...entry, onDoubleTap: v })
-                                }
-                            />
-                        </Pair>
-                        <Pair label="Tap + Hold">
-                            <KeycodeField
-                                value={entry.onTapHold}
-                                onChange={(v) =>
-                                    setEntry({ ...entry, onTapHold: v })
-                                }
-                            />
-                        </Pair>
-                        <Pair label="Term">
-                            <NumChip
-                                value={entry.tappingTerm}
-                                onChange={(v) =>
-                                    setEntry({ ...entry, tappingTerm: v })
-                                }
-                            />
-                            <span className="text-caption text-muted-foreground">
-                                ms
-                            </span>
-                        </Pair>
-                    </EntryCard>
-                    <DockActions>
-                        <Button onClick={save} size="sm">
-                            Save
-                        </Button>
-                    </DockActions>
-                </>
-            )}
-        </div>
-    )
+    const table = useEntryTable(spec, opened)
+    return <EntryTable table={table} columns={COLUMNS} start={defaultIndex} />
 }

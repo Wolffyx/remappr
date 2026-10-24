@@ -1,37 +1,8 @@
-// pattern-check: skip — presentational card/field primitives for dynamic-entry tabs
+// pattern-check: skip — presentational field primitives (Pair, HexChip, NumChip) for dynamic-entry tables
 import type { ReactNode } from 'react'
 
 import { hex16, parseHex16 } from '@/lib/hex'
 import { clampInt, parseIntSafe } from '@/lib/clampInt'
-
-// Rounded entry card with a hue-tinted "#index" badge (design vocabulary).
-export function EntryCard({
-    index,
-    accent,
-    children,
-}: {
-    index: number
-    /** CSS colour of the #index chip, e.g. layerAccent(n). */
-    accent: string
-    children: ReactNode
-}): JSX.Element {
-    return (
-        <div className="flex items-center gap-4 rounded-xl border bg-background p-4">
-            <span
-                className="grid size-7 shrink-0 place-items-center rounded-md font-mono text-caption font-bold"
-                style={{
-                    background: `color-mix(in oklab, ${accent} 18%, transparent)`,
-                    color: accent,
-                }}
-            >
-                #{index}
-            </span>
-            <div className="flex flex-1 flex-wrap items-end gap-x-4 gap-y-3">
-                {children}
-            </div>
-        </div>
-    )
-}
 
 // Labelled control column (design "Pair").
 export function Pair({
