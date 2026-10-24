@@ -30,7 +30,7 @@ export function RestoreStockModal(props: RestoreStockModalProps): JSX.Element {
                 onClick={handleClick}
             >
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Restore Stock Settings
+                Restore stock settings
             </DropdownMenuItem>
 
             <Modal
@@ -38,9 +38,9 @@ export function RestoreStockModal(props: RestoreStockModalProps): JSX.Element {
                 opened={showModal}
                 onClose={handleClose}
                 onOk={handleOk}
-                success="Restore Stock Settings"
+                success="Restore stock settings"
                 close="Cancel"
-                title="Restore Stock Settings"
+                title="Restore stock settings"
                 description="Settings reset will remove any customizations previously made in Remappr and restore the stock keymap. Continue?"
                 showFooter={true}
                 xButton={true}

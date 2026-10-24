@@ -136,7 +136,7 @@ export const DeviceMenu = (): JSX.Element => {
                     />
                     <div className="min-w-0 flex-1">
                         <div className="truncate text-control font-semibold">
-                            {connected ? displayName : 'No Device Connected'}
+                            {connected ? displayName : 'No device connected'}
                         </div>
                         <div className="text-meta text-muted-foreground">
                             {statusLabel}

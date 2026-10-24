@@ -55,7 +55,7 @@ export function DeviceToolClusters(): JSX.Element {
             {editLayout && (
                 <ToolbarButton
                     icon={Ruler}
-                    tooltip="Edit layout in the Builder"
+                    tooltip="Edit layout in the builder"
                     label="Edit layout"
                     onClick={editLayout}
                 />

@@ -95,7 +95,7 @@ export function Header({
                                 </button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Back to Builder</p>
+                                <p>Back to builder</p>
                             </TooltipContent>
                         </Tooltip>
                     )}

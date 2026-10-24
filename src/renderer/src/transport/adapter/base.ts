@@ -10,7 +10,7 @@ import type { Transport } from '@firmware'
  */
 export abstract class TransportAdapter {
     protected readonly abortController = new AbortController()
-    protected label = 'Unknown Device'
+    protected label = 'Unknown device'
 
     abstract connect(): Promise<Transport>
 }

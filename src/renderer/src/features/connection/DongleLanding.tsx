@@ -212,7 +212,7 @@ export function DongleLanding(): JSX.Element {
         }
     }, [nodesApi, fetchNodes])
 
-    const dongleName = service?.deviceInfo.name?.trim() || 'Remappr Dongle'
+    const dongleName = service?.deviceInfo.name?.trim() || 'Wireless receiver'
     const connLabel = communication === 'ble' ? 'BLE' : 'USB'
 
     return (
@@ -349,11 +349,11 @@ export function DongleLanding(): JSX.Element {
                                                     <Badge
                                                         size="sm"
                                                         tone="warning"
-                                                        title="Topology master (§5 election)"
+                                                        title="Main node, chosen automatically"
                                                         className="shrink-0"
                                                     >
                                                         <Crown />
-                                                        Master
+                                                        Main node
                                                     </Badge>
                                                 )}
                                                 {n.battery && (

@@ -4,7 +4,7 @@ import useConnectionStore from '@/stores/connectionStore'
 import { MixedPanel } from './MixedPanel'
 
 /** Raw Mix-region byte editors (advanced; connected boards only). Indicators
- *  now have a friendly editor in the Indicator Light tab. */
+ *  now have a friendly editor in the Indicator lights tab. */
 export function AdvancedPanels(): JSX.Element {
     const rgb = useConnectionStore((s) => s.service?.rgb)
 

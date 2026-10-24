@@ -15,6 +15,7 @@ import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
+import { LearnMore } from '@/ui/learn-more'
 import { Modal } from '@/ui/modal'
 import type { PanelFrame } from './clusterFrame'
 import { Button } from '@/ui/button'
@@ -143,8 +144,14 @@ export function NodeConfigModal({
             size="md"
             opened={opened}
             onClose={onClose}
-            title="Node & cluster"
-            subtitle="Cluster role, input forwarding, and the mode-A position map"
+            title="Node and cluster"
+            subtitle={
+                <>
+                    What this node does in the group, and how it sends key
+                    presses.{' '}
+                    <LearnMore path="guide/app/advanced#node-cluster" />
+                </>
+            }
             headerIcon={<Waypoints />}
             footer={
                 <>
@@ -182,7 +189,7 @@ export function NodeConfigModal({
                         </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                        {roleHelp ?? 'Leave as the firmware Kconfig default.'}
+                        {roleHelp ?? 'Leave as the firmware’s default.'}
                     </p>
                 </div>
 
@@ -225,17 +232,16 @@ export function NodeConfigModal({
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Maps each node&apos;s hardware UID to where its keys
-                        land in the whole-cluster position space — a mode-A
-                        coordinator resolves forwarded positions against this
-                        map.
+                        Maps each node&apos;s hardware UID to where its keys sit
+                        in the whole group. The main node uses this map to tell
+                        which key a follower pressed.
                     </p>
 
                     {form.cluster.length === 0 && (
                         <p className="text-muted-foreground">
                             No cluster nodes yet.
                             {modeA &&
-                                ' Mode A forwards raw positions — add each follower so the coordinator can resolve them.'}
+                                ' Add each follower so the main node knows its keys.'}
                         </p>
                     )}
 

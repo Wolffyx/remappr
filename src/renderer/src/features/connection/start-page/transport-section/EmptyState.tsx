@@ -25,7 +25,7 @@ export function EmptyState({
                 <Monitor className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="mb-2 font-semibold">
-                {hasPairable ? 'No Paired Devices' : 'No Devices Found'}
+                {hasPairable ? 'No paired devices' : 'No devices found'}
             </h3>
             <p className="mb-4 max-w-sm text-sm text-muted-foreground">
                 {hasPairable
@@ -47,7 +47,7 @@ export function EmptyState({
                         <RefreshCw
                             className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}
                         />
-                        {refreshing ? 'Scanning…' : 'Scan for Devices'}
+                        {refreshing ? 'Scanning…' : 'Scan for devices'}
                     </Button>
                 )}
             </div>

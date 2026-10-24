@@ -18,6 +18,7 @@ import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
+import { LearnMore } from '@/ui/learn-more'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
 
@@ -90,8 +91,13 @@ export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
             size="md"
             opened={opened}
             onClose={onClose}
-            title="Timing & Defaults"
-            subtitle="Behavior timing pushed to the device"
+            title="Timing and defaults"
+            subtitle={
+                <>
+                    How long keys wait before acting, sent to the device.{' '}
+                    <LearnMore path="guide/app/advanced#timing-defaults" />
+                </>
+            }
             headerIcon={<Timer />}
             footer={
                 <>

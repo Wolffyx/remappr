@@ -6,6 +6,7 @@
 // Re-exported here under the original path so the modal's imports are unchanged.
 export {
     type Flavor,
+    FLAVOR_LABELS,
     FLAVOR_OPTIONS,
     type HoldTapNumField,
     HOLD_TAP_NUM_FIELDS,

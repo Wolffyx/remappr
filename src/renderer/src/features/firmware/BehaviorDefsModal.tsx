@@ -17,6 +17,7 @@ import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
 import { cn } from '@/lib/cn'
 import { Modal } from '@/ui/modal'
+import { NamedId } from '@/ui/named-id'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
 import { Switch } from '@/ui/switch'
@@ -30,6 +31,7 @@ import {
 
 import {
     ALL_MODIFIERS,
+    FLAVOR_LABELS,
     FLAVOR_OPTIONS,
     HOLD_TAP_FLAG_FIELDS,
     HOLD_TAP_NUM_FIELDS,
@@ -165,7 +167,10 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                 key={h.id}
                                 className="flex flex-col gap-2 rounded-lg border p-3"
                             >
-                                <div className="font-mono text-xs">{h.id}</div>
+                                <NamedId
+                                    name={h.description || `Hold-tap ${i + 1}`}
+                                    id={h.id}
+                                />
                                 <div className="flex items-center gap-2">
                                     <Label className="w-28 text-xs">
                                         Flavor
@@ -176,13 +181,16 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                             patchHT(i, { flavor: v as Flavor })
                                         }
                                     >
-                                        <SelectTrigger className="w-56">
+                                        <SelectTrigger className="h-auto min-h-9 w-64 py-1 text-left">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {FLAVOR_OPTIONS.map((f) => (
                                                 <SelectItem key={f} value={f}>
-                                                    {f}
+                                                    <NamedId
+                                                        name={FLAVOR_LABELS[f]}
+                                                        id={f}
+                                                    />
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -260,7 +268,10 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                 key={m.id}
                                 className="flex flex-col gap-2 rounded-lg border p-3"
                             >
-                                <div className="font-mono text-xs">{m.id}</div>
+                                <NamedId
+                                    name={m.description || `Mod-morph ${i + 1}`}
+                                    id={m.id}
+                                />
                                 {(['mods', 'keepMods'] as const).map(
                                     (field) => (
                                         <div

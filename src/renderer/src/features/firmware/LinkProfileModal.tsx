@@ -24,6 +24,7 @@ import {
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
+import { LearnMore } from '@/ui/learn-more'
 import { Modal } from '@/ui/modal'
 import type { PanelFrame } from './clusterFrame'
 import { Button } from '@/ui/button'
@@ -140,7 +141,13 @@ export function LinkProfileModal({
             opened={opened}
             onClose={onClose}
             title="Link profile"
-            subtitle="Node-bus latency, election cadence, and power tier"
+            subtitle={
+                <>
+                    How fast nodes talk, how quickly a main node is chosen, and
+                    power use.{' '}
+                    <LearnMore path="guide/app/advanced#link-profile" />
+                </>
+            }
             headerIcon={<Gauge />}
             footer={
                 <>
@@ -182,17 +189,17 @@ export function LinkProfileModal({
 
                 <div className="flex flex-col gap-3 rounded-lg border p-3">
                     <div className="flex items-center justify-between">
-                        <h3 className="font-semibold">Knob overrides</h3>
+                        <h3 className="font-semibold">Advanced values</h3>
                         {!liveLimits && (
                             <span className="text-xs text-muted-foreground">
-                                built-in ranges
+                                Built-in ranges
                             </span>
                         )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Each knob defaults to the base profile&apos;s value.
-                        Change one to override it — the firmware bounds and
-                        re-validates every value at save.
+                        Each value starts from the chosen profile; change one to
+                        override it. The device checks every value when you
+                        save.
                     </p>
 
                     <FormGrid>

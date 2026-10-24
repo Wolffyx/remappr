@@ -157,7 +157,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                     {config
                         ? `${config.layers.length} layer${
                               config.layers.length === 1 ? '' : 's'
-                          } · source of truth`
+                          } · every format is built from this`
                         : service
                           ? `${firmwareLabel} device · native export`
                           : 'Connect a keyboard or import a .json config'}

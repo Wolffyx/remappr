@@ -120,7 +120,7 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
             kind="live"
             opened={opened}
             onClose={onClose}
-            title="Advanced Mode"
+            title="Advanced mode"
             subtitle="Debounce, report rate & key behaviour"
             headerIcon={<Settings2 />}
         >
@@ -232,7 +232,7 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
 
                 {nkro !== null && (
                     <section className="flex flex-col gap-2">
-                        <h3 className="font-semibold">N-Key Rollover</h3>
+                        <h3 className="font-semibold">N-key rollover</h3>
                         <div className="flex items-center gap-2">
                             <Switch
                                 id="adv-nkro"
@@ -240,14 +240,16 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                                 onCheckedChange={toggleNkro}
                                 disabled={loading}
                             />
-                            <Label htmlFor="adv-nkro">Enable NKRO</Label>
+                            <Label htmlFor="adv-nkro">
+                                Send every key at once (NKRO)
+                            </Label>
                         </div>
                     </section>
                 )}
 
                 {advanced.quickStart && (
                     <section className="flex flex-col gap-1">
-                        <h3 className="font-semibold">Quick Start</h3>
+                        <h3 className="font-semibold">Quick start</h3>
                         <p className="text-xs text-muted-foreground">
                             Supported by this keyboard. Auto-sleep &amp;
                             auto-backlight-off timeouts live in the Wireless

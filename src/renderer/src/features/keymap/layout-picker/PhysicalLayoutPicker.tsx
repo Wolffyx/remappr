@@ -39,8 +39,8 @@ export const PhysicalLayoutPicker = ({
     return (
         <SidebarGroupContent>
             <SidebarGroupLabel className="eyebrow">Layouts</SidebarGroupLabel>
-            <SidebarGroupAction title="Add Layout">
-                <Plus /> <span className="sr-only">Add Layout</span>
+            <SidebarGroupAction title="Add layout">
+                <Plus /> <span className="sr-only">Add layout</span>
             </SidebarGroupAction>
             {layouts && (
                 <div className="space-y-2">

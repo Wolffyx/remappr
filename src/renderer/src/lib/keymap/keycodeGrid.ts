@@ -167,10 +167,10 @@ export const KEYCODE_SECTIONS: ReadonlyArray<{
     cats: readonly KeyCategory[]
 }> = [
     { title: 'Modifiers', cats: ['mod'] },
-    { title: 'Numbers & Symbols', cats: ['num', 'punct'] },
+    { title: 'Numbers and symbols', cats: ['num', 'punct'] },
     { title: 'Letters', cats: ['alpha'] },
-    { title: 'Editing & Whitespace', cats: ['edit', 'space', 'nav'] },
-    { title: 'Function & System', cats: ['system'] },
+    { title: 'Editing and whitespace', cats: ['edit', 'space', 'nav'] },
+    { title: 'Function and system', cats: ['system'] },
     { title: 'Layers', cats: ['layer'] },
     { title: 'Media', cats: ['media'] },
     { title: 'Mouse', cats: ['mouse'] },

@@ -232,7 +232,7 @@
             .forEach((t) => t.remove())
         await sleep(200)
     }
-    const demo = [click(byPrefix('Try Demo'), 700)]
+    const demo = [click(byPrefix('Try demo'), 700)]
     const device = (label) => [...demo, click(byPrefix(label), 1400), skipTours]
     const corne = device('Corne')
     const mouse = device('Halo M2')

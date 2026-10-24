@@ -19,13 +19,13 @@ export function CommunityLinks(): JSX.Element {
             <ToolbarLink
                 icon={GitHubIcon}
                 href={REPO_URL}
-                tooltip="GitHub Repository"
+                tooltip="GitHub repository"
                 label="View source on GitHub"
             />
             <ToolbarLink
                 icon={DiscordIcon}
                 href={DISCORD_URL}
-                tooltip="Discord Community"
+                tooltip="Discord community"
                 label="Join the Discord community"
             />
             <ToolbarLink
