@@ -37,7 +37,6 @@ interface ProfileBackupState {
     backups: Record<string, ProfileBackup>
     saveBackup: (key: string, backup: ProfileBackup) => void
     setDismissedHash: (key: string, hash: string) => void
-    clear: (key: string) => void
 }
 
 const useProfileBackupStore = create<ProfileBackupState>()(
@@ -59,12 +58,6 @@ const useProfileBackupStore = create<ProfileBackupState>()(
                                 [key]: { ...existing, dismissedHash: hash },
                             },
                         }
-                    }),
-                clear: (key) =>
-                    set((s) => {
-                        const next = { ...s.backups }
-                        delete next[key]
-                        return { backups: next }
                     }),
             }),
             {

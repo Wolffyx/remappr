@@ -5,7 +5,6 @@ import useConnectionStore from '@/stores/connectionStore'
 
 interface UseLayoutsReturn {
     layouts: PhysicalLayout[] | undefined
-    setLayouts: Dispatch<SetStateAction<PhysicalLayout[] | undefined>>
     selectedPhysicalLayoutIndex: number
     setSelectedPhysicalLayoutIndex: Dispatch<SetStateAction<number>>
 }
@@ -61,7 +60,6 @@ export function useLayout(): UseLayoutsReturn {
 
     return {
         layouts,
-        setLayouts,
         selectedPhysicalLayoutIndex,
         setSelectedPhysicalLayoutIndex,
     }

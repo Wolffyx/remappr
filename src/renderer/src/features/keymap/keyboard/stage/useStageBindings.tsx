@@ -122,11 +122,7 @@ export function useStageBindings({
             ) : p.bindingParam1 == null && p.paramText ? (
                 <ParamLegend text={p.paramText} title={p.paramTitle} />
             ) : (
-                <HidUsageLabel
-                    hid_usage={p.bindingParam1!}
-                    header={p.actionTypeName || 'Unknown'}
-                    hideMods
-                />
+                <HidUsageLabel hid_usage={p.bindingParam1!} hideMods />
             ),
         }))
 

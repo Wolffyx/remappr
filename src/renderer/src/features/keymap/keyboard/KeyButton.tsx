@@ -48,7 +48,7 @@ const MOD_GLYPH: Record<string, string> = {
 // pattern-check: skip — additive optional props on existing KeyButtonProps interface
 // The legend fields (header/tapText/actionLabel/holdTap/mods/shift/category/
 // accentCategory) come from the shared KeyCapLegend contract; KeyButtonProps adds
-// layout (width/oneU…) and interaction (selected/pressed/onClick) on top.
+// layout (width/oneU…) and interaction (selected/pressed) on top.
 interface KeyButtonProps extends KeyCapLegend {
     selected?: boolean
     /** Part of an active multi-selection (distinct accent ring from `selected`). */
@@ -60,9 +60,6 @@ interface KeyButtonProps extends KeyCapLegend {
     height: number
     oneU: number
     hoverZoom?: boolean
-    /** Which edge the TAP legend sits on for a tap-hold; "top" (default) puts the
-     *  tap above the HOLD zone, "bottom" flips them. */
-    tapPos?: 'top' | 'bottom'
     /** Normalised press intensity 0–1 for the heatmap overlay, or null when off. */
     heat?: number | null
     /** Raw lifetime press count, surfaced in the rich tooltip when the heatmap is on. */
@@ -81,7 +78,6 @@ interface KeyButtonProps extends KeyCapLegend {
      *  and enabled, a <KeyLight> underglow layer renders above the face. Skipped
      *  automatically while the heatmap is coloring the cap. */
     light?: KeyLightInput | null
-    onClick?: () => void
 }
 
 interface KeyDimension {
@@ -132,7 +128,6 @@ const KeyButtonViewImpl = ({
     holdTap,
     mods,
     shift,
-    tapPos = 'top',
     category = 'alpha',
     accentCategory,
     heat = null,
@@ -304,7 +299,6 @@ const KeyButtonViewImpl = ({
             : 'color-mix(in oklab, var(--foreground) 44%, transparent)'
 
     // pattern-check: skip — render-body restructure (compose chips + tap-hold), no new abstraction
-    const tapTop = tapPos !== 'bottom'
     const tapNode = holdTap ? (
         holdTap.tap
     ) : iconParts ? (
@@ -421,8 +415,7 @@ const KeyButtonViewImpl = ({
                 style={{
                     flexShrink: 0,
                     gap: S * 0.05,
-                    paddingTop: tapTop ? S * 0.05 : 0,
-                    paddingBottom: tapTop ? 0 : S * 0.05,
+                    paddingTop: S * 0.05,
                 }}
             >
                 {showEyebrow ? (
@@ -461,17 +454,11 @@ const KeyButtonViewImpl = ({
                 }}
             />
         )
-        body = tapTop ? (
+        body = (
             <>
                 {tapGroup}
                 {divider}
                 {holdZone}
-            </>
-        ) : (
-            <>
-                {holdZone}
-                {divider}
-                {tapGroup}
             </>
         )
     } else {

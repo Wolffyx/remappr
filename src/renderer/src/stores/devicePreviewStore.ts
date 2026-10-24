@@ -52,7 +52,6 @@ export interface DevicePreviewSnapshot {
 interface DevicePreviewState {
     snapshots: Record<string, DevicePreviewSnapshot>
     saveSnapshot: (key: string, snapshot: DevicePreviewSnapshot) => void
-    clear: (key: string) => void
 }
 
 // Keeps only a key's shape and category, whatever else an older snapshot saved.
@@ -93,12 +92,6 @@ const useDevicePreviewStore = create<DevicePreviewState>()(
                     set((s) => ({
                         snapshots: { ...s.snapshots, [key]: snapshot },
                     })),
-                clear: (key) =>
-                    set((s) => {
-                        const next = { ...s.snapshots }
-                        delete next[key]
-                        return { snapshots: next }
-                    }),
             }),
             {
                 name: 'device-preview-store',

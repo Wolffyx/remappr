@@ -13,9 +13,7 @@ import useKeymapStore from '@/stores/keymapStore'
 import useLayerSelectionStore from '@/stores/layerSelectionStore'
 
 function holdTapToLabels(desc: ResolvedHoldTapDescriptor): HoldTapLabels {
-    const tap = (
-        <HidUsageLabel hid_usage={desc.tapParam} header={desc.actionTypeName} />
-    )
+    const tap = <HidUsageLabel hid_usage={desc.tapParam} />
     const hold =
         desc.holdNodeKind === 'layer' ? (
             <span>{desc.holdLayerMomentary}</span>
@@ -28,8 +26,6 @@ function holdTapToLabels(desc: ResolvedHoldTapDescriptor): HoldTapLabels {
 interface LayerKeyboardPreviewProps {
     /** Which physical layout to render (defaults to the active one). */
     physicalLayoutIndex: number
-    /** Which keymap layer's bindings to show (defaults to the selected layer). */
-    layerIndex?: number
     oneU?: number
 }
 
@@ -40,7 +36,6 @@ interface LayerKeyboardPreviewProps {
  */
 export function LayerKeyboardPreview({
     physicalLayoutIndex,
-    layerIndex,
     oneU = 13,
 }: LayerKeyboardPreviewProps): JSX.Element | null {
     const { layouts } = useLayout()
@@ -48,7 +43,7 @@ export function LayerKeyboardPreview({
     const selectedLayerIndex = useLayerSelectionStore(
         (s) => s.selectedLayerIndex,
     )
-    const effectiveLayer = layerIndex ?? selectedLayerIndex
+    const effectiveLayer = selectedLayerIndex
 
     const positions: KeyPosition[] = useMemo(() => {
         const layout = layouts?.[physicalLayoutIndex]
@@ -80,10 +75,7 @@ export function LayerKeyboardPreview({
                 ) : p.bindingParam1 == null && p.paramText ? (
                     <ParamLegend text={p.paramText} title={p.paramTitle} />
                 ) : (
-                    <HidUsageLabel
-                        hid_usage={p.bindingParam1!}
-                        header={p.actionTypeName || 'Unknown'}
-                    />
+                    <HidUsageLabel hid_usage={p.bindingParam1!} />
                 ),
             }),
         )

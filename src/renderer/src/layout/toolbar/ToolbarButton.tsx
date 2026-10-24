@@ -20,12 +20,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import { FeatureGate } from '@/features/firmware/FeatureGate'
 import type { Feature } from '@/features/firmware/useFeatureAvailable'
 
-/** How a toggled-on tool reads. The toolbar uses both; they are not
- *  interchangeable, so each caller says which one it means.
- *  - `'tint'`: stays a ghost button, icon and background take the accent.
- *  - `'solid'`: switches to the filled `secondary` variant. */
-type ActiveStyle = 'tint' | 'solid'
-
+/** A toggled-on tool stays a ghost button; icon and background take the
+ *  accent. */
 const TINT_ACTIVE =
     'data-[active=true]:bg-primary/20 data-[active=true]:text-primary'
 
@@ -39,7 +35,6 @@ interface ToolbarButtonProps {
     disabled?: boolean
     /** Whether the tool this button controls is currently on. */
     active?: boolean
-    activeStyle?: ActiveStyle
     /** Capability the firmware must expose for this button to render at all. */
     feature?: Feature
 }
@@ -51,10 +46,8 @@ export function ToolbarButton({
     onClick,
     disabled,
     active = false,
-    activeStyle = 'tint',
     feature,
 }: ToolbarButtonProps): JSX.Element {
-    const solid = activeStyle === 'solid' && active
     const button = (
         <Tooltip>
             <TooltipTrigger asChild>
@@ -65,13 +58,12 @@ export function ToolbarButton({
                     the equally-disableable dynamic/macros/RGB buttons. */}
                 <span>
                     <Button
-                        variant={solid ? 'secondary' : 'ghost'}
+                        variant="ghost"
                         size="icon"
                         disabled={disabled}
                         onClick={onClick}
-                        {...(activeStyle === 'tint'
-                            ? { 'data-active': active, className: TINT_ACTIVE }
-                            : {})}
+                        data-active={active}
+                        className={TINT_ACTIVE}
                     >
                         <Icon aria-label={label} />
                     </Button>

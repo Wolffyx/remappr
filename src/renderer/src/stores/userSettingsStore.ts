@@ -50,7 +50,6 @@ const DEFAULT_FIRMWARE_KEY = '_default'
 
 // pattern-check: skip — additive optional fields on existing settings interface
 interface UserSettingsState {
-    theme: 'dark' | 'light'
     autosave: boolean
     autoLoadLayout: boolean
     /** When on, a wiped-but-known keyboard is silently restored from its backup
@@ -100,7 +99,6 @@ interface UserSettingsState {
     setLayerList: (style: LayerListStyle) => void
     togglePinnedDevice: (key: string) => void
     markDeviceUsed: (key: string) => void
-    setTheme: (theme: 'dark' | 'light') => void
     setAutosave: (enabled: boolean) => void
     setAutoLoadLayout: (enabled: boolean) => void
     setAutoRestoreProfile: (enabled: boolean) => void
@@ -117,7 +115,6 @@ const useUserSettingsStore = create<UserSettingsState>()(
     devtools(
         persist(
             (set, get) => ({
-                theme: 'light',
                 autosave: false,
                 autoLoadLayout: false,
                 autoRestoreProfile: false,
@@ -176,7 +173,6 @@ const useUserSettingsStore = create<UserSettingsState>()(
                             ...s.recentDevices.filter((k) => k !== key),
                         ].slice(0, RECENT_DEVICES_MAX),
                     })),
-                setTheme: (theme) => set({ theme }),
                 setAutosave: (enabled) => set({ autosave: enabled }),
                 setAutoLoadLayout: (enabled) =>
                     set({ autoLoadLayout: enabled }),

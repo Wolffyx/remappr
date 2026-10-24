@@ -96,68 +96,6 @@ export function filterKeysBySearch(
     return scored.map((s) => s.entry)
 }
 
-export function splitKeysByPosition(keys: CatalogEntry[]): {
-    withPositions: CatalogEntry[]
-    withoutPositions: CatalogEntry[]
-} {
-    const withPositions = keys.filter(
-        (key) =>
-            key.x !== undefined &&
-            key.y !== undefined &&
-            key.x !== null &&
-            key.y !== null,
-    )
-    const withoutPositions = keys.filter(
-        (key) =>
-            key.x === undefined ||
-            key.y === undefined ||
-            key.x === null ||
-            key.y === null,
-    )
-    return { withPositions, withoutPositions }
-}
-
-const KEY_SIZE = 50
-const AVG_KEY_WIDTH = 60
-const APPROX_CONTAINER_WIDTH = 800
-const ROW_HEIGHT = 60
-const PADDING = 48
-const STACK_GAP = 10
-const MIN_HEIGHT = 350
-
-export function calculateContainerHeight(
-    withPositions: CatalogEntry[],
-    withoutPositions: CatalogEntry[],
-): number {
-    const maxBottomPosition = maxBottomForPositioned(withPositions)
-
-    let keysWithoutPosHeight = 0
-    if (withoutPositions.length > 0) {
-        const keysPerRow = Math.floor(APPROX_CONTAINER_WIDTH / AVG_KEY_WIDTH)
-        const numRows = Math.ceil(withoutPositions.length / keysPerRow)
-        keysWithoutPosHeight = numRows * ROW_HEIGHT
-    }
-
-    const totalContentHeight =
-        withPositions.length > 0 && withoutPositions.length > 0
-            ? maxBottomPosition + STACK_GAP + keysWithoutPosHeight + PADDING
-            : Math.max(
-                  maxBottomPosition + PADDING,
-                  keysWithoutPosHeight + PADDING,
-              )
-    return Math.max(totalContentHeight, MIN_HEIGHT)
-}
-
-export function maxBottomForPositioned(withPositions: CatalogEntry[]): number {
-    let maxBottom = 0
-    withPositions.forEach((key) => {
-        const keyHeight = key.h ? key.h / 2 : KEY_SIZE
-        const bottomPosition = ((key.y ?? 0) / 100) * KEY_SIZE + keyHeight
-        if (bottomPosition > maxBottom) maxBottom = bottomPosition
-    })
-    return maxBottom
-}
-
 // pattern-check: skip — pure data-grouping helper, single caller, table-driven
 // Named keycode sections (design handoff PICKER_KEYBOARD ordering). Each section
 // collects one or more function categories. Entries whose category isn't listed

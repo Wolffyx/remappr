@@ -96,7 +96,6 @@ export function SwitchSettingRow({
     disabled,
     onChange,
 }: {
-    id?: string
     label: string
     description?: string
     checked: boolean

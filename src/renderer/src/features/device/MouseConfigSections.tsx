@@ -99,7 +99,6 @@ export function MousePointerSection({
             {FLAG_ROWS.map((f) => (
                 <SwitchSettingRow
                     key={f.key}
-                    id={`mouse-${f.key}`}
                     label={f.label}
                     description={f.description}
                     checked={value.flags[f.key]}
@@ -229,7 +228,6 @@ export function RadioSection({
             description="How the mouse talks to its dongle."
         >
             <SwitchSettingRow
-                id="radio-auto-pair"
                 label="Pair on its own"
                 description="While the mouse has no dongle bond it looks for an open pairing window by itself. Off: pairing waits for an explicit request."
                 checked={value.autoPair}

@@ -7,14 +7,12 @@ import type { KeyAction } from '@firmware/types'
 interface ClipboardState {
     action: KeyAction | null
     setAction: (action: KeyAction | null) => void
-    clear: () => void
 }
 
 const useClipboardStore = create<ClipboardState>()(
     devtools((set) => ({
         action: null,
         setAction: (action) => set({ action }),
-        clear: () => set({ action: null }),
     })),
 )
 

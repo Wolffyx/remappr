@@ -52,13 +52,7 @@ export function neighborInDirection(
 export function holdTapToLabels(
     desc: ResolvedHoldTapDescriptor,
 ): HoldTapLabels {
-    const tap = (
-        <HidUsageLabel
-            hid_usage={desc.tapParam}
-            header={desc.actionTypeName}
-            hideMods
-        />
-    )
+    const tap = <HidUsageLabel hid_usage={desc.tapParam} hideMods />
     const hold =
         desc.holdNodeKind === 'layer' ? (
             <span>{desc.holdLayerMomentary}</span>

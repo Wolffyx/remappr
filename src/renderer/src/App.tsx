@@ -18,7 +18,6 @@ import { ToolSearch } from '@/layout/toolbar/ToolSearch'
 import { AutoLayoutResolver } from '@/features/firmware/AutoLayoutResolver'
 import { DevicePreviewCapture } from '@/features/connection/DevicePreviewCapture'
 import { ProfileRestoreManager } from '@/features/connection/ProfileRestoreManager'
-// import { Footer } from '@/layout/Footer'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
 import { StartPage } from '@/features/connection/start-page/StartPage'
 import useBuilderStore from '@/stores/builderStore'
@@ -142,7 +141,6 @@ function App(): JSX.Element {
                             <KeymapEditor />
                         </ErrorBoundary>
                     </div>
-                    {/*<Footer />*/}
                 </SidebarInset>
                 <CoachmarkTour />
             </SidebarProvider>

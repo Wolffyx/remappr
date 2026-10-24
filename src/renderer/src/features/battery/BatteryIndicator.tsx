@@ -8,15 +8,13 @@ import {
     type ShownBattery,
 } from './battery'
 
-/** A battery icon by charge, with the percent unless `iconOnly`. Low reads in
+/** A battery icon by charge, with the percent. Low reads in
  *  the destructive colour, charging in the success one. */
 export function BatteryIndicator({
     battery,
-    iconOnly = false,
     className,
 }: {
     battery: ShownBattery
-    iconOnly?: boolean
     className?: string
 }): JSX.Element {
     const Icon = BATTERY_ICON[batteryLook(battery)]
@@ -36,7 +34,7 @@ export function BatteryIndicator({
             )}
         >
             <Icon aria-hidden className="size-3.5" />
-            {!iconOnly && <span>{battery.level}%</span>}
+            <span>{battery.level}%</span>
         </span>
     )
 }

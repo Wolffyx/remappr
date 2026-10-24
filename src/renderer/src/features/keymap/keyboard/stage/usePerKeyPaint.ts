@@ -27,14 +27,12 @@ export interface PaintApi {
     /** The keyboard holds painted colours in RAM only (RgbApi.perKeyVolatile):
      *  they are lost on unplug, and nothing is saved after a paint. */
     volatile: boolean
-    active: boolean
     setActive: (active: boolean) => void
     brush: HsvColor
     setBrush: (c: HsvColor) => void
     /** canvas idx → colour (device HSV 0–255), for the glow. */
     perKeyColors: Array<HsvColor | null> | null
     onKeyPaint: (idx: number) => void
-    onKeyEyedrop: (idx: number) => void
     /** Flush coalesced paint writes to the device (call at gesture end). */
     commitPaint: () => void
     fillAll: () => void
@@ -60,7 +58,6 @@ export function usePerKeyPaint(
     const setActive = usePerKeyPaintStore((s) => s.setActive)
     const setBrush = usePerKeyPaintStore((s) => s.setBrush)
     const paint = usePerKeyPaintStore((s) => s.paint)
-    const eyedrop = usePerKeyPaintStore((s) => s.eyedrop)
     const fillAllStore = usePerKeyPaintStore((s) => s.fillAll)
     const load = usePerKeyPaintStore((s) => s.load)
     const reset = usePerKeyPaintStore((s) => s.reset)
@@ -205,11 +202,6 @@ export function usePerKeyPaint(
         )
     }, [rgb, writeLeds])
 
-    const onKeyEyedrop = useCallback(
-        (idx: number): void => eyedrop(idx),
-        [eyedrop],
-    )
-
     const fillAll = useCallback((): void => {
         const idxs = Array.from({ length: keyCount }, (_, i) => i)
         fillAllStore(idxs)
@@ -236,13 +228,11 @@ export function usePerKeyPaint(
     return {
         available,
         volatile,
-        active,
         setActive,
         brush,
         setBrush,
         perKeyColors,
         onKeyPaint,
-        onKeyEyedrop,
         commitPaint,
         fillAll,
         clearAll,

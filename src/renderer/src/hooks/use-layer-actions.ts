@@ -18,7 +18,6 @@ interface UseLayerActionsResult {
     /** Overwrite every key of `targetIndex` with the keys of `sourceIndex`. */
     copyKeysFrom: (targetIndex: number, sourceIndex: number) => void
     remove: (layerIndex: number) => void
-    changeLayerName: (id: number, oldName: string, newName: string) => void
     handleSaveNewLabel: (
         id: number,
         oldName: string,
@@ -292,7 +291,6 @@ export function useLayerActions({
         duplicate,
         copyKeysFrom,
         remove,
-        changeLayerName,
         handleSaveNewLabel,
         selectionChanged,
     }

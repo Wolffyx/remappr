@@ -4,7 +4,7 @@
 // shape, zone and callout, or — with nothing selected — the shell and the
 // controls you can add.
 import { useState, type JSX } from 'react'
-import { Code, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { CONTROL_KINDS, CONTROL_SHAPES } from '@firmware/devices/schema'
 import { SHELL_ZONES } from '@firmware/devices/stockLayouts'
 import type {
@@ -291,15 +291,12 @@ export function ShellPanel({
     canAdd,
     onShell,
     onAdd,
-    onOpenJson,
 }: {
     model: DeviceModel
     /** False when re-drawing a device: its inputs are fixed. */
     canAdd: boolean
     onShell: (patch: Record<string, number>) => void
     onAdd: (kind: ControlKind) => void
-    /** Shows a "View / edit layout JSON" button when given. */
-    onOpenJson?: () => void
 }): JSX.Element {
     const shell = model.shell as unknown as Record<string, number>
     return (
@@ -359,17 +356,6 @@ export function ShellPanel({
                             </button>
                         ))}
                     </div>
-                </InSection>
-            )}
-            {onOpenJson && (
-                <InSection label="Device layout">
-                    <Button
-                        variant="secondary"
-                        className="w-full"
-                        onClick={onOpenJson}
-                    >
-                        <Code className="size-3.5" /> View / edit layout JSON
-                    </Button>
                 </InSection>
             )}
         </>

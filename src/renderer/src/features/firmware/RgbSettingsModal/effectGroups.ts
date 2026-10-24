@@ -1,10 +1,10 @@
-// Pattern check: Dispatch Map (Tier 0) — applied — keyword rules → effect group and group → preview builder tables replace if/else chains; same presentational resolver shape as effectIcons.ts.
+// Pattern check: Dispatch Map (Tier 0) — applied — keyword rules → effect group and group → preview builder tables replace if/else chains.
 //
 // Presentation of a lighting catalog's effect names (design review f15): each
 // name is sorted into a group a person recognises, given a plain-words label,
 // and drawn as a small moving preview. Purely presentational — the names come
 // from whichever catalog the firmware or the board definition supplies, and the
-// rules match by keyword like effectIcons, so no firmware's list is copied here.
+// rules match by keyword, so no firmware's list is copied here.
 
 export type EffectGroup =
     | 'Basic'

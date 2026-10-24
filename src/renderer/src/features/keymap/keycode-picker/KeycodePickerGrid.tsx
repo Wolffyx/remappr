@@ -22,7 +22,6 @@ import { Input } from '@/ui/input'
 // pattern-check: skip additive optional codec-injection prop on existing data interface
 interface KeycodePickerGridProps {
     value?: number
-    label?: string
     highlightedKeys?: number[]
     onValueChanged?: (value?: number) => void
     // Fired when the user clicks a tile carrying entry.behaviorRef
