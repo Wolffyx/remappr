@@ -451,6 +451,30 @@
     }
 }
 
+/* Effect previews in the lighting dock (effectGroups.previewOf): a moving
+   gradient strip or a slow pulse. Frozen under reduced motion. */
+@keyframes rgbSwatchMove {
+    to {
+        background-position: 200% 0;
+    }
+}
+
+.rgb-swatch-move {
+    background-size: 200% 100% !important;
+    animation: rgbSwatchMove 4s linear infinite;
+}
+
+.rgb-swatch-pulse {
+    animation: klBreathe 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rgb-swatch-move,
+    .rgb-swatch-pulse {
+        animation: none;
+    }
+}
+
 /* will-change is scoped to glows that actually animate (.kl-anim, set by KeyLight
    only when the engine assigns an animation) — so static solid/gradient/idle-reactive
    glows are NOT each promoted to their own compositor layer (100 keys = 100 layers). */

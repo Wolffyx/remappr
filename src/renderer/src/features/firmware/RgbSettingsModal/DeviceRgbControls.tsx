@@ -118,16 +118,25 @@ export function DeviceRgbControls({ rgb }: Props): JSX.Element {
             onEffect={(i) => apply({ mode: i })}
             onChange={(patch) => {
                 if (!state) return
-                if (patch.brightness !== undefined)
-                    apply({ brightness: fromPct(patch.brightness) })
-                if (patch.speed !== undefined)
-                    apply({ speed: fromPct(patch.speed) })
-                if (patch.saturation !== undefined)
-                    apply({
-                        color: { ...state.color, s: fromPct(patch.saturation) },
-                    })
-                if (patch.hue !== undefined)
-                    apply({ color: { ...state.color, h: degToHue(patch.hue) } })
+                // One apply per change: the colour wheel sends hue and
+                // saturation together, and each apply starts from `state`.
+                apply({
+                    ...(patch.brightness !== undefined && {
+                        brightness: fromPct(patch.brightness),
+                    }),
+                    ...(patch.speed !== undefined && {
+                        speed: fromPct(patch.speed),
+                    }),
+                    color: {
+                        ...state.color,
+                        ...(patch.saturation !== undefined && {
+                            s: fromPct(patch.saturation),
+                        }),
+                        ...(patch.hue !== undefined && {
+                            h: degToHue(patch.hue),
+                        }),
+                    },
+                })
             }}
             onReset={() => void reload()}
         />
