@@ -117,7 +117,7 @@ offered by devices that report their input: Remappr Firmware joysticks,
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Live view**       | Toggles [live view](#live-view). Hidden when the device has no live input.                                                                                       |
 | **Export profiles** | Downloads the device's settings, e.g. a `remappr.device.json` for a Remappr Firmware device.                                                                     |
-| **Edit layout**     | _"Edit layout in the Builder"_: re-draw the device. See [Designing a device](/guide/builder/device-layout).                                                      |
+| **Edit layout**     | _"Edit layout in the builder"_: re-draw the device. See [Designing a device](/guide/builder/device-layout).                                                      |
 | **Device settings** | Settings that are not a control: [mouse](/guide/devices/mice#device-settings) or [joystick](/guide/devices/gamepads#calibration). Remappr Firmware devices only. |
 | **Settings**        | [App settings](/guide/app/settings).                                                                                                                             |
 | **Undo / Redo**     | Every binding change can be undone.                                                                                                                              |

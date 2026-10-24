@@ -38,7 +38,7 @@ From the top:
    Layer-Tap has **TAP** and the layer. Click a slot to aim the picker at it;
    **×** clears it.
 3. **The keycode picker** — tabs by HID usage page: **Keyboard**, **Language**,
-   **Consumer**, **AC**, **AL**, **Contact**, **Media**, **System**, and
+   **Consumer**, **App control**, **App launch**, **Contacts**, **Media**, **System**, and
    **Macros** when the device has macros. Inside a tab keys are grouped
    (**MODIFIERS**, **NUMBERS & SYMBOLS**, **LETTERS**, …) with a count per group
    and for the tab (_"188 keys in this tab"_).

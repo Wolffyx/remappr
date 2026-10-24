@@ -1,10 +1,10 @@
 # Connecting a device
 
-When you open Remappr you land on the **Start Page** — _"Configure Your Device
-— connect your device to customize keymaps and settings."_ It is where you
+When you open Remappr you land on the **Start Page** — _"Configure your devices
+— Connect your keyboard, mouse or controller to customize keymaps and settings."_ It is where you
 connect hardware, open the builder, or try the demo.
 
-![The Start Page: Available Devices, the news rail, the Create a keyboard card, and the Try Demo Mode / Get the desktop app cards](/images/app/start-page.webp)
+![The Start Page: Available devices, the news rail, the Create a keyboard card, and the Try the demo / Get the desktop app cards](/images/app/start-page.webp)
 
 The top bar holds the logo and version on the left, the project links
 (GitHub, Discord, documentation, ♥ support) in the middle, and **Settings** on
@@ -14,8 +14,8 @@ announcements; pick another layout, or turn it off, in
 
 ## Connect to a keyboard
 
-The **Available Devices** card lists detected devices. Until a board has been
-paired it reads _"No Paired Devices"_: browsers only show keyboards you have
+The **Available devices** card lists detected devices. Until a board has been
+paired it reads _"No paired devices"_: browsers only show keyboards you have
 already allowed for this site, so **Pair new device** opens the system chooser
 to pick one. Paired boards come back as cards with a small preview of their
 layout (shape and key colours only — never your bindings) and a **Connect**
@@ -57,12 +57,12 @@ a key or combo and pressing it.
 Once connected, the device card at the bottom of the sidebar shows the device
 name and **Connected · USB** (or **BLE**). Its gear opens the device menu:
 
-![The device menu open from the device card: Disconnect, Restore Stock Settings, App settings](/images/app/device-menu.webp)
+![The device menu open from the device card: Disconnect, Restore stock settings, App settings](/images/app/device-menu.webp)
 
 Entries depend on the device and the firmware:
 
 - **Mesh nodes** — only on devices that report other nodes behind them (a dongle
-  or a split coordinator). Lists each node, marks the one you are viewing with a
+  or a split main node). Lists each node, marks the one you are viewing with a
   check and offline nodes as _offline_; picking one opens that node. While
   viewing a node the first entry becomes **Back to _(parent)_**. A mouse or a
   joystick opens in the device editor and is edited through the dongle; a
@@ -74,7 +74,7 @@ Entries depend on the device and the firmware:
 - **Disconnect**
 - **Restore backup** — only when the firmware supports profile restore and
   Remappr holds a backup for this device (see below).
-- **Restore Stock Settings** — _"removes any customizations previously made in
+- **Restore stock settings** — _"removes any customizations previously made in
   Remappr and restores the stock keymap."_
 - **App settings** — opens the [Settings dialog](/guide/app/settings).
 
@@ -118,10 +118,10 @@ matrix & firmware. Import KLE, start from a preset, then export a build-ready
 config."_ During alpha/beta it shows a **{stage} · FREE** badge and **Open
 builder**; at GA it becomes premium (**🔒 Premium**).
 
-## Try Demo Mode
+## Try the demo {#try-demo-mode}
 
-**Try Demo Mode** — _"Explore Remappr with simulated keyboards, a mouse and
-controllers — no device required."_ **Try Demo** opens _"Try a demo device"_:
+**Try the demo** — _"Explore Remappr with simulated keyboards, a mouse and
+controllers — no device required."_ **Try demo** opens _"Try a demo device"_:
 pick the 36-key **Corne** (with a rotary encoder) for the keymap editor, or a
 macro pad, mouse, gamepad or flight stick (see
 [the demo devices](/guide/devices/overview#try-it-without-hardware)). It is the

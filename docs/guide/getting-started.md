@@ -51,7 +51,7 @@ design a board, write its keymap, and export a buildable firmware project
 entirely offline.
 
 ::: tip Demo mode
-No device? Choose **Try Demo Mode** on the Start Page and pick a simulated
+No device? Choose **Try the demo** on the Start Page and pick a simulated
 device: a 36-key Corne, a macro pad, a mouse, a gamepad or a flight stick. It
 is the same config-driven flow as a real device — a good way to learn the
 editors before you connect hardware.

@@ -2,7 +2,7 @@
 
 The keymap editor is where you assign bindings against a **device** — a real
 connected keyboard, or the simulated one from
-[Try Demo Mode](/guide/app/connecting#try-demo-mode). It is the surface you land
+[Try the demo](/guide/app/connecting#try-demo-mode). It is the surface you land
 on after [connecting hardware](/guide/app/connecting), and where the builder
 hands off when you click **Editor**.
 
@@ -36,7 +36,7 @@ layers, the tools and the workspaces. **Skip** ends it; it does not come back.
 Each keycap shows what it does:
 
 - the **header** — the action type (_Key Press_, _Mod-Tap_, _Layer-Tap_…); change
-  what it shows under [Settings → General → Key Header](/guide/app/settings#general);
+  what it shows under [Settings → General → Key header](/guide/app/settings#general);
 - the **legend** — the key it sends, or an icon for media, Bluetooth and
   lighting actions;
 - for hold-taps, a second legend under a rule — the **hold** side (a modifier or
@@ -79,15 +79,15 @@ All four are covered in
 
 **Config tools**
 
-| Button | Tooltip                    | Does                                                                                                                                                                                                                           |
-| ------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ⤓      | **Flash & export config**  | Open the [export modal](/guide/app/export-flash).                                                                                                                                                                              |
-| ⇄      | **Dynamic Entries**        | Open the [Advanced sheet](/guide/app/advanced#the-advanced-sheet) at Tap Dance _(gated: `dynamic`)_.                                                                                                                           |
-| ✦      | **Macros**                 | Open the Advanced sheet at Macros _(gated: `macros`)_.                                                                                                                                                                         |
-| …      | _capability-gated dialogs_ | Wireless · Cluster · Unicode input · Advanced Mode · Timing & Defaults · Behaviors · Conditional Layers · Autocorrect · Node & Cluster · Link Profile — see [Advanced features](/guide/app/advanced#capability-gated-dialogs). |
-| 💡     | **RGB lighting**           | Open the [RGB sheet](/guide/app/rgb-lighting). Disabled when the firmware drives lighting at compile time only.                                                                                                                |
-| ⇧      | _load a definition_        | One button per source the connected adapter accepts (e.g. a VIA/Vial layout JSON, a ZMK combo file).                                                                                                                           |
-| ⚙      | **Settings**               | [App settings](/guide/app/settings).                                                                                                                                                                                           |
+| Button | Tooltip                    | Does                                                                                                                                                                                                                               |
+| ------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ⤓      | **Flash & export config**  | Open the [export modal](/guide/app/export-flash).                                                                                                                                                                                  |
+| ⇄      | **Dynamic Entries**        | Open the [Advanced sheet](/guide/app/advanced#the-advanced-sheet) at Tap dance _(gated: `dynamic`)_.                                                                                                                               |
+| ✦      | **Macros**                 | Open the Advanced sheet at Macros _(gated: `macros`)_.                                                                                                                                                                             |
+| …      | _capability-gated dialogs_ | Wireless · Cluster · Unicode input · Advanced mode · Timing and defaults · Behaviors · Conditional layers · Autocorrect · Node and cluster · Link profile — see [Advanced features](/guide/app/advanced#capability-gated-dialogs). |
+| 💡     | **RGB lighting**           | Open the [RGB sheet](/guide/app/rgb-lighting). Disabled when the firmware drives lighting at compile time only.                                                                                                                    |
+| ⇧      | _load a definition_        | One button per source the connected adapter accepts (e.g. a VIA/Vial layout JSON, a ZMK combo file).                                                                                                                               |
+| ⚙      | **Settings**               | [App settings](/guide/app/settings).                                                                                                                                                                                               |
 
 **History tools**
 

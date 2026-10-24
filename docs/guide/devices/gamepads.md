@@ -133,7 +133,7 @@ read-only. **Live view** works on all of them. See
 
 ## The demo controllers
 
-[Try Demo](/guide/devices/overview#try-it-without-hardware) has three: the
+[Try demo](/guide/devices/overview#try-it-without-hardware) has three: the
 **Vector Pad** gamepad (two sticks, analog triggers, a d-pad and back
 paddles), the **Apex Flight Stick** (an 8-way hat, a twist axis, a
 throttle wheel), and the **Generic USB Gamepad**, a controller without a

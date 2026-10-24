@@ -106,10 +106,10 @@ See [Lighting](/guide/builder/lighting) for the full picture (actions vs config)
 
 ## Firmware config (.conf) — ZMK
 
-![Firmware config (.conf): the Kconfig toggles and the Extra Kconfig box](/images/builder/firmware-config.webp){width=300}
+![Firmware config (.conf): the Kconfig toggles and the Extra firmware settings box](/images/builder/firmware-config.webp){width=300}
 
 Toggles that derive the ZMK `.conf`, writing `keyboard.firmwareConfig`. A live
-**Generated .conf** preview updates as you flip them. **Extra Kconfig** (e.g.
+**Generated .conf** preview updates as you flip them. **Extra firmware settings (Kconfig)** (e.g.
 `CONFIG_ZMK_SLEEP=y`) is appended verbatim.
 
 | Toggle                     | Derives                     |
@@ -166,7 +166,7 @@ _"Blank = the firmware / devicetree default."_
 
 The **Engine timing** fields apply on Remappr Firmware. The same fields are
 editable live on a connected board in the editor's
-[Timing & Defaults](/guide/app/advanced#timing-defaults) dialog.
+[Timing and defaults](/guide/app/advanced#timing-defaults) dialog.
 
 ## Behaviors (hold-taps & mod-morphs)
 

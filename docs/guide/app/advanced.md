@@ -18,7 +18,7 @@ entry to the device.
 
 | Tab              | Shown when             | Edits                                               |
 | ---------------- | ---------------------- | --------------------------------------------------- |
-| **Tap Dance**    | tap-dance count > 0    | Different actions per tap count and hold.           |
+| **Tap dance**    | tap-dance count > 0    | Different actions per tap count and hold.           |
 | **Combo**        | combo count > 0        | Keys pressed together → one output.                 |
 | **Key Override** | key-override count > 0 | "This key with these mods sends something else."    |
 | **Alt Repeat**   | supported              | What the alternate-repeat key sends after a key.    |
@@ -30,9 +30,9 @@ These map to the same concepts as the config's
 [`combos`](/reference/config/keymap-format#combos) — here you edit them live on
 the device (mostly VIA / Vial / Keychron).
 
-### Tap Dance
+### Tap dance {#tap-dance}
 
-![The Tap Dance tab: TAP, HOLD, DOUBLE TAP and TAP + HOLD slots with a TERM in ms](/images/editor/advanced-sheet.webp)
+![The Tap dance tab: TAP, HOLD, DOUBLE TAP and TAP + HOLD slots with a TERM in ms](/images/editor/advanced-sheet.webp)
 
 One row per entry: **TAP**, **HOLD**, **DOUBLE TAP**, **TAP + HOLD**, and
 **TERM** — how long (ms) the firmware waits to decide between them. Click a
@@ -85,24 +85,24 @@ that capability — nothing is hidden behind a setting. In toolbar order:
 | Icon | Dialog                  | Opens                                                                               |
 | ---- | ----------------------- | ----------------------------------------------------------------------------------- |
 | 📶   | **Wireless**            | Power, NKRO & connection — see [below](#wireless-settings).                         |
-| 🕸   | **Cluster diagnostics** | Node-bus roles and live role changes — see [below](#cluster-diagnostics).           |
+| 🕸   | **Cluster diagnostics** | Each node’s role and connection, live — see [below](#cluster-diagnostics).          |
 | 🌐   | **Unicode input**       | The host unicode input method — see [below](#unicode-input).                        |
-| ⏱    | **Advanced Mode**       | Debounce, report rate & key behaviour — see [below](#advanced-mode).                |
-| ⏲    | **Timing & Defaults**   | Tapping term, quick tap, combo timeout, debounce — see [below](#timing-defaults).   |
+| ⏱    | **Advanced mode**       | Debounce, report rate & key behaviour — see [below](#advanced-mode).                |
+| ⏲    | **Timing and defaults** | Tapping term, quick tap, combo timeout, debounce — see [below](#timing-defaults).   |
 | 🎚   | **Behaviors**           | The device's hold-taps and mod-morphs — see [below](#behaviors).                    |
-| ▤    | **Conditional Layers**  | "When these layers are held, activate that one" — see [below](#conditional-layers). |
+| ▤    | **Conditional layers**  | "When these layers are held, activate that one" — see [below](#conditional-layers). |
 | ✎    | **Autocorrect**         | The on-device autocorrect dictionary — see [below](#autocorrect).                   |
-| ⌗    | **Node & Cluster**      | Node role and cluster address map — see [below](#node-cluster).                     |
-| ⚡   | **Link Profile**        | Node-bus latency / power profile — see [below](#link-profile).                      |
+| ⌗    | **Node and cluster**    | Node role and cluster address map — see [below](#node-cluster).                     |
+| ⚡   | **Link profile**        | How fast nodes talk, and power use — see [below](#link-profile).                    |
 
 Dialogs edit staged state: your changes go to the device when the keymap is
 saved (or immediately, with [Auto-save](/guide/app/settings#communication) on).
 
-## Timing & Defaults
+## Timing and defaults {#timing-defaults}
 
 _"Behavior timing pushed to the device."_
 
-![Timing & Defaults: tap-hold & combo, debounce and engine timing fields](/images/editor/dialog-timing.webp)
+![Timing and defaults: tap-hold & combo, debounce and engine timing fields](/images/editor/dialog-timing.webp)
 
 - **Tap-hold & combo** — **Tapping term** (_"Hold-vs-tap decision window"_),
   **Quick tap** (_"Tap-then-hold within this window repeats the tap"_), **Combo
@@ -170,75 +170,83 @@ one of the misspellings, deletes it and types the correction instead.
 
 For boards built out of several nodes on a node bus.
 
-![Cluster Diagnostics: this node's role, node-bus peers with their state, live role transitions](/images/editor/dialog-cluster-diagnostics.webp)
+![Cluster diagnostics: this node's role, connected nodes with their state, role changes](/images/editor/dialog-cluster-diagnostics.webp)
 
-- **This node** — its current role (_coordinator_ or _follower_).
-- **Node-bus peers** — one card per port with the peer's role and state.
-- **Live role transitions** — role changes as they happen (a coordinator
-  dropping out and another taking over); **↻** refreshes.
+- **This node** — its current role (_Main node_ or _Follower_); **↻** refreshes.
+- **Connected nodes** — one card per port with the node's role and link, in
+  plain words: _Connected and responding_, _Connected, not responding_ or
+  _Not connected_.
+- **Role changes** — role changes as they happen (the main node dropping out
+  and another taking over). If the firmware sets each node's role at start-up,
+  this stays empty.
+- **Raw values** — one table of the raw numbers behind the status (role, link
+  up, seen, election round, flags). **Copy for support** copies it as text for
+  a bug report.
 
-## Node & cluster
+## Node and cluster {#node-cluster}
 
-_"Cluster role, input forwarding, and the mode-A position map."_
+_"What this node does in the group, and how it sends key presses."_
 
-![Node & cluster: cluster role, input forwarding, cluster address map](/images/editor/dialog-node-cluster.webp)
+![Node and cluster: cluster role, input forwarding, cluster address map](/images/editor/dialog-node-cluster.webp)
 
-- **Cluster role** — what this node is on the bus (coordinator or peripheral),
-  or _Firmware default_.
-- **Input forwarding** — whether it forwards resolved HID output or raw events.
-- **Cluster address map** — for a coordinator, one row per node (**+ Add
+- **Cluster role** — what this node is in the group (_Main node_ or
+  _Follower_), or _Firmware default_.
+- **Input forwarding** — _Send finished key presses_ or _Send key positions_
+  (the main node then looks each position up in the shared keymap).
+- **Cluster address map** — for the main node, one row per node (**+ Add
   node**): hardware UID plus its position / encoder / pointer base, so every
   node's inputs land at the right offsets in one keymap.
 
 ## Link profile
 
-_"Node-bus latency, election cadence, and power tier."_
+_"How fast nodes talk, how quickly a main node is chosen, and power use."_
 
-![Link profile: base profile and knob overrides with their ranges](/images/editor/dialog-link-profile.webp)
+![Link profile: base profile and advanced values with their ranges](/images/editor/dialog-link-profile.webp)
 
-- **Base profile** — _Balanced_, _Gaming_ or _Power-save_.
-- **Knob overrides** — bus baud rate, election window, heartbeat period, missed
-  beacon limit, candidacy and demotion timing, power tier. Each shows its range
-  and the profile's default.
+- **Base profile** — _Balanced_, _Gaming_ or _Power save_.
+- **Advanced values** — wire speed, wait before choosing a main node,
+  heartbeat period, missed check-ins allowed, settle time, demotion delay,
+  minimum time between handovers, power tier. Each shows its range and the
+  profile's default.
 
 Ranges come from the device's live limits (with the firmware's constraint table
 as a fallback), and are validated with the same rules the firmware enforces on
 commit — so the dialog will not offer or save an out-of-range or inconsistent
-combination. **Reset** puts a knob back to its profile default.
+combination. **Reset** puts a value back to its profile default.
 
 ## Wireless settings
 
-The **Wireless** button (📶) opens _"Wireless Settings — Power, NKRO &
+The **Wireless** button (📶) opens _"Wireless settings — Power, NKRO and
 connection"_:
 
 - **Status** — transport (`usb`/`ble`), BT slot, battery level / charging,
   wireless module.
-- **Low-power mode** — **Enable LPM**, **Timeout (ms)**, **Save LPM**.
-- **N-Key Rollover** — **Enable NKRO**.
+- **Low-power mode** — **Low-power mode**, **Timeout (ms)**, **Save**.
+- **N-key rollover** — **Send every key at once (NKRO)**.
 - **Danger zone** — **Factory reset** (_"Reset all settings to factory defaults?
   This cannot be undone."_).
 
-## Advanced Mode
+## Advanced mode {#advanced-mode}
 
-The **Advanced Mode** button (ⓘ) opens _"Advanced Mode — Debounce, report rate &
+The **Advanced mode** button (ⓘ) opens _"Advanced mode — Debounce, report rate &
 key behaviour"_:
 
 - **Debounce** — **Response time** slider (0–80 ms) + raw **Mode**, **Save
   debounce**.
 - **Report rate** — raw **Value**, **Save report rate**.
 - **Snap-click** — **Enable snap-click (rapid trigger)**.
-- **N-Key Rollover** — **Enable NKRO**.
-- **Quick Start** — note that auto-sleep / auto-backlight-off live in the
+- **N-key rollover** — **Send every key at once (NKRO)**.
+- **Quick start** — note that auto-sleep / auto-backlight-off live in the
   Wireless panel.
 
 ## Device controls
 
 - **Bluetooth profiles** — manage BT connection slots (ZMK / Keychron).
 - **Lock / unlock** — see [Connecting a device](/guide/app/connecting#unlocking).
-- **Restore Stock Settings** — from the device menu, resets to the stock keymap.
+- **Restore stock settings** — from the device menu, resets to the stock keymap.
 - **Restore backup** — re-apply Remappr's own backup of this device's layout, see
   [Backup & restore](/guide/app/connecting#backup-restore).
-- **Mesh nodes** — open a node behind a dongle or coordinator: a mouse or a
+- **Mesh nodes** — open a node behind a dongle or main node: a mouse or a
   joystick to edit, a keyboard's keymap read-only, see
   [The device menu](/guide/app/connecting#the-device-menu).
 

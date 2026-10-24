@@ -8,7 +8,7 @@ tested.
 ## Remappr Firmware mice
 
 A Remappr Firmware mouse connects over USB like a keyboard. Pick it in
-**Available Devices** on the Start Page, and the device editor opens on it. It
+**Available devices** on the Start Page, and the device editor opens on it. It
 draws itself: the firmware reports where each button, the wheel and the sensor
 sit.
 
@@ -152,7 +152,7 @@ that mouse model.
 
 ## The demo mouse
 
-**Halo M2**, in [Try Demo](/guide/devices/overview#try-it-without-hardware),
+**Halo M2**, in [Try demo](/guide/devices/overview#try-it-without-hardware),
 shows the whole mouse inspector: buttons with hold actions, a scroll wheel with
 tilt and feel settings, five DPI stages, polling rates up to 8 kHz, and sensor
 settings (lift-off distance, angle snapping, motion sync, angle tune,

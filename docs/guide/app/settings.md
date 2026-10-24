@@ -16,11 +16,11 @@ everything back the way it was when you opened it.
   **Default**, **Claude**, **Supabase**, **T3 Chat**, **Vercel**, **Twitter**,
   **Bubblegum**, **Catppuccin**. Themes recolour the whole app, keycaps
   included.
-- **Dark Mode** — **Light**, **Dark** or **System** (_"follow the system"_).
+- **Dark mode** — **Light**, **Dark** or **System** (_"follow the system"_).
 
-**Keymap Display**
+**Keymap display**
 
-- **Key Header** — the small line at the top of each cap: **Action name**
+- **Key header** — the small line at the top of each cap: **Action name**
   (_Key Press_, _Mod-Tap_), **Binding code** (`&kp`, `&mt`) or **Hidden**. Kept
   per firmware family.
 - **Colour-coding** — _"Tint keys by their function group"_: **Off** (every cap

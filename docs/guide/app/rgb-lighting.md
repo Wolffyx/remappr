@@ -18,14 +18,14 @@ before you have the hardware.
 
 ## Tabs
 
-| Tab                 | What it does                                                                                   |
-| ------------------- | ---------------------------------------------------------------------------------------------- |
-| **Backlight**       | Single-color backlight brightness/effect.                                                      |
-| **Per-key RGB**     | Paint per-switch colors directly onto keys.                                                    |
-| **Mix RGB**         | _"Split the keyboard into two zones, each with its own looping effect timeline. Coming soon."_ |
-| **Underglow**       | Underglow strip control.                                                                       |
-| **Indicator Light** | Status indicator LED.                                                                          |
-| **Advanced**        | Lower-level RGB controls.                                                                      |
+| Tab                  | What it does                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| **Backlight**        | Single-color backlight brightness/effect.                                                      |
+| **Per-key RGB**      | Paint per-switch colors directly onto keys.                                                    |
+| **Mix RGB**          | _"Split the keyboard into two zones, each with its own looping effect timeline. Coming soon."_ |
+| **Underglow**        | Underglow strip control.                                                                       |
+| **Indicator lights** | Status indicator LED.                                                                          |
+| **Advanced**         | Lower-level RGB controls.                                                                      |
 
 ## Effects
 

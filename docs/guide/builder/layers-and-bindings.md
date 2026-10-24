@@ -39,7 +39,7 @@ picker. It docks under the canvas:
 It works like the editor's [binding editor](/guide/app/editing-bindings#the-binding-editor):
 an action-type dropdown (_Key Press_, _Mod-Tap_, _Layer-Tap_…), parameter slots,
 then the keycode picker — tabs by usage page (**Keyboard**, **Language**,
-**Consumer**, **AC**, **AL**, **Contact**, **Media**, **System**), grouped keys and
+**Consumer**, **App control**, **App launch**, **Contacts**, **Media**, **System**), grouped keys and
 _"Search keycodes by label…"_. Its header chip shows the context, e.g.
 `base · Key #5 · A` — layer, key index, slot, and current binding. A firmware
 chip (e.g. `QMK + VIA`, with a USB/Bluetooth icon) shows which targets the picker
