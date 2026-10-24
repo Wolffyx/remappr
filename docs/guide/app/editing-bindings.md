@@ -26,7 +26,7 @@ key.
 In the default **Workbench** workspace the editor opens as a sheet under the
 board:
 
-![A Mod-Tap key selected: the action type, its TAP and HOLD slots, and the keycode picker below](/images/editor/key-selected.webp)
+![A key selected: its action type and the keycode picker in the sheet below the board](/images/editor/key-selected.webp)
 
 From the top:
 

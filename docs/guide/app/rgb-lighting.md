@@ -1,10 +1,10 @@
 # RGB & lighting
 
-On a connected device, the **RGB lighting** button (💡) in the header opens the
-**RGB sheet** — a dock under the board for editing its lighting live. Click the
-button again, or the sheet's **×**, to close it.
+On a connected device, **Lighting** (💡) in the toolbar opens the **Lighting
+sheet** — a dock under the board for editing its lighting live. Click the tool
+again, or the sheet's **×**, to close it.
 
-![The RGB sheet on the Backlight tab: the effect grid under the board](/images/editor/rgb-sheet.webp)
+![The Lighting sheet on the Backlight tab: 1 the effect list, 2 the colour wheel, 3 brightness and speed](/images/editor/rgb-sheet.webp)
 
 The button is disabled — with the tooltip _"RGB lighting is compile-time only on
 this firmware"_ — when the firmware sets its lighting when it is built and
@@ -29,19 +29,21 @@ before you have the hardware.
 
 ## Effects
 
-The **EFFECT** grid lists the effects the board's firmware offers, in its own
-order — each tile with an icon and the effect's name (_Solid Color_,
-_Breathing_, _Cycle All_, _Rainbow Beacon_…); the active one is outlined. Below
-the grid sit the controls the effect uses:
+The **Backlight** tab works in three numbered steps:
 
-- **Brightness**.
-- **Speed**, for animated effects.
-- **Hue** and **Saturation** — only for effects that use the colour you pick.
-  Effects that paint their own palette (the _Cycle_ family, _Rainbow Mood_,
-  _Rainbow Swirl_, _Typing Heatmap_, _Digital Rain_, ZMK's _Spectrum_ and
-  _Swirl_…) hide them, since the picker would change nothing. Effects that shift
-  from your colour — _Breathing_, _Band_, _Gradient_, _Beacon_, _Splash_,
-  _Starlight_ — keep them.
+1. **Effect** — the effects the board's firmware offers, grouped (_Basic_,
+   _Gradient_, _Band_, _Rainbow cycle_, _Reactive_, _Rain & pixels_) with a
+   moving preview each and plain names (_Solid colour_, _Cycle up–down_, _Band
+   saturation_…). Search matches the plain name or the firmware's own; hover a
+   row to see the firmware's name.
+2. **Colour** — a colour wheel: round the wheel picks the colour, towards the
+   middle makes it paler. Beside it: the colour's name, its hex value (type one
+   in) and twelve presets. Effects that paint their own palette (the _Cycle_
+   family, _Rainbow Mood_, _Typing Heatmap_, _Digital Rain_, ZMK's _Spectrum_
+   and _Swirl_…) grey this step out and say why, since the colour would change
+   nothing.
+3. **Brightness & speed** — a preview strip, **Brightness**, and **Speed** for
+   animated effects (a note replaces it when the effect does not move).
 
 Changes are sent to the device as you move the controls.
 

@@ -5,7 +5,7 @@ bindings — name, USB identity, firmware targets, controller, matrix, lighting 
 firmware config. These fields turn a keymap into a _flashable_ project. Sections
 appear/disappear based on the firmware targets you select.
 
-![The top of the Identity panel: Identity, USB identifiers, Firmware targets and the keyboard-type line](/images/builder/identity.webp){width=300}
+![The top of the Board group: Identity and USB identifiers](/images/builder/identity.webp){width=300}
 
 The panel scrolls, top to bottom: Identity · USB identifiers · Firmware targets
 · Controller · Matrix · Capabilities · Lighting · Firmware config · Hardware pins
@@ -87,7 +87,7 @@ when keys have matrix positions). Per-key wiring is in the [inspector](/guide/bu
 
 ## Lighting
 
-![Lighting with RGB underglow on: Effect chips, colour swatches and Brightness](/images/builder/lighting.webp){width=300}
+![Lighting: the RGB underglow and per-key backlight switches](/images/builder/lighting.webp){width=300}
 
 Writes `keyboard.lighting`; _"Configured for every firmware target — the exporter
 maps it to each platform."_
@@ -130,7 +130,7 @@ toggling sets an explicit override. See
 
 ## Hardware pins — ZMK {#hardware-pins-zmk}
 
-![Hardware pins: the WS2812 underglow data pin, LED count, colour order and SPI instance](/images/builder/hardware-pins.webp){width=300}
+![Hardware pins: the external-power control GPIO and Active low](/images/builder/hardware-pins.webp){width=300}
 
 Appears when a feature needs a pin — here, after turning **RGB underglow** on. Friendly nRF labels like `P0.13` emit psels;
 _"verify against your board wiring."_ Writes `keyboard.hardware`.
@@ -147,7 +147,7 @@ Board-wide behavior timings, written to the config's top-level
 [`defaults`](/reference/config/keymap-format#defaults). Every field is optional:
 _"Blank = the firmware / devicetree default."_
 
-![Timing & defaults: Tap-hold & combo, Debounce and Engine timing groups, all on auto](/images/builder/timing.webp){width=300}
+![Timing and defaults: Tap-hold & combo, Debounce and Engine timing groups, all on auto, with Learn more](/images/builder/timing.webp){width=300}
 
 | Group                | Field                   | Writes                    | Meaning                                              |
 | -------------------- | ----------------------- | ------------------------- | ---------------------------------------------------- |
@@ -173,7 +173,7 @@ editable live on a connected board in the editor's
 _"Custom hold-tap and mod-morph defs the keymap can bind. Add one below, then
 tune its behaviors, timing and modifiers."_
 
-![Behaviors: a new hold-tap ht_1 with Hold and Tap behaviors, flavor, timings and toggles; Add hold-tap / Add mod-morph; Conditional layers and Readiness below](/images/builder/behaviors.webp){width=300}
+![Behaviors: a new hold-tap (Hold-tap 1, ht_1) with Hold and Tap behaviors, flavor, timings and toggles, a new mod-morph, and Add hold-tap / Add mod-morph](/images/builder/behaviors.webp){width=300}
 
 - **+ Add hold-tap** — a new definition (`ht_1`, `ht_2`…) in
   [`holdTaps`](/reference/config/keymap-format#holdtaps): the **Hold** and **Tap**

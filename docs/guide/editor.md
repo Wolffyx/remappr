@@ -6,7 +6,7 @@ connected keyboard, or the simulated one from
 on after [connecting hardware](/guide/app/connecting), and where the builder
 hands off when you click **Editor**.
 
-![The editor on the demo Corne: the sidebar on the left, the board in the middle, the header toolbar on top](/images/editor/editor.webp)
+![The editor on the demo Corne: the sidebar on the left, the board in the middle, the floating toolbar above the board](/images/editor/editor.webp)
 
 ## The screen
 
@@ -85,7 +85,7 @@ All four are covered in
 | ⇄      | **Dynamic Entries**        | Open the [Advanced sheet](/guide/app/advanced#the-advanced-sheet) at Tap dance _(gated: `dynamic`)_.                                                                                                                               |
 | ✦      | **Macros**                 | Open the Advanced sheet at Macros _(gated: `macros`)_.                                                                                                                                                                             |
 | …      | _capability-gated dialogs_ | Wireless · Cluster · Unicode input · Advanced mode · Timing and defaults · Behaviors · Conditional layers · Autocorrect · Node and cluster · Link profile — see [Advanced features](/guide/app/advanced#capability-gated-dialogs). |
-| 💡     | **RGB lighting**           | Open the [RGB sheet](/guide/app/rgb-lighting). Disabled when the firmware drives lighting at compile time only.                                                                                                                    |
+| 💡     | **Lighting**               | Open the [Lighting sheet](/guide/app/rgb-lighting). Disabled when the firmware drives lighting at compile time only.                                                                                                               |
 | ⇧      | _load a definition_        | One button per source the connected adapter accepts (e.g. a VIA/Vial layout JSON, a ZMK combo file).                                                                                                                               |
 | ⚙      | **Settings**               | [App settings](/guide/app/settings).                                                                                                                                                                                               |
 
@@ -109,7 +109,7 @@ The **LAYERS** sidebar lists layers with a colour dot and an `L0`/`L1` badge.
 - **Drag** the grip handle (_"Drag to reorder"_) to reorder layers.
 - The **⋮** menu on each layer:
 
-![The layer menu: Rename, Duplicate, Delete](/images/editor/layer-menu.webp)
+![The layer menu: Rename, Duplicate, Copy keys from, Move up, Move down, Delete](/images/editor/layer-menu.webp)
 
 - **Rename** opens the _"New Layer Name"_ dialog.
 - **Duplicate** copies the layer with all its bindings.

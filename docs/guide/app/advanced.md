@@ -7,14 +7,17 @@ simulated board advertises most of them.
 
 ## The Advanced sheet
 
-**Dynamic entries** (⇄) and **Macros** (✦) in the header open the Advanced sheet,
-a dock under the board with one tab per kind of entry. Tabs appear only when the
-device advertises that capability. Click the header button again, or **×**, to
-close it.
+**Dynamic entries** (⇄) in the toolbar opens the Advanced sheet, a dock under
+the board with one tab per kind of entry. Tabs appear only when the device
+advertises that capability. Click the tool again, or **×**, to close it.
 
-Each tab edits one numbered **Entry** at a time — the number box at the top-right
-picks which (_"of 4"_: the device has four slots) — and **Save** writes that
-entry to the device.
+Each tab is a table: one row per entry in use, one column per setting, and every
+cell edits in place (a key opens the keycode picker). Entries with more settings
+open them under their row. A changed row is marked until you **Save** — the
+button counts your changes (_"Save 3 changes"_) and writes them all.
+**New …** takes the next free slot (_"uses #2 · 4 free"_), **Go to #** jumps to
+any slot by number, and **✕** clears a row. The header shows how many slots are
+in use (_"4 of 8 in use"_).
 
 | Tab              | Shown when             | Edits                                               |
 | ---------------- | ---------------------- | --------------------------------------------------- |
@@ -32,45 +35,45 @@ the device (mostly VIA / Vial / Keychron).
 
 ### Tap dance {#tap-dance}
 
-![The Tap dance tab: TAP, HOLD, DOUBLE TAP and TAP + HOLD slots with a TERM in ms](/images/editor/advanced-sheet.webp)
+![The Tap dance tab: one row per entry with Tap, Hold, Tap twice, Tap then hold and Timing](/images/editor/advanced-sheet.webp)
 
-One row per entry: **TAP**, **HOLD**, **DOUBLE TAP**, **TAP + HOLD**, and
-**TERM** — how long (ms) the firmware waits to decide between them. Click a
-slot to pick its key. Bind the entry to a key with the tap-dance action in the
+One row per entry: **Tap**, **Hold**, **Tap twice**, **Tap, then hold**, and
+**Timing** — how long (ms) the firmware waits to decide between them. Click a
+key to change it. Bind the entry to a key with the tap-dance action in the
 [binding editor](/guide/app/editing-bindings#tap-dances).
 
 ### Combo
 
-![The Combo tab: four trigger keys and an output](/images/editor/advanced-combo.webp)
+![The Combo tab: a row with the keys pressed together and what it sends](/images/editor/advanced-combo.webp)
 
-Up to four **TRIGGER KEYS** pressed together send the **OUTPUT**. Leave unused
-trigger slots empty.
+Up to four keys in **Press together** send what **Sends** holds. Leave unused
+key slots empty.
 
-### Key Override
+### Key override
 
-![The Key Override tab: trigger, mods, replacement, layer mask and option checkboxes](/images/editor/advanced-key-override.webp)
+![The Key override tab: a row with When pressed, With mods, Sends instead and On, its layer and mod masks and options open below](/images/editor/advanced-key-override.webp)
 
-- **TRIGGER** **WITH MODS** → **REPLACE WITH** — e.g. <kbd>Shift</kbd> +
-  <kbd>Backspace</kbd> sends <kbd>Delete</kbd>.
-- **LAYER MASK** — the layers it applies on; **NEGATIVE MODS** — mods that must
-  _not_ be held; **SUPPRESSED MODS** — mods removed from the output.
-- Options: **Enabled**, **Required mod down**, **One mod**, **No unregister on
-  other**, **Activate on trigger down**, **Negative mod up**, **No re-register**
-  — QMK's key-override flags.
+- **When pressed** **With mods** → **Sends instead** — e.g. <kbd>Shift</kbd> +
+  <kbd>Backspace</kbd> sends <kbd>Delete</kbd>; **On** enables it.
+- Under the row: **Active on layers**, **Not when these mods are held**, **Hide
+  these mods from the output**, and the options **Activate on trigger down**,
+  **Required mod down**, **Negative mod up**, **One mod**, **No re-register**,
+  **No unregister on other** — QMK's key-override flags.
 
-### Alt Repeat
+### Alt repeat
 
-![The Alt Repeat tab: after key, repeat emits, allowed mods](/images/editor/advanced-alt-repeat.webp)
+![The Alt repeat tab: a row with After key, Repeat sends, Allowed mods and On, its options open below](/images/editor/advanced-alt-repeat.webp)
 
 _"Alternate Repeat sends a different key when you repeat the last keypress —
-e.g. after "a", repeat emits "o"."_ Each entry (up to the device's maximum —
-_"max 31"_ here) pairs **AFTER KEY** with what **REPEAT EMITS**, limited to the
-**ALLOWED MODS**; options **Enabled**, **Bidirectional**, **Default to alt** and
-**Ignore handedness**.
+e.g. after "a", repeat emits "o"."_ Each row pairs **After key** with what **Repeat
+sends**, limited to the **Allowed mods**; **On** enables it, and the options
+**Default to alt**, **Bidirectional** and **Ignore handedness** open under the
+row. The protocol does not report how many slots a device has, so the table
+reads slots until the device refuses one.
 
 ### Macros
 
-![The Macros tab: an empty macro with Add action and Record](/images/editor/macros.webp)
+![The Macros tab: a macro opened to edit its steps, with Add step and Record keys](/images/editor/macros.webp)
 
 A macro is a list of actions — tap, press, release, delay, type text. **+ Add
 action** appends a step; **Record** captures what you type as steps. Bind a macro
@@ -170,7 +173,7 @@ one of the misspellings, deletes it and types the correction instead.
 
 For boards built out of several nodes on a node bus.
 
-![Cluster diagnostics: this node's role, connected nodes with their state, role changes](/images/editor/dialog-cluster-diagnostics.webp)
+![Cluster diagnostics: this node's role, connected nodes with their state, role changes, and the raw-values table with Copy for support](/images/editor/dialog-cluster-diagnostics.webp)
 
 - **This node** — its current role (_Main node_ or _Follower_); **↻** refreshes.
 - **Connected nodes** — one card per port with the node's role and link, in

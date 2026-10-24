@@ -6,7 +6,7 @@ the bindings differ.
 
 ## Layers panel
 
-![The Layers panel with base and layer_1, and the layer menu: Rename, Duplicate, Delete](/images/builder/layers.webp){width=300}
+![The Layers panel with base and layer_1](/images/builder/layers.webp){width=300}
 
 The **Layers** section lists every layer with its name and an `L{index}` badge.
 
@@ -34,7 +34,7 @@ index).
 Select a key and click **Edit binding** (or a slot in the inspector) to open the
 picker. It docks under the canvas:
 
-![The binding picker under the canvas: the Binding header, action type, keycode tabs and the key grid](/images/builder/binding-picker.webp)
+![A key selected in the builder: the inspector on the right with its binding, geometry and matrix wiring](/images/builder/binding-picker.webp)
 
 It works like the editor's [binding editor](/guide/app/editing-bindings#the-binding-editor):
 an action-type dropdown (_Key Press_, _Mod-Tap_, _Layer-Tap_…), parameter slots,

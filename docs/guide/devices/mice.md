@@ -92,7 +92,7 @@ now, as meters: **Surface quality** (how well it sees the surface under it;
 higher is better, so slide the mouse over a few pads to compare them) and
 **Lifted**. The readings pause while a procedure needs the sensor.
 
-![Device settings, Sensor: the Surface quality meter, Lifted, and the Lift-off calibration done, with "A result is stored on this device", Run again and Forget the result](/images/devices/sensor-procedures.webp){width=560}
+![Device settings, Sensor: the Surface quality meter, Lifted, and the Lift-off calibration with its steps and Start](/images/devices/sensor-procedures.webp){width=560}
 
 It also runs the sensor's procedures. A PAW3395 has a **Lift-off
 calibration**, which measures your surface so the lift-off height fits it:
