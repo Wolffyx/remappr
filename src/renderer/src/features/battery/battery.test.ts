@@ -26,9 +26,9 @@ describe('battery display', () => {
             [b(5), b(30), b(60), b(90), b(5, true)].map(batteryLook),
         ).toEqual(['low', 'third', 'half', 'full', 'charging'])
         expect([b(5), b(73), b(40, true)].map(batteryText)).toEqual([
-            '5 % · low',
-            '73 %',
-            '40 % · charging',
+            '5% · low',
+            '73%',
+            '40% · charging',
         ])
     })
 

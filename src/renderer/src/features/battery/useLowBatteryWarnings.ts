@@ -15,7 +15,7 @@ export function useLowBatteryWarnings(entries: readonly WithBattery[]): void {
     useEffect(() => {
         for (const e of entries) {
             if (!shouldWarnLow(e.key, e.battery)) continue
-            toast.warning(`${e.name}: battery low (${e.battery?.level} %)`, {
+            toast.warning(`${e.name}: battery low (${e.battery?.level}%)`, {
                 description: 'Charge it soon or it will turn off.',
             })
         }

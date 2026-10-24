@@ -49,11 +49,11 @@ export function batteryLook(b: ShownBattery): BatteryLook {
     return 'full'
 }
 
-/** "73 %", "73 % · charging", "9 % · low". */
+/** "73%", "73% · charging", "9% · low". */
 export function batteryText(b: ShownBattery): string {
-    if (b.charging) return `${b.level} % · charging`
-    if (b.low) return `${b.level} % · low`
-    return `${b.level} %`
+    if (b.charging) return `${b.level}% · charging`
+    if (b.low) return `${b.level}% · low`
+    return `${b.level}%`
 }
 
 const warned = new Set<string>()
