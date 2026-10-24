@@ -6,7 +6,6 @@ import undoRedoStore from '@/stores/undoRedoStore'
 import { useShallow } from 'zustand/react/shallow'
 import {
     ArrowLeft,
-    Check,
     Power,
     RotateCcw,
     Settings as SettingsIcon,
@@ -17,7 +16,6 @@ import {
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/ui/dropdown-menu'
@@ -26,8 +24,6 @@ import { toast } from 'sonner'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import useProfileBackupStore, { backupKey } from '@/stores/profileBackupStore'
 import { applyRestore } from '@/features/connection/applyRestore'
-import type { NodeView } from '@firmware/service'
-import { NodeIcon } from '@/features/devices/NodeIcon'
 
 export const DeviceMenu = (): JSX.Element => {
     // useShallow-scoped subscription — a bare useConnectionStore() re-renders
@@ -35,40 +31,31 @@ export const DeviceMenu = (): JSX.Element => {
     const {
         service,
         parentService,
-        activeNodeId,
         setService,
         publishService,
         communication,
         deviceName,
         disconnect,
-        openNode,
         returnToParent,
         lastConnectedDevice,
     } = useConnectionStore(
         useShallow((s) => ({
             service: s.service,
             parentService: s.parentService,
-            activeNodeId: s.activeNodeId,
             setService: s.setService,
             publishService: s.publishService,
             communication: s.communication,
             deviceName: s.deviceName,
             disconnect: s.disconnect,
-            openNode: s.openNode,
             returnToParent: s.returnToParent,
             lastConnectedDevice: s.lastConnectedDevice,
         })),
     )
     const reset = undoRedoStore((s) => s.reset)
     const [settingsOpen, setSettingsOpen] = useState(false)
-    const [nodes, setNodes] = useState<NodeView[]>([])
-    const [nodesLoading, setNodesLoading] = useState(false)
 
-    // The node roster lives on the dongle: when viewing a node that's the stashed
-    // parent, otherwise the live service. Empty for a direct (non-dongle) device,
-    // so the Mesh-nodes section stays hidden on ordinary keyboards.
-    const dongle = parentService ?? service
-    const nodesApi = dongle?.nodes
+    // The dongle's nodes are in the sidebar's device roster; here only the
+    // way back from a node to its dongle.
     const viewingNode = !!parentService
     const readOnly = !!service?.capabilities.readOnly
 
@@ -91,35 +78,6 @@ export const DeviceMenu = (): JSX.Element => {
     const autoConnectId = lastConnectedDevice?.id ?? null
     const autoConnectOn =
         !!autoConnectId && autoConnectDeviceId === autoConnectId
-
-    const loadNodes = useCallback(async (): Promise<void> => {
-        if (!nodesApi) {
-            setNodes([])
-            return
-        }
-        setNodesLoading(true)
-        try {
-            setNodes(await nodesApi.list())
-        } catch (e) {
-            console.warn('Failed to list nodes', e)
-            setNodes([])
-        } finally {
-            setNodesLoading(false)
-        }
-    }, [nodesApi])
-
-    const handleOpenNode = useCallback(
-        async (id: number): Promise<void> => {
-            try {
-                await openNode(id)
-            } catch (e) {
-                toast.error('Failed to open node', {
-                    description: e instanceof Error ? e.message : String(e),
-                })
-            }
-        },
-        [openNode],
-    )
 
     const resetSettings = useCallback(async (): Promise<void> => {
         if (!service) return
@@ -162,11 +120,7 @@ export const DeviceMenu = (): JSX.Element => {
     return (
         <>
             {/* Device chip — card with status dot + name + connection, gear opens the menu. */}
-            <DropdownMenu
-                onOpenChange={(open): void => {
-                    if (open) void loadNodes()
-                }}
-            >
+            <DropdownMenu>
                 <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-2.5 py-2">
                     <span
                         aria-hidden
@@ -215,49 +169,6 @@ export const DeviceMenu = (): JSX.Element => {
                                         'dongle'}
                                 </span>
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                        </>
-                    )}
-
-                    {(nodes.length > 0 || nodesLoading) && (
-                        <>
-                            <DropdownMenuLabel className="text-caption font-normal text-muted-foreground">
-                                Mesh nodes
-                            </DropdownMenuLabel>
-                            {nodesLoading && nodes.length === 0 ? (
-                                <DropdownMenuItem disabled>
-                                    Scanning…
-                                </DropdownMenuItem>
-                            ) : (
-                                nodes.map((n) => (
-                                    <DropdownMenuItem
-                                        key={n.id}
-                                        disabled={
-                                            !n.online || n.id === activeNodeId
-                                        }
-                                        onClick={(): void => {
-                                            void handleOpenNode(n.id)
-                                        }}
-                                    >
-                                        <NodeIcon
-                                            kind={n.kind}
-                                            className="mr-2 h-4 w-4 shrink-0"
-                                        />
-                                        <span className="flex-1 truncate">
-                                            {n.label}
-                                        </span>
-                                        {n.id === activeNodeId ? (
-                                            <Check className="h-4 w-4 shrink-0" />
-                                        ) : (
-                                            !n.online && (
-                                                <span className="text-meta text-muted-foreground">
-                                                    offline
-                                                </span>
-                                            )
-                                        )}
-                                    </DropdownMenuItem>
-                                ))
-                            )}
                             <DropdownMenuSeparator />
                         </>
                     )}

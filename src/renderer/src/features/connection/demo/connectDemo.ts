@@ -1,5 +1,6 @@
 // Pattern check: no GoF pattern (-) — rejected — one async entry point for Try Demo, moved out of App.tsx so the start page and the device editor's "Switch device" share it.
 import { toast } from 'sonner'
+import { create } from 'zustand'
 import {
     connectDemoDevice,
     type DemoDeviceId,
@@ -26,6 +27,12 @@ export function demoDeviceFromUrl(): DemoDeviceId | null {
     ) as DemoDeviceId | null
 }
 
+// Pattern check: no GoF pattern (-) — rejected — one zustand slice recording which demo device is open, set after the open succeeds.
+/** The demo device open now, for the sidebar's device roster. */
+export const useActiveDemo = create<{ id: DemoDeviceId | null }>(() => ({
+    id: null,
+}))
+
 /** Open the demo device `id`, closing whatever is connected first so its edit
  *  history never carries over to the next device. */
 export async function connectDemo(id: DemoDeviceId): Promise<void> {
@@ -33,6 +40,7 @@ export async function connectDemo(id: DemoDeviceId): Promise<void> {
         await openService(async () =>
             withUnlockPrompt(await connectDemoDevice(id, demoLockOptions())),
         )
+        useActiveDemo.setState({ id })
     } catch (err) {
         toast.error('Failed to start demo mode.', {
             description: err instanceof Error ? err.message : String(err),

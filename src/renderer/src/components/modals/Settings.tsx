@@ -19,6 +19,9 @@ import useUserSettingsStore, {
     type KeyDisplayMode,
     type NewsStyle,
     type ToolbarStyle,
+    type SidebarStyle,
+    type LayoutPickerStyle,
+    type LayerListStyle,
     type WorkspaceMode,
 } from '@/stores/userSettingsStore'
 import { type Theme, type ThemeName, useTheme } from '@/providers/ThemeProvider'
@@ -37,6 +40,11 @@ interface SettingsSnapshot {
     newsStyle: NewsStyle
     newsPinnedBanner: boolean
     toolbarStyle: ToolbarStyle
+    sidebarStyle: SidebarStyle
+    sidebarAutoRail: boolean
+    sidebarFoldToRail: boolean
+    layoutPicker: LayoutPickerStyle
+    layerList: LayerListStyle
     keyDisplayMode: Record<string, KeyDisplayMode>
     theme: Theme
     themeName: ThemeName
@@ -113,6 +121,11 @@ export function Settings({
             newsStyle: s.newsStyle,
             newsPinnedBanner: s.newsPinnedBanner,
             toolbarStyle: s.toolbarStyle,
+            sidebarStyle: s.sidebarStyle,
+            sidebarAutoRail: s.sidebarAutoRail,
+            sidebarFoldToRail: s.sidebarFoldToRail,
+            layoutPicker: s.layoutPicker,
+            layerList: s.layerList,
             keyDisplayMode: { ...s.keyDisplayMode },
             theme,
             themeName,
@@ -130,6 +143,11 @@ export function Settings({
             newsStyle: snap.newsStyle,
             newsPinnedBanner: snap.newsPinnedBanner,
             toolbarStyle: snap.toolbarStyle,
+            sidebarStyle: snap.sidebarStyle,
+            sidebarAutoRail: snap.sidebarAutoRail,
+            sidebarFoldToRail: snap.sidebarFoldToRail,
+            layoutPicker: snap.layoutPicker,
+            layerList: snap.layerList,
             keyDisplayMode: snap.keyDisplayMode,
         })
         setTheme(snap.theme)

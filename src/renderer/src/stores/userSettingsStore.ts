@@ -33,6 +33,16 @@ export const TOOLBAR_STYLES = [
     'pinned',
 ] as const
 export type ToolbarStyle = (typeof TOOLBAR_STYLES)[number]
+/** How the editor sidebar shows the other devices: a card with an icon strip,
+ *  or a rail of device icons beside the panel. See features/sidebar. */
+export type SidebarStyle = 'card' | 'rail'
+/** Physical layouts as one select menu, or as a list of rows. */
+export type LayoutPickerStyle = 'select' | 'list'
+/** Layers in a scrolling list with the legend folded, or all rows with the
+ *  legend open. */
+export type LayerListStyle = 'scroll' | 'full'
+/** How many devices the "last used" list remembers. */
+const RECENT_DEVICES_MAX = 20
 /** Tools on the bar in the 'pinned' style, by tool id (layout/toolbar/tools). */
 export const DEFAULT_PINNED_TOOLS = ['heatmap', 'live', 'dynamic', 'lighting']
 
@@ -58,6 +68,18 @@ interface UserSettingsState {
     newsPinnedBanner: boolean
     toolbarStyle: ToolbarStyle
     pinnedTools: string[]
+    sidebarStyle: SidebarStyle
+    /** Card style: switch to the rail once more devices are reachable than
+     *  the card's strip shows. */
+    sidebarAutoRail: boolean
+    /** In the rail style, fold the panel away; layers sit on the rail. */
+    sidebarFoldToRail: boolean
+    layoutPicker: LayoutPickerStyle
+    layerList: LayerListStyle
+    /** Roster keys (features/sidebar/roster) kept at the front of the strip. */
+    pinnedDevices: string[]
+    /** Roster keys, most recently opened first. */
+    recentDevices: string[]
     seenBuilderTour: boolean
     /** Version of the last launch; a newer one on start opens "what's new".
      *  null until the first launch records it. */
@@ -71,6 +93,13 @@ interface UserSettingsState {
     setNewsPinnedBanner: (enabled: boolean) => void
     setToolbarStyle: (style: ToolbarStyle) => void
     togglePinnedTool: (id: string) => void
+    setSidebarStyle: (style: SidebarStyle) => void
+    setSidebarAutoRail: (enabled: boolean) => void
+    setSidebarFoldToRail: (enabled: boolean) => void
+    setLayoutPicker: (style: LayoutPickerStyle) => void
+    setLayerList: (style: LayerListStyle) => void
+    togglePinnedDevice: (key: string) => void
+    markDeviceUsed: (key: string) => void
     setTheme: (theme: 'dark' | 'light') => void
     setAutosave: (enabled: boolean) => void
     setAutoLoadLayout: (enabled: boolean) => void
@@ -102,6 +131,13 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 newsPinnedBanner: false,
                 toolbarStyle: 'labelled',
                 pinnedTools: DEFAULT_PINNED_TOOLS,
+                sidebarStyle: 'card',
+                sidebarAutoRail: true,
+                sidebarFoldToRail: false,
+                layoutPicker: 'select',
+                layerList: 'scroll',
+                pinnedDevices: [],
+                recentDevices: [],
                 seenBuilderTour: false,
                 lastRunVersion: null,
                 setLastRunVersion: (lastRunVersion) => set({ lastRunVersion }),
@@ -119,6 +155,26 @@ const useUserSettingsStore = create<UserSettingsState>()(
                         pinnedTools: s.pinnedTools.includes(id)
                             ? s.pinnedTools.filter((t) => t !== id)
                             : [...s.pinnedTools, id],
+                    })),
+                setSidebarStyle: (sidebarStyle) => set({ sidebarStyle }),
+                setSidebarAutoRail: (sidebarAutoRail) =>
+                    set({ sidebarAutoRail }),
+                setSidebarFoldToRail: (sidebarFoldToRail) =>
+                    set({ sidebarFoldToRail }),
+                setLayoutPicker: (layoutPicker) => set({ layoutPicker }),
+                setLayerList: (layerList) => set({ layerList }),
+                togglePinnedDevice: (key) =>
+                    set((s) => ({
+                        pinnedDevices: s.pinnedDevices.includes(key)
+                            ? s.pinnedDevices.filter((k) => k !== key)
+                            : [...s.pinnedDevices, key],
+                    })),
+                markDeviceUsed: (key) =>
+                    set((s) => ({
+                        recentDevices: [
+                            key,
+                            ...s.recentDevices.filter((k) => k !== key),
+                        ].slice(0, RECENT_DEVICES_MAX),
                     })),
                 setTheme: (theme) => set({ theme }),
                 setAutosave: (enabled) => set({ autosave: enabled }),

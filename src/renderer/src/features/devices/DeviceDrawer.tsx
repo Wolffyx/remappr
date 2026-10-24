@@ -1,12 +1,8 @@
-// Pattern check: no GoF pattern (-) — rejected — presentational sidebar of the device editor (device card, device switcher, profiles, legend, device menu) on the shared @/ui/sidebar primitives.
-import { useEffect, useRef, useState, type JSX } from 'react'
-import { Check, Plus } from 'lucide-react'
-import { DEMO_DEVICES } from '@firmware'
+// Pattern check: no GoF pattern (-) — rejected — the device editor's slots (profiles, action legend) handed to the shared EditorSidebar; presentational.
+import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { Cpu, Plus } from 'lucide-react'
 import type { DeviceProfile } from '@firmware/devices/types'
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
     SidebarGroup,
     SidebarGroupAction,
     SidebarGroupContent,
@@ -14,70 +10,20 @@ import {
 } from '@/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import { cn } from '@/lib/cn'
-import { DeviceMenu } from '@/features/connection/device-menu/DeviceMenu'
-import { connectDemo } from '@/features/connection/demo/connectDemo'
-import { TrafficLightInset } from '@/layout/TrafficLightInset'
-import useConnectionStore from '@/stores/connectionStore'
 import {
     categoryAccent,
     DEVICE_CATEGORY_META,
     LEGEND_CATEGORIES,
     profileAccent,
 } from '@/lib/devices/deviceCategory'
-import { deviceSummary, FORM_LABEL } from '@/lib/devices/labels'
+import { deviceSummary } from '@/lib/devices/labels'
+import { EditorSidebar } from '@/features/sidebar/EditorSidebar'
+import { useIndexShortcuts } from '@/features/sidebar/useIndexShortcuts'
 import { FORM_ICON } from './formIcons'
-import { DeviceSwitcher, SwitchRow } from './DeviceSwitcher'
 import useDeviceEditorStore from './model/deviceEditorStore'
 
 const GROUP_LABEL =
     'text-caption font-bold tracking-[0.08em] text-muted-foreground uppercase'
-
-function DeviceCard(): JSX.Element | null {
-    const model = useDeviceEditorStore((s) => s.loaded?.model)
-    if (!model) return null
-    const Icon = FORM_ICON[model.form]
-    return (
-        <div className="flex items-center gap-2.5 rounded-lg border border-primary/30 bg-[color-mix(in_oklab,var(--primary)_12%,var(--sidebar))] px-[11px] py-2.5">
-            <Icon className="size-4 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-                <div className="truncate text-panel-title font-bold">
-                    {model.name}
-                </div>
-                <div className="text-caption leading-snug text-muted-foreground">
-                    {deviceSummary(model.form, model.controls)}
-                    {model.defaulted ? ' · default layout' : ''}
-                </div>
-            </div>
-            <Check className="size-[15px] shrink-0 text-primary" />
-        </div>
-    )
-}
-
-/** Other demo devices, one click away (demo sessions only). */
-function DemoSwitcher(): JSX.Element | null {
-    const demo = useConnectionStore((s) => !!s.service?.capabilities.demo)
-    const name = useDeviceEditorStore((s) => s.loaded?.model.name)
-    if (!demo) return null
-    const others = DEMO_DEVICES.filter((d) => d.name !== name)
-    return (
-        <SidebarGroup>
-            <SidebarGroupLabel className={GROUP_LABEL}>
-                Switch device
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="flex flex-col gap-[3px]">
-                {others.map((d) => (
-                    <SwitchRow
-                        key={d.id}
-                        icon={FORM_ICON[d.form]}
-                        name={d.name}
-                        detail={`${FORM_LABEL[d.form]}${d.ready ? '' : ' · no layout'}`}
-                        onClick={() => void connectDemo(d.id)}
-                    />
-                ))}
-            </SidebarGroupContent>
-        </SidebarGroup>
-    )
-}
 
 function ProfileRow({
     profile,
@@ -170,6 +116,11 @@ function Profiles(): JSX.Element {
     const add = useDeviceEditorStore((s) => s.addProfile)
     const rename = useDeviceEditorStore((s) => s.renameProfile)
     const addNext = (): void => void add(`Profile ${profiles.length + 1}`)
+    const activeIndex = profiles.findIndex((p) => p.id === activeId)
+    useIndexShortcuts(profiles.length, activeIndex, (i) => {
+        const p = profiles[i]
+        if (p) void show(p.id)
+    })
     return (
         <SidebarGroup>
             <SidebarGroupLabel className={GROUP_LABEL}>
@@ -218,57 +169,61 @@ function Profiles(): JSX.Element {
     )
 }
 
+/** The action categories as a dot list; the sidebar adds the label. */
 function ActionLegend(): JSX.Element {
     return (
-        <>
-            <SidebarGroupLabel className={GROUP_LABEL}>
-                Action types
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-                <ul className="flex flex-wrap gap-x-3 gap-y-1.5 px-2 py-1">
-                    {LEGEND_CATEGORIES.map((cat) => (
-                        <li
-                            key={cat}
-                            className="flex items-center gap-1.5 text-caption text-muted-foreground"
-                        >
-                            <span
-                                aria-hidden
-                                className="size-2 shrink-0 rounded-[3px]"
-                                style={{ background: categoryAccent(cat) }}
-                            />
-                            {DEVICE_CATEGORY_META[cat].label}
-                        </li>
-                    ))}
-                </ul>
-            </SidebarGroupContent>
-        </>
+        <ul className="flex flex-wrap gap-x-3 gap-y-1.5 px-2 py-1">
+            {LEGEND_CATEGORIES.map((cat) => (
+                <li
+                    key={cat}
+                    className="flex items-center gap-1.5 text-caption text-muted-foreground"
+                >
+                    <span
+                        aria-hidden
+                        className="size-2 shrink-0 rounded-[3px]"
+                        style={{ background: categoryAccent(cat) }}
+                    />
+                    {DEVICE_CATEGORY_META[cat].label}
+                </li>
+            ))}
+        </ul>
     )
 }
 
-/** The device editor's sidebar. */
+/** The device editor's sidebar: the shared skeleton with profiles. */
 export function DeviceDrawer(): JSX.Element {
+    const model = useDeviceEditorStore((s) => s.loaded?.model)
+    const profiles = useDeviceEditorStore((s) => s.profiles)
+    const activeId = useDeviceEditorStore((s) => s.activeProfileId)
+    const show = useDeviceEditorStore((s) => s.showProfile)
+    const identity = useMemo(
+        () => ({
+            name: model?.name ?? 'Device',
+            summary: model
+                ? `${deviceSummary(model.form, model.controls)}${model.defaulted ? ' · default layout' : ''}`
+                : '',
+            icon: model ? FORM_ICON[model.form] : Cpu,
+        }),
+        [model],
+    )
+    const foldItems = useMemo(
+        () =>
+            profiles.map((p, i) => ({
+                id: p.id,
+                label: `P${i + 1}`,
+                name: p.name,
+                active: p.id === activeId,
+                select: (): void => void show(p.id),
+            })),
+        [profiles, activeId, show],
+    )
     return (
-        <Sidebar collapsible="offcanvas" variant="sidebar">
-            <SidebarContent className="pt-2">
-                <TrafficLightInset variant="block" />
-                <SidebarGroup>
-                    <SidebarGroupLabel className={GROUP_LABEL}>
-                        Device
-                    </SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <DeviceCard />
-                    </SidebarGroupContent>
-                </SidebarGroup>
-                <DemoSwitcher />
-                <DeviceSwitcher />
-                <Profiles />
-                <SidebarGroup className="mt-auto">
-                    <ActionLegend />
-                </SidebarGroup>
-            </SidebarContent>
-            <SidebarFooter>
-                <DeviceMenu />
-            </SidebarFooter>
-        </Sidebar>
+        <EditorSidebar
+            identity={identity}
+            legend={{ label: 'Action types', body: <ActionLegend /> }}
+            foldItems={foldItems}
+        >
+            <Profiles />
+        </EditorSidebar>
     )
 }

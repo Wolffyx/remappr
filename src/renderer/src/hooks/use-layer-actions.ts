@@ -15,6 +15,8 @@ interface UseLayerActionsArgs {
 interface UseLayerActionsResult {
     add: () => void
     duplicate: (layerIndex: number) => void
+    /** Overwrite every key of `targetIndex` with the keys of `sourceIndex`. */
+    copyKeysFrom: (targetIndex: number, sourceIndex: number) => void
     remove: (layerIndex: number) => void
     changeLayerName: (id: number, oldName: string, newName: string) => void
     handleSaveNewLabel: (
@@ -230,6 +232,49 @@ export function useLayerActions({
         [changeLayerName],
     )
 
+    const copyKeysFrom = useCallback(
+        (targetIndex: number, sourceIndex: number): void => {
+            if (!service || !setKeymap || !keymap) return
+            const target = keymap.layers[targetIndex]
+            const source = keymap.layers[sourceIndex]
+            if (!target || !source || target === source) return
+            const write = async (
+                keys: Keymap['layers'][number]['keys'],
+            ): Promise<void> => {
+                await service.setKeys(
+                    keys.map((action, position) => ({
+                        layerId: target.id,
+                        position,
+                        action,
+                    })),
+                )
+                setKeymap((draft) => {
+                    const layer = draft.layers.find((l) => l.id === target.id)
+                    if (layer) layer.keys = keys.map((k) => ({ ...k }))
+                })
+            }
+            const before = target.keys.map((k) => ({ ...k }))
+            const after = source.keys.map((k) => ({ ...k }))
+            doIt?.(async () => {
+                try {
+                    await write(after)
+                } catch (e) {
+                    console.error('Failed to copy layer keys', e)
+                    toast.error('Failed to copy the keys')
+                    return async () => {}
+                }
+                return async () => {
+                    try {
+                        await write(before)
+                    } catch (e) {
+                        console.error('Failed to undo copy layer keys', e)
+                    }
+                }
+            })
+        },
+        [service, doIt, keymap, setKeymap],
+    )
+
     const selectionChanged = useCallback(
         (layerIndex: number | string): void => {
             if (layerIndex === 'all') return
@@ -245,6 +290,7 @@ export function useLayerActions({
     return {
         add,
         duplicate,
+        copyKeysFrom,
         remove,
         changeLayerName,
         handleSaveNewLabel,

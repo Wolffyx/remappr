@@ -5,7 +5,6 @@ import {
     CATEGORY_META,
     type KeyCategory,
 } from '@/lib/keymap/keyCategory'
-import { SidebarGroupContent, SidebarGroupLabel } from '@/ui/sidebar'
 
 // Every hued category, in legend order. Number and Symbol share one hue, so
 // they share one entry; letters, space and pass-through stay neutral.
@@ -22,30 +21,26 @@ const LEGEND: { cat: KeyCategory; label?: string }[] = [
     { cat: 'light' },
 ]
 
+/** The hued key categories as a dot list; the sidebar adds the label. */
 export function KeyTypeLegend(): JSX.Element {
     return (
-        <>
-            <SidebarGroupLabel className="eyebrow">Key types</SidebarGroupLabel>
-            <SidebarGroupContent>
-                <ul className="flex flex-wrap gap-x-3 gap-y-1.5 px-2 py-1 group-data-[collapsible=icon]:hidden">
-                    {LEGEND.map(({ cat, label }) => {
-                        const dot = catStyle(cat, 'vivid').dot
-                        return (
-                            <li
-                                key={cat}
-                                className="flex items-center gap-1.5 text-caption text-muted-foreground"
-                            >
-                                <span
-                                    aria-hidden
-                                    className="size-2 shrink-0 rounded-[3px]"
-                                    style={{ background: dot ?? undefined }}
-                                />
-                                {label ?? CATEGORY_META[cat].label}
-                            </li>
-                        )
-                    })}
-                </ul>
-            </SidebarGroupContent>
-        </>
+        <ul className="flex flex-wrap gap-x-3 gap-y-1.5 px-2 py-1 group-data-[collapsible=icon]:hidden">
+            {LEGEND.map(({ cat, label }) => {
+                const dot = catStyle(cat, 'vivid').dot
+                return (
+                    <li
+                        key={cat}
+                        className="flex items-center gap-1.5 text-caption text-muted-foreground"
+                    >
+                        <span
+                            aria-hidden
+                            className="size-2 shrink-0 rounded-[3px]"
+                            style={{ background: dot ?? undefined }}
+                        />
+                        {label ?? CATEGORY_META[cat].label}
+                    </li>
+                )
+            })}
+        </ul>
     )
 }

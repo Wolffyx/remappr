@@ -7,20 +7,17 @@ import undoRedoStore from '@/stores/undoRedoStore'
 import useConnectionStore from '@/stores/connectionStore'
 import useLayerSelectionStore from '@/stores/layerSelectionStore'
 import useKeymapStore from '@/stores/keymapStore'
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarGroup,
-    SidebarFooter,
-} from '@/ui/sidebar'
-import { DeviceMenu } from '@/features/connection/device-menu/DeviceMenu'
-import { TrafficLightInset } from '@/layout/TrafficLightInset'
+import { Keyboard } from 'lucide-react'
+import { SidebarGroup } from '@/ui/sidebar'
+import { LayoutSelect } from '@/features/keymap/layout-picker/LayoutSelect'
+import { EditorSidebar } from '@/features/sidebar/EditorSidebar'
+import useUserSettingsStore from '@/stores/userSettingsStore'
 import { useFeatureAvailable } from '@/features/firmware/useFeatureAvailable'
 // pattern-check: skip — drop dead lock guards now that App-shell render-gates locked state
 import type { Keymap } from '@firmware/types'
 import { produce } from 'immer'
 
-// pattern-check: skip — mechanical lock-guard removal
+// Pattern check: no GoF pattern (-) — rejected — the keyboard editor's slots handed to the shared EditorSidebar; data wiring only.
 export function Drawer(): JSX.Element {
     // Field-scoped selectors: a bare useXStore() subscribes to the whole store
     // and re-renders the sidebar on every unrelated field change (lock state,
@@ -125,47 +122,76 @@ export function Drawer(): JSX.Element {
         })()
     }, [service, layouts, selectedPhysicalLayoutIndex, setKeymap])
 
+    const layoutPicker = useUserSettingsStore((s) => s.layoutPicker)
+    const scrollLayers = useUserSettingsStore((s) => s.layerList === 'scroll')
+    const selectedLayerIndex = useLayerSelectionStore(
+        (s) => s.selectedLayerIndex,
+    )
+    const deviceName = useConnectionStore((s) => s.deviceName)
+    const communication = useConnectionStore((s) => s.communication)
+
+    const identity = useMemo(
+        () => ({
+            name: deviceName?.trim() || service?.deviceInfo.name || 'Keyboard',
+            summary: [
+                'Keyboard',
+                service?.deviceInfo.firmware,
+                communication === 'ble' ? 'Bluetooth' : 'USB',
+            ]
+                .filter(Boolean)
+                .join(' · '),
+            icon: Keyboard,
+        }),
+        [deviceName, service, communication],
+    )
+
+    const foldItems = useMemo(
+        () =>
+            (keymap?.layers ?? []).map((l, i) => ({
+                id: l.id,
+                label: String(i),
+                name: l.name || `Layer ${i}`,
+                active: i === selectedLayerIndex,
+                select: (): void => setSelectedLayerIndex(i),
+            })),
+        [keymap, selectedLayerIndex, setSelectedLayerIndex],
+    )
+
+    // One layout needs no picker; several get the select (or the old list).
+    const LayoutPicker =
+        layoutPicker === 'select' ? LayoutSelect : PhysicalLayoutPicker
+    const header =
+        layouts && layouts.length > 1 ? (
+            <LayoutPicker
+                layouts={layouts}
+                selectedPhysicalLayoutIndex={selectedPhysicalLayoutIndex}
+                onPhysicalLayoutClicked={doSelectPhysicalLayout}
+            />
+        ) : null
+
     return (
-        <Sidebar collapsible="offcanvas" variant="sidebar">
-            <SidebarContent className="pt-2">
-                {/* macOS traffic lights float over the window's top-left —
-                    which in the editor is THIS sidebar, not the header. Push
-                    the layout picker below them (no-op elsewhere). */}
-                <TrafficLightInset variant="block" />
-                <SidebarGroup>
-                    {layouts && (
-                        <PhysicalLayoutPicker
-                            layouts={layouts}
-                            selectedPhysicalLayoutIndex={
-                                selectedPhysicalLayoutIndex
-                            }
-                            onPhysicalLayoutClicked={doSelectPhysicalLayout}
-                        />
-                    )}
-                </SidebarGroup>
-                <SidebarGroup data-coach="layers">
-                    {keymap && (
-                        <LayerPicker
-                            layers={keymap.layers}
-                            keymap={keymap}
-                            setKeymap={layerPickerSetKeymap}
-                            editable={editable}
-                            canAdd={
-                                editable && (keymap.availableLayers || 0) > 0
-                            }
-                            canRemove={
-                                editable && (keymap.layers?.length || 0) > 1
-                            }
-                        />
-                    )}
-                </SidebarGroup>
-                <SidebarGroup className="mt-auto">
-                    <KeyTypeLegend />
-                </SidebarGroup>
-            </SidebarContent>
-            <SidebarFooter>
-                <DeviceMenu />
-            </SidebarFooter>
-        </Sidebar>
+        <EditorSidebar
+            identity={identity}
+            header={header}
+            legend={{ label: 'Key types', body: <KeyTypeLegend /> }}
+            foldItems={foldItems}
+        >
+            <SidebarGroup
+                data-coach="layers"
+                className={scrollLayers ? 'min-h-0 flex-1' : undefined}
+            >
+                {keymap && (
+                    <LayerPicker
+                        layers={keymap.layers}
+                        keymap={keymap}
+                        setKeymap={layerPickerSetKeymap}
+                        editable={editable}
+                        scroll={scrollLayers}
+                        canAdd={editable && (keymap.availableLayers || 0) > 0}
+                        canRemove={editable && (keymap.layers?.length || 0) > 1}
+                    />
+                )}
+            </SidebarGroup>
+        </EditorSidebar>
     )
 }
