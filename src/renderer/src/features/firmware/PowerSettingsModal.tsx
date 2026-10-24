@@ -52,13 +52,17 @@ export function PowerSettingsModal({ opened, onClose }: Props): JSX.Element {
         // to the committed value), and an empty section writes no TBL_POWER.
         configEditing.setNode({ power: power ?? {} })
         setSaving(true)
-        const r = await saveWithToast(
-            () => service.commit(),
+        // commit() resolves to nothing, so success is a flag, not the result.
+        const saved = await saveWithToast(
+            async () => {
+                await service.commit()
+                return true
+            },
             'Power settings saved',
             'Failed to save power settings',
         )
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
     return (
