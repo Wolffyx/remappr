@@ -77,9 +77,9 @@ export function EntryTable<T>({
         <div className="flex flex-col gap-1">
             <DockActions>
                 <span className="text-caption text-muted-foreground">
-                    {table.used} of {spec.count} in use
+                    {table.used} of {table.count} in use
                 </span>
-                <GoTo count={spec.count} onGo={jump} />
+                <GoTo count={table.count} onGo={jump} />
                 {!table.readOnly && (
                     <Button
                         size="sm"
@@ -95,7 +95,11 @@ export function EntryTable<T>({
 
             {table.loading ? (
                 <p className="px-3 py-4 text-control text-muted-foreground">
-                    Reading {spec.count} {spec.noun} entries…
+                    Reading the {spec.noun} entries…
+                </p>
+            ) : table.failed ? (
+                <p className="px-3 pt-4 pb-1 text-control text-muted-foreground">
+                    Couldn’t read the {spec.noun} entries from the device.
                 </p>
             ) : table.rows.length === 0 ? (
                 <p className="px-3 pt-4 pb-1 text-control text-muted-foreground">
@@ -174,7 +178,7 @@ export function EntryTable<T>({
                 </table>
             )}
 
-            {!table.loading && (
+            {!table.loading && !table.failed && (
                 <Footer table={table} onNew={() => jump(table.reveal())} />
             )}
         </div>
@@ -320,11 +324,11 @@ function Footer<T>({
     if (table.nextFree === null) {
         return (
             <p className="px-3 py-2.5 text-caption text-muted-foreground">
-                All {spec.count} slots are in use.
+                All {table.count} slots are in use.
             </p>
         )
     }
-    const free = spec.count - table.used
+    const free = table.count - table.used
     return (
         <div className="flex items-center gap-3 px-3 py-2">
             <Button

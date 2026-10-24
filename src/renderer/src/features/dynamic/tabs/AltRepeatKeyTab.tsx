@@ -75,6 +75,7 @@ export function AltRepeatKeyTab({ service, opened }: Props): JSX.Element {
         () => ({
             noun: 'alt repeat',
             count: ARK_MAX + 1,
+            countIsLimit: true,
             fetch: (i) => service.dynamic!.getAltRepeatKey!(i),
             store: (i, e) => service.dynamic!.setAltRepeatKey!(i, e),
             isEmpty: (e) => !e.keycode && !e.altKeycode,

@@ -17,7 +17,11 @@ import {
 
 export interface EntryTableState<T> {
     spec: EntrySpec<T>
+    /** Slots on this device (the read pool size when the count is a limit). */
+    count: number
     loading: boolean
+    /** The slots could not be read. */
+    failed: boolean
     /** Saved value overlaid with the draft, per slot (undefined while loading). */
     entry: (idx: number) => T | undefined
     rows: number[]
@@ -40,24 +44,30 @@ export function useEntryTable<T>(
     const [drafts, setDrafts] = useState<ReadonlyMap<number, T>>(new Map())
     const [revealed, setRevealed] = useState<ReadonlySet<number>>(new Set())
     const [loading, setLoading] = useState(false)
+    const [failed, setFailed] = useState(false)
 
     /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (!opened) return
         let cancelled = false
         setLoading(true)
+        setFailed(false)
         setDrafts(new Map())
         setRevealed(new Set())
         loadAll(
             spec.count,
             (i) => spec.fetch(i),
             () => cancelled,
+            spec.countIsLimit,
         )
             .then((all) => {
                 if (all) setBase(all)
             })
             .catch((e: unknown) => {
                 console.error(e)
+                if (cancelled) return
+                setBase([])
+                setFailed(true)
                 toast.error(`Failed to load ${spec.noun} entries`)
             })
             .finally(() => {
@@ -74,6 +84,8 @@ export function useEntryTable<T>(
         [drafts, base],
     )
     const merged = useMemo(() => base.map((_, i) => entry(i)), [base, entry])
+
+    const count = spec.countIsLimit ? base.length : spec.count
 
     const update = useCallback(
         (idx: number, next: T | ((prev: T) => T)): void => {
@@ -104,11 +116,11 @@ export function useEntryTable<T>(
     const reveal = useCallback(
         (idx?: number): number | null => {
             const at = idx ?? firstFree(merged, spec.isEmpty, revealed)
-            if (at === null || at < 0 || at >= spec.count) return null
+            if (at === null || at < 0 || at >= count) return null
             setRevealed((prev) => new Set(prev).add(at))
             return at
         },
-        [merged, spec, revealed],
+        [merged, spec, revealed, count],
     )
 
     const save = useCallback(async (): Promise<void> => {
@@ -141,7 +153,9 @@ export function useEntryTable<T>(
 
     return {
         spec,
+        count,
         loading,
+        failed,
         entry,
         rows: visibleRows(merged, spec.isEmpty, revealed),
         used: usedCount(merged, spec.isEmpty),

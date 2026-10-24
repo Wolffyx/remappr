@@ -8,8 +8,11 @@
 export interface EntrySpec<T> {
     /** Singular, lower case: "tap dance", "macro". */
     noun: string
-    /** Slots the firmware has. */
+    /** Slots the firmware has — or, with `countIsLimit`, the most it may have. */
     count: number
+    /** The protocol reports no count (alt repeat): `count` is only an upper
+     *  limit, and the pool ends at the first slot the device refuses. */
+    countIsLimit?: boolean
     fetch(idx: number): Promise<T>
     /** Absent on view-only firmware: the table renders read-only. */
     store?(idx: number, entry: T): Promise<void>
@@ -56,16 +59,23 @@ export function sameEntry<T>(a: T, b: T): boolean {
 }
 
 /** Reads slots 0…count-1 one after another (the transport is serial anyway),
- *  stopping early when `cancelled` turns true. */
+ *  stopping early when `cancelled` turns true. With `upToFirstRefusal`, a
+ *  refused read after the first slot ends the pool there instead of failing. */
 export async function loadAll<T>(
     count: number,
     fetch: (idx: number) => Promise<T>,
     cancelled: () => boolean,
+    upToFirstRefusal = false,
 ): Promise<T[] | null> {
     const out: T[] = []
     for (let i = 0; i < count; i++) {
         if (cancelled()) return null
-        out.push(await fetch(i))
+        try {
+            out.push(await fetch(i))
+        } catch (e) {
+            if (!upToFirstRefusal || i === 0) throw e
+            break
+        }
     }
     return cancelled() ? null : out
 }

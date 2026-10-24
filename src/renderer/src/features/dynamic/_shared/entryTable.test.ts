@@ -56,6 +56,25 @@ describe('entry table model', () => {
         expect(part).toBeNull()
     })
 
+    it('ends a pool of unknown size at the first slot the device refuses', async () => {
+        const fetch = async (i: number): Promise<number> => {
+            if (i >= 4) throw new Error('out of range')
+            return i
+        }
+        expect(await loadAll(32, fetch, () => false, true)).toEqual([
+            0, 1, 2, 3,
+        ])
+        await expect(loadAll(32, fetch, () => false)).rejects.toThrow(
+            'out of range',
+        )
+        const none = async (): Promise<number> => {
+            throw new Error('no support')
+        }
+        await expect(loadAll(32, none, () => false, true)).rejects.toThrow(
+            'no support',
+        )
+    })
+
     it('saves drafts in slot order and keeps the rest after a failure', async () => {
         const written: number[] = []
         const drafts = new Map([
