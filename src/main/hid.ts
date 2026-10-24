@@ -248,7 +248,3 @@ export async function disconnectHidDevice(): Promise<void> {
     }
     activeConnection = null
 }
-
-export function hasActiveHidConnection(): boolean {
-    return activeConnection !== null
-}

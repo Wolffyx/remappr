@@ -10,6 +10,13 @@ export default defineConfig({
             // Handle ESM/CJS interop issues
             interopDefault: true,
         },
+        server: {
+            deps: {
+                // Its ESM build imports without file extensions; let Vite
+                // resolve them instead of Node.
+                inline: ['@zmkfirmware/zmk-studio-ts-client'],
+            },
+        },
     },
     resolve: {
         alias: {

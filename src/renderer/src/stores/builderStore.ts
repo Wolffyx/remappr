@@ -265,10 +265,9 @@ const useBuilderStore = create<BuilderState>()(
             // Mirror App's demo-connect lifecycle: clear the connection when the
             // service closes. setService re-seeds configStore from the service's
             // getConfigSource (the serialized board), keeping it source-of-truth.
-            service.onClosed(() => {
-                useConnectionStore.getState().setDeviceName(null)
-                useConnectionStore.getState().setService(null)
-            })
+            service.onClosed(() =>
+                useConnectionStore.getState().serviceClosed(service),
+            )
             conn.setDeviceName(service.deviceInfo.name)
             conn.setService(service)
             // Close the builder WITHOUT resetting its workspace (selection / view /

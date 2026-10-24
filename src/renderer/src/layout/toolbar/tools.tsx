@@ -355,7 +355,14 @@ export function useToolHousekeeping(): void {
         const target = s.config?.meta.target
         return target ? !supportsRuntimeLighting(target) : false
     })
+    const advOpen = useAdvancedSheetStore((s) => s.open)
+    const setAdvOpen = useAdvancedSheetStore((s) => s.setOpen)
     const keyTestAvailable = !!service && !!FEATURE_PROBES.keyTest(service)
+    // The dock left open on a device with entries would, on one without
+    // (ZMK), render nothing yet still hide the key picker.
+    const dockAvailable =
+        !!service &&
+        (!!FEATURE_PROBES.dynamic(service) || !!FEATURE_PROBES.macros(service))
 
     useEffect(() => {
         if (!keyTestAvailable && keyTestOn) setKeyTestActive(false)
@@ -363,4 +370,7 @@ export function useToolHousekeeping(): void {
     useEffect(() => {
         if (rgbUnsupported && rgbOpen) setRgbOpen(false)
     }, [rgbUnsupported, rgbOpen, setRgbOpen])
+    useEffect(() => {
+        if (!dockAvailable && advOpen) setAdvOpen(false)
+    }, [dockAvailable, advOpen, setAdvOpen])
 }

@@ -372,6 +372,39 @@ describe('openService (switching to another device)', () => {
         expect(open).toHaveBeenCalledTimes(1)
         expect(useConnectionStore.getState().service).toBe(next)
     })
+
+    it('keeps the device left on screen until the next one replaces it', async () => {
+        const { service, disconnect } = makeDevice('Keyboard')
+        const live = connect(service)
+        // The device reports its own close as it disconnects (ZMK does).
+        disconnect.mockImplementation(async () =>
+            useConnectionStore.getState().serviceClosed(live),
+        )
+        const next = makeDevice('Demo', { saveMode: 'none' }).service
+        Object.assign(next, { onClosed: () => () => undefined })
+        Object.assign(next, { getLockState: async () => 'unlocked' })
+        let finishOpen!: (s: KeyboardService) => void
+        const opening = new Promise<KeyboardService>((r) => {
+            finishOpen = r
+        })
+
+        const switching = openService(() => opening)
+        await vi.waitFor(() => expect(disconnect).toHaveBeenCalled())
+        // Mid-switch: no empty connection, so no start page.
+        expect(useConnectionStore.getState().service).toBe(live)
+        finishOpen(next)
+        await switching
+
+        expect(useConnectionStore.getState().service).toBe(next)
+        expect(useConnectionStore.getState().lockState).toBe('unlocked')
+    })
+
+    it('a device that closes on its own still clears the connection', () => {
+        const { service } = makeDevice('Keyboard')
+        const live = connect(service)
+        useConnectionStore.getState().serviceClosed(live)
+        expect(useConnectionStore.getState().service).toBeNull()
+    })
 })
 
 describe('unloadGuard (closing or reloading the window)', () => {

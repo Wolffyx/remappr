@@ -100,12 +100,6 @@ interface PhysicalLayoutCanvasProps {
     // Per-key colours (device HSV 0–255) indexed by key position; drives the glow
     // and shows the keyboard's / painted per-key colours.
     perKeyColors?: Array<HsvColor | null> | null
-    // Paint mode: clicks paint the key instead of selecting; right-click eyedrops.
-    paintMode?: boolean
-    onKeyPaint?: (position: number) => void
-    onKeyEyedrop?: (position: number) => void
-    // Paint gesture ended (pointerup) → flush coalesced writes to the device.
-    onPaintCommit?: () => void
     onPositionClicked?: (position: number, mods?: ClickModifiers) => void
     onEncoderClicked?: (sel: EncoderSelection) => void
     // Right-click on a key (not encoder) → host shows a context menu at the
@@ -137,6 +131,10 @@ const MAX_ZOOM = 3.2
 const MIN_ONE_U = 34
 const MAX_ONE_U = 92
 const FIT_PADDING = 48
+// The editor's floating toolbar overlays the stage top (its bottom edge is
+// published as --toolbar-h); the viewport pads its top so the fitted board
+// starts just below it, never under it. A stage without the bar pads nothing.
+const TOOLBAR_CLEARANCE = `max(0px, calc(var(--toolbar-h, 0px) + 8px - ${FIT_PADDING}px))`
 
 // pattern-check: skip — rename View.scale→zoom + relative-zoom semantics, no new abstraction
 // User-adjusted view; null = follow auto-fit (zoom 1, no pan). `zoom` is the
@@ -165,10 +163,6 @@ const PhysicalLayoutCanvasImpl = ({
     tooltips = false,
     lighting = null,
     perKeyColors = null,
-    paintMode = false,
-    onKeyPaint,
-    onKeyEyedrop,
-    onPaintCommit,
     onPositionClicked,
     onEncoderClicked,
     onPositionContextMenu,
@@ -243,9 +237,10 @@ const PhysicalLayoutCanvasImpl = ({
             const vp = viewportRef.current
             if (!vp || rightMost === 0 || bottomMost === 0) return
             const fit = (): void => {
+                const padTop = parseFloat(getComputedStyle(vp).paddingTop) || 0
                 const u = Math.min(
                     (vp.clientWidth - FIT_PADDING * 2) / rightMost,
-                    (vp.clientHeight - FIT_PADDING * 2) / bottomMost,
+                    (vp.clientHeight - padTop - FIT_PADDING * 2) / bottomMost,
                 )
                 if (Number.isFinite(u)) {
                     setFitU(clamp(u, MIN_ONE_U, MAX_ONE_U))
@@ -523,7 +518,6 @@ const PhysicalLayoutCanvasImpl = ({
         const encoder = hitId ? parseEncoderHitId(hitId) : null
         return encoder ? { idx, encoder } : { idx }
     }
-    // pattern-check: skip — event-delegation paint handlers, plain callbacks, no abstraction
     const handleBoardClick = useCallback(
         (e: React.MouseEvent): void => {
             const hit = keyFromEvent(e)
@@ -532,67 +526,25 @@ const PhysicalLayoutCanvasImpl = ({
                 onEncoderClicked?.(hit.encoder)
                 return
             }
-            // Paint mode: pointerdown/over already paints (and commits on
-            // pointerup); swallow the click so it doesn't select/edit the key.
-            if (paintMode) return
             onPositionClicked?.(hit.idx, {
                 shiftKey: e.shiftKey,
                 metaKey: e.metaKey,
                 ctrlKey: e.ctrlKey,
             })
         },
-        [paintMode, onEncoderClicked, onPositionClicked],
+        [onEncoderClicked, onPositionClicked],
     )
     const handleBoardContextMenu = useCallback(
         (e: React.MouseEvent): void => {
             const hit = keyFromEvent(e)
-            // Paint mode: right-click eyedrops the key's colour into the brush.
-            if (paintMode && hit && !hit.encoder) {
-                e.preventDefault()
-                onKeyEyedrop?.(hit.idx)
-                return
-            }
             if (!onPositionContextMenu) return
             if (!hit || hit.encoder) return
             e.preventDefault()
             onPositionContextMenu(hit.idx, { x: e.clientX, y: e.clientY })
         },
-        [paintMode, onKeyEyedrop, onPositionContextMenu],
+        [onPositionContextMenu],
     )
 
-    // Drag-to-paint: hold and sweep across keys. paintingRef tracks the held
-    // gesture; pointerover on each key paints it. A window pointerup ends it even
-    // if the release lands off the board.
-    const paintingRef = useRef(false)
-    const handleBoardPointerDown = useCallback(
-        (e: React.PointerEvent): void => {
-            if (!paintMode) return
-            const hit = keyFromEvent(e)
-            if (!hit || hit.encoder) return
-            paintingRef.current = true
-            onKeyPaint?.(hit.idx)
-        },
-        [paintMode, onKeyPaint],
-    )
-    const handleBoardPointerOver = useCallback(
-        (e: React.PointerEvent): void => {
-            if (!paintMode || !paintingRef.current) return
-            const hit = keyFromEvent(e)
-            if (!hit || hit.encoder) return
-            onKeyPaint?.(hit.idx)
-        },
-        [paintMode, onKeyPaint],
-    )
-    useEffect((): (() => void) | void => {
-        if (!paintMode) return
-        const end = (): void => {
-            if (!paintingRef.current) return
-            paintingRef.current = false
-            onPaintCommit?.() // flush the sweep's coalesced writes in one save
-        }
-        window.addEventListener('pointerup', end)
-        return (): void => window.removeEventListener('pointerup', end)
-    }, [paintMode, onPaintCommit])
     const handleBoardKeyDown = useCallback(
         (e: React.KeyboardEvent): void => {
             if (e.key !== 'Enter' && e.key !== ' ') return
@@ -733,8 +685,6 @@ const PhysicalLayoutCanvasImpl = ({
             onClick={handleBoardClick}
             onContextMenu={handleBoardContextMenu}
             onKeyDown={handleBoardKeyDown}
-            onPointerDown={paintMode ? handleBoardPointerDown : undefined}
-            onPointerOver={paintMode ? handleBoardPointerOver : undefined}
             {...props}
         >
             {keysPositions}
@@ -749,6 +699,7 @@ const PhysicalLayoutCanvasImpl = ({
         <div
             ref={viewportRef}
             className="absolute inset-0 overflow-hidden flex items-center justify-center touch-none select-none cursor-grab active:cursor-grabbing"
+            style={{ paddingTop: TOOLBAR_CLEARANCE }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}

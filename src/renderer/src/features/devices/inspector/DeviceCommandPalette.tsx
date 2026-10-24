@@ -60,6 +60,7 @@ export function DeviceCommandPalette(): JSX.Element | null {
         <CommandDialog
             open={!!pick}
             onOpenChange={(open) => !open && setPick(null)}
+            title="Assign an action"
         >
             <CommandInput
                 placeholder={`Assign action to ${pick?.title ?? ''}…`}

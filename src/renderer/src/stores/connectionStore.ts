@@ -1,6 +1,6 @@
 // pattern-check: skip mechanical drop-field codemod — removes RpcConnection from store; service is the sole connection handle
 // Pattern check: no GoF pattern (-) — rejected — additive zustand store slice for keyCatalog; existing store already exists, no abstraction needed.
-import { create, StateCreator } from 'zustand'
+import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { KeyCatalog } from '@firmware/catalog/types'
 import type { KeyboardService } from '@firmware/service'
@@ -32,6 +32,23 @@ let lastHwDefaultLayer: number | null = null
 // defaultLayerUnsub, for the same reason.
 let configReseedUnsub: (() => void) | null = null
 
+// A device switch is replacing the open device. The device being left closes
+// during it (on a one-link transport the next device's open closes it), and
+// that close must not clear the connection the switch is about to fill.
+let switching = false
+
+/** A service's lock state; 'locked' when the read fails. */
+export async function readLockState(
+    service: KeyboardService,
+): Promise<LockState> {
+    try {
+        return await service.getLockState()
+    } catch (err) {
+        console.warn('getLockState failed', err)
+        return 'locked'
+    }
+}
+
 // Seed (and later re-seed, via reseedConfigIfStale) the config store's
 // source-of-truth from the device. getConfigSource returns COMMITTED truth
 // (staged edits excluded), so running this after a commit mirrors the
@@ -58,6 +75,12 @@ function seedConfigFromService(
             if (isCurrent()) useConfigStore.getState().reset()
         })
 }
+
+/** The devices a switch or disconnect closes. */
+export type OpenDevices = Pick<
+    ConnectionState,
+    'service' | 'parentService' | 'connectionAbort'
+>
 
 interface ConnectionState {
     service: KeyboardService | null
@@ -88,16 +111,24 @@ interface ConnectionState {
     /** Show a newly connected service together with its lock state. The store
      *  holds 'locked' until a service's state is read, so publishing the
      *  service first drew the locked screen for a moment on every board with
-     *  an 'editor' lock (ZMK). Reads the state, sets it, then the service. */
+     *  an 'editor' lock (ZMK). Reads the state (unless given, which publishes
+     *  in the same tick), sets it, then the service. */
     publishService: (
         service: KeyboardService,
         communication?: 'serial' | 'ble' | 'hid',
+        lockState?: LockState,
     ) => Promise<void>
-    setKeyCatalog: (catalog: KeyCatalog | null) => void
+    /** A service reports it closed: the connection clears only while that
+     *  service is the device shown (or the dongle under its node view) and no
+     *  switch is replacing it. */
+    serviceClosed: (service: KeyboardService) => void
+    /** Mark a device switch as running (see `serviceClosed`). */
+    setSwitching: (on: boolean) => void
+    /** Close these devices — the service, the dongle under a node view — and
+     *  abort their connection. Leaves the store alone. */
+    closeDevices: (open: OpenDevices) => Promise<void>
     setConnectionAbort: (abort: AbortController) => void
     resetConnection: () => void
-    showConnectionModal: boolean
-    setShowConnectionModal: (visible: boolean) => void
     /** Re-seed configStore from the device if a save landed since the last seed
      *  (configStore.stale). Called by freshness-sensitive consumers (Download
      *  modal, Builder) right before they read — keeps the post-save hot path free
@@ -115,24 +146,9 @@ interface ConnectionState {
     disconnect: () => Promise<boolean>
 }
 
-const connectionMiddleware =
-    (config: StateCreator<ConnectionState>): StateCreator<ConnectionState> =>
-    (set, get, api) =>
-        config(
-            (args, replace) => {
-                const next = args as Partial<ConnectionState>
-                if ('service' in next) {
-                    set({ showConnectionModal: next.service === null })
-                }
-                set(args, replace as false | undefined)
-            },
-            get,
-            api,
-        )
-
 const useConnectionStore = create<ConnectionState>()(
     devtools(
-        connectionMiddleware((set, get) => ({
+        (set, get) => ({
             service: null,
             parentService: null,
             activeNodeId: null,
@@ -295,17 +311,46 @@ const useConnectionStore = create<ConnectionState>()(
                 set({ lastConnectedDevice: device }),
             setDeviceName: (name) => set({ deviceName: name }),
             setLockState: (state) => set({ lockState: state }),
-            publishService: async (service, communication) => {
-                let lockState: LockState = 'locked'
-                try {
-                    lockState = await service.getLockState()
-                } catch (err) {
-                    console.warn('getLockState failed', err)
-                }
+            publishService: async (service, communication, known) => {
+                const lockState = known ?? (await readLockState(service))
                 get().setLockState(lockState)
                 get().setService(service, communication)
             },
-            setKeyCatalog: (catalog) => set({ keyCatalog: catalog }),
+            serviceClosed: (closed) => {
+                if (switching) return
+                const { service, parentService } = get()
+                if (service !== closed && parentService !== closed) return
+                set({ deviceName: null })
+                get().setService(null)
+            },
+            setSwitching: (on) => {
+                switching = on
+            },
+            closeDevices: async ({
+                service,
+                parentService,
+                connectionAbort,
+            }) => {
+                if (!service) return
+                try {
+                    await service.disconnect()
+                } catch (error) {
+                    console.warn('Failed to disconnect service cleanly', error)
+                }
+                // On a node view, `service.disconnect()` is a no-op on the shared
+                // dongle transport — tear the dongle down too so it doesn't leak.
+                if (parentService && parentService !== service) {
+                    try {
+                        await parentService.disconnect()
+                    } catch (error) {
+                        console.warn(
+                            'Failed to disconnect parent service cleanly',
+                            error,
+                        )
+                    }
+                }
+                connectionAbort.abort('User disconnected')
+            },
             setConnectionAbort: (abort) => set({ connectionAbort: abort }),
             openNode: async (id) => {
                 // The node roster lives on the dongle. When already viewing a node
@@ -372,46 +417,15 @@ const useConnectionStore = create<ConnectionState>()(
                 useDynamicCatalogStore.getState().reset()
                 useConfigStore.getState().reset()
             },
-            showConnectionModal: false,
-            setShowConnectionModal: (visible) =>
-                set({ showConnectionModal: visible }),
             disconnect: async () => {
                 if (!(await confirmLeave(get().service))) return false
-                const {
-                    service,
-                    parentService,
-                    connectionAbort,
-                    resetConnection,
-                } = get()
-                if (!service) {
-                    return true
-                }
-
-                try {
-                    await service.disconnect()
-                } catch (error) {
-                    console.warn('Failed to disconnect service cleanly', error)
-                }
-
-                // On a node view, `service.disconnect()` is a no-op on the shared
-                // dongle transport — tear the dongle down too so it doesn't leak.
-                if (parentService && parentService !== service) {
-                    try {
-                        await parentService.disconnect()
-                    } catch (error) {
-                        console.warn(
-                            'Failed to disconnect parent service cleanly',
-                            error,
-                        )
-                    }
-                }
-
-                connectionAbort.abort('User disconnected')
-                resetConnection()
+                if (!get().service) return true
+                await get().closeDevices(get())
+                get().resetConnection()
                 set({ connectionAbort: new AbortController() })
                 return true
             },
-        })),
+        }),
         {
             // The live service sits in this state and the Redux DevTools
             // extension JSON-serializes it on every set. A Vial service holds a

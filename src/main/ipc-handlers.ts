@@ -8,9 +8,13 @@
  */
 
 import { type BrowserWindow, ipcMain } from 'electron'
-import { IpcChannels, IpcEvents } from '../shared/ipc-types'
+import { IpcChannels, IpcEvents, type LinkId } from '../shared/ipc-types'
 import { createLogger } from '../shared/logger'
-import { validateAvailableDevice, validateUint8Array } from './ipc-validation'
+import {
+    validateAvailableDevice,
+    validateLinkId,
+    validateUint8Array,
+} from './ipc-validation'
 import {
     connectSerial,
     disconnectSerial,
@@ -20,14 +24,12 @@ import {
 import {
     connectGattDevice,
     disconnectGattDevice,
-    hasActiveBluezConnection,
     listGattDevices,
     writeGatt,
 } from './bluez'
 import {
     connectHidDevice,
     disconnectHidDevice,
-    hasActiveHidConnection,
     type HidDiscoveryFilter,
     listHidDevices,
     listHidMice,
@@ -80,11 +82,61 @@ function parseHidDiscovery(arg: unknown): HidDiscoveryFilter[] {
         .filter((f): f is HidDiscoveryFilter => f !== null)
 }
 
-// Tracks which transport currently owns send/close. Set when a transport
-// connects, cleared on disconnect/error. Lets TRANSPORT_SEND_DATA and
-// TRANSPORT_CLOSE route to whichever transport is active.
-type ActiveKind = 'serial' | 'bluez' | 'hid' | null
-let activeKind: ActiveKind = null
+// pattern-check: skip — link-id bookkeeping over the existing per-kind connect/close/write functions; two lookup tables, no abstraction.
+type LinkKind = 'serial' | 'bluez' | 'hid'
+
+interface LinkCallbacks {
+    onData: (data: number[]) => void
+    onDisconnected: () => void
+}
+
+// The open device links by id. Each kind's module keeps one link (opening a
+// second serial port closes the first), and every connect gets a fresh id: a
+// write or close from an adapter whose link was replaced (a device switch)
+// is refused or dropped instead of reaching the link that replaced it.
+const links = new Map<LinkId, LinkKind>()
+let nextLinkId = 1
+
+const CLOSE_LINK: Readonly<Record<LinkKind, () => Promise<void>>> = {
+    serial: disconnectSerial,
+    bluez: disconnectGattDevice,
+    hid: disconnectHidDevice,
+}
+
+const WRITE_LINK: Readonly<
+    Record<LinkKind, (data: Uint8Array) => Promise<void>>
+> = {
+    serial: writeSerial,
+    bluez: writeGatt,
+    hid: writeHid,
+}
+
+/** A fresh id for a link about to open, and callbacks that tag its events. */
+function beginLink(): { id: LinkId; callbacks: LinkCallbacks } {
+    const id = nextLinkId++
+    return {
+        id,
+        callbacks: {
+            onData: (data) => ipcHandlerContext.emitConnectionData(id, data),
+            onDisconnected: () => endLink(id),
+        },
+    }
+}
+
+/** Record `id` as its kind's open link. A link of the same kind it replaced
+ *  (the module's connect closed it) is reported closed. */
+function commitLink(id: LinkId, kind: LinkKind): void {
+    for (const [other, k] of links) {
+        if (k === kind && other !== id) endLink(other)
+    }
+    links.set(id, kind)
+}
+
+/** Forget a link and tell the renderer it closed — once. */
+function endLink(id: LinkId): void {
+    if (!links.delete(id)) return
+    ipcHandlerContext.emitConnectionDisconnected(id)
+}
 
 /** Send an event to all renderer windows */
 function sendToAllWindows(
@@ -118,20 +170,10 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
 
     ipcMain.handle(IpcChannels.SERIAL_CONNECT, async (_, device: unknown) => {
         const validDevice = validateAvailableDevice(device)
-        const ok = await connectSerial(validDevice.id, {
-            onData: (data) => ipcHandlerContext.emitConnectionData(data),
-            onDisconnected: () => {
-                activeKind = null
-                ipcHandlerContext.emitConnectionDisconnected()
-            },
-        })
-        if (ok) activeKind = 'serial'
-        return ok
-    })
-
-    ipcMain.handle(IpcChannels.SERIAL_DISCONNECT, async () => {
-        await disconnectSerial()
-        if (activeKind === 'serial') activeKind = null
+        const link = beginLink()
+        await connectSerial(validDevice.id, link.callbacks)
+        commitLink(link.id, 'serial')
+        return link.id
     })
 
     // --- BLE Device Handlers ---
@@ -157,21 +199,15 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
             return { ok: false, error: 'Invalid discovery payload' }
         }
         try {
+            const link = beginLink()
             const label = await connectGattDevice(
                 devicePath,
                 d.serviceUuid,
                 d.charUuid,
-                {
-                    onData: (data) =>
-                        ipcHandlerContext.emitConnectionData(data),
-                    onDisconnected: () => {
-                        activeKind = null
-                        ipcHandlerContext.emitConnectionDisconnected()
-                    },
-                },
+                link.callbacks,
             )
-            activeKind = 'bluez'
-            return { ok: true, label }
+            commitLink(link.id, 'bluez')
+            return { ok: true, label, linkId: link.id }
         } catch (e) {
             const msg = e instanceof Error ? e.message : String(e)
             log.error('BLUEZ_CONNECT failed:', msg)
@@ -196,15 +232,10 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
             a?.device && typeof a.device.id === 'string' ? a.device.id : null
         if (!path) return { ok: false, error: 'Invalid HID device path' }
         try {
-            const label = await connectHidDevice(path, {
-                onData: (data) => ipcHandlerContext.emitConnectionData(data),
-                onDisconnected: () => {
-                    activeKind = null
-                    ipcHandlerContext.emitConnectionDisconnected()
-                },
-            })
-            activeKind = 'hid'
-            return { ok: true, label }
+            const link = beginLink()
+            const label = await connectHidDevice(path, link.callbacks)
+            commitLink(link.id, 'hid')
+            return { ok: true, label, linkId: link.id }
         } catch (e) {
             const msg = e instanceof Error ? e.message : String(e)
             log.error('HID_CONNECT failed:', msg)
@@ -212,31 +243,24 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
         }
     })
 
-    // --- Transport Handlers (route via activeKind) ---
+    // --- Transport Handlers (addressed by link id) ---
 
     ipcMain.handle(
         IpcChannels.TRANSPORT_SEND_DATA,
-        async (_, data: unknown) => {
-            const validData = validateUint8Array(data)
-            if (activeKind === 'bluez') {
-                await writeGatt(validData)
-            } else if (activeKind === 'hid') {
-                await writeHid(validData)
-            } else {
-                await writeSerial(validData)
-            }
+        async (_, linkId: unknown, data: unknown) => {
+            const kind = links.get(validateLinkId(linkId))
+            if (!kind) throw new Error('The device link is closed')
+            await WRITE_LINK[kind](validateUint8Array(data))
         },
     )
 
-    ipcMain.handle(IpcChannels.TRANSPORT_CLOSE, async () => {
-        if (activeKind === 'bluez' || hasActiveBluezConnection()) {
-            await disconnectGattDevice()
-        } else if (activeKind === 'hid' || hasActiveHidConnection()) {
-            await disconnectHidDevice()
-        } else {
-            await disconnectSerial()
-        }
-        activeKind = null
+    ipcMain.handle(IpcChannels.TRANSPORT_CLOSE, async (_, linkId: unknown) => {
+        const id = validateLinkId(linkId)
+        const kind = links.get(id)
+        // Already replaced or closed: nothing of this link is left to close.
+        if (!kind) return
+        links.delete(id)
+        await CLOSE_LINK[kind]()
     })
 
     // Expose event helpers for use by transport implementations
@@ -248,12 +272,20 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
  * to push data/events to the renderer process.
  */
 function setupEventEmitters(getWindows: () => BrowserWindow[]): void {
-    ipcHandlerContext.emitConnectionData = (data: number[]): void => {
-        sendToAllWindows(getWindows(), IpcEvents.CONNECTION_DATA, data)
+    ipcHandlerContext.emitConnectionData = (
+        linkId: LinkId,
+        data: number[],
+    ): void => {
+        sendToAllWindows(getWindows(), IpcEvents.CONNECTION_DATA, {
+            linkId,
+            data,
+        })
     }
 
-    ipcHandlerContext.emitConnectionDisconnected = (): void => {
-        sendToAllWindows(getWindows(), IpcEvents.CONNECTION_DISCONNECTED)
+    ipcHandlerContext.emitConnectionDisconnected = (linkId: LinkId): void => {
+        sendToAllWindows(getWindows(), IpcEvents.CONNECTION_DISCONNECTED, {
+            linkId,
+        })
     }
 }
 
@@ -263,15 +295,7 @@ function setupEventEmitters(getWindows: () => BrowserWindow[]): void {
  */
 export const ipcHandlerContext = {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    emitConnectionData: (_data: number[]): void => {},
-    emitConnectionDisconnected: (): void => {},
-}
-
-/**
- * Remove all registered IPC handlers. Useful for cleanup/testing.
- */
-export function removeIpcHandlers(): void {
-    for (const channel of Object.values(IpcChannels)) {
-        ipcMain.removeHandler(channel)
-    }
+    emitConnectionData: (_linkId: LinkId, _data: number[]): void => {},
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    emitConnectionDisconnected: (_linkId: LinkId): void => {},
 }

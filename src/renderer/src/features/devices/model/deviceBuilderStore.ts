@@ -105,10 +105,9 @@ const useDeviceBuilderStore = create<DeviceBuilderState>()((set, get) => ({
         if (!layout) return
         const service = connectMockDeviceWithModel(layout)
         const conn = useConnectionStore.getState()
-        service.onClosed(() => {
-            useConnectionStore.getState().setDeviceName(null)
-            useConnectionStore.getState().setService(null)
-        })
+        service.onClosed(() =>
+            useConnectionStore.getState().serviceClosed(service),
+        )
         conn.setDeviceName(service.deviceInfo.name)
         conn.setService(service)
         // Keep the builder workspace so "Back to Builder" restores it.

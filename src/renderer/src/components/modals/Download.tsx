@@ -124,10 +124,9 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
         const cfg = useConfigStore.getState().config
         if (cfg && conn.service?.capabilities.demo) {
             const next = connectMockWithConfig(cfg)
-            next.onClosed((): void => {
-                useConnectionStore.getState().setDeviceName(null)
-                useConnectionStore.getState().setService(null)
-            })
+            next.onClosed((): void =>
+                useConnectionStore.getState().serviceClosed(next),
+            )
             conn.setDeviceName(next.deviceInfo.name)
             await conn.publishService(next)
             onClose?.()

@@ -529,7 +529,3 @@ export async function disconnectGattDevice(): Promise<void> {
         /* ignore */
     }
 }
-
-export function hasActiveBluezConnection(): boolean {
-    return active !== null
-}

@@ -3,11 +3,15 @@ import { toast } from 'sonner'
 import type { Transport } from '@firmware'
 import { pickAdapter, UserCancelledError } from '@firmware'
 import type { KeyboardService } from '@firmware/service'
+import type { LockState } from '@firmware/types'
 import { rememberConnectedDeviceName } from '@/transport/web-serial'
 import { ensureFirmwareClientsLoaded } from '@/transport/adapter/firmwareClients'
 import { withSaveMode } from '@/lib/saveMode'
 import { withUnlockPrompt } from '@/lib/unlockPrompt'
-import useConnectionStore from '@/stores/connectionStore'
+import useConnectionStore, {
+    readLockState,
+    type OpenDevices,
+} from '@/stores/connectionStore'
 import { confirmLeave } from '@/stores/leaveGuardStore'
 import undoRedoStore from '@/stores/undoRedoStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
@@ -81,24 +85,24 @@ async function openDevice(
     }
 }
 
-/** Show an opened device as the connected one. */
+/** Show an opened device as the connected one. With its lock state known,
+ *  everything up to the service landing in the store runs in one tick. */
 async function publishDevice(
     opened: OpenedDevice,
     communication: Communication,
+    lockState?: LockState,
 ): Promise<void> {
     const store = useConnectionStore.getState()
     // Disconnect aborts whichever controller is live.
     store.setConnectionAbort(opened.abort)
-    opened.service.onClosed((): void => {
-        const s = useConnectionStore.getState()
-        s.setDeviceName(null)
-        s.setService(null)
-    })
+    opened.service.onClosed((): void =>
+        useConnectionStore.getState().serviceClosed(opened.wrapped),
+    )
     store.setDeviceName(opened.service.deviceInfo.name)
     if (communication === 'serial') {
         rememberConnectedDeviceName(opened.service.deviceInfo.name)
     }
-    await store.publishService(opened.wrapped, communication)
+    await store.publishService(opened.wrapped, communication, lockState)
     // The client's own notes on how this connection was made (e.g. it had to
     // fall back to a reduced mode) — shown once, never silent.
     for (const notice of opened.service.connectNotices ?? []) {
@@ -118,42 +122,105 @@ export async function connectTransport(
     return true
 }
 
+/** Open `target`'s transport and run the handshake; null (after a toast)
+ *  when that fails. */
+async function openTarget(
+    target: DeviceWithTransport,
+): Promise<OpenedDevice | null> {
+    const { device, transport } = target
+    try {
+        await ensureFirmwareClientsLoaded()
+        const rpc = await transport.pick_and_connect!.connect(device)
+        return await openDevice(rpc, transport.communication)
+    } catch (e) {
+        console.error('Connection error:', e)
+        reportConnectError(e, 'Failed to connect to the selected device.')
+        return null
+    }
+}
+
+/** The devices open now, for closing once the switch no longer shows them. */
+function openDevices(): OpenDevices {
+    const { service, parentService, connectionAbort } =
+        useConnectionStore.getState()
+    return { service, parentService, connectionAbort }
+}
+
+/** Show `opened` as `target`, with a fresh edit history, in one store update:
+ *  the screen goes from the device left straight to the next one, never
+ *  through the start page. */
+async function showTarget(
+    target: DeviceWithTransport,
+    opened: OpenedDevice,
+): Promise<void> {
+    const lockState = await readLockState(opened.wrapped)
+    const store = useConnectionStore.getState()
+    undoRedoStore.getState().reset()
+    store.resetConnection()
+    store.setLastConnectedDevice({
+        id: target.device.id,
+        label: target.device.label,
+    })
+    await publishDevice(opened, target.transport.communication, lockState)
+}
+
+/** Close the current device, then open `target`; the device left stays on
+ *  screen meanwhile. A failed open lands on the start page. */
+async function closeThenOpen(target: DeviceWithTransport): Promise<boolean> {
+    const store = useConnectionStore.getState()
+    await store.closeDevices(openDevices())
+    const opened = await openTarget(target)
+    if (!opened) {
+        store.resetConnection()
+        store.setConnectionAbort(new AbortController())
+        return false
+    }
+    await showTarget(target, opened)
+    return true
+}
+
+/** Open `target` beside the current device, show it, then close the device
+ *  left, so a failed open leaves the user where they were. */
+async function openThenClose(target: DeviceWithTransport): Promise<boolean> {
+    const opened = await openTarget(target)
+    if (!opened) return false
+    const left = openDevices()
+    await showTarget(target, opened)
+    await useConnectionStore.getState().closeDevices(left)
+    return true
+}
+
+/** A switch is running; another click waits for it instead of racing it. */
+let switching = false
+
 /**
  * Switch from the connected device to `target`. Asks first when the current
- * device holds unsaved edits; opens the new device before closing the old one,
- * so a failed connect leaves the user where they were and a good one never
- * passes through the start page. Resolves true once `target` is shown.
+ * device holds unsaved edits. Opens the new device before closing the old
+ * one, so a failed connect leaves the user where they were and a good one
+ * never passes through the start page — except on a single-link transport
+ * already holding the current device, where opening would close it first.
+ * Resolves true once `target` is shown; false while another switch runs.
  */
 export async function switchToDevice(
     target: DeviceWithTransport,
 ): Promise<boolean> {
-    if (!(await confirmLeave(useConnectionStore.getState().service))) {
-        return false
-    }
-    const { device, transport } = target
-    const communication = transport.communication
-    let opened: OpenedDevice | null
+    if (switching) return false
+    switching = true
+    const store = useConnectionStore.getState()
+    // The device left closes during the switch; its close must not clear
+    // the connection on the way to the next one.
+    store.setSwitching(true)
     try {
-        await ensureFirmwareClientsLoaded()
-        const rpc = await transport.pick_and_connect!.connect(device)
-        opened = await openDevice(rpc, communication)
-    } catch (e) {
-        console.error('Connection error:', e)
-        reportConnectError(e, 'Failed to connect to the selected device.')
-        return false
+        const { service, communication } = useConnectionStore.getState()
+        if (!(await confirmLeave(service))) return false
+        const sameLink =
+            !!target.transport.singleLink &&
+            communication === target.transport.communication
+        return sameLink
+            ? await closeThenOpen(target)
+            : await openThenClose(target)
+    } finally {
+        store.setSwitching(false)
+        switching = false
     }
-    if (!opened) return false
-    if (!(await useConnectionStore.getState().disconnect())) {
-        // Edits came back on the old device and the user chose to stay.
-        await opened.service.disconnect().catch((e: unknown) => {
-            console.warn('Failed to close the device not switched to', e)
-        })
-        return false
-    }
-    undoRedoStore.getState().reset()
-    useConnectionStore
-        .getState()
-        .setLastConnectedDevice({ id: device.id, label: device.label })
-    await publishDevice(opened, communication)
-    return true
 }

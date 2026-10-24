@@ -134,7 +134,11 @@ export function CommandAssign({
     }, [pages, valueByEntryId])
 
     return (
-        <CommandDialog open={open} onOpenChange={onOpenChange}>
+        <CommandDialog
+            open={open}
+            onOpenChange={onOpenChange}
+            title="Assign an action"
+        >
             <CommandInput
                 placeholder={
                     targetCount > 1

@@ -329,6 +329,37 @@ function ControlShapeView({
             : c.shape === 'ring'
               ? RingBody
               : INSETS[c.shape]
+    const className =
+        'absolute grid place-items-center p-0 transition-[transform,box-shadow,left,top] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring'
+    const style: CSSProperties = {
+        cursor: onPress ? 'grab' : 'pointer',
+        left: box.x,
+        top: box.y,
+        width: box.w,
+        height: box.h,
+        borderRadius:
+            c.shape === 'dpad' ? 12 : controlRadius(c.shape, box.w, box.h),
+        transform: `rotate(${c.r ?? 0}deg)${pressed ? ' scale(.93)' : ''}`,
+        boxShadow: shadowOf(col, { selected, hovered, pressed, flat }),
+        ...surfaceStyle(c, box, col, selected || hovered),
+        ...(c.shape === 'wheel' ? treadOffset(box, deflect.x) : {}),
+    }
+    const content = (
+        <>
+            {Inset ? <Inset {...body} /> : null}
+            {c.shape !== 'stick' && c.shape !== 'key' && !flat ? (
+                <Glyph c={c} box={box} col={col} />
+            ) : null}
+        </>
+    )
+    // A preview is a picture inside a clickable tile: no button of its own
+    // (a button inside a button is invalid and steals the tile's clicks).
+    if (preview)
+        return (
+            <div aria-hidden className={className} style={style}>
+                {content}
+            </div>
+        )
     return (
         <button
             type="button"
@@ -341,27 +372,10 @@ function ControlShapeView({
             }}
             onPointerEnter={() => onHover(c.id)}
             onPointerLeave={() => onHover(null)}
-            className="absolute grid place-items-center p-0 transition-[transform,box-shadow,left,top] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style={{
-                cursor: onPress ? 'grab' : 'pointer',
-                left: box.x,
-                top: box.y,
-                width: box.w,
-                height: box.h,
-                borderRadius:
-                    c.shape === 'dpad'
-                        ? 12
-                        : controlRadius(c.shape, box.w, box.h),
-                transform: `rotate(${c.r ?? 0}deg)${pressed ? ' scale(.93)' : ''}`,
-                boxShadow: shadowOf(col, { selected, hovered, pressed, flat }),
-                ...surfaceStyle(c, box, col, selected || hovered),
-                ...(c.shape === 'wheel' ? treadOffset(box, deflect.x) : {}),
-            }}
+            className={className}
+            style={style}
         >
-            {Inset ? <Inset {...body} /> : null}
-            {c.shape !== 'stick' && c.shape !== 'key' && !flat ? (
-                <Glyph c={c} box={box} col={col} />
-            ) : null}
+            {content}
         </button>
     )
 }

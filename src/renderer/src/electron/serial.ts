@@ -14,9 +14,12 @@ export class ElectronSerialAdapter extends IpcTransportAdapter {
     }
 
     protected async connectIpc(): Promise<IpcConnectResult> {
-        const ok = await window.api.invoke(IpcChannels.SERIAL_CONNECT, this.dev)
-        if (!ok) throw new Error('Failed to connect')
-        return { label: this.dev.label }
+        const linkId = await window.api.invoke(
+            IpcChannels.SERIAL_CONNECT,
+            this.dev,
+        )
+        if (typeof linkId !== 'number') throw new Error('Failed to connect')
+        return { label: this.dev.label, linkId }
     }
 }
 
@@ -37,6 +40,7 @@ registerTransport({
         return {
             label: 'USB',
             communication: 'serial',
+            singleLink: true,
             pick_and_connect: {
                 list: () => list_devices(),
                 connect: (dev) => new ElectronSerialAdapter(dev).connect(),

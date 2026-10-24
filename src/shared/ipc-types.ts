@@ -9,16 +9,6 @@ export interface AvailableDevice {
     id: string
 }
 
-/**
- * BLE discovery descriptor supplied by the renderer (adapter-owned).
- * Shell layers MUST treat the UUIDs as opaque identifiers — they exist
- * to keep the shell firmware-neutral.
- */
-export interface BleDiscoveryPayload {
-    serviceUuid: string
-    charUuid: string
-}
-
 // pattern-check: skip — flat IPC DTO, no behavior
 /** One firmware family's HID match criteria. */
 export interface HidDiscoveryFilter {
@@ -44,6 +34,21 @@ export interface HidMousePayload {
     serialNumber?: string
 }
 
+/**
+ * One open device link in main. Every connect returns a fresh id; writes and
+ * closes name the link they mean, and data / disconnect events name the link
+ * they came from, so an adapter whose link was replaced can neither close nor
+ * hear the link that replaced it.
+ */
+export type LinkId = number
+
+export interface LinkConnectResult {
+    ok: boolean
+    label?: string
+    linkId?: LinkId
+    error?: string
+}
+
 // --- IPC Channel Names ---
 
 /** Request/response channels (renderer invokes, main handles) */
@@ -51,7 +56,6 @@ export const IpcChannels = {
     // Serial device operations
     SERIAL_LIST_DEVICES: 'serial:list-devices',
     SERIAL_CONNECT: 'serial:connect',
-    SERIAL_DISCONNECT: 'serial:disconnect',
 
     // BLE device operations (Web Bluetooth flow — discovery + connect happen
     // in the renderer; main only coordinates scan lifecycle and chooser).
@@ -72,7 +76,8 @@ export const IpcChannels = {
     // Platform info
     GET_PLATFORM: 'platform:get',
 
-    // Transport operations (shared by serial & BLE)
+    // Transport operations (shared by serial, BlueZ and HID), addressed by the
+    // link id the connect returned
     TRANSPORT_SEND_DATA: 'transport:send-data',
     TRANSPORT_CLOSE: 'transport:close',
 
@@ -128,125 +133,6 @@ export interface UpdateCheckResultPayload {
     version?: string
     url?: string
     error?: string
-}
-
-export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]
-export type IpcEvent = (typeof IpcEvents)[keyof typeof IpcEvents]
-
-// --- Payload Types ---
-
-/** Map of invoke channel -> { params, result } */
-export interface IpcInvokeMap {
-    [IpcChannels.SERIAL_LIST_DEVICES]: {
-        params: void
-        result: AvailableDevice[]
-    }
-    [IpcChannels.SERIAL_CONNECT]: {
-        params: AvailableDevice
-        result: boolean
-    }
-    [IpcChannels.SERIAL_DISCONNECT]: {
-        params: void
-        result: void
-    }
-    [IpcChannels.BLE_START_SCAN]: {
-        params: void
-        result: void
-    }
-    [IpcChannels.BLE_STOP_SCAN]: {
-        params: void
-        result: void
-    }
-    [IpcChannels.BLE_SELECT_DEVICE]: {
-        params: string
-        result: boolean
-    }
-    [IpcChannels.BLUEZ_LIST_DEVICES]: {
-        params: BleDiscoveryPayload
-        result: AvailableDevice[]
-    }
-    [IpcChannels.BLUEZ_CONNECT]: {
-        params: { devicePath: string } & BleDiscoveryPayload
-        result: { ok: boolean; label?: string; error?: string }
-    }
-    [IpcChannels.HID_LIST_DEVICES]: {
-        params: HidDiscoveryPayload
-        result: AvailableDevice[]
-    }
-    [IpcChannels.HID_CONNECT]: {
-        params: { device: AvailableDevice }
-        result: { ok: boolean; label?: string; error?: string }
-    }
-    [IpcChannels.HID_LIST_MICE]: {
-        params: void
-        result: HidMousePayload[]
-    }
-    [IpcChannels.GET_PLATFORM]: {
-        params: void
-        result: NodeJS.Platform
-    }
-    [IpcChannels.TRANSPORT_SEND_DATA]: {
-        params: Uint8Array
-        result: void
-    }
-    [IpcChannels.TRANSPORT_CLOSE]: {
-        params: void
-        result: void
-    }
-    [IpcChannels.UPDATES_CHECK]: {
-        params: void
-        result: UpdateCheckResultPayload
-    }
-    [IpcChannels.WINDOW_MINIMIZE]: {
-        params: void
-        result: void
-    }
-    [IpcChannels.WINDOW_MAXIMIZE_TOGGLE]: {
-        params: void
-        result: boolean
-    }
-    [IpcChannels.WINDOW_CLOSE]: {
-        params: void
-        result: void
-    }
-    [IpcChannels.WINDOW_IS_MAXIMIZED]: {
-        params: void
-        result: boolean
-    }
-    [IpcChannels.WINDOW_SET_UNSAVED]: {
-        params: boolean
-        result: void
-    }
-    /** true = leave (close, or finish the quit); false = the user stays. */
-    [IpcChannels.WINDOW_LEAVE_DECIDED]: {
-        params: boolean
-        result: void
-    }
-    [IpcChannels.SECRET_GET]: {
-        params: { key: string }
-        result: string | null
-    }
-    [IpcChannels.SECRET_SET]: {
-        params: { key: string; value: string }
-        result: boolean
-    }
-    [IpcChannels.SECRET_DELETE]: {
-        params: { key: string }
-        result: boolean
-    }
-    [IpcChannels.GITHUB_DOWNLOAD_ARTIFACT]: {
-        params: { url: string }
-        result: Uint8Array | null
-    }
-}
-
-/** Map of event channel -> payload type */
-export interface IpcEventMap {
-    [IpcEvents.CONNECTION_DATA]: number[]
-    [IpcEvents.CONNECTION_DISCONNECTED]: void
-    [IpcEvents.BLE_DEVICES_DISCOVERED]: AvailableDevice[]
-    [IpcEvents.UPDATE_AVAILABLE]: UpdateAvailablePayload
-    [IpcEvents.WINDOW_LEAVE_REQUESTED]: void
 }
 
 // --- Preload API Surface ---

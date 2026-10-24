@@ -1,5 +1,6 @@
 // Pattern check: no GoF pattern (-) — rejected — a hook merging three device sources (listed transports, dongle nodes, demo set) into one RosterEntry list; each source is one small builder function.
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Bluetooth, Keyboard, Usb, type LucideIcon } from 'lucide-react'
 import { DEMO_DEVICES, type DemoDeviceId } from '@firmware'
 import type { DeviceForm, DeviceKind } from '@firmware/devices/types'
@@ -127,6 +128,39 @@ function describe(
     return { icon: Usb, label: 'Device', kind: 'other' }
 }
 
+/**
+ * The listed device a connection without a known id came from (a browser
+ * pick): the only one on its kind of transport carrying the connected
+ * device's name. Undefined when none or several do.
+ */
+function matchListed(
+    listed: readonly DeviceWithTransport[],
+    name: string,
+    communication: string | null,
+): string | undefined {
+    const hits = listed.filter(
+        (d) =>
+            d.transport.communication === communication &&
+            d.device.label.trim() === name,
+    )
+    return hits.length === 1 ? hits[0].device.id : undefined
+}
+
+/** Open a node through its dongle; a refusal (an asleep or busy node) says
+ *  why instead of failing silently. */
+async function openNodeOrToast(
+    openNode: (id: number) => Promise<void>,
+    id: number,
+): Promise<void> {
+    try {
+        await openNode(id)
+    } catch (e) {
+        toast.error('Failed to open the device', {
+            description: e instanceof Error ? e.message : String(e),
+        })
+    }
+}
+
 function demoEntries(activeId: DemoDeviceId | null): RosterEntry[] {
     return DEMO_DEVICES.map((d) => ({
         key: `demo:${d.id}`,
@@ -154,6 +188,7 @@ export function useDeviceRoster(): {
     const activeNodeId = useConnectionStore((s) => s.activeNodeId)
     const currentId = useConnectionStore((s) => s.lastConnectedDevice?.id)
     const deviceName = useConnectionStore((s) => s.deviceName)
+    const communication = useConnectionStore((s) => s.communication)
     const openNode = useConnectionStore((s) => s.openNode)
     const returnToParent = useConnectionStore((s) => s.returnToParent)
     const snapshots = useDevicePreviewStore((s) => s.snapshots)
@@ -174,9 +209,11 @@ export function useDeviceRoster(): {
                 e.active && battery ? { ...e, battery } : e,
             )
         }
+        const name = deviceName?.trim() || service.deviceInfo.name || 'Device'
+        const selfId = currentId ?? matchListed(listed, name, communication)
         const out: RosterEntry[] = listed.map((d) => {
             const { icon, label, kind } = describe(d, snapshots[d.device.id])
-            const current = d.device.id === currentId
+            const current = d.device.id === selfId
             const via = d.transport.isWireless ? 'Bluetooth' : 'USB'
             return {
                 key: `dev:${d.device.id}`,
@@ -220,13 +257,12 @@ export function useDeviceRoster(): {
                 online: n.online,
                 active,
                 ...(nodeBattery ? { battery: nodeBattery } : {}),
-                open: () => openNode(n.id),
+                open: () => openNodeOrToast(openNode, n.id),
             })
         }
         if (out.some((e) => e.active)) return out
         // A device not on any listable transport (web simple-connect): still
         // the one being edited, so it leads the roster.
-        const name = deviceName?.trim() || service.deviceInfo.name || 'Device'
         return [
             {
                 key: `self:${name}`,
@@ -256,6 +292,7 @@ export function useDeviceRoster(): {
         activeNodeId,
         openNode,
         deviceName,
+        communication,
         battery,
     ])
 

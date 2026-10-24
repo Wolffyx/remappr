@@ -216,9 +216,7 @@ export async function connectSerial(
     callbacks: SerialEventCallbacks,
     baudRate: number = ZMK_SERIAL_BAUD,
 ): Promise<boolean> {
-    if (activeConnection) {
-        await disconnectSerial()
-    }
+    await disconnectSerial()
 
     if (!knownSerialPaths.has(deviceId)) {
         throw new Error(
@@ -252,7 +250,8 @@ export async function connectSerial(
                 })
 
                 port.on('close', () => {
-                    activeConnection = null
+                    // A port closed for a newer connection must not clear it.
+                    if (activeConnection?.port === port) activeConnection = null
                     callbacks.onDisconnected()
                 })
 
@@ -265,20 +264,26 @@ export async function connectSerial(
     }
 }
 
-export async function disconnectSerial(): Promise<void> {
-    if (!activeConnection) {
-        return
-    }
+/** Settles once the last port asked to close has closed. */
+let pendingClose: Promise<void> = Promise.resolve()
 
-    return new Promise((resolve) => {
-        activeConnection!.port.close((err) => {
+/** Close the open port. With none open, waits for one still closing, so a
+ *  connect right after a close never opens (the same) port mid-close. */
+export async function disconnectSerial(): Promise<void> {
+    const closing = activeConnection
+    if (!closing) return pendingClose
+    // Cleared now, not in the close callback, so a late callback can't clear
+    // a connection opened after it.
+    activeConnection = null
+    pendingClose = new Promise((resolve) => {
+        closing.port.close((err) => {
             if (err) {
                 log.error('Error closing serial port:', err)
             }
-            activeConnection = null
             resolve()
         })
     })
+    return pendingClose
 }
 
 const HOTPLUG_POLL_MS = 2000
