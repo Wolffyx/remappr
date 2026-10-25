@@ -68,6 +68,16 @@ Select a control to edit it:
   **Left**, **Right**), and its **Name**.
 - **Remove control** (new designs only).
 
+### Layout variants
+
+A new design can have more than one layout — say a gamepad with or without
+back paddles — in the same **LAYOUT · All · + Variant** bar as a keyboard's.
+**+ Variant** adds one, picking it dims the controls that belong to the
+others and fits the body to the ones left, and a control's **Layout variant**
+(**Place** tab) tags it into one; the default is **Common (all variants)**.
+The first variant is the device's default (`layouts` and each control's
+`variant` in the layout JSON).
+
 ## Re-drawing a device
 
 A device that did not report a layout opens in the device editor with a

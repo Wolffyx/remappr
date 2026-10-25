@@ -8,8 +8,10 @@ firmware export and both live under `keyboard` in the
 ## Create the geometry
 
 The left panel's **Build from** section has four entry points. The
-[Design a keyboard](/guide/builder/overview#starting-a-board) dialog offers the
-same starting points, plus **Import config** and **Load from saved builds**.
+[New design](/guide/builder/overview#starting-a-board) dialog offers the same
+starting points, plus **Import config** and **Load from saved builds**; **Start
+blank** there opens the [empty-board start](/guide/builder/overview#empty-board-start),
+which can also draw a split grid with thumb keys.
 
 | Tool           | Dialog                                                      | What it does                                                         |
 | -------------- | ----------------------------------------------------------- | -------------------------------------------------------------------- |
@@ -65,11 +67,22 @@ the builder."_ So after a KLE import, wire the matrix and assign bindings here.
 - `Cmd/Ctrl + D` duplicates; `Delete` / `Backspace` removes.
 - **Undo/Redo** covers every geometry edit.
 
-### Snapping
+- **Select** keys for the [selection toolbar](/guide/builder/overview#selection-toolbar):
+  align, space evenly, same row, number columns, mirror, rotate, duplicate.
 
-The toolbar **snap mode** switches **Snap to grid** ⟷ **Free form**; the snapping
-toggle enables ⅛U snapping while dragging/resizing (status bar shows `snap ⅛U` /
-`snap off` / `free-form`).
+### Snapping {#snapping}
+
+Three placement modes sit in the toolbar, with the magnet turning snapping on
+and off:
+
+| Mode                       | While you drag                                                                                                                                                                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Snap to the ⅛U grid**    | Keys land on ⅛U steps.                                                                                                                                                            |
+| **Snap to rows & columns** | Keys line up with their neighbours' rows and columns; guide lines show what they snapped to. **Keep column stagger when snapping** (inspector) keeps a staggered column's offset. |
+| **Free form**              | No snapping.                                                                                                                                                                      |
+
+The status bar shows the mode: `snap ⅛U`, `snap rows & columns`, `snap off` or
+`free-form`.
 
 ### What a key looks like in the config
 
@@ -106,22 +119,66 @@ A wider, rotated, matrix-wired thumb key carries the extra fields:
 
 The inspector edits all of these — see [Key inspector](/guide/builder/inspector).
 
-## Wire the matrix
+## Wire the matrix {#wire-the-matrix}
 
-Firmware needs the **electrical row and column** of each key. Two ways to set it:
+Firmware needs the **electrical row and column** of each key. Switch the
+toolbar's **Keys | Wiring** to **Wiring**: each row and column is drawn as a
+line through its keys, every key shows its `row·col`, and each line ends in a
+pin chip (**Set pin** until one is set). **+** adds a row or column. The view
+stays on until you switch back, also the next time the builder opens.
 
-1. **Matrix-wiring overlay** (toolbar **Matrix wiring view**) — draws each row
-   and column as a line through its keys, labels every key with its `row.col`,
-   and puts an editable **pin chip** at the end of each line (_"Click to set the
-   GPIO pin"_); add rows/cols with the **+** buttons (**Add a matrix row** /
-   **Add a matrix column**).
+![The matrix wiring view: row lines with GP pin chips on the left, column chips along the top, row.col under each key](/images/builder/matrix-wiring.webp)
 
-    ![The matrix wiring view: row lines with GP pin chips on the left, column chips along the top, row.col under each key](/images/builder/matrix-wiring.webp)
+### Wiring tools
 
-2. **Per key**, in the inspector's **Matrix wiring · row / column** section.
+A bar at the top of the board:
 
-The Identity panel's **Matrix** section sets the dimensions and has an **Auto**
-button — _"Auto assigns each key's row/column from its position"_:
+| Tool         | Does                                                                                                                          |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Auto**     | Rows and columns follow where the keys sit. Moving a key rewires it; keys you keep by hand stay put.                          |
+| **By hand**  | Every key keeps its row and column wherever it moves.                                                                         |
+| **Renumber** | _"Number every key again from where it sits."_                                                                                |
+| **Paint**    | Pick **Rows** or **Columns** and a line, then sweep across keys to put them on it. **+** adds a line; **Esc** or **×** stops. |
+
+Auto works out rows and columns from key centres (rotation included), lets a
+staggered column follow its keys, and never gives two keys the same slot.
+
+### Keep, clash and let follow
+
+With one key selected, the inspector's **Wiring** tab has **Keep R2 · C5 when
+moved**: the key keeps that row and column wherever it goes, and a lock shows on
+its cap. **Let it follow its position** hands it back to Auto.
+
+Two keys on the same row and column **clash**: both get a red outline and the
+inspector says _"R2 · C5 is used twice"_. Move one, or keep one by hand and let
+Auto place the other.
+
+### Wiring status {#wiring-status}
+
+In the Wiring view, the strip above the [steps bar](/guide/builder/overview#steps-bar)
+counts what is **wired**, how many keys **clash**, and which pins are **missing**
+or **wrong**, with **Fix with Auto** (re-place every key in a clash) and
+**Suggest free pins** (fill empty rows and columns with pins the controller has
+free).
+
+### Pins {#pins}
+
+In the Wiring view with nothing selected, the right panel is **Pins ·
+{controller}** with two tabs:
+
+- **Board** — a drawing of the controller. Pick a row or column chip, then
+  click a pad to wire it there.
+- **Table** — every row and column with its pin, typed in.
+
+Pins the controller does not have, or that are used twice, are shown in red;
+the hint under the panel lists the pin names the controller takes. On a split
+board both halves use the same column pins.
+
+### Matrix settings and the config
+
+The **Board** group's **Matrix** section sets the diode direction and scan mode
+and has an **Auto** button — _"Auto assigns each key's row/column from its
+position"_:
 
 ```json
 "keyboard": {
@@ -130,8 +187,10 @@ button — _"Auto assigns each key's row/column from its position"_:
 }
 ```
 
-- When a key's `matrix` is set, it is **authoritative**.
-- When absent, the compiler **derives** it from physical position.
+- A key's `matrix` is set when it is kept by hand (or wired **By hand**); it is
+  **authoritative**.
+- When absent, the compiler **derives** it from physical position, the same way
+  Auto does.
 
 ::: warning Matrix vs geometry
 Physical position is not electrical wiring. For a board you intend to flash, set

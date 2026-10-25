@@ -14,25 +14,51 @@ feature that needs an account.
 
 ![The builder: toolbar across the top, the Layers / Build from / Identity panel on the left, the default 42-key split on the canvas](/images/builder/overview.webp)
 
-## Starting a board
+## Starting a board {#starting-a-board}
 
-When the builder opens with no board loaded, it asks where to start —
-_"Design a keyboard — Pick a starting point — or close to keep the current
-board"_:
+A new design opens the **New design** dialog: five steps down the left, the
+current step on the right. **Back**, **Skip** and **Next: …** move between
+them; the last step's button is **Open the builder**.
 
 ![The Design a keyboard dialog with its five starting points, under the first step of the builder tour](/images/builder/start-dialog.webp)
+
+| Step                    | What you do                                                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1 What is it**        | Pick a starting point (below), or **Or design a device** for a [mouse, gamepad or flight stick](/guide/builder/device-layout).                   |
+| **2 Firmware**          | _"Pick every firmware it should build for."_ The same cards as [Firmware targets](/guide/builder/identity-and-hardware#firmware-targets).        |
+| **3 Features**          | [Feature cards](/guide/builder/identity-and-hardware#feature-cards): what the board does. Each sets the right options for every firmware picked. |
+| **4 Controller & pins** | The controller and where each row and column is wired — the same [Pins panel](/guide/builder/layout#pins) as in the builder.                     |
+| **5 Check**             | _"What each firmware still needs before it builds."_                                                                                             |
+
+The starting points in step 1:
 
 | Option                     | Does                                                                                                 |
 | -------------------------- | ---------------------------------------------------------------------------------------------------- |
 | **Start from a preset**    | _"Corne, ortho, 60%, numpad, macropad…"_ — see [Presets](/guide/builder/layout#create-the-geometry). |
 | **Import from KLE**        | _"Paste keyboard-layout-editor raw data."_                                                           |
-| **Start blank**            | _"One key — build up from nothing."_                                                                 |
+| **Start blank**            | _"Draw a grid or add keys one by one"_ — opens the [empty-board start](#empty-board-start).          |
 | **Import config**          | _"Load a remappr .json — file or paste."_ The whole config: layout, layers, bindings, hardware.      |
 | **Load from saved builds** | _"Reopen a board saved on this machine"_ — your [library](#keyboard-library).                        |
 
-**×** keeps whatever is on the canvas — on a first visit, a 4×6-per-half split
-(42 keys) to try things on. The **Presets**, **Import KLE** and **Make grid**
-buttons in the left panel open the same dialogs any time.
+A preset, KLE layout, config or saved build carries on at step 2. **×** keeps
+whatever is on the canvas — on a first visit, a 4×6-per-half split (42 keys) to
+try things on. The **Presets**, **Import KLE** and **Make grid** buttons in the
+left panel open the same dialogs any time.
+
+### Empty-board start {#empty-board-start}
+
+**Start blank** leaves the canvas showing _"Start a keyboard — Pick one;
+everything stays editable."_ with three ways in:
+
+- **From a preset** — the preset dialog.
+- **Draw a grid** — **rows** and **cols**, with **split** (two halves with a gap)
+  and **thumbs** (three thumb keys under the inner columns of each half). The
+  button counts the keys it will draw, e.g. **Draw 54 keys**.
+- **Import** — **KLE layout** or **Remappr config**.
+
+The shortcuts that matter are listed underneath. **Start from one key** closes
+it and leaves a single key to build up from. It also goes away by itself as soon
+as the layout changes.
 
 ### The tour
 
@@ -47,13 +73,12 @@ The first time, a seven-step tour walks through the builder: **Welcome**,
 ┌──────────────────────────────────────────────────────────────┐
 │  Toolbar                                                       │
 ├───────────────┬──────────────────────────────┬────────────────┤
-│  Left panel   │                              │   Inspector     │
-│  • Layers     │          Canvas              │  selected key   │
-│  • Build from │      (pan / zoom keys)       │  properties     │
-│  • Identity   │                              │  — or JSON —    │
-├───────────────┴──────────────────────────────┴────────────────┤
-│  Status bar   "12 selected"  ·  "snap ⅛U"                        │
-└──────────────────────────────────────────────────────────────┘
+│  Left panel   │   Layout variants · tools    │   Inspector     │
+│  • Filter     │                              │  Place /        │
+│  • Layers     │          Canvas              │  Settings /     │
+│  • Build from │      (pan / zoom keys)       │  Wiring         │
+│  • Board …    │   status · steps bar         │  — or JSON —    │
+└───────────────┴──────────────────────────────┴────────────────┘
 ```
 
 ## Toolbar reference
@@ -62,36 +87,85 @@ Left to right: navigation and the board summary (`4×6 per half · 42 keys`) on
 the left, the canvas tools in the middle, and the panels, library and hand-offs
 on the right. The exact tooltip of each button:
 
-| Button                | Tooltip                            | Does                                                             |
-| --------------------- | ---------------------------------- | ---------------------------------------------------------------- |
-| ←                     | **Back**                           | Leave the builder.                                               |
-| ▭                     | **Hide panel** / **Show panel**    | Collapse/expand the left panel.                                  |
-| ▦ ✥                   | **Snap to grid** / **Free form**   | Switch placement mode (two segmented buttons).                   |
-| ⅛                     | **Snapping on** / **Snapping off** | Toggle ⅛U snapping while dragging.                               |
-| ⊞                     | **Matrix wiring view**             | Overlay row/column wiring on the keys.                           |
-| ↶                     | **Undo**                           | Undo the last edit.                                              |
-| ↷                     | **Redo**                           | Redo.                                                            |
-| `{ }`                 | **Edit config JSON**               | Swap the inspector for the live JSON editor.                     |
-| ▤                     | **Keyboard library**               | Open saved boards.                                               |
-| ?                     | **Replay builder tour**            | Re-run the guided coachmark tour.                                |
-| ⚙                     | **Settings**                       | App settings.                                                    |
-| ⤓                     | **Save to library**                | Save the current board to your [library](#keyboard-library).     |
-| **Editor →**          | **Editor**                         | Hand off to the [keymap editor](/guide/editor) on a demo device. |
-| **Export & build 🚀** |                                    | Open the [export modal](/guide/builder/export-build-flash).      |
+| Button                | Tooltip                                                              | Does                                                                                             |
+| --------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| ←                     | **Back**                                                             | Leave the builder.                                                                               |
+| ▭                     | **Hide panel** / **Show panel**                                      | Collapse/expand the left panel.                                                                  |
+| Search field          | **Search the builder**                                               | Opens the [search palette](#search) (`/`).                                                       |
+| Snap modes            | **Snap to the ⅛U grid** / **Snap to rows & columns** / **Free form** | Placement mode — see [Snapping](/guide/builder/layout#snapping).                                 |
+| 🧲                    | **Snapping on** / **Snapping off**                                   | Toggle snapping while dragging.                                                                  |
+| **Keys \| Wiring**    | **View**                                                             | Switch to the [Wiring view](/guide/builder/layout#wire-the-matrix) and back; the choice is kept. |
+| ↶                     | **Undo**                                                             | Undo the last edit.                                                                              |
+| ↷                     | **Redo**                                                             | Redo.                                                                                            |
+| `{ }`                 | **Edit config JSON**                                                 | Swap the inspector for the live JSON editor.                                                     |
+| ▤                     | **Keyboard library**                                                 | Open saved boards.                                                                               |
+| ?                     | **Replay builder tour**                                              | Re-run the guided coachmark tour.                                                                |
+| ⚙                     | **Settings**                                                         | App settings.                                                                                    |
+| ⤓                     | **Save to library**                                                  | Save the current board to your [library](#keyboard-library).                                     |
+| **Editor →**          | **Editor**                                                           | Hand off to the [keymap editor](/guide/editor) on a demo device.                                 |
+| **Export & build 🚀** |                                                                      | Open the [export modal](/guide/builder/export-build-flash).                                      |
 
 The zoom cluster (**Zoom out** / **Reset view** / **Zoom in** / **Fit**) shows
 the current zoom as a percentage (e.g. `100%`).
 
+### Steps bar {#steps-bar}
+
+Along the bottom of the board, five steps show how far the design is:
+**1 Layout › 2 Wiring › 3 Pins › 4 Firmware › 5 Export**. A ✓ marks a step with
+nothing left; otherwise a live count says what is left (**3 clashes**, **10 missing**,
+**2 notes**, **1 to fix**), in red when something is wrong.
+
+Click a step to see what is left. Each one has a button that goes to where it
+is fixed — **Show keys**, **Show wiring**, **Show pins**, **Show readiness** —
+and, when there is one, the one-click fix: **Fix with Auto** for clashing
+keys, **Suggest free pins** for rows and columns with no pin. **5 Export** opens
+the [export](/guide/builder/export-build-flash) straight away.
+
+| Step         | Counts                                                                       |
+| ------------ | ---------------------------------------------------------------------------- |
+| **Layout**   | `empty` while a blank board has no layout yet.                               |
+| **Wiring**   | Keys sharing a row and column with another key.                              |
+| **Pins**     | Row/column pins not set, or not on the controller / used twice.              |
+| **Firmware** | The [readiness](/guide/builder/export-build-flash#readiness) of each target. |
+
 ### Status bar
 
-The bottom bar shows context:
+Just above the steps:
 
 - `12 selected` — when keys are selected.
 - `Drag to marquee · Space/middle-drag to pan · scroll to zoom` — when nothing
   is selected.
-- The current snap mode: `snap ⅛U`, `snap off`, or `free-form`.
-  The board summary — `4×12 · 48 keys` (rows × cols), or `4×6 per half · 42 keys`
-  for a split — sits next to the **Builder** title in the toolbar.
+- The current snap mode: `snap ⅛U`, `snap rows & columns`, `snap off` or
+  `free-form`.
+
+In the Wiring view it becomes the [wiring status](/guide/builder/layout#wiring-status).
+The board summary — `4×12 · 48 keys` (rows × cols), or `4×6 per half · 42 keys`
+for a split — sits next to the **Builder** title in the toolbar.
+
+### Selection toolbar {#selection-toolbar}
+
+Select keys and a toolbar appears under them, at any zoom:
+
+| Button                                   | Does                                                                                                                                                  |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Align ▾**                              | Line them up on **Left edges**, **Centres**, **Right edges**, **Top edges**, **Middles** or **Bottom edges**. Two or more keys.                       |
+| **Space evenly**                         | Equal gaps along the direction they spread most; the first and last key stay put. Three or more keys.                                                 |
+| **Same row**                             | Wire them all to one matrix row.                                                                                                                      |
+| **Number columns**                       | Number their matrix columns left to right.                                                                                                            |
+| **Mirror to right half** / **left half** | On a split board, copy them to the other half (rotation mirrored; spots already taken are skipped). Otherwise **Flip** turns them over in place. `M`. |
+| **Rotate**                               | Turn them 15° about their centre; **Shift**-click turns back. `R` / `Shift + R`.                                                                      |
+| **Duplicate**                            | Copy them. `Ctrl/Cmd + D`.                                                                                                                            |
+
+### Search {#search}
+
+- **`/`** or the search field in the toolbar opens _"Search parts, settings,
+  actions and keys"_: settings (with on/off switches for firmware options and
+  feature cards), builder actions, parts and the keys on the board. Picking a
+  setting opens its group and flashes it.
+- **Filter settings** at the top of the left panel narrows the settings groups
+  to what matches.
+- **`Ctrl/Cmd + F`** — **Find on the board**: _"Find on every layer"_ lights
+  up the keys whose binding matches, with previous / next match.
 
 ### Layout variants
 
@@ -104,11 +178,11 @@ that belong to the others; double-click a name to rename it, **×** to delete it
 
 ## Left panel sections
 
-| Section        | What it holds                                                                                                                                                                |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Layers**     | The layer list (add / duplicate / delete / rename). See [Layers & bindings](/guide/builder/layers-and-bindings).                                                             |
-| **Build from** | Create geometry: **Presets**, **Import KLE**, **Make grid**, **Add key**. See [Building the layout](/guide/builder/layout).                                                  |
-| **Identity**   | The keyboard metadata form: name, USB ids, firmware targets, controller, matrix, lighting, firmware config. See [Identity & hardware](/guide/builder/identity-and-hardware). |
+| Section                                                            | What it holds                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Layers**                                                         | The layer list (add / duplicate / delete / rename). See [Layers & bindings](/guide/builder/layers-and-bindings).                                                                                                                                                          |
+| **Build from**                                                     | Create geometry: **Presets**, **Import KLE**, **Make grid**, **Add key**. See [Building the layout](/guide/builder/layout).                                                                                                                                               |
+| **Board**, **Firmware**, **Lighting**, **Behavior**, **Readiness** | The settings, one group open at a time: name, USB ids, controller, matrix, firmware targets and [per-firmware tabs](/guide/builder/identity-and-hardware#firmware-tabs), lighting, timing and behaviors. See [Identity & hardware](/guide/builder/identity-and-hardware). |
 
 A reminder under the sections notes: _"Geometry & matrix are shared across all
 layers."_ — only bindings differ per layer.
@@ -142,16 +216,20 @@ to keep a copy elsewhere.
 
 ## Keyboard shortcuts
 
-| Keys                                    | Action              |
-| --------------------------------------- | ------------------- |
-| `Ctrl/Cmd + Z`                          | Undo                |
-| `Ctrl/Cmd + Shift + Z` · `Ctrl/Cmd + Y` | Redo                |
-| `Ctrl/Cmd + A`                          | Select all keys     |
-| `Ctrl/Cmd + D`                          | Duplicate selection |
-| `Backspace` / `Delete`                  | Delete selection    |
-| `Esc`                                   | Clear selection     |
-| Arrow keys                              | Nudge 0.25U         |
-| `Shift` + arrows                        | Nudge 1U            |
+| Keys                                    | Action                      |
+| --------------------------------------- | --------------------------- |
+| `Ctrl/Cmd + Z`                          | Undo                        |
+| `Ctrl/Cmd + Shift + Z` · `Ctrl/Cmd + Y` | Redo                        |
+| `Ctrl/Cmd + A`                          | Select all keys             |
+| `Ctrl/Cmd + D`                          | Duplicate selection         |
+| `Backspace` / `Delete`                  | Delete selection            |
+| `Esc`                                   | Clear selection             |
+| Arrow keys                              | Nudge 0.25U                 |
+| `Shift` + arrows                        | Nudge 1U                    |
+| `R` / `Shift + R`                       | Rotate selection 15° / back |
+| `M`                                     | Mirror selection            |
+| `/`                                     | Search the builder          |
+| `Ctrl/Cmd + F`                          | Find on the board           |
 
 ## How a design flows through Remappr
 

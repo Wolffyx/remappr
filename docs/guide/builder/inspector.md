@@ -7,6 +7,11 @@ selected it shows a hint.
 
 ![One key selected: the inspector on the right with Element, Key binding, Geometry, Rotation and Matrix wiring](/images/builder/inspector.webp)
 
+For one key the inspector has three tabs: **Place** (geometry and rotation),
+**Settings** (element type and binding) and **Wiring** (matrix row and column,
+direct pin). The [Wiring view](/guide/builder/layout#wire-the-matrix) opens it on
+**Wiring**.
+
 ## Element type
 
 A header reads **Element** with three tabs that set what the position _is_
@@ -54,9 +59,11 @@ Set the key's electrical position (→ `matrix: [row, col]`):
 
 - **Row** / **Column** dropdowns (each option shows its pin, e.g. `Row 2 · GP6`).
 - Status line: _"Wired to {rowPin} × {colPin}"_ (e.g. **Wired to GP0 × GP8**).
-- **Auto-assign row/col from position** — re-derives row/col whenever the key
-  moves. _"Editing row/column by hand turns it off."_
-- **Snap to grid on row/col change**.
+- **Keep R2 · C5 when moved** — the key keeps this row and column wherever it
+  moves (a lock shows on its cap). **Let it follow its position** hands it back
+  to Auto.
+- A red notice when another key uses the same slot — _"R2 · C5 is used twice"_.
+- **Snap to grid on row/col change** and **Keep column stagger when snapping**.
 
 ## Direct GPIO pin
 
@@ -67,14 +74,15 @@ now.
 
 ## Layout variant
 
-When the board has [layout variants](/guide/builder/identity-and-hardware#layout-options),
+When the board has [layout variants](/guide/builder/overview#layout-variants),
 a **Layout variant** dropdown tags the key into one (→ `variant`); the default is
 **Common (all variants)**.
 
 ## Multi-select — bulk actions
 
 Select several keys (drag a marquee on empty canvas, or `Ctrl/Cmd + A`) and the
-inspector switches to **{n} keys selected · Bulk actions apply to all**:
+[selection toolbar](/guide/builder/overview#selection-toolbar) appears under
+them on the board, while the inspector switches to **{n} keys selected · Bulk actions apply to all**:
 
 ![42 keys selected: Matrix wiring and Align & size bulk actions](/images/builder/bulk.webp)
 

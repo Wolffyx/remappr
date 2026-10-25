@@ -1,15 +1,16 @@
 # Identity & hardware
 
-The **Identity** panel holds everything about the board that is not its layout or
-bindings — name, USB identity, firmware targets, controller, matrix, lighting and
-firmware config. These fields turn a keymap into a _flashable_ project. Sections
-appear/disappear based on the firmware targets you select.
+The settings in the left panel hold everything about the board that is not its
+layout or bindings — name, USB identity, firmware targets, controller, matrix,
+lighting and firmware config. These fields turn a keymap into a _flashable_
+project. They sit in five groups, one open at a time: **Board**, **Firmware**,
+**Lighting**, **Behavior** and **Readiness**; **Filter settings** at the top
+narrows them, and [search](/guide/builder/overview#search) (`/`) jumps to any
+one. Sections appear/disappear based on the firmware targets you select.
 
 ![The top of the Board group: Identity and USB identifiers](/images/builder/identity.webp){width=300}
 
-The panel scrolls, top to bottom: Identity · USB identifiers · Firmware targets
-· Controller · Matrix · Capabilities · Lighting · Firmware config · Hardware pins
-· Timing & defaults · Behaviors · Conditional layers · Readiness. Every field below is labelled exactly as it appears in the panel, with the
+Every field below is labelled exactly as it appears in the panel, with the
 config key it writes.
 
 ## Identity
@@ -45,6 +46,37 @@ An info line under the cards summarises the choice — _"Keyboard type · Wired 
 wireless"_ (or wired / wireless only) and _"Keycodes & behaviours follow ZMK +
 Remappr"_. VIA and Vial compile through QMK. See
 [Firmware targets](/reference/config/firmware-targets).
+
+## Feature cards {#feature-cards}
+
+_"What should this keyboard do?"_ — cards for **Wireless** (Bluetooth, up to 5
+hosts), **Edit live from the app**, **Battery & sleep**, **Lighting**,
+**Pointing** and **Encoders**, each with what it needs (e.g. _"LED data pin"_).
+_"Each card sets the right options for"_ every firmware you picked; the picks
+are saved in `keyboard.features`. They are step 3 of a
+[new design](/guide/builder/overview#starting-a-board), and **Pick…** /
+**Change…** in the Firmware group opens them later.
+
+::: tip
+Turning off **Edit live from the app** also turns off the firmware's live-edit
+support (for ZMK, ZMK Studio), on purpose.
+:::
+
+## Firmware tabs {#firmware-tabs}
+
+Under the targets, the **Firmware** group has one tab per firmware you picked
+(e.g. **ZMK** · **Remappr**). Each tab lists that firmware's own switches, with
+the exact line it writes under the name (e.g. `CONFIG_ZMK_BLE=y`):
+
+- **from {feature}** — the switch was turned on by a feature card.
+- **changed** — set by hand. The tab header counts them (_"2 changed from
+  defaults"_) and **Reset** puts them back; with none changed it names the file
+  it writes (_"Writes .conf"_).
+- A **· sub-switch** only applies while the switch above it is on.
+- Some switches are fixed by the board and show their state instead of a toggle.
+
+The extra lines, generated files and firmware-specific sections below
+(**Firmware config**, **Hardware pins**, **Vial security**…) follow the tab.
 
 ## Controller
 
