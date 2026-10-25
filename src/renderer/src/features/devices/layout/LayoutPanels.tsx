@@ -13,6 +13,7 @@ import type {
     DeviceModel,
     ShellType,
 } from '@firmware/devices/types'
+import { AppSelect } from '@/ui/app-select'
 import { Button } from '@/ui/button'
 import { Segmented } from '@/ui/segmented'
 import { RangeRow } from '@/components/RangeRow'
@@ -119,6 +120,27 @@ export function GeometryPanel({
         <>
             {place && (
                 <>
+                    {model.layouts?.length ? (
+                        <InSection label="Layout variant">
+                            <AppSelect
+                                aria-label="Layout variant"
+                                value={c.variant ?? ''}
+                                onChange={(e) =>
+                                    onPatch({
+                                        variant: e.target.value || undefined,
+                                    })
+                                }
+                                className="w-full rounded-lg border border-input bg-background px-2.5 py-2 text-panel-title font-semibold text-foreground outline-none focus:border-primary"
+                            >
+                                <option value="">Common (all variants)</option>
+                                {model.layouts.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.name}
+                                    </option>
+                                ))}
+                            </AppSelect>
+                        </InSection>
+                    ) : null}
                     <InSection
                         label="Position (U)"
                         right={

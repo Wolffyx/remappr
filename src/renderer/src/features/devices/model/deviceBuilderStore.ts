@@ -80,7 +80,9 @@ const useDeviceBuilderStore = create<DeviceBuilderState>()((set, get) => ({
     gesture: null,
     firmware: { targets: [], settings: null },
 
-    start: (layout, origin, firmware) =>
+    start: (layout, origin, firmware) => {
+        // The variant filter is the builder's; a new design starts on All.
+        useBuilderStore.setState({ activeVariant: '' })
         set({
             layout,
             origin,
@@ -89,7 +91,8 @@ const useDeviceBuilderStore = create<DeviceBuilderState>()((set, get) => ({
             past: [],
             future: [],
             gesture: null,
-        }),
+        })
+    },
     select: (selected) => set({ selected }),
     setFirmware: (patch) =>
         set((s) => ({ firmware: { ...s.firmware, ...patch } })),

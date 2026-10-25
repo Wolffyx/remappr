@@ -15,6 +15,7 @@ import {
     type PointerEvent as ReactPointerEvent,
 } from 'react'
 import type { DeviceControl, DeviceModel } from '@firmware/devices/types'
+import { inVariant, variantControls } from '@firmware/devices/variants'
 import type { BindingSummary } from '@/lib/devices/bindingSummary'
 import { snapU } from '@/lib/devices/layoutOps'
 import { ControlShape, type ControlBox } from '../stage/ControlShape'
@@ -54,6 +55,9 @@ export interface LayoutStageProps {
     onView?: (view: StageView) => void
     /** Move freely instead of on the quarter-unit grid (⌥ also frees a drag). */
     free?: boolean
+    /** The layout variant on show ("" = all): the body fits its controls and
+     *  the other variants' controls are dimmed. */
+    variant?: string
 }
 
 export interface StageView {
@@ -128,15 +132,18 @@ export function LayoutStage({
     view = FIT,
     onView,
     free = false,
+    variant = '',
 }: LayoutStageProps): JSX.Element {
     const wrapRef = useRef<HTMLDivElement>(null)
     const size = useBoxSize(wrapRef)
     const [drag, setDrag] = useState<Drag | null>(null)
     const [hover, setHover] = useState<string | null>(null)
-    const L = useMemo(
-        () => computeLayout(model, { compact: true, frozen: drag?.frame }),
-        [model, drag?.frame],
-    )
+    const L = useMemo(() => {
+        const shown = variantControls(model, variant)
+        // A variant with every control tagged elsewhere still gets a body.
+        const fitted = shown.length ? { ...model, controls: shown } : model
+        return computeLayout(fitted, { compact: true, frozen: drag?.frame })
+    }, [model, variant, drag?.frame])
     const fit = Math.max(0.3, Math.min(size.w / L.W, size.h / L.H, 1.35) * 0.96)
     const scale = fit * view.zoom
     const spacePan = useSpaceHeld(!!onView)
@@ -283,20 +290,26 @@ export function LayoutStage({
                     />
                     <ShellView parts={L.shell} ox={L.ox} oy={L.oy} outline />
                     {model.controls.map((c) => (
-                        <ControlShape
+                        <div
                             key={c.id}
-                            control={c}
-                            box={boxOf(c, L)}
-                            summary={NEUTRAL}
-                            selected={selected === c.id}
-                            hovered={hover === c.id}
-                            mono
-                            live={false}
-                            preview
-                            onPress={onPress}
-                            onSelect={onSelect}
-                            onHover={drag ? NOOP_HOVER : setHover}
-                        />
+                            className={
+                                inVariant(c, variant) ? undefined : 'opacity-30'
+                            }
+                        >
+                            <ControlShape
+                                control={c}
+                                box={boxOf(c, L)}
+                                summary={NEUTRAL}
+                                selected={selected === c.id}
+                                hovered={hover === c.id}
+                                mono
+                                live={false}
+                                preview
+                                onPress={onPress}
+                                onSelect={onSelect}
+                                onHover={drag ? NOOP_HOVER : setHover}
+                            />
+                        </div>
                     ))}
                     {sel ? <CoordBadge c={sel} box={boxOf(sel, L)} /> : null}
                     {hov ? <HoverTag c={hov} box={boxOf(hov, L)} /> : null}
