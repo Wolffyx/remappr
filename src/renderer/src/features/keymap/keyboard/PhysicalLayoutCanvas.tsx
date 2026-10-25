@@ -10,6 +10,8 @@ import React, {
 } from 'react'
 import { HoldTapLabels, KeyButtonView } from './KeyButton.tsx'
 import { EncoderCap } from './EncoderCap'
+import { SliderCap } from './SliderCap'
+import { type SliderLegend, useSliderDirStore } from '@/features/sliders/model'
 import { ZoomHud } from './ZoomHud'
 import type { KnobLegend } from '@/features/encoders/knobLegend'
 import {
@@ -74,6 +76,8 @@ export type KeyPosition = PropsWithChildren<{
     /** The knob sits on this keymap position: its centre is the key (the
      *  press), clicked like any key. */
     knobOnKey?: boolean
+    /** A slider at this keymap position: drawn as its own cap. */
+    slider?: SliderLegend
 }>
 
 // Pattern check: no GoF pattern (-) — rejected — plain prop/callback shape additions for
@@ -545,6 +549,10 @@ const PhysicalLayoutCanvasImpl = ({
         ) as HTMLElement | null
         if (!el) return null
         const idx = Number(el.dataset.idx)
+        // A slider half says which direction the editor should open on.
+        const sliderDir = el.dataset.sliderDir
+        if (sliderDir === 'up' || sliderDir === 'down')
+            useSliderDirStore.getState().setDir(sliderDir)
         const hitId = el.dataset.encoder
         const encoder = hitId ? parseEncoderHitId(hitId) : null
         return encoder ? { idx, encoder } : { idx }
@@ -611,10 +619,35 @@ const PhysicalLayoutCanvasImpl = ({
         })
     }, [positions, lighting, perKeyColors, rightMost, bottomMost])
 
+    const sliderDir = useSliderDirStore((s) => s.dir)
     const keysPositions = useMemo(
         () =>
             positions.map((p, idx) => {
                 const posStyle = scalePosition(p, effOneU)
+                if (p.slider) {
+                    return (
+                        <div
+                            key={p.id}
+                            className="absolute leading-[0]"
+                            style={posStyle as React.CSSProperties}
+                        >
+                            <SliderCap
+                                legend={p.slider}
+                                width={p.width}
+                                height={p.height}
+                                oneU={effOneU}
+                                idx={idx}
+                                selectedDir={
+                                    idx === selectedPosition ? sliderDir : null
+                                }
+                                capStyle={capStyle}
+                                colorMode={colorMode}
+                                keyDisplayMode={keyDisplayMode}
+                                showHeaderTag={showHeaderTag}
+                            />
+                        </div>
+                    )
+                }
                 if (p.knob) {
                     // A knob: one cap, whose own hit zones carry
                     // data-encoder per turn direction.
@@ -718,6 +751,7 @@ const PhysicalLayoutCanvasImpl = ({
             selectedPosition,
             selectedPositions,
             selectedEncoder,
+            sliderDir,
             pressedKeys,
             seenKeys,
             lightInputs,

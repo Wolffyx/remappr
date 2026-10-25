@@ -15,6 +15,7 @@ import {
 import { HidUsageLabel } from '../HidUsageLabel'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
 import { knobLegend, knobSide } from '@/features/encoders/knobLegend'
+import { sliderLegend } from '@/features/sliders/model'
 import type { KeypressDetectionConfig } from '@/lib/keypress/keypressDetector'
 import { ParamLegend } from '../ParamLegend'
 import { LegendParts } from '../LegendParts'
@@ -59,9 +60,17 @@ export function useStageBindings({
         ).map((p, i) => ({
             id: p.id,
             header: p.header,
-            ...(layout.keys[i]?.element
-                ? { shape: ELEMENT_SHAPE[layout.keys[i]!.element!] }
-                : {}),
+            // A slider draws as its own cap; other elements as their shape.
+            ...(layout.keys[i]?.element === 'slider'
+                ? {
+                      slider: sliderLegend(
+                          keymap.layers[displayLayerIndex]?.sliders?.[i],
+                          layout.keys[i]!.motor,
+                      ),
+                  }
+                : layout.keys[i]?.element
+                  ? { shape: ELEMENT_SHAPE[layout.keys[i]!.element!] }
+                  : {}),
             // Tap glyph text (e.g. "Q", "Vol+") for legend sizing — mirrors what
             // HidUsageLabel renders, so KeyButton sizes the legend off the glyph
             // length (design rule), not the action-type tag in `header`. For

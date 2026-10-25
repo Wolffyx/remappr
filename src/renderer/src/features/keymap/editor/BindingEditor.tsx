@@ -30,6 +30,7 @@ import {
     nextDir,
 } from '@/features/encoders/model'
 import { useEncoderEditor } from '@/features/encoders/useEncoderEditor'
+import { SliderEditor } from '@/features/sliders/SliderEditor'
 import { toast } from 'sonner'
 
 const TAP_DANCE_KINDS: ReadonlySet<string> = new Set(['vial:tap-dance'])
@@ -275,6 +276,15 @@ export function BindingEditor({
             />
         ) : undefined
 
+    // A slider position gets its own editor (what it does, its two directions).
+    const sliderKey =
+        selectedKeyPosition !== undefined &&
+        keymap?.layouts.find((l) => l.id === keymap.activeLayoutId)?.keys[
+            selectedKeyPosition
+        ]?.element === 'slider'
+            ? selectedKeyPosition
+            : undefined
+
     const editorBody = (
         <>
             {selectedEncoder && (
@@ -283,7 +293,17 @@ export function BindingEditor({
                     Encoder {selectedEncoder.slot + 1}
                 </div>
             )}
-            {readOnly ? (
+            {sliderKey !== undefined && keymap && !readOnly ? (
+                <SliderEditor
+                    service={service ?? undefined}
+                    keymap={keymap}
+                    setKeymap={setKeymap}
+                    layerIndex={effectiveLayerIndex}
+                    keyIndex={sliderKey}
+                    actionTypes={actionTypes}
+                    layers={layerList}
+                />
+            ) : readOnly ? (
                 <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
                     This keyboard is read-only — it’s a node behind a dongle.
                     Editing isn’t available yet.

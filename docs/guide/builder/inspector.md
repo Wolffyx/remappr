@@ -17,11 +17,11 @@ direct pin). The [Wiring view](/guide/builder/layout#wire-the-matrix) opens it o
 A header reads **Element** with three tabs that set what the position _is_
 (`keyboard.keys[i].element`):
 
-| Tab         | Element          | Adds                                      |
-| ----------- | ---------------- | ----------------------------------------- |
-| **Key**     | a normal switch  | a single binding per layer                |
-| **Encoder** | a rotary encoder | CW / CCW / press bindings                 |
-| **Slider**  | an analog slider | a value-map (volume / brightness / wheel) |
+| Tab         | Element          | Adds                                            |
+| ----------- | ---------------- | ----------------------------------------------- |
+| **Key**     | a normal switch  | a single binding per layer                      |
+| **Encoder** | a rotary encoder | CW / CCW / press bindings                       |
+| **Slider**  | an analog slider | a level (volume, brightness…) or up / down keys |
 
 The label above shows `Key #3` / `Encoder #3` / `Slider #3` (the index in
 `keyboard.keys`).
@@ -33,13 +33,26 @@ a cap preview with **Edit binding** and **Clear binding**. Editing opens the
 [binding picker](/guide/builder/layers-and-bindings#the-binding-picker).
 
 For an **Encoder**, **Encoder rotary · {layer}** has three slots — **Rotate ↻
-(CW)**, **Rotate ↺ (CCW)**, **Press**. For a **Slider**, **Slider value-map ·
-{layer}** has a mapping dropdown (Volume / Brightness / Wheel / _— No mapping —_)
-plus **Min (out)** / **Max (out)**.
+(CW)**, **Rotate ↺ (CCW)**, **Press**.
+
+For a **Slider**, **What it does · {layer}** picks one of:
+
+| Choice                                            | Sets                                                                                                                                                                                |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Volume**, **Screen brightness**                 | The computer's level, between **Bottom** and **Top** in **Steps**. Sent as up / down steps: the computer never reports its level back, so the two can drift until you reach an end. |
+| **Backlight**, **RGB brightness**, **RGB colour** | The keyboard's own level, so the slider and the light always match.                                                                                                                 |
+| **Keys you pick**                                 | **Slide up** and **Slide down** bindings, sent once per step (**Steps over the travel**), from the same picker as a key.                                                            |
+| **Scroll**                                        | The mouse wheel.                                                                                                                                                                    |
+
+Turn on **Motorized slider** for a fader with a motor: **Moves to** (the level
+it sets, each layer's saved spot, a value from the app, or never), **Feel**
+(smooth, notches, spring to centre) and **Touch stops the motor**. Its motor
+and touch pins join the [Pins panel](/guide/builder/layout#pins). "A value from
+the app" works while the app is running.
 
 ::: tip
-_"Analog input is exported as firmware guidance — the board-side ADC wiring is
-added in your overlay/keymap.c."_
+Analog input is exported as firmware guidance; the board-side wiring is added
+by hand.
 :::
 
 ## Geometry (U)

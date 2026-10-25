@@ -124,14 +124,17 @@ The inspector edits all of these — see [Key inspector](/guide/builder/inspecto
 Besides keys, a board can carry **parts**: a **Screen**, an **Analog stick**,
 a **D-pad** and a **Trigger**. They sit on the canvas where they really are,
 drawn as what they are (the device editor's shapes): click one to select it,
-drag it to move it, `Delete` to remove it. Its inspector has two tabs —
-**Place** (name, variant, X / Y / Width / Height / Rotation) and **Settings**.
+drag it to move it, turn it with its rotate handle, resize it with its grips,
+`Delete` to remove it. Its inspector has two tabs — **Place** (name, variant,
+X / Y / Width / Height / Rotation) and **Settings**.
 
+New parts come from the **Parts tray** floating at the left of the canvas:
+**Key**, **Screen**, **Knob**, **Slider**, **Motor slider**, **Stick**,
+**D-pad**, **Trigger** and **Button**. Click one to add it in the middle of the
+view, or drag it and let go where it goes. A knob, slider and round button are
+still keys — each has a keymap position and a binding — drawn as what they are.
 The **Parts** group in the sidebar lists everything on the board that is not a
-plain key and adds more: the parts above, plus a **Knob**, a **Slider** and a
-round **Button**. Those three are still keys — each has a keymap position and a
-binding — they are just drawn as a knob, a slider or a round button. The `/`
-search finds every part too.
+plain key; the `/` search finds every part too.
 
 A part's pins join the [Pins panel](#pins): a stick's two analog axes, a
 D-pad's four directions, a trigger's axis, a screen's pins (below). Parts are
@@ -154,7 +157,12 @@ A screen's **Settings** — and the [Screen feature card](/guide/builder/identit
 Each tile shows the firmware you picked, crossed out where that firmware has no
 driver for its chip. **Other…** sets the bus (**I²C**, **SPI** or **UART**), the
 controller chip, the size and (on I²C) the address by hand. **Turned** rotates
-the picture.
+the picture; turning the screen part on the board turns the picture with it (to
+the nearest quarter turn).
+
+A screen keeps the size its module gives it: no resize grips, and Width /
+Height are greyed. Turn on **Use my own size** (Place tab) to size it by hand,
+for a bezel or a custom panel.
 
 The bus decides the pins: an I²C screen uses the controller's I²C pins (held
 for the bus, nothing else to set), an SPI one needs **CS**, **DC** and **RST**

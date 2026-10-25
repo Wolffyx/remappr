@@ -135,14 +135,14 @@ defaulted fields as optional so minimized files validate clean.
 An ordered array; index 0 is the base layer. A `transparent` binding falls
 through to the layer **below**, so order matters.
 
-| Field             | Type                                  | Notes                                                                                 |
-| ----------------- | ------------------------------------- | ------------------------------------------------------------------------------------- |
-| `name`            | string · required                     | Referenced by name (e.g. layer-tap targets).                                          |
-| `bindings`        | `Action[]` · required                 | One [action](/reference/config/actions) per key, in `keyboard.keys` order.            |
-| `description`     | string                                |                                                                                       |
-| `encoders`        | `{ cw, ccw, press? }[]`               | Turn bindings, aligned to `keyboard.encoders`. `press` only for a knob with no `key`. |
-| `encoderBindings` | `{ [keyIndex]: { cw, ccw, press? } }` | Older per-key form; moved into `encoders` when the file loads.                        |
-| `sliderBindings`  | `{ [keyIndex]: SliderBinding }`       | Per-key slider value-mappings (key has `element: "slider"`).                          |
+| Field             | Type                                  | Notes                                                                                                                                                                   |
+| ----------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`            | string · required                     | Referenced by name (e.g. layer-tap targets).                                                                                                                            |
+| `bindings`        | `Action[]` · required                 | One [action](/reference/config/actions) per key, in `keyboard.keys` order.                                                                                              |
+| `description`     | string                                |                                                                                                                                                                         |
+| `encoders`        | `{ cw, ccw, press? }[]`               | Turn bindings, aligned to `keyboard.encoders`. `press` only for a knob with no `key`.                                                                                   |
+| `encoderBindings` | `{ [keyIndex]: { cw, ccw, press? } }` | Older per-key form; moved into `encoders` when the file loads.                                                                                                          |
+| `sliderBindings`  | `{ [keyIndex]: SliderBinding }`       | Per slider key: `map` (`volume`, `brightness`, `backlight`, `rgb_brightness`, `rgb_hue`, `mouse_wheel`, `keys`), `min` / `max` / `steps`, and `up` / `down` for `keys`. |
 
 ```json
 {

@@ -78,10 +78,13 @@ The complete catalog — every action, its fields, and firmware support — is i
 
 ## Encoders & sliders
 
-A key tagged **Encoder** carries `cw` / `ccw` / `press` bindings per layer; a
-**Slider** carries an analog value-map. You assign these from the
-[inspector](/guide/builder/inspector#binding). In the config they live on the
-layer:
+A key tagged **Encoder** is a knob: its turns live in an encoder slot linked to
+the key (`keyboard.encoders[i].key`), its press is the key's own binding. A
+**Slider** carries a level (volume, backlight…) or up / down keys per layer
+(`sliderBindings`). You assign these from the
+[inspector](/guide/builder/inspector#binding), and in the editor: a knob's
+halves are its turns and its centre its press; a slider's halves are its up and
+down. In the config they live on the layer:
 
 ```json
 {

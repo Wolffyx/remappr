@@ -33,8 +33,16 @@ export type InspectorTab = 'place' | 'settings' | 'wiring'
 // Pattern check: no GoF pattern (-) — rejected — additive plain data types +
 // zustand state for the picker-open target; discriminated slot string, no abstraction.
 /** Which binding slot the picker edits: a key's base binding, an encoder's
- *  clockwise / counter-clockwise / press slot, or a slider's custom action. */
-export type BindingSlot = 'key' | 'cw' | 'ccw' | 'press' | 'slider'
+ *  clockwise / counter-clockwise / press slot, a slider's up / down key, or
+ *  its older custom action. */
+export type BindingSlot =
+    | 'key'
+    | 'cw'
+    | 'ccw'
+    | 'press'
+    | 'slider'
+    | 'up'
+    | 'down'
 
 /** The key (and slot) the binding picker edits when it targets a layer. */
 export interface KeyBindingTarget {
