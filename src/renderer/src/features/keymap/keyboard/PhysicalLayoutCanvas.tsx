@@ -8,9 +8,9 @@ import React, {
     useRef,
     useState,
 } from 'react'
-import { Maximize2, Minus, Plus } from 'lucide-react'
 import { HoldTapLabels, KeyButtonView } from './KeyButton.tsx'
 import { EncoderCap } from './EncoderCap'
+import { ZoomHud } from './ZoomHud'
 import type { KnobLegend } from '@/features/encoders/knobLegend'
 import {
     type EncoderSelection,
@@ -693,8 +693,6 @@ const PhysicalLayoutCanvasImpl = ({
 
     if (!pannable) return <>{board}</>
 
-    // Show zoom relative to fit (100% = fitted), matching the design prototype.
-    const livePct = Math.round(zoomLevel * 100)
     return (
         <div
             ref={viewportRef}
@@ -707,44 +705,14 @@ const PhysicalLayoutCanvasImpl = ({
             onDoubleClick={onDoubleClick}
         >
             {board}
-            <div
-                data-zoomhud="true"
-                className="absolute top-3 right-3 flex items-center gap-1 rounded-lg border border-border bg-card px-1 py-1 shadow-sm"
-            >
-                <ZoomButton label="Zoom out" onClick={() => zoomBy(1 / 1.15)}>
-                    <Minus className="size-4" />
-                </ZoomButton>
-                <span className="min-w-12 text-center text-xs font-mono tabular-nums text-muted-foreground">
-                    {livePct}%
-                </span>
-                <ZoomButton label="Zoom in" onClick={() => zoomBy(1.15)}>
-                    <Plus className="size-4" />
-                </ZoomButton>
-                <ZoomButton label="Reset view" onClick={() => setView(null)}>
-                    <Maximize2 className="size-4" />
-                </ZoomButton>
-            </div>
+            <ZoomHud
+                zoom={zoomLevel}
+                onZoomBy={zoomBy}
+                onReset={() => setView(null)}
+            />
         </div>
     )
 }
 
 // pattern-check: skip — memo wrapper around the existing canvas component, no abstraction
 export const PhysicalLayoutCanvas = memo(PhysicalLayoutCanvasImpl)
-
-function ZoomButton({
-    label,
-    onClick,
-    children,
-}: PropsWithChildren<{ label: string; onClick: () => void }>): JSX.Element {
-    return (
-        <button
-            type="button"
-            aria-label={label}
-            title={label}
-            onClick={onClick}
-            className="flex size-7 items-center justify-center rounded-md text-foreground hover:bg-accent transition-colors"
-        >
-            {children}
-        </button>
-    )
-}
