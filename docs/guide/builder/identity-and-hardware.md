@@ -57,12 +57,15 @@ mouse):
   **Edit live from the app**, **Battery & sleep**, **Lighting**.
 - **Parts:** **Motion sensor** (an optical sensor or trackball on SPI),
   **Encoders** (a scroll wheel or knobs), **Analog inputs** (sticks, triggers,
-  sliders).
+  sliders), **Screen** (an OLED, LCD or e-paper screen). Turning on **Screen**
+  shows its module tiles right under the cards — see
+  [Screens](/guide/builder/layout#screens).
 
 Each says what it needs wired (e.g. _"LED data pin"_). The kind of design only
 marks some **Suggested** — a mouse starts with sensor and encoders on, a gamepad
 with analog inputs. Each card's firmware chips come from that firmware's own
-table, crossed out where it has no option for that part. _"Each card sets the
+table, crossed out where it has no option for that part (for a screen: no
+driver for one). _"Each card sets the
 right options for"_ every firmware you picked; the picks are saved in
 `keyboard.features` (a device keeps them with its design). They are step 3 of a
 [new design](/guide/builder/overview#starting-a-board), and **Pick…** /

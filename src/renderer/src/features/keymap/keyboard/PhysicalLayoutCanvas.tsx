@@ -24,6 +24,9 @@ import useUserSettingsStore, { type CapStyle } from '@/stores/userSettingsStore'
 import useConnectionStore from '@/stores/connectionStore'
 import type { HsvColor } from '@firmware/service'
 import type { KeyLightInput, UnifiedLighting } from '@/features/lighting/engine'
+import { ControlShape } from '@/features/devices/stage/ControlShape'
+import type { ControlShape as Shape } from '@firmware/devices/types'
+import type { PhysicalLayoutPart } from '@firmware/types'
 
 // Enabled solid cfg used to render per-key colours when no global effect is active
 // (e.g. paint mode with the device effect off) — the per-key colour overrides hue.
@@ -65,6 +68,9 @@ export type KeyPosition = PropsWithChildren<{
     // A knob, not a key: skipped by key-only paths (nav, heatmap, paint), and
     // carries the legend its cap shows per turn direction.
     knob?: KnobLegend
+    /** A keymap position that is not a keycap (a knob, slider or round
+     *  button): drawn as this control shape, clicked like any key. */
+    shape?: Shape
 }>
 
 // Pattern check: no GoF pattern (-) — rejected — plain prop/callback shape additions for
@@ -78,6 +84,9 @@ export interface ClickModifiers {
 
 interface PhysicalLayoutCanvasProps {
     positions: Array<KeyPosition>
+    /** Parts on the board that are not keymap positions (a screen, a
+     *  stick…), in centi-units: drawn, not clickable. */
+    parts?: readonly PhysicalLayoutPart[]
     selectedPosition?: number
     // Additional positions highlighted as part of a multi-selection.
     selectedPositions?: Set<number>
@@ -121,6 +130,24 @@ interface PhysicalLayoutCanvasProps {
 // mutated, so a single shared instance is safe.
 const EMPTY_SET: ReadonlySet<number> = new Set<number>()
 
+const NO_PARTS: readonly PhysicalLayoutPart[] = []
+
+/** The board's right and bottom edge, in key units, from the parts alone. */
+function partBounds(parts: readonly PhysicalLayoutPart[]): {
+    rightMost: number
+    bottomMost: number
+} {
+    let rightMost = 0
+    let bottomMost = 0
+    for (const p of parts) {
+        rightMost = Math.max(rightMost, (p.x + p.w) / 100)
+        bottomMost = Math.max(bottomMost, (p.y + p.h) / 100)
+    }
+    return { rightMost, bottomMost }
+}
+
+const noop = (): void => {}
+
 const MIN_ZOOM = 0.4
 const MAX_ZOOM = 3.2
 
@@ -150,6 +177,7 @@ interface View {
 
 const PhysicalLayoutCanvasImpl = ({
     positions,
+    parts = NO_PARTS,
     selectedPosition,
     selectedPositions,
     selectedEncoder,
@@ -219,9 +247,9 @@ const PhysicalLayoutCanvasImpl = ({
                     rightMost: Math.max(acc.rightMost, x + width),
                     bottomMost: Math.max(acc.bottomMost, y + height),
                 }),
-                { rightMost: 0, bottomMost: 0 },
+                partBounds(parts),
             ),
-        [positions],
+        [positions, parts],
     )
 
     // pattern-check: skip — debounce wrapper around the existing refit callbacks
@@ -623,22 +651,57 @@ const PhysicalLayoutCanvasImpl = ({
                         data-zoomer={hoverZoom}
                         style={posStyle as React.CSSProperties}
                     >
-                        <KeyButtonView
-                            hoverZoom={hoverZoom}
-                            oneU={effOneU}
-                            selected={idx === selectedPosition}
-                            multiSelected={!!selectedPositions?.has(idx)}
-                            pressed={pressedKeys.has(idx)}
-                            seen={seenKeys.has(idx)}
-                            richTooltip={tooltips}
-                            capStyle={capStyle}
-                            colorMode={colorMode}
-                            keyDisplayMode={keyDisplayMode}
-                            showHeaderTag={showHeaderTag}
-                            showCategoryDot={showCategoryDot}
-                            light={lightInputs?.[idx] ?? null}
-                            {...p}
-                        />
+                        {p.shape ? (
+                            <ControlShape
+                                control={{
+                                    id: p.id ?? String(idx),
+                                    name: p.tapText ?? '',
+                                    shape: p.shape,
+                                    x: 0,
+                                    y: 0,
+                                    w: p.width,
+                                    h: p.height,
+                                    glyph: p.tapText,
+                                }}
+                                box={{
+                                    x: 0,
+                                    y: 0,
+                                    w: p.width * effOneU,
+                                    h: p.height * effOneU,
+                                }}
+                                summary={{
+                                    text: p.tapText ?? '',
+                                    cat: p.tapText ? 'key' : 'none',
+                                }}
+                                selected={
+                                    idx === selectedPosition ||
+                                    !!selectedPositions?.has(idx)
+                                }
+                                hovered={false}
+                                mono={false}
+                                live={false}
+                                preview
+                                onSelect={noop}
+                                onHover={noop}
+                            />
+                        ) : (
+                            <KeyButtonView
+                                hoverZoom={hoverZoom}
+                                oneU={effOneU}
+                                selected={idx === selectedPosition}
+                                multiSelected={!!selectedPositions?.has(idx)}
+                                pressed={pressedKeys.has(idx)}
+                                seen={seenKeys.has(idx)}
+                                richTooltip={tooltips}
+                                capStyle={capStyle}
+                                colorMode={colorMode}
+                                keyDisplayMode={keyDisplayMode}
+                                showHeaderTag={showHeaderTag}
+                                showCategoryDot={showCategoryDot}
+                                light={lightInputs?.[idx] ?? null}
+                                {...p}
+                            />
+                        )}
                     </div>
                 )
             }),
@@ -688,6 +751,47 @@ const PhysicalLayoutCanvasImpl = ({
             {...props}
         >
             {keysPositions}
+            {parts.map((p) => (
+                <div
+                    key={p.id}
+                    aria-hidden
+                    className="pointer-events-none absolute"
+                    style={{
+                        left: (p.x / 100) * effOneU,
+                        top: (p.y / 100) * effOneU,
+                        width: (p.w / 100) * effOneU,
+                        height: (p.h / 100) * effOneU,
+                    }}
+                >
+                    <ControlShape
+                        control={{
+                            id: p.id,
+                            name: p.name,
+                            shape: p.shape,
+                            x: 0,
+                            y: 0,
+                            w: p.w / 100,
+                            h: p.h / 100,
+                            ...(p.r ? { r: p.r / 100 } : {}),
+                            ...(p.glyph ? { glyph: p.glyph } : {}),
+                        }}
+                        box={{
+                            x: 0,
+                            y: 0,
+                            w: (p.w / 100) * effOneU,
+                            h: (p.h / 100) * effOneU,
+                        }}
+                        summary={{ text: '', cat: 'none' }}
+                        selected={false}
+                        hovered={false}
+                        mono={false}
+                        live={false}
+                        preview
+                        onSelect={noop}
+                        onHover={noop}
+                    />
+                </div>
+            ))}
         </div>
     )
 

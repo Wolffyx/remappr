@@ -2,6 +2,7 @@
 import { useMemo } from 'react'
 import type { Keymap } from '@firmware/types'
 import { resolveBindingLabels } from '@firmware'
+import { ELEMENT_SHAPE } from '@firmware/config'
 import {
     hidUsageLongLabel,
     usageGlyph,
@@ -55,9 +56,12 @@ export function useStageBindings({
             layout,
             keymap,
             displayLayerIndex,
-        ).map((p) => ({
+        ).map((p, i) => ({
             id: p.id,
             header: p.header,
+            ...(layout.keys[i]?.element
+                ? { shape: ELEMENT_SHAPE[layout.keys[i]!.element!] }
+                : {}),
             // Tap glyph text (e.g. "Q", "Vol+") for legend sizing — mirrors what
             // HidUsageLabel renders, so KeyButton sizes the legend off the glyph
             // length (design rule), not the action-type tag in `header`. For

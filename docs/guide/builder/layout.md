@@ -107,17 +107,64 @@ A wider, rotated, matrix-wired thumb key carries the extra fields:
 }
 ```
 
-| Field      | Inspector label        | Meaning                                  |
-| ---------- | ---------------------- | ---------------------------------------- |
-| `x`, `y`   | X / Y                  | Position in key units (U).               |
-| `w`, `h`   | Width / Height         | Size in U (default 1).                   |
-| `r`        | Angle °                | Rotation.                                |
-| `rx`, `ry` | Pivot X / Pivot Y      | Rotation origin.                         |
-| `matrix`   | Row / Column           | Electrical position `[row, col]`.        |
-| `pin`      | Direct GPIO pin        | Per-key direct GPIO (direct-pin boards). |
-| `element`  | Key / Encoder / Slider | Input element type.                      |
+| Field      | Inspector label                 | Meaning                                                                        |
+| ---------- | ------------------------------- | ------------------------------------------------------------------------------ |
+| `x`, `y`   | X / Y                           | Position in key units (U).                                                     |
+| `w`, `h`   | Width / Height                  | Size in U (default 1).                                                         |
+| `r`        | Angle °                         | Rotation.                                                                      |
+| `rx`, `ry` | Pivot X / Pivot Y               | Rotation origin.                                                               |
+| `matrix`   | Row / Column                    | Electrical position `[row, col]`.                                              |
+| `pin`      | Direct GPIO pin                 | Per-key direct GPIO (direct-pin boards).                                       |
+| `element`  | Key / Encoder / Slider / Button | Input element type: a knob, a slider or a round button is drawn as what it is. |
 
 The inspector edits all of these — see [Key inspector](/guide/builder/inspector).
+
+## Parts on the board {#parts}
+
+Besides keys, a board can carry **parts**: a **Screen**, an **Analog stick**,
+a **D-pad** and a **Trigger**. They sit on the canvas where they really are,
+drawn as what they are (the device editor's shapes): click one to select it,
+drag it to move it, `Delete` to remove it. Its inspector has two tabs —
+**Place** (name, variant, X / Y / Width / Height / Rotation) and **Settings**.
+
+The **Parts** group in the sidebar lists everything on the board that is not a
+plain key and adds more: the parts above, plus a **Knob**, a **Slider** and a
+round **Button**. Those three are still keys — each has a keymap position and a
+binding — they are just drawn as a knob, a slider or a round button. The `/`
+search finds every part too.
+
+A part's pins join the [Pins panel](#pins): a stick's two analog axes, a
+D-pad's four directions, a trigger's axis, a screen's pins (below). Parts are
+saved in `keyboard.parts`.
+
+### Screens {#screens}
+
+A screen's **Settings** — and the [Screen feature card](/guide/builder/identity-and-hardware#feature-cards)
+— ask _"Screen · which one is it?"_ with a tile per common module:
+
+| Tile               | Chip             | Bus | Size    |
+| ------------------ | ---------------- | --- | ------- |
+| OLED 128×32        | SSD1306          | I²C | 128×32  |
+| OLED 128×64        | SSD1306          | I²C | 128×64  |
+| OLED 128×64        | SH1106           | I²C | 128×64  |
+| nice!view          | Sharp memory LCD | SPI | 160×68  |
+| E-paper 80×128     | IL0323           | SPI | 80×128  |
+| Colour LCD 240×240 | ST7789           | SPI | 240×240 |
+
+Each tile shows the firmware you picked, crossed out where that firmware has no
+driver for its chip. **Other…** sets the bus (**I²C**, **SPI** or **UART**), the
+controller chip, the size and (on I²C) the address by hand. **Turned** rotates
+the picture.
+
+The bus decides the pins: an I²C screen uses the controller's I²C pins (held
+for the bus, nothing else to set), an SPI one needs **CS**, **DC** and **RST**
+(an e-paper also **BUSY**, a memory LCD only **CS**) beside the controller's SPI
+pins, a UART one **TX** and **RX**.
+
+::: warning
+No firmware export writes the screen yet: the builder records it, its pins and
+which firmware can drive it.
+:::
 
 ## Wire the matrix {#wire-the-matrix}
 
