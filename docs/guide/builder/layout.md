@@ -161,10 +161,18 @@ for the bus, nothing else to set), an SPI one needs **CS**, **DC** and **RST**
 (an e-paper also **BUSY**, a memory LCD only **CS**) beside the controller's SPI
 pins, a UART one **TX** and **RX**.
 
-::: warning
-No firmware export writes the screen yet: the builder records it, its pins and
-which firmware can drive it.
-:::
+What each export writes for the screen:
+
+| Firmware | Writes                                                                                                                                                       |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ZMK      | The screen's node on the controller's I²C or SPI bus, `chosen zephyr,display`, and `CONFIG_ZMK_DISPLAY=y` (SSD1306, nice!view, IL0323 e-paper).              |
+| Remappr  | The same node and `chosen`, plus `REMAPPR_OLED` and the bus driver in `Kconfig.defconfig` (SSD1306, SH1106, nice!view). The OLED service needs the node bus. |
+| QMK      | `OLED_ENABLE` with its chip, size, address and SPI pins (SSD1306, SH1106), or Quantum Painter's `st7789_spi` driver for the colour LCD.                      |
+
+Each node copies one from the firmware's own tree (ZMK's corne, kyria,
+nice_view and corneish_zen; Remappr's rig). A chip the firmware has no driver
+for is left out, and the export and the **Check** step say so. You still draw
+on a QMK screen in `keymap.c`.
 
 ## Wire the matrix {#wire-the-matrix}
 
@@ -234,6 +242,11 @@ settings shows here too. Two tabs:
   analog).
 - Everything else takes plain pins first, then analog pins, and the NFC pads
   (nice!nano D10, D16) last.
+
+With a battery pin set, **Battery divider** under the panel takes its two
+resistors (**To ground** and **Whole path**, in Ω): ZMK writes the battery only
+with both, Remappr assumes a 1:2 divider without them. Both write it on nRF
+controllers only (ZMK's divider driver reads the nRF ADC).
 
 Pins the controller does not have, used twice, or on a held bus are shown in
 red; the hint under the panel lists the pin names the controller takes. On a
