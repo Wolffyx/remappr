@@ -52,39 +52,52 @@ const LEVEL_CATEGORY: Partial<Record<SliderMap, KeyCategory>> = {
     mouse_wheel: 'mouse',
 }
 
-export function sliderLegend(
-    action: SliderAction | undefined,
-    motor?: PhysicalLayoutKey['motor'],
-): SliderLegend {
-    const follow = motor?.follow
-    if (!action)
-        return {
-            title: 'Slider',
-            kind: 'none',
-            category: 'alpha',
-            motor: follow,
-        }
-    const info = sliderMapInfo(action.map as SliderMap)
-    if (info.id === 'keys') {
-        const up = action.up ? knobSide(action.up.label) : undefined
-        const down = action.down ? knobSide(action.down.label) : undefined
+/** What a slider shows, from its parts: shared by the editor (runtime
+ *  bindings) and the builder (the design's own). */
+export function buildSliderLegend(b: {
+    map?: SliderMap
+    min?: number
+    max?: number
+    up?: KnobSide
+    down?: KnobSide
+    follow?: SliderLegend['motor']
+}): SliderLegend {
+    const motor = b.follow
+    if (!b.map)
+        return { title: 'Slider', kind: 'none', category: 'alpha', motor }
+    const info = sliderMapInfo(b.map)
+    if (info.id === 'keys')
         return {
             title: 'Slider',
             kind: 'keys',
-            up,
-            down,
-            category: up?.category ?? down?.category ?? 'alpha',
-            motor: follow,
+            up: b.up,
+            down: b.down,
+            category: b.up?.category ?? b.down?.category ?? 'alpha',
+            motor,
         }
-    }
     return {
         title: info.label,
         kind: 'level',
         range:
-            action.min !== undefined || action.max !== undefined
-                ? `${action.min ?? 0}–${action.max ?? 100}`
+            b.min !== undefined || b.max !== undefined
+                ? `${b.min ?? 0}–${b.max ?? 100}`
                 : undefined,
         category: LEVEL_CATEGORY[info.id] ?? 'system',
-        motor: follow,
+        motor,
     }
+}
+
+/** A runtime slider binding's legend (the editor). */
+export function sliderLegend(
+    action: SliderAction | undefined,
+    motor?: PhysicalLayoutKey['motor'],
+): SliderLegend {
+    return buildSliderLegend({
+        map: action?.map as SliderMap | undefined,
+        min: action?.min,
+        max: action?.max,
+        up: action?.up ? knobSide(action.up.label) : undefined,
+        down: action?.down ? knobSide(action.down.label) : undefined,
+        follow: motor?.follow,
+    })
 }

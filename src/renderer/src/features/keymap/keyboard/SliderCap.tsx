@@ -37,6 +37,8 @@ interface SliderCapProps {
     colorMode: ColorMode
     keyDisplayMode: KeyDisplayMode
     showHeaderTag?: boolean
+    /** Selected without a direction (the builder selects the whole slider). */
+    selected?: boolean
 }
 
 /** Where along the groove the thumb rests: a level sits part-way up, keys in the middle. */
@@ -53,6 +55,7 @@ const SliderCapImpl = ({
     colorMode,
     keyDisplayMode,
     showHeaderTag = true,
+    selected: selectedWhole = false,
 }: SliderCapProps): JSX.Element => {
     const S = oneU
     const W = width * S - 2
@@ -63,7 +66,7 @@ const SliderCapImpl = ({
         colorMode !== 'off' ? catStyle(legend.category, colorMode) : null
     const ink = accent?.legend ?? F.legend
     const edge = accent?.edge ?? 'var(--primary)'
-    const selected = selectedDir !== null
+    const selected = selectedDir !== null || selectedWhole
 
     const headerSize = Math.max(8, Math.round(S * 0.098))
     const valSize = Math.max(8, Math.round(S * 0.12))
