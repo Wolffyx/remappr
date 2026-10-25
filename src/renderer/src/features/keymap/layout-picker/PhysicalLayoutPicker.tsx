@@ -1,7 +1,7 @@
 // pattern-check: skip — hover-preview restructure of layout chips, presentational only
 import { useCallback, useState } from 'react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/ui/popover'
-import { LayerKeyboardPreview } from '../keyboard/LayerKeyboardPreview'
+import { LayoutThumb } from './LayoutThumb'
 import {
     SidebarGroupContent,
     SidebarGroupLabel,
@@ -11,7 +11,10 @@ import {
 import { Check, Cpu, Plus } from 'lucide-react'
 import type { PhysicalLayout } from '@firmware/types'
 
-export type PhysicalLayoutItem = Pick<PhysicalLayout, 'name' | 'keys'>
+export type PhysicalLayoutItem = Pick<
+    PhysicalLayout,
+    'name' | 'keys' | 'encoders'
+>
 
 export type PhysicalLayoutClickCallback = (index: number) => void
 
@@ -115,9 +118,10 @@ export const PhysicalLayoutPicker = ({
                                         keys
                                     </div>
                                     <div className="flex justify-center">
-                                        <LayerKeyboardPreview
-                                            physicalLayoutIndex={index}
-                                            oneU={13}
+                                        <LayoutThumb
+                                            layout={layout}
+                                            fit={{ width: 260, height: 120 }}
+                                            maxOneU={13}
                                         />
                                     </div>
                                 </PopoverContent>

@@ -1,4 +1,4 @@
-// Pattern check: no GoF pattern (-) — rejected — presentational dropdown over the existing layouts and LayerKeyboardPreview; one caller.
+// Pattern check: no GoF pattern (-) — rejected — presentational dropdown over the existing layouts and LayoutThumb; one caller.
 import type { JSX } from 'react'
 import { Check, ChevronDown, LayoutGrid } from 'lucide-react'
 import {
@@ -8,11 +8,11 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/ui/dropdown-menu'
-import { LayerKeyboardPreview } from '../keyboard/LayerKeyboardPreview'
+import { LayoutThumb } from './LayoutThumb'
 import type { PhysicalLayoutPickerProps } from './PhysicalLayoutPicker'
 
 /** The physical layout as one select (f12 D1): the active layout's name and
- *  "n of N"; the menu shows each layout's real keys as a thumbnail. */
+ *  "n of N"; the menu shows each layout's shape as a thumbnail. */
 export function LayoutSelect({
     layouts,
     selectedPhysicalLayoutIndex,
@@ -48,9 +48,10 @@ export function LayoutSelect({
                         className="items-center gap-3"
                     >
                         <span className="pointer-events-none grid w-[96px] shrink-0 place-items-center overflow-hidden rounded bg-foreground/[.05] p-1">
-                            <LayerKeyboardPreview
-                                physicalLayoutIndex={index}
-                                oneU={6}
+                            <LayoutThumb
+                                layout={layout}
+                                fit={{ width: 88, height: 40 }}
+                                maxOneU={10}
                             />
                         </span>
                         <span className="min-w-0 flex-1">
