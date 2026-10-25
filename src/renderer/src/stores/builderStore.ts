@@ -72,6 +72,7 @@ interface BuilderState {
     /** Active physical-layout variant id ('' = show all / common keys). */
     activeVariant: string
     /** Whether the matrix-wiring overlay is shown on the canvas. */
+    /** Wiring view on (kept across opens, so the choice is remembered). */
     matrixView: boolean
     /** Whether the left tools panel (layers / build-from / identity) is shown. */
     leftOpen: boolean
@@ -111,6 +112,7 @@ interface BuilderState {
     setActiveLayer: (index: number) => void
     setActiveVariant: (id: string) => void
     toggleMatrixView: () => void
+    setMatrixView: (on: boolean) => void
     toggleLeft: () => void
     setJsonOpen: (open: boolean) => void
     toggleJson: () => void
@@ -176,7 +178,6 @@ const useBuilderStore = create<BuilderState>()(
                           selection: new Set<number>(),
                           activeLayer: 0,
                           activeVariant: '',
-                          matrixView: false,
                           jsonOpen: false,
                           view: DEFAULT_VIEW,
                           past: [],
@@ -198,6 +199,7 @@ const useBuilderStore = create<BuilderState>()(
         setActiveLayer: (activeLayer) => set({ activeLayer }),
         setActiveVariant: (activeVariant) => set({ activeVariant }),
         toggleMatrixView: () => set((s) => ({ matrixView: !s.matrixView })),
+        setMatrixView: (matrixView) => set({ matrixView }),
         toggleLeft: () => set((s) => ({ leftOpen: !s.leftOpen })),
         setJsonOpen: (jsonOpen) => set({ jsonOpen }),
         toggleJson: () => set((s) => ({ jsonOpen: !s.jsonOpen })),
