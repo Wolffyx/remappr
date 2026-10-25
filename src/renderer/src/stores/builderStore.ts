@@ -78,6 +78,13 @@ interface BuilderState {
     /** Wiring view on (kept across opens, so the choice is remembered). */
     matrixView: boolean
     inspectorTab: InspectorTab
+    /** The open settings group in the left panel (one at a time). */
+    settingsGroup: string | null
+    /** A setting to bring into view (its `data-setting` anchor), set by search;
+     *  the settings form scrolls to it and clears it. */
+    settingsFocus: string | null
+    /** The Firmware group's tab (a firmware target id); null = the first. */
+    firmwareTab: string | null
     /** Whether the left tools panel (layers / build-from / identity) is shown. */
     leftOpen: boolean
     /** Whether the right dock shows the JSON config editor instead of the inspector. */
@@ -118,6 +125,12 @@ interface BuilderState {
     toggleMatrixView: () => void
     setMatrixView: (on: boolean) => void
     setInspectorTab: (tab: InspectorTab) => void
+    setSettingsGroup: (group: string | null) => void
+    /** Open `group` (and a firmware tab), show the left panel and bring the
+     *  `anchor` setting into view. */
+    focusSetting: (group: string, anchor?: string, firmwareTab?: string) => void
+    clearSettingsFocus: () => void
+    setFirmwareTab: (tab: string) => void
     toggleLeft: () => void
     setJsonOpen: (open: boolean) => void
     toggleJson: () => void
@@ -158,6 +171,9 @@ const useBuilderStore = create<BuilderState>()(
         activeVariant: '',
         matrixView: false,
         inspectorTab: 'settings',
+        settingsGroup: 'board',
+        settingsFocus: null,
+        firmwareTab: null,
         leftOpen: true,
         jsonOpen: false,
         snapMode: 'grid',
@@ -212,6 +228,16 @@ const useBuilderStore = create<BuilderState>()(
                 inspectorTab: matrixView ? 'wiring' : 'settings',
             }),
         setInspectorTab: (inspectorTab) => set({ inspectorTab }),
+        setSettingsGroup: (settingsGroup) => set({ settingsGroup }),
+        focusSetting: (group, anchor, firmwareTab) =>
+            set((s) => ({
+                settingsGroup: group,
+                settingsFocus: anchor ?? null,
+                firmwareTab: firmwareTab ?? s.firmwareTab,
+                leftOpen: true,
+            })),
+        clearSettingsFocus: () => set({ settingsFocus: null }),
+        setFirmwareTab: (firmwareTab) => set({ firmwareTab }),
         toggleLeft: () => set((s) => ({ leftOpen: !s.leftOpen })),
         setJsonOpen: (jsonOpen) => set({ jsonOpen }),
         toggleJson: () => set((s) => ({ jsonOpen: !s.jsonOpen })),

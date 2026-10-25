@@ -367,6 +367,23 @@
             transform: none;
         }
     }
+
+    /* A setting brought into view by the builder's search. */
+    .setting-flash {
+        border-radius: var(--radius-md);
+        animation: setting-flash 1.4s ease both;
+    }
+
+    @keyframes setting-flash {
+        from {
+            box-shadow: 0 0 0 2px var(--primary);
+            background: color-mix(in oklab, var(--primary) 14%, transparent);
+        }
+        to {
+            box-shadow: 0 0 0 2px transparent;
+            background: transparent;
+        }
+    }
 }
 
 /* Custom scrollbar + selection (design prototype remappr.css). Thin, token-tinted
