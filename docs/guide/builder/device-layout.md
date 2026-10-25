@@ -14,8 +14,15 @@ dialog has **Or design a device**: **Mouse**, **Gamepad** or **Flight stick**.
 Each starts from a stock layout of that form, named _"My mouse"_, _"My
 gamepad"_ or _"My flight stick"_, and the dialog carries on through the same
 five steps as a keyboard: **Firmware** (the targets that build this device),
-**Settings** (the firmware's settings for it — for Remappr, pointer, power and
-radio), **Body** (the shell parameters and **Add control**) and **Check**.
+**Features** (the same [feature cards](/guide/builder/identity-and-hardware#feature-cards)
+as a keyboard, the ones that suit this kind of device marked **Suggested**),
+**Controller & pins** (the board, and the keyboard's
+[Pins panel](/guide/builder/layout#pins) with a pin per control: one per button,
+two per wheel, an analog pin per stick axis or trigger, chip select and motion
+for the sensor on SPI, a battery pin when the board can't read the battery
+itself) and **Check**. Afterwards the same panel sits in the **Controller &
+pins** group, the firmware's own settings (pointer, power, radio) in
+**Firmware**.
 
 The header reads **Builder** with the form and the number of controls, e.g.
 _"Gamepad layout · 16 controls"_.

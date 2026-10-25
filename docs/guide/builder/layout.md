@@ -164,15 +164,30 @@ free).
 ### Pins {#pins}
 
 In the Wiring view with nothing selected, the right panel is **Pins ·
-{controller}** with two tabs:
+{controller}**. It lists every pin the design wires: the matrix rows and
+columns (**R0**, **C0**…) and the pins its parts need — a motion sensor's chip
+select and motion line (**CS**, **MOT**), each encoder's two phases (**E0A**,
+**E0B**), an analog pin per slider key. Two tabs:
 
-- **Board** — a drawing of the controller. Pick a row or column chip, then
-  click a pad to wire it there.
-- **Table** — every row and column with its pin, typed in.
+- **Board** — a drawing of the controller. Pick a chip, then click a pad to
+  wire it there. Each pad shows who uses it.
+- **Table** — every pin by name, with a dropdown of the controller's pins.
 
-Pins the controller does not have, or that are used twice, are shown in red;
-the hint under the panel lists the pin names the controller takes. On a split
-board both halves use the same column pins.
+**Suggest free pins** fills the unset ones by what each is for:
+
+- A part on a bus (the motion sensor on SPI) keeps the controller's own SPI
+  pins free for it; they show as **Held for the bus** (on a nice!nano: SCK D15,
+  MOSI D16, MISO D14).
+- Analog parts get the controller's real analog pins (a nice!nano has three:
+  D19, D20, D21 — the "A6–A10" silkscreen names are not analog).
+- Everything else takes plain pins first, then analog pins, and the NFC pads
+  (nice!nano D10, D16) last.
+
+Pins the controller does not have, used twice, or on a held bus are shown in
+red; the hint under the panel lists the pin names the controller takes. On a
+split board both halves use the same column pins. The facts come from each
+controller's board files and datasheet; a controller remappr has no facts for
+still gets pins in header order.
 
 ### Matrix settings and the config
 

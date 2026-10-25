@@ -8,10 +8,13 @@ import { create } from 'zustand'
 import { connectMockDeviceWithModel } from '@firmware'
 import {
     BUILDER_FIRMWARE_TARGETS,
+    SUGGESTED_FEATURES,
     newDeviceConfig,
     targetBuildsForm,
     type BuilderFirmwareId,
+    type CanonController,
     type ConfigDevice,
+    type DesignFeature,
 } from '@firmware/config'
 import type { DeviceModel } from '@firmware/devices/types'
 import useBuilderStore from '@/stores/builderStore'
@@ -29,6 +32,12 @@ const HISTORY_CAP = 60
 export interface DeviceFirmware {
     targets: BuilderFirmwareId[]
     settings: ConfigDevice | null
+    /** The feature cards picked — the same list a keyboard has. */
+    features: DesignFeature[]
+    /** The controller board it is built on. */
+    controller?: CanonController
+    /** Pin slot id → pin label (see devicePins). */
+    pins: Record<string, string>
 }
 
 /** Every target that builds this form, with default settings. */
@@ -38,6 +47,9 @@ export function defaultDeviceFirmware(layout: DeviceModel): DeviceFirmware {
             targetBuildsForm(t, layout.form),
         ).map((t) => t.id),
         settings: newDeviceConfig(layout.form, layout.name),
+        features: [...SUGGESTED_FEATURES[layout.form]],
+        controller: { board: 'nice_nano_v2' },
+        pins: {},
     }
 }
 
@@ -78,7 +90,7 @@ const useDeviceBuilderStore = create<DeviceBuilderState>()((set, get) => ({
     past: [],
     future: [],
     gesture: null,
-    firmware: { targets: [], settings: null },
+    firmware: { targets: [], settings: null, features: [], pins: {} },
 
     start: (layout, origin, firmware) => {
         // The variant filter and open settings group are the builder's; a
@@ -87,7 +99,8 @@ const useDeviceBuilderStore = create<DeviceBuilderState>()((set, get) => ({
         set({
             layout,
             origin,
-            firmware: firmware ?? defaultDeviceFirmware(layout),
+            // A design saved before features and pins existed gets them.
+            firmware: { ...defaultDeviceFirmware(layout), ...firmware },
             selected: null,
             past: [],
             future: [],

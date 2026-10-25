@@ -49,11 +49,22 @@ Remappr"_. VIA and Vial compile through QMK. See
 
 ## Feature cards {#feature-cards}
 
-_"What should this keyboard do?"_ — cards for **Wireless** (Bluetooth, up to 5
-hosts), **Edit live from the app**, **Battery & sleep**, **Lighting**,
-**Pointing** and **Encoders**, each with what it needs (e.g. _"LED data pin"_).
-_"Each card sets the right options for"_ every firmware you picked; the picks
-are saved in `keyboard.features`. They are step 3 of a
+_"What should it do?"_ — the same cards for every design, keyboard or device,
+because any part can go on any design (a trackball on a keyboard, a knob on a
+mouse):
+
+- **Connection & power:** **Wireless** (Bluetooth or a 2.4 GHz dongle),
+  **Edit live from the app**, **Battery & sleep**, **Lighting**.
+- **Parts:** **Motion sensor** (an optical sensor or trackball on SPI),
+  **Encoders** (a scroll wheel or knobs), **Analog inputs** (sticks, triggers,
+  sliders).
+
+Each says what it needs wired (e.g. _"LED data pin"_). The kind of design only
+marks some **Suggested** — a mouse starts with sensor and encoders on, a gamepad
+with analog inputs. Each card's firmware chips come from that firmware's own
+table, crossed out where it has no option for that part. _"Each card sets the
+right options for"_ every firmware you picked; the picks are saved in
+`keyboard.features` (a device keeps them with its design). They are step 3 of a
 [new design](/guide/builder/overview#starting-a-board), and **Pick…** /
 **Change…** in the Firmware group opens them later.
 
