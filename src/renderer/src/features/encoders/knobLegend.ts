@@ -23,8 +23,12 @@ export interface KnobSide {
     category: KeyCategory
 }
 
-/** One encoder's legend: a side per turn direction. */
-export type KnobLegend = { slot: number } & Record<EncoderDir, KnobSide>
+/** One encoder's legend: a side per turn direction, plus its button (the key
+ *  under the knob) when that has a binding. */
+export type KnobLegend = { slot: number; press?: KnobSide } & Record<
+    EncoderDir,
+    KnobSide
+>
 
 /** The text a half-width knob cap can hold for one direction's action. */
 const knobText = (label: KeyLabel): string =>
@@ -42,6 +46,14 @@ const knobParts = (label: KeyLabel): LegendPart[] | undefined => {
 
 /** One turn direction's legend. */
 export function knobSide(label: KeyLabel): KnobSide {
+    const category = categoryForBinding({
+        actionLabel: label.bindingPrefix,
+        bindingParam1: label.primaryUsage,
+        actionTypeName: label.primary,
+    })
+    // A pass-through turn is unbound on the cap (its rim shows the dash).
+    if (category === 'trans')
+        return { text: '', title: label.primary, category }
     return {
         text: knobText(label),
         parts: knobParts(label),
@@ -51,11 +63,7 @@ export function knobSide(label: KeyLabel): KnobSide {
                 : undefined) ??
             label.valueLong ??
             label.description,
-        category: categoryForBinding({
-            actionLabel: label.bindingPrefix,
-            bindingParam1: label.primaryUsage,
-            actionTypeName: label.primary,
-        }),
+        category,
     }
 }
 

@@ -14,7 +14,7 @@ import {
 } from '@/lib/keymap/keyCategory'
 import { HidUsageLabel } from '../HidUsageLabel'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
-import { knobLegend } from '@/features/encoders/knobLegend'
+import { knobLegend, knobSide } from '@/features/encoders/knobLegend'
 import type { KeypressDetectionConfig } from '@/lib/keypress/keypressDetector'
 import { ParamLegend } from '../ParamLegend'
 import { LegendParts } from '../LegendParts'
@@ -145,9 +145,18 @@ export function useStageBindings({
             const onKey =
                 slot.key !== undefined ? keyPositions[slot.key] : undefined
             if (onKey && slot.key !== undefined) {
+                const label =
+                    keymap.layers[displayLayerIndex]?.keys[slot.key]?.label
+                const press = label ? knobSide(label) : undefined
                 keyPositions[slot.key] = {
                     ...onKey,
-                    knob: knobLegend(i, action),
+                    knob: {
+                        ...knobLegend(i, action),
+                        // the button shows only when it does something
+                        ...(press?.text && press.category !== 'trans'
+                            ? { press }
+                            : {}),
+                    },
                     knobOnKey: true,
                 }
                 return

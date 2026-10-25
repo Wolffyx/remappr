@@ -147,7 +147,14 @@ export function categoryForUsage(usage: number | undefined): KeyCategory {
 
 // Transparent / empty bindings — ZMK behaviour references plus the QMK-family
 // keycode tokens (bindingPrefix carries the wire token there).
-const TRANS_PREFIXES = new Set(['&trans', '&none', 'kc_trns', 'kc_no'])
+const TRANS_PREFIXES = new Set([
+    '&trans',
+    '&none',
+    'trans',
+    'none',
+    'kc_trns',
+    'kc_no',
+])
 
 // Binding-prefix groups (ZMK behaviour references).
 const LAYER_PREFIXES = new Set([

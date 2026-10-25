@@ -334,7 +334,8 @@ const EncoderCapImpl = ({
                         }}
                     />
                 </div>
-                {/* no press binding in the encoder model — the design's empty centre */}
+                {/* The centre: the knob's button (the key under it) when it
+                    has one, else the design's empty centre. */}
                 <div
                     style={{
                         position: 'absolute',
@@ -342,18 +343,53 @@ const EncoderCapImpl = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        paddingTop: D * 0.06,
+                        paddingTop: knob.press ? 0 : D * 0.06,
                     }}
                 >
-                    <span
-                        style={{
-                            width: D * 0.1,
-                            height: D * 0.1,
-                            borderRadius: '50%',
-                            background: gripDark,
-                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,.6)',
-                        }}
-                    />
+                    {knob.press ? (
+                        <span
+                            title={knob.press.title ?? knob.press.text}
+                            className="font-keycap"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: D * 0.56,
+                                height: D * 0.56,
+                                borderRadius: '50%',
+                                background: `radial-gradient(circle at 40% 32%, ${domeLight}, ${domeDark} 80%)`,
+                                boxShadow: `0 1px 2px rgba(0,0,0,.45), 0 0 0 1px ${gripDark}`,
+                                color: ink,
+                                fontSize: Math.max(
+                                    7,
+                                    Math.round(lblSize * 0.9),
+                                ),
+                                fontWeight: 700,
+                                lineHeight: 1,
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {knob.press.parts ? (
+                                <LegendParts
+                                    parts={knob.press.parts}
+                                    title={knob.press.title}
+                                />
+                            ) : (
+                                knob.press.text
+                            )}
+                        </span>
+                    ) : (
+                        <span
+                            style={{
+                                width: D * 0.1,
+                                height: D * 0.1,
+                                borderRadius: '50%',
+                                background: gripDark,
+                                boxShadow: 'inset 0 1px 2px rgba(0,0,0,.6)',
+                            }}
+                        />
+                    )}
                 </div>
             </div>
             {/* Hit zones — the board's delegated click reads data-encoder. */}
