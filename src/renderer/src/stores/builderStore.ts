@@ -19,6 +19,9 @@ export type SnapMode = 'grid' | 'free'
 
 export type BuilderDocKind = 'keymap' | 'device'
 
+/** The inspector's tab: where it sits, what it does, how it is wired. */
+export type InspectorTab = 'place' | 'settings' | 'wiring'
+
 // Pattern check: no GoF pattern (-) — rejected — additive plain data types +
 // zustand state for the picker-open target; discriminated slot string, no abstraction.
 /** Which binding slot the picker edits: a key's base binding, an encoder's
@@ -74,6 +77,7 @@ interface BuilderState {
     /** Whether the matrix-wiring overlay is shown on the canvas. */
     /** Wiring view on (kept across opens, so the choice is remembered). */
     matrixView: boolean
+    inspectorTab: InspectorTab
     /** Whether the left tools panel (layers / build-from / identity) is shown. */
     leftOpen: boolean
     /** Whether the right dock shows the JSON config editor instead of the inspector. */
@@ -113,6 +117,7 @@ interface BuilderState {
     setActiveVariant: (id: string) => void
     toggleMatrixView: () => void
     setMatrixView: (on: boolean) => void
+    setInspectorTab: (tab: InspectorTab) => void
     toggleLeft: () => void
     setJsonOpen: (open: boolean) => void
     toggleJson: () => void
@@ -152,6 +157,7 @@ const useBuilderStore = create<BuilderState>()(
         activeLayer: 0,
         activeVariant: '',
         matrixView: false,
+        inspectorTab: 'settings',
         leftOpen: true,
         jsonOpen: false,
         snapMode: 'grid',
@@ -199,7 +205,13 @@ const useBuilderStore = create<BuilderState>()(
         setActiveLayer: (activeLayer) => set({ activeLayer }),
         setActiveVariant: (activeVariant) => set({ activeVariant }),
         toggleMatrixView: () => set((s) => ({ matrixView: !s.matrixView })),
-        setMatrixView: (matrixView) => set({ matrixView }),
+        // The Wiring view opens the inspector on its Wiring tab, and back.
+        setMatrixView: (matrixView) =>
+            set({
+                matrixView,
+                inspectorTab: matrixView ? 'wiring' : 'settings',
+            }),
+        setInspectorTab: (inspectorTab) => set({ inspectorTab }),
         toggleLeft: () => set((s) => ({ leftOpen: !s.leftOpen })),
         setJsonOpen: (jsonOpen) => set({ jsonOpen }),
         toggleJson: () => set((s) => ({ jsonOpen: !s.jsonOpen })),
