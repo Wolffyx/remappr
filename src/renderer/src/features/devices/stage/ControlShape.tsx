@@ -352,9 +352,11 @@ function ControlShapeView({
             ) : null}
         </>
     )
-    // A preview is a picture inside a clickable tile: no button of its own
-    // (a button inside a button is invalid and steals the tile's clicks).
-    if (preview)
+    // A preview in a clickable tile is a picture: no button of its own (a
+    // button inside a button is invalid and steals the tile's clicks). The
+    // builder's layout stage also draws previews but drags them (onPress), so
+    // those stay buttons.
+    if (preview && !onPress)
         return (
             <div aria-hidden className={className} style={style}>
                 {content}
