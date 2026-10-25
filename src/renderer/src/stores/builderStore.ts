@@ -10,7 +10,7 @@
 // (first move pushes the armed snapshot, later moves don't) → `endGesture()`.
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { ConfigKeymap } from '@firmware/config'
+import type { CanonGeometry, ConfigKeymap } from '@firmware/config'
 import { connectMockWithConfig } from '@firmware'
 import useConfigStore from '@/stores/configStore'
 import useConnectionStore from '@/stores/connectionStore'
@@ -97,6 +97,9 @@ interface BuilderState {
     paint: PaintBrush | null
     /** Keep each column's stagger when snapping to row lines. */
     keepStagger: boolean
+    /** The key list of a board started blank: while the board still has it,
+     *  the canvas shows the empty-board start instead. */
+    blankKeys: CanonGeometry[] | null
     /** Whether the left tools panel (layers / build-from / identity) is shown. */
     leftOpen: boolean
     /** Whether the right dock shows the JSON config editor instead of the inspector. */
@@ -144,6 +147,7 @@ interface BuilderState {
     clearSettingsFocus: () => void
     setFirmwareTab: (tab: string) => void
     setPaint: (paint: PaintBrush | null) => void
+    setBlankKeys: (keys: CanonGeometry[] | null) => void
     toggleKeepStagger: () => void
     toggleLeft: () => void
     setJsonOpen: (open: boolean) => void
@@ -189,6 +193,7 @@ const useBuilderStore = create<BuilderState>()(
         settingsFocus: null,
         firmwareTab: null,
         paint: null,
+        blankKeys: null,
         keepStagger: true,
         leftOpen: true,
         jsonOpen: false,
@@ -255,6 +260,7 @@ const useBuilderStore = create<BuilderState>()(
         clearSettingsFocus: () => set({ settingsFocus: null }),
         setFirmwareTab: (firmwareTab) => set({ firmwareTab }),
         setPaint: (paint) => set({ paint }),
+        setBlankKeys: (blankKeys) => set({ blankKeys }),
         toggleKeepStagger: () => set((s) => ({ keepStagger: !s.keepStagger })),
         toggleLeft: () => set((s) => ({ leftOpen: !s.leftOpen })),
         setJsonOpen: (jsonOpen) => set({ jsonOpen }),
