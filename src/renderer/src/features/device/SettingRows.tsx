@@ -21,9 +21,9 @@ export function SettingsSection({
     children: ReactNode
 }): JSX.Element {
     return (
-        <section className="rounded-lg border border-border bg-card p-4">
-            <div className="mb-3 flex items-start gap-3">
-                <div className="min-w-0 flex-1">
+        <section className="@container/setting rounded-lg border border-border bg-card p-4">
+            <div className="mb-3 flex flex-wrap items-start gap-3">
+                <div className="min-w-48 flex-1">
                     <h3 className="text-sm font-semibold">{title}</h3>
                     {description && (
                         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -57,7 +57,10 @@ export function NumberSettingRow<K extends string>({
     return (
         <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-                <Label htmlFor={id} className="w-40 shrink-0 text-xs">
+                <Label
+                    htmlFor={id}
+                    className="w-24 shrink-0 text-xs @sm/setting:w-40"
+                >
                     {field.label}
                 </Label>
                 <Input
@@ -81,7 +84,7 @@ export function NumberSettingRow<K extends string>({
                     </span>
                 )}
             </div>
-            <p className="pl-[10.5rem] text-caption text-muted-foreground">
+            <p className="text-caption text-muted-foreground @sm/setting:pl-[10.5rem]">
                 {field.description} Empty = default ({field.defaultValue}
                 {field.unit && ` ${field.unit}`}).
             </p>

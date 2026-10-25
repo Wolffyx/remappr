@@ -6,6 +6,13 @@
 import { toast } from 'sonner'
 import { create } from 'zustand'
 import { connectMockDeviceWithModel } from '@firmware'
+import {
+    BUILDER_FIRMWARE_TARGETS,
+    newDeviceConfig,
+    targetBuildsForm,
+    type BuilderFirmwareId,
+    type ConfigDevice,
+} from '@firmware/config'
 import type { DeviceModel } from '@firmware/devices/types'
 import useBuilderStore from '@/stores/builderStore'
 import useConnectionStore from '@/stores/connectionStore'
@@ -16,6 +23,24 @@ export type LayoutOrigin = 'new' | 'device'
 
 const HISTORY_CAP = 60
 
+/** What a device design is built for: the firmware targets and the Remappr
+ *  device document (radio, power, pointer, …). Kept beside the layout, which
+ *  is what gets applied to a device. */
+export interface DeviceFirmware {
+    targets: BuilderFirmwareId[]
+    settings: ConfigDevice | null
+}
+
+/** Every target that builds this form, with default settings. */
+export function defaultDeviceFirmware(layout: DeviceModel): DeviceFirmware {
+    return {
+        targets: BUILDER_FIRMWARE_TARGETS.filter((t) =>
+            targetBuildsForm(t, layout.form),
+        ).map((t) => t.id),
+        settings: newDeviceConfig(layout.form, layout.name),
+    }
+}
+
 interface DeviceBuilderState {
     layout: DeviceModel | null
     origin: LayoutOrigin
@@ -24,8 +49,14 @@ interface DeviceBuilderState {
     future: DeviceModel[]
     /** The layout when a drag began; pushed to history once it moves. */
     gesture: DeviceModel | null
+    firmware: DeviceFirmware
 
-    start: (layout: DeviceModel, origin: LayoutOrigin) => void
+    start: (
+        layout: DeviceModel,
+        origin: LayoutOrigin,
+        firmware?: DeviceFirmware,
+    ) => void
+    setFirmware: (patch: Partial<DeviceFirmware>) => void
     select: (id: string | null) => void
     commit: (next: DeviceModel) => void
     beginGesture: () => void
@@ -47,17 +78,21 @@ const useDeviceBuilderStore = create<DeviceBuilderState>()((set, get) => ({
     past: [],
     future: [],
     gesture: null,
+    firmware: { targets: [], settings: null },
 
-    start: (layout, origin) =>
+    start: (layout, origin, firmware) =>
         set({
             layout,
             origin,
+            firmware: firmware ?? defaultDeviceFirmware(layout),
             selected: null,
             past: [],
             future: [],
             gesture: null,
         }),
     select: (selected) => set({ selected }),
+    setFirmware: (patch) =>
+        set((s) => ({ firmware: { ...s.firmware, ...patch } })),
     commit: (next) => {
         const cur = get().layout
         set((s) => ({
