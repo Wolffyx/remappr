@@ -12,7 +12,10 @@ generic layout.
 Open the Builder from the Start Page. Below the keyboard starts, the start
 dialog has **Or design a device**: **Mouse**, **Gamepad** or **Flight stick**.
 Each starts from a stock layout of that form, named _"My mouse"_, _"My
-gamepad"_ or _"My flight stick"_.
+gamepad"_ or _"My flight stick"_, and the dialog carries on through the same
+five steps as a keyboard: **Firmware** (the targets that build this device),
+**Settings** (the firmware's settings for it — for Remappr, pointer, power and
+radio), **Body** (the shell parameters and **Add control**) and **Check**.
 
 The header reads **Builder** with the form and the number of controls, e.g.
 _"Gamepad layout · 16 controls"_.

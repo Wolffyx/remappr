@@ -16,8 +16,8 @@ feature that needs an account.
 
 ## Starting a board {#starting-a-board}
 
-A new design opens the **New design** dialog: five steps down the left, the
-current step on the right. **Back**, **Skip** and **Next: …** move between
+A new design opens the **New design** dialog: five steps down the left (a row of
+step dots when the window is narrow), the current step on the right. **Back**, **Skip** and **Next: …** move between
 them; the last step's button is **Open the builder**.
 
 ![The Design a keyboard dialog with its five starting points, under the first step of the builder tour](/images/builder/start-dialog.webp)
@@ -105,8 +105,9 @@ on the right. The exact tooltip of each button:
 | **Editor →**          | **Editor**                                                           | Hand off to the [keymap editor](/guide/editor) on a demo device.                                 |
 | **Export & build 🚀** |                                                                      | Open the [export modal](/guide/builder/export-build-flash).                                      |
 
-The zoom cluster (**Zoom out** / **Reset view** / **Zoom in** / **Fit**) shows
-the current zoom as a percentage (e.g. `100%`).
+The zoom control sits in the canvas's top-right corner, the same one the
+[keymap editor](/guide/editor) shows: **Zoom out**, the zoom as a percentage
+(`100%` = fitted), **Zoom in** and **Reset view**.
 
 ### Steps bar {#steps-bar}
 
