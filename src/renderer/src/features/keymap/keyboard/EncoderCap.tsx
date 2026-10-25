@@ -43,6 +43,10 @@ interface EncoderCapProps {
     colorMode: ColorMode
     keyDisplayMode: KeyDisplayMode
     showHeaderTag?: boolean
+    /** The keymap position under the knob: its centre is that key (the press). */
+    pressIdx?: number
+    /** That key is the selected position. */
+    pressSelected?: boolean
 }
 
 /** Rim arc per cap side, in degrees: [from, to, SVG sweep flag]. */
@@ -64,6 +68,8 @@ const EncoderCapImpl = ({
     colorMode,
     keyDisplayMode,
     showHeaderTag = true,
+    pressIdx,
+    pressSelected = false,
 }: EncoderCapProps): JSX.Element => {
     const S = oneU
     // Same footprint rule as a key (makeSize): 2px gutter.
@@ -369,6 +375,28 @@ const EncoderCapImpl = ({
                     }}
                 />
             ))}
+            {/* Centre = the key under the knob: a plain key hit (data-idx). */}
+            {pressIdx !== undefined && (
+                <div
+                    role="button"
+                    tabIndex={0}
+                    data-key="true"
+                    data-idx={pressIdx}
+                    aria-label={`Encoder ${knob.slot + 1} press`}
+                    style={{
+                        position: 'absolute',
+                        left: cx - D * 0.3,
+                        top: cy - D * 0.3,
+                        width: D * 0.6,
+                        height: D * 0.6,
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        boxShadow: pressSelected
+                            ? '0 0 0 2px var(--primary)'
+                            : undefined,
+                    }}
+                />
+            )}
         </div>
     )
 }

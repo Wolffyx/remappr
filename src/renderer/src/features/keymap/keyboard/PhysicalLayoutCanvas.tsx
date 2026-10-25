@@ -71,6 +71,9 @@ export type KeyPosition = PropsWithChildren<{
     /** A keymap position that is not a keycap (a knob, slider or round
      *  button): drawn as this control shape, clicked like any key. */
     shape?: Shape
+    /** The knob sits on this keymap position: its centre is the key (the
+     *  press), clicked like any key. */
+    knobOnKey?: boolean
 }>
 
 // Pattern check: no GoF pattern (-) — rejected — plain prop/callback shape additions for
@@ -628,6 +631,10 @@ const PhysicalLayoutCanvasImpl = ({
                         >
                             <EncoderCap
                                 knob={p.knob}
+                                pressIdx={p.knobOnKey ? idx : undefined}
+                                pressSelected={
+                                    !!p.knobOnKey && idx === selectedPosition
+                                }
                                 width={p.width}
                                 height={p.height}
                                 oneU={effOneU}

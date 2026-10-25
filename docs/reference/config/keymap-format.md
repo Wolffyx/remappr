@@ -85,7 +85,7 @@ fields are here.
 | `id`             | string · required                    | Stable slug; seeds export project/shield names.                                                  |
 | `name`           | string · required                    | Display name.                                                                                    |
 | `keys`           | `CanonGeometry[]` · required         | One entry per physical key (see below).                                                          |
-| `encoders`       | `{ x, y }[]`                         | Standalone encoder slots (parallel-array style).                                                 |
+| `encoders`       | `{ x, y, key? }[]`                   | Knob slots. `key` = the knob key (`element: "encoder"`) whose binding is the press.              |
 | `matrix`         | object                               | Board-level `rows`/`cols`/diode/mode — see [Hardware](/reference/config/hardware#matrix).        |
 | `controller`     | object                               | MCU identity — see [Hardware](/reference/config/hardware#controller).                            |
 | `vial`           | object                               | Vial UID + unlock — see [Hardware](/reference/config/hardware#vial).                             |
@@ -135,14 +135,14 @@ defaulted fields as optional so minimized files validate clean.
 An ordered array; index 0 is the base layer. A `transparent` binding falls
 through to the layer **below**, so order matters.
 
-| Field             | Type                                  | Notes                                                                      |
-| ----------------- | ------------------------------------- | -------------------------------------------------------------------------- |
-| `name`            | string · required                     | Referenced by name (e.g. layer-tap targets).                               |
-| `bindings`        | `Action[]` · required                 | One [action](/reference/config/actions) per key, in `keyboard.keys` order. |
-| `description`     | string                                |                                                                            |
-| `encoders`        | `{ cw, ccw, press? }[]`               | Slot-indexed encoder bindings (aligned to `keyboard.encoders`).            |
-| `encoderBindings` | `{ [keyIndex]: { cw, ccw, press? } }` | Per-key encoder bindings (key has `element: "encoder"`).                   |
-| `sliderBindings`  | `{ [keyIndex]: SliderBinding }`       | Per-key slider value-mappings (key has `element: "slider"`).               |
+| Field             | Type                                  | Notes                                                                                 |
+| ----------------- | ------------------------------------- | ------------------------------------------------------------------------------------- |
+| `name`            | string · required                     | Referenced by name (e.g. layer-tap targets).                                          |
+| `bindings`        | `Action[]` · required                 | One [action](/reference/config/actions) per key, in `keyboard.keys` order.            |
+| `description`     | string                                |                                                                                       |
+| `encoders`        | `{ cw, ccw, press? }[]`               | Turn bindings, aligned to `keyboard.encoders`. `press` only for a knob with no `key`. |
+| `encoderBindings` | `{ [keyIndex]: { cw, ccw, press? } }` | Older per-key form; moved into `encoders` when the file loads.                        |
+| `sliderBindings`  | `{ [keyIndex]: SliderBinding }`       | Per-key slider value-mappings (key has `element: "slider"`).                          |
 
 ```json
 {

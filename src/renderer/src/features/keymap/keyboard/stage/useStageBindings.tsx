@@ -136,11 +136,22 @@ export function useStageBindings({
 
         // One 1U knob per encoder (the Keycap System REncoder). `knob` marks
         // it for the guards that skip encoders (nav, heatmap, paint); the cap
-        // exposes one hit zone per turn direction.
+        // exposes one hit zone per turn direction. A knob on a keymap position
+        // takes that key's place; the cap's centre is the key (the press).
         const encoderPositions: KeyPosition[] = []
         encoderSlots.forEach((slot, i) => {
             const action = encoderActions[i]
             if (!action) return
+            const onKey =
+                slot.key !== undefined ? keyPositions[slot.key] : undefined
+            if (onKey && slot.key !== undefined) {
+                keyPositions[slot.key] = {
+                    ...onKey,
+                    knob: knobLegend(i, action),
+                    knobOnKey: true,
+                }
+                return
+            }
             encoderPositions.push({
                 id: `enc-${i}`,
                 header: 'Encoder',
