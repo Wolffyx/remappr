@@ -30,13 +30,35 @@ _"Gamepad layout · 16 controls"_.
 
 Controls are placed in key units (1U = 19.05 mm), like keyboard keys.
 
-| Do                   | To                                      |
-| -------------------- | --------------------------------------- |
-| **Drag** a control   | Move it on the ¼U grid.                 |
-| **Alt**-drag (**⌥**) | Place it freely, off the grid.          |
-| **Arrow keys**       | Nudge it ¼U. **Shift**+arrow nudges 1U. |
-| **Delete**           | Remove it (new designs only).           |
-| **Esc**              | Deselect.                               |
+| Do                   | To                                         |
+| -------------------- | ------------------------------------------ |
+| **Drag** a control   | Move it on the ¼U grid.                    |
+| **Alt**-drag (**⌥**) | Place it freely, off the grid.             |
+| **Arrow keys**       | Nudge it ¼U. **Shift**+arrow nudges 1U.    |
+| **Delete**           | Remove it (new designs only).              |
+| **R** / **Shift+R**  | Turn it 15° / back.                        |
+| **M**                | Mirror it to the other side (new designs). |
+| **Ctrl/⌘ + D**       | Copy it (new designs).                     |
+| **Esc**              | Deselect.                                  |
+
+### Toolbar, steps and search
+
+Like a keyboard, a selected control gets the
+[selection toolbar](/guide/builder/overview#selection-toolbar) under it:
+**Mirror to right side** / **left side** (a copy on the other side of the
+device's centre line, rotation mirrored — greyed out when a control already sits
+there or it is on the line), **Rotate** and **Duplicate**. Copies are named
+_"… copy"_ and lose the printed marking. Re-drawing a connected device offers
+only **Rotate**.
+
+The [steps bar](/guide/builder/overview#steps-bar) reads **1 Layout › 2
+Firmware › 3 Editor** (**3 Apply** when re-drawing): Layout flags controls that
+cover most of another one shown with them, Firmware asks for a target, and the
+last step opens the editor or applies the drawing.
+
+**/** or the search field finds controls to add, the **Device** and
+**Firmware** settings (each firmware target as a switch), the toolbar's actions
+and the selected control's edits, and every control by name.
 
 ### The Layout panel
 

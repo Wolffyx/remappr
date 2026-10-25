@@ -81,8 +81,9 @@ const useDeviceBuilderStore = create<DeviceBuilderState>()((set, get) => ({
     firmware: { targets: [], settings: null },
 
     start: (layout, origin, firmware) => {
-        // The variant filter is the builder's; a new design starts on All.
-        useBuilderStore.setState({ activeVariant: '' })
+        // The variant filter and open settings group are the builder's; a
+        // design starts on All with its Device group open.
+        useBuilderStore.setState({ activeVariant: '', settingsGroup: 'device' })
         set({
             layout,
             origin,

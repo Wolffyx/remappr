@@ -13,6 +13,7 @@ import {
     useState,
     type JSX,
     type PointerEvent as ReactPointerEvent,
+    type ReactNode,
 } from 'react'
 import type { DeviceControl, DeviceModel } from '@firmware/devices/types'
 import { inVariant, variantControls } from '@firmware/devices/variants'
@@ -58,6 +59,13 @@ export interface LayoutStageProps {
     /** The layout variant on show ("" = all): the body fits its controls and
      *  the other variants' controls are dimmed. */
     variant?: string
+    /** Tools drawn under the selected control (the builder's selection
+     *  toolbar); given the control, its box in stage units and the scale. */
+    selectionTools?: (
+        c: DeviceControl,
+        box: ControlBox,
+        scale: number,
+    ) => ReactNode
 }
 
 export interface StageView {
@@ -133,6 +141,7 @@ export function LayoutStage({
     onView,
     free = false,
     variant = '',
+    selectionTools,
 }: LayoutStageProps): JSX.Element {
     const wrapRef = useRef<HTMLDivElement>(null)
     const size = useBoxSize(wrapRef)
@@ -312,6 +321,9 @@ export function LayoutStage({
                         </div>
                     ))}
                     {sel ? <CoordBadge c={sel} box={boxOf(sel, L)} /> : null}
+                    {sel && selectionTools && !drag
+                        ? selectionTools(sel, boxOf(sel, L), scale)
+                        : null}
                     {hov ? <HoverTag c={hov} box={boxOf(hov, L)} /> : null}
                 </div>
             </div>
