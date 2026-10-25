@@ -78,6 +78,9 @@ interface BuilderState {
     docKind: BuilderDocKind
     /** Selected key indices (into `config.keyboard.keys`). */
     selection: Set<number>
+    /** The selected part (`config.keyboard.parts` id); a key selection and a
+     *  part selection never coexist. */
+    selectedPart: string | null
     /** Active layer index (left-panel layers list; clamped to layers length). */
     activeLayer: number
     /** Active physical-layout variant id ('' = show all / common keys). */
@@ -135,6 +138,7 @@ interface BuilderState {
     closeBinding: () => void
     setSelection: (selection: Set<number>) => void
     clearSelection: () => void
+    selectPart: (id: string | null) => void
     setActiveLayer: (index: number) => void
     setActiveVariant: (id: string) => void
     toggleMatrixView: () => void
@@ -185,6 +189,7 @@ const useBuilderStore = create<BuilderState>()(
         open: false,
         docKind: 'keymap',
         selection: new Set<number>(),
+        selectedPart: null,
         activeLayer: 0,
         activeVariant: '',
         matrixView: false,
@@ -219,6 +224,7 @@ const useBuilderStore = create<BuilderState>()(
                           docKind: 'keymap',
                           cameFromBuilder: false,
                           selection: new Set<number>(),
+                          selectedPart: null,
                           activeLayer: 0,
                           activeVariant: '',
                           jsonOpen: false,
@@ -237,8 +243,20 @@ const useBuilderStore = create<BuilderState>()(
         setCameFromBuilder: (cameFromBuilder) => set({ cameFromBuilder }),
         openBinding: (binding) => set({ binding }),
         closeBinding: () => set({ binding: null }),
-        setSelection: (selection) => set({ selection }),
-        clearSelection: () => set({ selection: new Set<number>() }),
+        setSelection: (selection) =>
+            set(
+                selection.size
+                    ? { selection, selectedPart: null }
+                    : { selection },
+            ),
+        clearSelection: () =>
+            set({ selection: new Set<number>(), selectedPart: null }),
+        selectPart: (selectedPart) =>
+            set(
+                selectedPart
+                    ? { selectedPart, selection: new Set<number>() }
+                    : { selectedPart },
+            ),
         setActiveLayer: (activeLayer) => set({ activeLayer }),
         setActiveVariant: (activeVariant) => set({ activeVariant }),
         toggleMatrixView: () => set((s) => ({ matrixView: !s.matrixView })),

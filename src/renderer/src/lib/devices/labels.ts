@@ -73,4 +73,5 @@ export const SHAPE_LABEL: Readonly<Record<ControlShape, string>> = {
     sensor: 'Sensor',
     mouseL: 'Left mouse button',
     mouseR: 'Right mouse button',
+    screen: 'Screen',
 }

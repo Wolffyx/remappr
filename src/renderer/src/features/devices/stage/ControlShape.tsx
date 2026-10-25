@@ -9,6 +9,7 @@ import {
     type PointerEvent as ReactPointerEvent,
 } from 'react'
 import type {
+    ControlKind,
     ControlShape as Shape,
     DeviceControl,
 } from '@firmware/devices/types'
@@ -28,8 +29,12 @@ export interface ControlBox {
     h: number
 }
 
+/** What the stage draws: a device's control, or a part on a keyboard that
+ *  has no binding kind (a screen). */
+export type DrawnControl = Omit<DeviceControl, 'kind'> & { kind?: ControlKind }
+
 export interface ControlShapeProps {
-    control: DeviceControl
+    control: DrawnControl
     box: ControlBox
     summary: BindingSummary
     selected: boolean
@@ -45,7 +50,7 @@ export interface ControlShapeProps {
 }
 
 interface BodyProps {
-    c: DeviceControl
+    c: DrawnControl
     box: ControlBox
     col: ControlColors
     summary: BindingSummary
@@ -166,6 +171,32 @@ function KeyCapFace({ col, summary, preview }: BodyProps): JSX.Element {
     )
 }
 
+/** A screen's glass and lit pixels: the device's own colours, the same in
+ *  every theme (content, like a light preview). */
+const GLASS = 'oklch(0.17 0.01 250)'
+const PIXEL = 'oklch(0.86 0.06 220)'
+
+/** A screen: a dark glass panel showing what it displays (its glyph). */
+function ScreenFace({ c, box }: BodyProps): JSX.Element {
+    const inset = Math.max(3, Math.min(box.w, box.h) * 0.1)
+    return (
+        <div
+            className="absolute grid place-items-center overflow-hidden rounded-[3px]"
+            style={{ inset, background: GLASS }}
+        >
+            <span
+                className={MONO_FONT}
+                style={{
+                    color: PIXEL,
+                    fontSize: Math.max(8, Math.min(box.h * 0.22, 13)),
+                }}
+            >
+                {c.glyph}
+            </span>
+        </div>
+    )
+}
+
 /** What sits inside the face, per shape; a shape not listed shows its glyph. */
 const INSETS: Partial<Record<Shape, (p: BodyProps) => JSX.Element>> = {
     stick: StickThumb,
@@ -173,6 +204,7 @@ const INSETS: Partial<Record<Shape, (p: BodyProps) => JSX.Element>> = {
     hat: HatFace,
     sensor: SensorEye,
     key: KeyCapFace,
+    screen: ScreenFace,
 }
 
 function faceFill(shape: Shape, box: ControlBox, col: ControlColors): string {
@@ -257,7 +289,7 @@ function RingBody({ c, col, deflect }: BodyProps): JSX.Element {
 }
 
 function surfaceStyle(
-    c: DeviceControl,
+    c: DrawnControl,
     box: ControlBox,
     col: ControlColors,
     active: boolean,
@@ -347,7 +379,10 @@ function ControlShapeView({
     const content = (
         <>
             {Inset ? <Inset {...body} /> : null}
-            {c.shape !== 'stick' && c.shape !== 'key' && !flat ? (
+            {c.shape !== 'stick' &&
+            c.shape !== 'key' &&
+            c.shape !== 'screen' &&
+            !flat ? (
                 <Glyph c={c} box={box} col={col} />
             ) : null}
         </>

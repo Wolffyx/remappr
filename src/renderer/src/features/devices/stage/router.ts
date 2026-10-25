@@ -60,6 +60,7 @@ const CORNER: Readonly<Record<ControlShape, (w: number, h: number) => number>> =
         mouseR: (w, h) => Math.min(w, h) * 0.3,
         key: (w, h) => Math.min(w, h) * 0.16,
         dpad: () => 12,
+        screen: (w, h) => Math.min(w, h) * 0.08,
     }
 
 export function footprint(c: DeviceControl, L: StageLayout): Footprint {
