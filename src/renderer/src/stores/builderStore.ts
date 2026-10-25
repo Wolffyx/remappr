@@ -15,7 +15,15 @@ import { connectMockWithConfig } from '@firmware'
 import useConfigStore from '@/stores/configStore'
 import useConnectionStore from '@/stores/connectionStore'
 
-export type SnapMode = 'grid' | 'free'
+/** grid: ⅛U steps · lines: snap to the neighbours' row and column lines ·
+ *  free: no snapping. */
+export type SnapMode = 'grid' | 'lines' | 'free'
+
+/** Paint mode: sweeping keys puts them on `line` of `axis`. */
+export interface PaintBrush {
+    axis: 'row' | 'col'
+    line: number
+}
 
 export type BuilderDocKind = 'keymap' | 'device'
 
@@ -85,6 +93,10 @@ interface BuilderState {
     settingsFocus: string | null
     /** The Firmware group's tab (a firmware target id); null = the first. */
     firmwareTab: string | null
+    /** Painting rows or columns in the Wiring view; null = not painting. */
+    paint: PaintBrush | null
+    /** Keep each column's stagger when snapping to row lines. */
+    keepStagger: boolean
     /** Whether the left tools panel (layers / build-from / identity) is shown. */
     leftOpen: boolean
     /** Whether the right dock shows the JSON config editor instead of the inspector. */
@@ -131,6 +143,8 @@ interface BuilderState {
     focusSetting: (group: string, anchor?: string, firmwareTab?: string) => void
     clearSettingsFocus: () => void
     setFirmwareTab: (tab: string) => void
+    setPaint: (paint: PaintBrush | null) => void
+    toggleKeepStagger: () => void
     toggleLeft: () => void
     setJsonOpen: (open: boolean) => void
     toggleJson: () => void
@@ -174,6 +188,8 @@ const useBuilderStore = create<BuilderState>()(
         settingsGroup: 'board',
         settingsFocus: null,
         firmwareTab: null,
+        paint: null,
+        keepStagger: true,
         leftOpen: true,
         jsonOpen: false,
         snapMode: 'grid',
@@ -238,11 +254,13 @@ const useBuilderStore = create<BuilderState>()(
             })),
         clearSettingsFocus: () => set({ settingsFocus: null }),
         setFirmwareTab: (firmwareTab) => set({ firmwareTab }),
+        setPaint: (paint) => set({ paint }),
+        toggleKeepStagger: () => set((s) => ({ keepStagger: !s.keepStagger })),
         toggleLeft: () => set((s) => ({ leftOpen: !s.leftOpen })),
         setJsonOpen: (jsonOpen) => set({ jsonOpen }),
         toggleJson: () => set((s) => ({ jsonOpen: !s.jsonOpen })),
         setSnapMode: (snapMode) =>
-            set({ snapMode, snapping: snapMode === 'grid' }),
+            set({ snapMode, snapping: snapMode !== 'free' }),
         toggleSnapping: () => set((s) => ({ snapping: !s.snapping })),
         toggleSnapOnWire: () => set((s) => ({ snapOnWire: !s.snapOnWire })),
         setView: (patch) => set((s) => ({ view: { ...s.view, ...patch } })),
