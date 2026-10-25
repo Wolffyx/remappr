@@ -119,7 +119,7 @@ nothing left; otherwise a live count says what is left (**3 clashes**, **10 miss
 Click a step to see what is left. Each one has a button that goes to where it
 is fixed — **Show keys**, **Show wiring**, **Show pins**, **Show readiness** —
 and, when there is one, the one-click fix: **Fix with Auto** for clashing
-keys, **Suggest free pins** for rows and columns with no pin. **5 Export** opens
+keys, **Suggest free pins** for pins not set yet. **5 Export** opens
 the [export](/guide/builder/export-build-flash) straight away.
 
 | Step         | Counts                                                                       |

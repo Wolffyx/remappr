@@ -158,7 +158,7 @@ Auto place the other.
 In the Wiring view, the strip above the [steps bar](/guide/builder/overview#steps-bar)
 counts what is **wired**, how many keys **clash**, and which pins are **missing**
 or **wrong**, with **Fix with Auto** (re-place every key in a clash) and
-**Suggest free pins** (fill empty rows and columns with pins the controller has
+**Suggest free pins** (fill every pin not set yet with one the controller has
 free).
 
 ### Pins {#pins}
@@ -167,7 +167,11 @@ In the Wiring view with nothing selected, the right panel is **Pins ·
 {controller}**. It lists every pin the design wires: the matrix rows and
 columns (**R0**, **C0**…) and the pins its parts need — a motion sensor's chip
 select and motion line (**CS**, **MOT**), each encoder's two phases (**E0A**,
-**E0B**), an analog pin per slider key. Two tabs:
+**E0B**), an analog pin per slider key, the LED data pin (**LED**) when the
+design has lighting, and a battery sense pin (**BAT**) when it has a battery
+and the controller can't measure it itself (a nice!nano and a Xiao BLE can).
+A backlight (**BL**) or external-power (**PWR**) pin set up in the firmware
+settings shows here too. Two tabs:
 
 - **Board** — a drawing of the controller. Pick a chip, then click a pad to
   wire it there. Each pad shows who uses it.
@@ -178,8 +182,9 @@ select and motion line (**CS**, **MOT**), each encoder's two phases (**E0A**,
 - A part on a bus (the motion sensor on SPI) keeps the controller's own SPI
   pins free for it; they show as **Held for the bus** (on a nice!nano: SCK D15,
   MOSI D16, MISO D14).
-- Analog parts get the controller's real analog pins (a nice!nano has three:
-  D19, D20, D21 — the "A6–A10" silkscreen names are not analog).
+- Analog parts and the battery pin get the controller's real analog pins (a
+  nice!nano has three: D19, D20, D21 — the "A6–A10" silkscreen names are not
+  analog).
 - Everything else takes plain pins first, then analog pins, and the NFC pads
   (nice!nano D10, D16) last.
 
