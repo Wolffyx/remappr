@@ -78,6 +78,9 @@ interface KeyButtonProps extends KeyCapLegend {
      *  and enabled, a <KeyLight> underglow layer renders above the face. Skipped
      *  automatically while the heatmap is coloring the cap. */
     light?: KeyLightInput | null
+    /** A picture of a cap inside another control (a preview in a button):
+     *  renders a plain element, not a button of its own. */
+    decorative?: boolean
 }
 
 interface KeyDimension {
@@ -139,6 +142,7 @@ const KeyButtonViewImpl = ({
     showHeaderTag = true,
     showCategoryDot = true,
     light = null,
+    decorative = false,
     ...props
 }: PropsWithChildren<KeyButtonViewProps>): JSX.Element => {
     const size = makeSize(props, oneU)
@@ -465,10 +469,12 @@ const KeyButtonViewImpl = ({
         body = tapGroup
     }
 
+    const Cap = decorative ? 'div' : 'button'
     const buttonEl = (
-        <button
-            type="button"
-            aria-pressed={selected}
+        <Cap
+            {...(decorative
+                ? { 'aria-hidden': true }
+                : { type: 'button' as const, 'aria-pressed': selected })}
             data-zoomer={hoverZoom}
             title={richTooltip ? undefined : tooltip || undefined}
             style={{
@@ -546,7 +552,7 @@ const KeyButtonViewImpl = ({
 
                 {body}
             </div>
-        </button>
+        </Cap>
     )
 
     return (
