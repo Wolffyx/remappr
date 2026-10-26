@@ -26,6 +26,8 @@ import { UpdateNotification } from '@/components/UpdateNotification'
 import { WhatsNewDialog } from '@/features/news/WhatsNewDialog'
 import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
+import { isCloudConfigured } from '@/lib/cloud/env'
+import useAuthStore from '@/stores/authStore'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
 import { connectDemo } from '@/features/connection/demo/connectDemo'
 import { connectTransport } from '@/features/connection/connectTransport'
@@ -88,6 +90,12 @@ function App(): JSX.Element {
     }, [service, setPreferredAdapterCategory])
 
     const isElectron = isElectronEnv()
+
+    // Restore a signed-in session (and pick up a desktop sign-in deep link that
+    // launched the app). Builds without a backend never load supabase-js.
+    useEffect(() => {
+        if (isCloudConfigured()) void useAuthStore.getState().init()
+    }, [])
 
     useEffect(() => {
         if (!isElectron) return

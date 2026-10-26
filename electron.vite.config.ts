@@ -18,6 +18,8 @@ export default defineConfig({
     },
     preload: { define: versionDefine },
     renderer: {
+        // .env* live at the repo root (same as the web vite.config.ts).
+        envDir: resolve('.'),
         define: versionDefine,
         resolve: {
             // See scripts/remappr-dedupe.ts — single copy of context/store deps

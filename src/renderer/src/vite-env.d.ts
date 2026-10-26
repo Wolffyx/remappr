@@ -7,6 +7,9 @@ interface ImportMetaEnv {
     readonly VITE_SUPABASE_URL?: string
     /** Supabase publishable (public) key. Unset → no cloud. */
     readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string
+    /** Site hosting auth/desktop.html for desktop OAuth. Default: remappr.com
+     *  (localhost:5173 in dev). */
+    readonly VITE_AUTH_SITE_URL?: string
 }
 
 declare namespace React {

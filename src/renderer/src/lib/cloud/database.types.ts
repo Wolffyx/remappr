@@ -28,6 +28,37 @@ export type Database = {
                 }
                 Relationships: []
             }
+            users: {
+                Row: {
+                    avatar_url: string | null
+                    bio: string
+                    created_at: string
+                    display_name: string | null
+                    id: string
+                    updated_at: string
+                    username: string | null
+                }
+                ComputedFields: never
+                Insert: {
+                    avatar_url?: string | null
+                    bio?: string
+                    created_at?: string
+                    display_name?: string | null
+                    id: string
+                    updated_at?: string
+                    username?: string | null
+                }
+                Update: {
+                    avatar_url?: string | null
+                    bio?: string
+                    created_at?: string
+                    display_name?: string | null
+                    id?: string
+                    updated_at?: string
+                    username?: string | null
+                }
+                Relationships: []
+            }
         }
         Views: {
             [_ in never]: never

@@ -42,6 +42,9 @@ const foreignPrebuilds = [
 module.exports = {
     appId: 'dev.remappr.app',
     productName: 'Remappr',
+    // remappr:// carries the sign-in code back from the browser (main/deep-link.ts).
+    // AppImage / tar.gz never register it; the bounce page shows a code to paste.
+    protocols: [{ name: 'Remappr', schemes: ['remappr'] }],
     compression: 'maximum',
     electronLanguages: languages,
     removePackageScripts: true,

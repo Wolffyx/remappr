@@ -105,6 +105,10 @@ export const IpcChannels = {
     // renderer CORS wall on the signed redirect target. Token is read from the
     // secret store in main; only api.github.com URLs are honored.
     GITHUB_DOWNLOAD_ARTIFACT: 'github:download-artifact',
+
+    // Sign-in: the auth code a remappr://auth/callback deep link carried, if
+    // one is waiting (cleared on read).
+    AUTH_TAKE_CALLBACK: 'auth:take-callback',
 } as const
 
 /** Event channels (main pushes to renderer) */
@@ -116,6 +120,8 @@ export const IpcEvents = {
     UPDATE_AVAILABLE: 'update:available',
     /** A close or quit waits on the renderer's unsaved-changes prompt. */
     WINDOW_LEAVE_REQUESTED: 'window:leave-requested',
+    /** A remappr://auth/callback deep link arrived: `{ code }`. */
+    AUTH_CALLBACK: 'auth:callback',
 } as const
 
 // pattern-check: skip — flat IPC DTO, no behavior

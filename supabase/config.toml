@@ -246,6 +246,16 @@ otp_expiry = 3600
 # sender_name = "Admin"
 
 # Uncomment to customize email template
+# Sign-in is a 6-digit code typed into the app ({{ .Token }}), not a link:
+# Electron has no URL to land on. Mirror these in each hosted project.
+[auth.email.template.magic_link]
+subject = "Your Remappr sign-in code"
+content_path = "./supabase/templates/sign_in_code.html"
+
+[auth.email.template.confirmation]
+subject = "Your Remappr sign-in code"
+content_path = "./supabase/templates/sign_in_code.html"
+
 # [auth.email.template.invite]
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
@@ -337,6 +347,31 @@ url = ""
 skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
+
+# Remappr sign-in provider. Local: create a dev OAuth app with callback
+# http://127.0.0.1:54321/auth/v1/callback, put its id/secret in supabase/.env,
+# then set enabled = true.
+[auth.external.github]
+enabled = false
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET)"
+
+# Remappr sign-in provider. Local: create a dev OAuth app with callback
+# http://127.0.0.1:54321/auth/v1/callback, put its id/secret in supabase/.env,
+# then set enabled = true.
+[auth.external.discord]
+enabled = false
+client_id = "env(SUPABASE_AUTH_EXTERNAL_DISCORD_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_DISCORD_SECRET)"
+
+# Remappr sign-in provider. Local: create a dev OAuth app with callback
+# http://127.0.0.1:54321/auth/v1/callback, put its id/secret in supabase/.env,
+# then set enabled = true.
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = true
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.

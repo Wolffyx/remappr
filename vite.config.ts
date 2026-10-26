@@ -25,6 +25,8 @@ export default defineConfig({
             '@shared': path.resolve(__dirname, './src/shared'),
         },
     },
+    // .env* live at the repo root (same as electron-vite), not in `root`.
+    envDir: __dirname,
     envPrefix: ['VITE_'],
     build: {
         outDir: path.resolve(__dirname, 'dist'),

@@ -9,6 +9,8 @@ import { DownloadLatestButton } from '@/components/DownloadLatestButton'
 import { APP_VERSION } from '@/lib/constants'
 import { LicenseNoticeModal } from '@/components/modals/LicenseNoticeModal'
 import { Settings } from '@/components/modals/Settings'
+import { AccountButton } from '@/features/account/AccountButton'
+import { isCloudConfigured } from '@/lib/cloud/env'
 import { WindowControls } from '@/layout/WindowControls'
 import { TrafficLightInset } from '@/layout/TrafficLightInset'
 import { CommunityLinks } from '@/layout/toolbar/CommunityLinks'
@@ -164,6 +166,7 @@ export function StartPage({
                     style={NO_DRAG}
                 >
                     {newsStyle === 'inbox' && <NewsBell {...news} />}
+                    {isCloudConfigured() && <AccountButton />}
                     <Settings />
                     {/* native window controls (Electron, non-mac) merged into
                         the bar so the start page is a single top bar. */}

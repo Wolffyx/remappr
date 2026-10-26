@@ -10,6 +10,12 @@ import { startSerialDevicePolling } from './serial'
 import { silenceConsoleInProduction } from '../shared/logger'
 import { checkForUpdates, registerUpdateIpc } from './update-checker'
 import { guardWindowLeave, registerWindowControlsIpc } from './window-controls'
+import { setupDeepLinks } from './deep-link'
+
+// One instance only: a second launch (e.g. the OS opening a remappr:// sign-in
+// link) hands its argv to this one through 'second-instance' and quits.
+const hasInstanceLock = app.requestSingleInstanceLock()
+if (!hasInstanceLock) app.quit()
 
 // Origin allowlist: file:// (packaged app) and the dev-server URL (HMR).
 // Used by permission/device handlers and `will-navigate` lockdown so an
@@ -23,6 +29,10 @@ function isAllowedOrigin(origin: string): boolean {
 }
 
 silenceConsoleInProduction()
+
+if (hasInstanceLock) {
+    setupDeepLinks(() => BrowserWindow.getAllWindows()[0] ?? null)
+}
 
 // Enable Web Bluetooth (navigator.bluetooth) in Chromium. Must run before
 // app.whenReady(). Without this, Electron exposes no `navigator.bluetooth`
@@ -118,6 +128,8 @@ function createWindow(): void {
     // style injection. img-src data: covers icon/svg inlining. connect-src
     // https://api.github.com matches update-checker and the start-page release
     // news; raw.githubusercontent.com serves news.json and its cover images.
+    // *.supabase.co (or api.remappr.com) is the cloud backend; the avatar
+    // hosts serve sign-in provider profile pictures.
     if (!is.dev) {
         sess.webRequest.onHeadersReceived((details, cb) => {
             cb({
@@ -127,9 +139,9 @@ function createWindow(): void {
                         "default-src 'self'; " +
                             "script-src 'self' 'wasm-unsafe-eval'; " +
                             "style-src 'self' 'unsafe-inline'; " +
-                            "img-src 'self' data: blob: https://raw.githubusercontent.com; " +
+                            "img-src 'self' data: blob: https://raw.githubusercontent.com https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://cdn.discordapp.com https://*.supabase.co; " +
                             "font-src 'self' data:; " +
-                            "connect-src 'self' https://api.github.com https://raw.githubusercontent.com; " +
+                            "connect-src 'self' https://api.github.com https://raw.githubusercontent.com https://*.supabase.co wss://*.supabase.co https://api.remappr.com wss://api.remappr.com; " +
                             "frame-src 'none'; " +
                             "object-src 'none'; " +
                             "base-uri 'self'; " +
@@ -244,6 +256,7 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then((): void => {
+    if (!hasInstanceLock) return
     // Set app user model id for windows
     electronApp.setAppUserModelId('com.electron')
 
