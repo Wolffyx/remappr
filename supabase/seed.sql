@@ -1,0 +1,2 @@
+-- Local-only seed (`supabase db reset`). Never runs against staging or prod;
+-- environment-independent rows live in the migrations.

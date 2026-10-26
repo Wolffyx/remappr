@@ -12,6 +12,12 @@ import useToolDialogStore from '@/stores/toolDialogStore'
 import { TOOLBAR_MODALS } from './ToolbarModals'
 import { useToolHousekeeping } from './tools'
 
+const EditorLibrary = lazy(() =>
+    import('@/features/library/EditorLibrary').then((m) => ({
+        default: m.EditorLibrary,
+    })),
+)
+
 const LoadStatsModal = lazy(() =>
     import('@/features/keymap/keyboard/LoadStatsModal').then((m) => ({
         default: m.LoadStatsModal,
@@ -34,6 +40,9 @@ export function ToolDialogs(): JSX.Element {
             ))}
             <MountOnDemand when={open === 'export'}>
                 <Download opened={open === 'export'} onClose={close} />
+            </MountOnDemand>
+            <MountOnDemand when={open === 'library'}>
+                <EditorLibrary opened={open === 'library'} onClose={close} />
             </MountOnDemand>
             <MountOnDemand when={loadOpen}>
                 <LoadStatsModal

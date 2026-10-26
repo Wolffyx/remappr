@@ -4,6 +4,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import {
     AlertTriangle,
+    BookmarkPlus,
     Copy,
     Download as DownloadIcon,
     FileText,
@@ -17,8 +18,10 @@ import useConnectionStore from '@/stores/connectionStore'
 import useConfigStore from '@/stores/configStore'
 import { downloadExports, exportedContentToString } from '@/lib/blob'
 import { type Target, resolveAllowedTargets } from '@firmware/config'
-import { connectMockWithConfig } from '@firmware'
 import { createLogger } from '@shared/logger'
+import { openConfigSource } from '@/features/library/openConfig'
+import { keymapEntry } from '@/lib/library/entries'
+import useLibraryStore from '@/stores/libraryStore'
 // The compile/preview/download body drags in the per-firmware compilers —
 // lazy-load it; Radix only mounts modal content while open, so the chunk is
 // fetched on first open.
@@ -42,7 +45,6 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
     const source = useConfigStore((s) => s.source)
     const error = useConfigStore((s) => s.error)
     const stale = useConfigStore((s) => s.stale)
-    const loadFromSource = useConfigStore((s) => s.loadFromSource)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     // Saves only mark the config stale (the eager per-save device read stalled
@@ -111,25 +113,25 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
             toast.error(`Failed to read ${file.name}`)
             return
         }
-        if (!loadFromSource(text)) {
+        const wasDemo =
+            !!useConnectionStore.getState().service?.capabilities.demo
+        if (!(await openConfigSource(text))) {
             toast.error('Invalid config — see error below')
             return
         }
         toast.success(`Imported ${file.name}`)
-        // In demo mode the displayed keyboard comes from the mock service, not
-        // configStore — so a bare import wouldn't change what's on screen. Rebuild
-        // the mock from the imported config (mirrors the demo-connect lifecycle)
-        // so the user sees the board they just loaded, no disconnect needed.
-        const conn = useConnectionStore.getState()
-        const cfg = useConfigStore.getState().config
-        if (cfg && conn.service?.capabilities.demo) {
-            const next = connectMockWithConfig(cfg)
-            next.onClosed((): void =>
-                useConnectionStore.getState().serviceClosed(next),
-            )
-            conn.setDeviceName(next.deviceInfo.name)
-            await conn.publishService(next)
-            onClose?.()
+        // Demo mode rebuilt the board on screen from the import — show it.
+        if (wasDemo) onClose?.()
+    }
+
+    const handleSaveToLibrary = async (): Promise<void> => {
+        if (!config) return
+        try {
+            await useLibraryStore.getState().save(keymapEntry(config, 'config'))
+            toast.success(`Saved "${config.meta.name}" to your library`)
+        } catch (err) {
+            log.error('library save failed', err)
+            toast.error('Could not save to the library')
         }
     }
 
@@ -210,7 +212,21 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                             source={source}
                             targets={allowed}
                             header={statusBlock}
-                            topActions={importButton}
+                            topActions={
+                                <>
+                                    <Button
+                                        onClick={() =>
+                                            void handleSaveToLibrary()
+                                        }
+                                        variant="outline"
+                                        className="flex items-center gap-2"
+                                    >
+                                        <BookmarkPlus className="h-4 w-4" />
+                                        Save to library
+                                    </Button>
+                                    {importButton}
+                                </>
+                            }
                         />
                     </Suspense>
                 ) : (

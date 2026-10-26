@@ -16,6 +16,7 @@ import {
     Gauge,
     Languages,
     Layers,
+    Library,
     Lightbulb,
     Network,
     ScanLine,
@@ -222,6 +223,14 @@ export const TOOLS: readonly ToolDef[] = [
         short: 'Export',
         description: 'Download a buildable firmware project',
         icon: Download,
+        action: 'dialog',
+    },
+    {
+        id: 'library',
+        group: 'firmware',
+        label: 'Library',
+        description: 'Save keymaps on this machine and reopen them',
+        icon: Library,
         action: 'dialog',
     },
 ]
