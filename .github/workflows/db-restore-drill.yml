@@ -1,0 +1,79 @@
+name: Database restore drill
+
+# Quarterly (and on demand): fetch the newest encrypted backup, restore it into
+# a throwaway Supabase stack on the runner, and fail unless every table comes
+# back with the row count recorded at backup time (scripts/db/restore-drill.sh).
+#
+# Environment "supabase-production": the db-backup.yml bucket settings, plus
+#   secrets  AGE_IDENTITY (the age private key matching AGE_RECIPIENT)
+
+on:
+    schedule:
+        - cron: '41 4 2 1,4,7,10 *'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    drill:
+        runs-on: ubuntu-latest
+        environment: supabase-production
+        env:
+            AGE_IDENTITY: ${{ secrets.AGE_IDENTITY }}
+            AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: auto
+            S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
+            S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
+        steps:
+            - name: Skip without backup settings
+              id: guard
+              run: |
+                  for v in AGE_IDENTITY AWS_ACCESS_KEY_ID S3_ENDPOINT S3_BUCKET; do
+                    if [ -z "${!v}" ]; then
+                      echo "::notice::$v is not set; skipping the drill."
+                      echo "skip=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                    fi
+                  done
+
+            - name: Checkout
+              if: steps.guard.outputs.skip != 'true'
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+            - name: Set up pnpm
+              if: steps.guard.outputs.skip != 'true'
+              uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+            - name: Set up Node
+              if: steps.guard.outputs.skip != 'true'
+              uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+              with:
+                  node-version-file: '.nvmrc'
+                  cache: 'pnpm'
+
+            - name: Install Supabase CLI and age
+              if: steps.guard.outputs.skip != 'true'
+              run: |
+                  pnpm install --frozen-lockfile --ignore-scripts
+                  pnpm rebuild supabase
+                  sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+            - name: Fetch the newest backup
+              if: steps.guard.outputs.skip != 'true'
+              id: fetch
+              run: |
+                  key=$(aws s3api list-objects-v2 --endpoint-url "$S3_ENDPOINT" --bucket "$S3_BUCKET" \
+                    --prefix db/ --query 'sort_by(Contents, &LastModified)[-1].Key' --output text)
+                  [ -n "$key" ] && [ "$key" != None ] || { echo "::error::no backup in the bucket"; exit 1; }
+                  aws s3 cp --endpoint-url "$S3_ENDPOINT" "s3://$S3_BUCKET/$key" "$RUNNER_TEMP/"
+                  echo "file=$RUNNER_TEMP/$(basename "$key")" >> "$GITHUB_OUTPUT"
+                  echo "Drilling $key" >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Restore and compare
+              if: steps.guard.outputs.skip != 'true'
+              run: |
+                  umask 077
+                  printf '%s\n' "$AGE_IDENTITY" > "$RUNNER_TEMP/age.key"
+                  scripts/db/restore-drill.sh "${{ steps.fetch.outputs.file }}" "$RUNNER_TEMP/age.key" | tee -a "$GITHUB_STEP_SUMMARY"

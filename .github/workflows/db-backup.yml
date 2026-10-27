@@ -1,0 +1,89 @@
+name: Database backup
+
+# Weekly off-site copy of the production database (plan §10: on top of
+# Supabase's own daily backups). scripts/db/backup.sh dumps roles, schema,
+# data and row counts; the tarball is age-encrypted to AGE_RECIPIENT before it
+# leaves the runner, uploaded to an S3-compatible bucket (R2), and copies older
+# than 90 days are pruned. db-restore-drill.yml restores the newest one.
+#
+# Environment "supabase-production":
+#   secrets  SUPABASE_DB_URL (session pooler URL), BACKUP_S3_ACCESS_KEY_ID,
+#            BACKUP_S3_SECRET_ACCESS_KEY
+#   vars     AGE_RECIPIENT (age public key), BACKUP_S3_ENDPOINT, BACKUP_S3_BUCKET
+
+on:
+    schedule:
+        - cron: '17 3 * * 1'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: db-backup
+    cancel-in-progress: false
+
+jobs:
+    backup:
+        runs-on: ubuntu-latest
+        environment: supabase-production
+        env:
+            SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+            AGE_RECIPIENT: ${{ vars.AGE_RECIPIENT }}
+            AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: auto
+            S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
+            S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
+        steps:
+            - name: Skip without backup settings
+              id: guard
+              run: |
+                  for v in SUPABASE_DB_URL AGE_RECIPIENT AWS_ACCESS_KEY_ID S3_ENDPOINT S3_BUCKET; do
+                    if [ -z "${!v}" ]; then
+                      echo "::notice::$v is not set; skipping the backup."
+                      echo "skip=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                    fi
+                  done
+
+            - name: Checkout
+              if: steps.guard.outputs.skip != 'true'
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+            - name: Set up pnpm
+              if: steps.guard.outputs.skip != 'true'
+              uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+            - name: Set up Node
+              if: steps.guard.outputs.skip != 'true'
+              uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+              with:
+                  node-version-file: '.nvmrc'
+                  cache: 'pnpm'
+
+            - name: Install Supabase CLI and age
+              if: steps.guard.outputs.skip != 'true'
+              run: |
+                  pnpm install --frozen-lockfile --ignore-scripts
+                  pnpm rebuild supabase
+                  sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+            - name: Dump and encrypt
+              if: steps.guard.outputs.skip != 'true'
+              id: dump
+              run: echo "file=$(scripts/db/backup.sh "$RUNNER_TEMP/backup" "$SUPABASE_DB_URL")" >> "$GITHUB_OUTPUT"
+
+            - name: Upload
+              if: steps.guard.outputs.skip != 'true'
+              run: aws s3 cp --endpoint-url "$S3_ENDPOINT" "${{ steps.dump.outputs.file }}" "s3://$S3_BUCKET/db/"
+
+            - name: Prune copies older than 90 days
+              if: steps.guard.outputs.skip != 'true'
+              run: |
+                  cutoff=$(date -u -d '90 days ago' +%Y-%m-%dT%H:%M:%SZ)
+                  aws s3api list-objects-v2 --endpoint-url "$S3_ENDPOINT" --bucket "$S3_BUCKET" \
+                    --prefix db/ --query "Contents[?LastModified<'$cutoff'].Key" --output text |
+                    tr '\t' '\n' | grep -v '^None$' | while read -r key; do
+                      [ -n "$key" ] && aws s3 rm --endpoint-url "$S3_ENDPOINT" "s3://$S3_BUCKET/$key"
+                    done

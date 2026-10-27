@@ -199,6 +199,7 @@ export default defineConfig({
                             link: '/dev/adding-a-firmware-target',
                         },
                         { text: 'Contributing', link: '/dev/contributing' },
+                        { text: 'Operations', link: '/dev/operations' },
                     ],
                 },
             ],
