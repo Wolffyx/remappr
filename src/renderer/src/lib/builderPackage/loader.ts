@@ -6,6 +6,10 @@
 // module this host does not provide, check every file's sha256, fill the host
 // module registry, add its stylesheet, then import it.
 import type { ComponentType } from 'react'
+import {
+    verifySignedManifest,
+    type PackageSignature,
+} from '@shared/builderPackage'
 import { HOST_API, HOST_MODULES } from './hostModules'
 
 export interface PackageFile {
@@ -90,17 +94,18 @@ function addStylesheet(href: string): void {
     document.head.appendChild(link)
 }
 
-/** Load the builder package served at `baseUrl` (a folder with manifest.json). */
-export async function loadBuilderPackage(
-    baseUrl: string,
-): Promise<BuilderPackage> {
-    const base = new URL(
+function folderUrl(baseUrl: string): URL {
+    return new URL(
         baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
         window.location.href,
     )
-    const res = await fetch(new URL('manifest.json', base))
-    if (!res.ok) throw new Error(`builder package manifest: HTTP ${res.status}`)
-    const manifest = (await res.json()) as PackageManifest
+}
+
+/** Check, install the host modules, add the stylesheet, import. */
+async function loadChecked(
+    base: URL,
+    manifest: PackageManifest,
+): Promise<BuilderPackage> {
     const problem = manifestProblem(manifest)
     if (problem)
         throw new Error(
@@ -120,4 +125,32 @@ export async function loadBuilderPackage(
         BuilderRoot: mod.BuilderRoot,
         licensee: mod.LICENSEE,
     }
+}
+
+/** Load an unsigned package folder (manifest.json) — dev builds only. */
+export async function loadBuilderPackage(
+    baseUrl: string,
+): Promise<BuilderPackage> {
+    const base = folderUrl(baseUrl)
+    const res = await fetch(new URL('manifest.json', base))
+    if (!res.ok) throw new Error(`builder package manifest: HTTP ${res.status}`)
+    return loadChecked(base, (await res.json()) as PackageManifest)
+}
+
+/** Load a delivered package (signed.json): the manifest signature must hold
+ *  under a pinned key and every file must match it, on every load. */
+export async function loadSignedPackage(
+    baseUrl: string,
+): Promise<BuilderPackage> {
+    const base = folderUrl(baseUrl)
+    const res = await fetch(new URL('signed.json', base))
+    if (!res.ok)
+        throw new Error(`builder package signature: HTTP ${res.status}`)
+    const manifest = verifySignedManifest(
+        (await res.json()) as PackageSignature,
+        import.meta.env.DEV,
+    )
+    if (!manifest)
+        throw new Error('The builder package signature does not verify')
+    return loadChecked(base, manifest)
 }

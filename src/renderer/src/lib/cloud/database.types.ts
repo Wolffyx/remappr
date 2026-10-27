@@ -639,6 +639,10 @@ export type Database = {
             }
             my_plan: { Args: Record<PropertyKey, never>; Returns: Json }
             my_usage: { Args: Record<PropertyKey, never>; Returns: Json }
+            package_download_allowed: {
+                Args: { p_user: string }
+                Returns: boolean
+            }
             publish_item: {
                 Args: {
                     p_changelog: string
@@ -649,6 +653,10 @@ export type Database = {
                 Returns: number
             }
             record_download: { Args: { p_item: string }; Returns: undefined }
+            register_builder_package: {
+                Args: { p_pkg: Json }
+                Returns: undefined
+            }
             rotate_share_token: { Args: { p_item: string }; Returns: string }
             save_device_backup: { Args: { p_backup: Json }; Returns: string }
             save_item: {

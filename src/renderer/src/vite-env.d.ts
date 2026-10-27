@@ -10,6 +10,8 @@ interface ImportMetaEnv {
     /** Site hosting auth/desktop.html for desktop OAuth. Default: remappr.com
      *  (localhost:5173 in dev). */
     readonly VITE_AUTH_SITE_URL?: string
+    /** "delivered": load the builder from get-package instead of the bundle. */
+    readonly VITE_BUILDER_SOURCE?: string
 }
 
 declare namespace React {

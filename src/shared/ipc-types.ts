@@ -112,6 +112,12 @@ export const IpcChannels = {
 
     // Builder licenses: sha256(app salt ‖ OS machine id), or null.
     LICENSE_MACHINE_HASH: 'license:machine-hash',
+
+    // Delivered builder packages (verified, kept in userData, served over
+    // remappr-pkg://): store one, list the cached ones, drop one.
+    PACKAGE_STORE: 'package:store',
+    PACKAGE_LIST: 'package:list',
+    PACKAGE_REMOVE: 'package:remove',
 } as const
 
 /** Event channels (main pushes to renderer) */

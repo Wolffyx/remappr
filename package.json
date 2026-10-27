@@ -31,6 +31,7 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "builder:package": "node scripts/builder-package-dev.cjs",
+        "builder:publish": "node scripts/publish-builder-package.cjs",
         "db:start": "supabase start",
         "db:stop": "supabase stop",
         "db:reset": "supabase db reset",

@@ -75,8 +75,26 @@ Per environment, once:
 
 1. Generate an Ed25519 key pair and a 32-byte watermark key.
 2. `supabase secrets set LICENSE_SIGNING_KEY=<hex> LICENSE_SIGNING_KID=lic-<env>-1 PACKAGE_SIGNING_KEY=<hex> PACKAGE_SIGNING_KID=pkg-<env>-1 WATERMARK_KEY=<hex>`
-3. Add the public key under its kid to `PRODUCTION_KEYS` in `keys.ts` and ship
-   that release before the server signs with it.
+3. Add the license public key under its kid to `PRODUCTION_KEYS` in
+   `src/renderer/src/lib/license/keys.ts` and the package public key to
+   `PRODUCTION_PACKAGE_KEYS` in `src/shared/builderPackage.ts`, and ship that
+   release before the server signs with them.
+
+## Builder packages
+
+`get-package` serves the builder: "free" while the free plan grants it,
+otherwise only with a valid device license, watermarked per user and logged
+(10 a day). Publish a built package to the local stack with:
+
+```bash
+pnpm builder:publish
+```
+
+(It builds nothing: run `pnpm build:package` in the builder repo first.) In a
+dev build, localStorage `remappr.builder.source` = `delivered` makes the app
+load the builder through get-package: verified, cached (Cache Storage + the
+`/pkg-sw.js` service worker on the web, `remappr-pkg://` on desktop) and
+available offline.
 
 `src/renderer/src/lib/license/license.integration.test.ts` exercises the
 functions end to end (needs them served plus the `E2E_*` variables above).

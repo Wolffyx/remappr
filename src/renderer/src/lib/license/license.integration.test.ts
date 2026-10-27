@@ -132,6 +132,35 @@ describe.skipIf(!url)('builder licenses against the local stack', () => {
             error: 'device_limit',
         })
 
+        // get-package: "free" while the builder is free; per-user watermark once paid.
+        const { data: freePlan } = await client
+            .from('plans')
+            .select('limits')
+            .eq('key', 'free')
+            .single()
+        const paid =
+            Number(
+                (freePlan?.limits as { builder?: number } | null)?.builder ?? 0,
+            ) === 0
+        const anonPkg = await createClient<Database>(url, key, {
+            auth: { persistSession: false },
+        }).functions.invoke('get-package', { body: { hostApi: 1 } })
+        const pkg = await client.functions.invoke('get-package', {
+            body: { hostApi: 1, license: token },
+        })
+        const licensee = (
+            JSON.parse((pkg.data as { manifest: string }).manifest) as {
+                licensee: string
+            }
+        ).licensee
+        if (paid) {
+            expect(anonPkg.error).toBeTruthy()
+            expect(licensee).toMatch(/^[0-9a-f]{32}$/)
+        } else {
+            expect(anonPkg.error).toBeNull()
+            expect(licensee).toBe('free')
+        }
+
         const refreshed = await client.functions.invoke('license-refresh', {
             body: { token },
         })

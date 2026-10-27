@@ -11,6 +11,10 @@ import { silenceConsoleInProduction } from '../shared/logger'
 import { checkForUpdates, registerUpdateIpc } from './update-checker'
 import { guardWindowLeave, registerWindowControlsIpc } from './window-controls'
 import { setupDeepLinks } from './deep-link'
+import {
+    registerPackageHandlers,
+    registerPackageScheme,
+} from './builder-packages'
 
 // One instance only: a second launch (e.g. the OS opening a remappr:// sign-in
 // link) hands its argv to this one through 'second-instance' and quits.
@@ -33,6 +37,9 @@ silenceConsoleInProduction()
 if (hasInstanceLock) {
     setupDeepLinks(() => BrowserWindow.getAllWindows()[0] ?? null)
 }
+
+// Delivered builder packages are served over remappr-pkg:// (before ready).
+registerPackageScheme()
 
 // Enable Web Bluetooth (navigator.bluetooth) in Chromium. Must run before
 // app.whenReady(). Without this, Electron exposes no `navigator.bluetooth`
@@ -137,11 +144,11 @@ function createWindow(): void {
                     ...details.responseHeaders,
                     'Content-Security-Policy': [
                         "default-src 'self'; " +
-                            "script-src 'self' 'wasm-unsafe-eval'; " +
-                            "style-src 'self' 'unsafe-inline'; " +
+                            "script-src 'self' 'wasm-unsafe-eval' remappr-pkg:; " +
+                            "style-src 'self' 'unsafe-inline' remappr-pkg:; " +
                             "img-src 'self' data: blob: https://raw.githubusercontent.com https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://cdn.discordapp.com https://*.supabase.co; " +
                             "font-src 'self' data:; " +
-                            "connect-src 'self' https://api.github.com https://raw.githubusercontent.com https://*.supabase.co wss://*.supabase.co https://api.remappr.com wss://api.remappr.com; " +
+                            "connect-src 'self' remappr-pkg: https://api.github.com https://raw.githubusercontent.com https://*.supabase.co wss://*.supabase.co https://api.remappr.com wss://api.remappr.com; " +
                             "frame-src 'none'; " +
                             "object-src 'none'; " +
                             "base-uri 'self'; " +
@@ -295,6 +302,7 @@ app.whenReady().then((): void => {
 
     // Register all IPC handlers
     registerIpcHandlers(() => BrowserWindow.getAllWindows())
+    registerPackageHandlers()
     registerBleIpcHandlers()
     registerUpdateIpc(() => BrowserWindow.getAllWindows()[0] ?? null)
     registerWindowControlsIpc(() => BrowserWindow.getAllWindows()[0] ?? null)
