@@ -122,5 +122,14 @@ export async function loadDeliveredBuilder(
 ): Promise<BuilderPackage> {
     const version = await ensureBuilderPackage(store)
     await store.prepare()
-    return loadSignedPackage(store.baseUrl(version))
+    try {
+        return await loadSignedPackage(store.baseUrl(version))
+    } catch (e) {
+        // A cached copy that no longer checks out (changed on disk, half
+        // written) is dropped and fetched again, once.
+        log.warn(`builder ${version} failed its check; fetching it again`, e)
+        await store.remove(version)
+        const again = await ensureBuilderPackage(store)
+        return loadSignedPackage(store.baseUrl(again))
+    }
 }
