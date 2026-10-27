@@ -38,18 +38,17 @@ export function adminClient(): SupabaseClient {
     )
 }
 
-/** The signed-in caller's user id, from the request's bearer token. */
+/** The signed-in caller's user id, from the request's bearer token. The
+ *  token is passed to getUser explicitly: a forwarded header alone is not
+ *  read as a session, and hosted projects on the new API keys may have no
+ *  legacy SUPABASE_ANON_KEY. A publishable key or junk is no user. */
 export async function callerId(req: Request): Promise<string | null> {
-    const auth = req.headers.get('Authorization')
-    if (!auth) return null
-    const client = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_ANON_KEY')!,
-        {
-            global: { headers: { Authorization: auth } },
-            auth: { persistSession: false },
-        },
-    )
-    const { data } = await client.auth.getUser()
+    const token = /^Bearer\s+(\S+)$/i.exec(
+        req.headers.get('Authorization') ?? '',
+    )?.[1]
+    // A user access token is a JWT (three dot-separated parts).
+    if (!token || token.split('.').length !== 3) return null
+    const { data, error } = await adminClient().auth.getUser(token)
+    if (error) console.warn('[auth] caller not verified:', error.message)
     return data.user?.id ?? null
 }
