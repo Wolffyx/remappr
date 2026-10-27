@@ -23,11 +23,11 @@ one (dev by default); see `supabase/README.md` and `pnpm backend`.
 
 GitHub settings:
 
-| Where                                      | Name                                                                                                                                             |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| environment `remappr`, variables           | `VITE_SUPABASE_URL_STAGING`, `VITE_SUPABASE_PUBLISHABLE_KEY_STAGING`, `VITE_SUPABASE_URL_PRODUCTION`, `VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION` |
-| environment `supabase-staging`, secrets    | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_STAGING`, `SUPABASE_DB_PASSWORD_STAGING`                                                          |
-| environment `supabase-production`, secrets | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_PRODUCTION`, `SUPABASE_DB_PASSWORD_PRODUCTION` (plus the backup settings below)                   |
+| Where                                      | Name                                                                                                                                                                                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| environment `remappr`, variables           | `VITE_SUPABASE_URL_STAGING`, `VITE_SUPABASE_PUBLISHABLE_KEY_STAGING`, `VITE_SUPABASE_URL_PRODUCTION`, `VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION`, `SIGNING_PUBLIC_KEYS_STAGING` (printed by `pnpm backend keys dev`) |
+| environment `supabase-staging`, secrets    | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_STAGING`, `SUPABASE_DB_PASSWORD_STAGING`                                                                                                                              |
+| environment `supabase-production`, secrets | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_PRODUCTION`, `SUPABASE_DB_PASSWORD_PRODUCTION` (plus the backup settings below)                                                                                       |
 
 Each Supabase project also needs its own signing keys. Make them with
 `node scripts/gen-signing-keys.mjs <staging|production> <project-ref>`: it

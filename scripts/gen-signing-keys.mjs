@@ -6,8 +6,12 @@
 // memory and hands them straight to `supabase secrets set` for that project.
 // The private keys are never written to disk or printed, and Supabase does not
 // show them again, so nobody holding repo files or variables can sign
-// licenses. The public halves are pinned in the app (license keys.ts,
-// builderPackage.ts); commit them and ship that release.
+// licenses. Where the public halves go:
+// - production: pinned in the app (license keys.ts, builderPackage.ts);
+//   commit them and ship that release.
+// - staging: not in the code. They go to DEV_SIGNING_PUBLIC_KEYS in
+//   .env.local for local runs, and the script prints the value for the GitHub
+//   variable SIGNING_PUBLIC_KEYS_STAGING (dev.remappr.com, previews).
 //
 // First setup only: it refuses when the project already has signing keys,
 // because replacing them breaks every app that does not pin the new ones yet.
@@ -74,12 +78,34 @@ const lic = pair()
 const pkg = pair()
 const licKid = `lic-${env}-1`
 const pkgKid = `pkg-${env}-1`
-// Each environment's builds trust only their own set (see keys.ts).
-const SET = env === 'production' ? 'PRODUCTION' : 'STAGING'
-const pins = [
-    pinTarget('src/renderer/src/lib/license/keys.ts', `${SET}_KEYS`, licKid),
-    pinTarget('src/shared/builderPackage.ts', `${SET}_PACKAGE_KEYS`, pkgKid),
-]
+// Production pins its keys in the code; staging's live in env (see keys.ts).
+const pins =
+    env === 'production'
+        ? [
+              pinTarget(
+                  'src/renderer/src/lib/license/keys.ts',
+                  'PRODUCTION_KEYS',
+                  licKid,
+              ),
+              pinTarget(
+                  'src/shared/builderPackage.ts',
+                  'PRODUCTION_PACKAGE_KEYS',
+                  pkgKid,
+              ),
+          ]
+        : []
+const envFile = join(root, '.env.local')
+const ENV_LINE = /^DEV_SIGNING_PUBLIC_KEYS=.*$/m
+if (env === 'staging' && ENV_LINE.test(readEnvFile()))
+    throw new Error('.env.local already has DEV_SIGNING_PUBLIC_KEYS')
+
+function readEnvFile() {
+    try {
+        return readFileSync(envFile, 'utf8')
+    } catch {
+        return ''
+    }
+}
 
 // Arguments, not a file: nothing lands on disk. They are visible only to this
 // user's processes for the moment the CLI runs.
@@ -102,7 +128,23 @@ execFileSync(
 for (const p of pins)
     writeFileSync(p.path, p.pinned(p.kid === licKid ? lic.public : pkg.public))
 
-console.log(
-    `Signing keys set on ${ref}; ${licKid} and ${pkgKid} pinned in the app.`,
-)
-console.log('Commit keys.ts and builderPackage.ts, then ship that release.')
+if (env === 'production') {
+    console.log(
+        `Signing keys set on ${ref}; ${licKid} and ${pkgKid} pinned in the app.`,
+    )
+    console.log('Commit keys.ts and builderPackage.ts, then ship that release.')
+} else {
+    // Public halves only: safe to print and to store as a plain variable.
+    const value = `${licKid}:${lic.public},${pkgKid}:${pkg.public}`
+    const current = readEnvFile()
+    writeFileSync(
+        envFile,
+        `${current.replace(/\n*$/, '\n')}DEV_SIGNING_PUBLIC_KEYS=${value}\n`,
+        { mode: 0o600 },
+    )
+    console.log(`Signing keys set on ${ref}; public keys saved in .env.local.`)
+    console.log(
+        'Set the GitHub variable SIGNING_PUBLIC_KEYS_STAGING (environment "remappr") to:',
+    )
+    console.log(value)
+}

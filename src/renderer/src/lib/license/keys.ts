@@ -2,7 +2,9 @@
 //
 // Public keys the app trusts for builder licenses, by key id, one set per
 // environment: a build trusts only the set for its __REMAPPR_ENV__ (a
-// production build never accepts a staging license). Rotation: ship the new
+// production build never accepts a staging license). Production's are pinned
+// here; staging's come from the build env (DEV_SIGNING_PUBLIC_KEYS, see
+// scripts/backend-env.ts), so they are not in the code. Rotation: ship the new
 // key here in a release first, then switch the server's signing kid, and keep
 // the old one (lifetime licenses offline stay signed with it). The dev key's
 // private half exists only in a developer's gitignored supabase/functions/.env,
@@ -13,11 +15,9 @@ const PRODUCTION_KEYS: Readonly<Record<string, string>> = {
         '164631f8580ecfc37c19923d9fcf1c3d11a8c8e24e9bf8a05f509e52411d55c9',
 }
 
-const STAGING_KEYS: Readonly<Record<string, string>> = {}
-
 const TRUSTED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     production: PRODUCTION_KEYS,
-    staging: STAGING_KEYS,
+    staging: __REMAPPR_EXTRA_KEYS__.license,
 }
 
 const DEV_KEYS: Readonly<Record<string, string>> = {

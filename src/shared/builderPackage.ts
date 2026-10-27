@@ -5,7 +5,8 @@
 // (Ed25519). Hosts trust a signature only from these pinned keys, and every
 // file's sha256 must match the signed manifest before it is served or loaded.
 // One key set per environment: a build trusts only the set for its
-// __REMAPPR_ENV__. The dev key's private half lives only in a developer's
+// __REMAPPR_ENV__. Production's are pinned here; staging's come from the
+// build env (scripts/backend-env.ts), so they are not in the code. The dev key's private half lives only in a developer's
 // gitignored supabase/functions/.env, so it is trusted in dev builds and
 // local-backend builds only.
 import { ed25519 } from '@noble/curves/ed25519.js'
@@ -15,13 +16,11 @@ const PRODUCTION_PACKAGE_KEYS: Readonly<Record<string, string>> = {
         '2a2c0bccaa0794b92bffebad91d783793caffe975b34b7b9c1fd18c036192039',
 }
 
-const STAGING_PACKAGE_KEYS: Readonly<Record<string, string>> = {}
-
 const TRUSTED_PACKAGE_KEYS: Readonly<
     Record<string, Readonly<Record<string, string>>>
 > = {
     production: PRODUCTION_PACKAGE_KEYS,
-    staging: STAGING_PACKAGE_KEYS,
+    staging: __REMAPPR_EXTRA_KEYS__.package,
 }
 
 const DEV_PACKAGE_KEYS: Readonly<Record<string, string>> = {

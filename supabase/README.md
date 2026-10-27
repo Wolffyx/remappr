@@ -95,15 +95,19 @@ pnpm exec supabase functions serve --env-file supabase/functions/.env
 
 Per environment, once (after `pnpm exec supabase login`):
 
-1. `node scripts/gen-signing-keys.mjs <staging|production> <project-ref>`
-   generates the license and package key pairs and the watermark key in
-   memory, sets them as that project's secrets, and pins the public keys under
-   `lic-<env>-1` / `pkg-<env>-1` in `src/renderer/src/lib/license/keys.ts` and
-   `src/shared/builderPackage.ts`. The private keys are never written to disk
-   or shown, and Supabase does not show them again: only the project can sign
-   licenses. It refuses a project that already has keys.
-2. Commit the pinned public keys and ship that release before the server's
-   licenses reach users.
+1. `pnpm backend keys dev|prod` (scripts/gen-signing-keys.mjs) generates the
+   license and package key pairs and the watermark key in memory and sets
+   them as that project's secrets. The private keys are never written to
+   disk or shown, and Supabase does not show them again: only the project can
+   sign licenses. It refuses a project that already has keys.
+2. The public halves:
+    - **prod**: pinned in `src/renderer/src/lib/license/keys.ts` and
+      `src/shared/builderPackage.ts`. Commit them and ship that release
+      before the server's licenses reach users.
+    - **dev**: not in the code. They go to `DEV_SIGNING_PUBLIC_KEYS` in
+      `.env.local`, and the script prints the value for the GitHub variable
+      `SIGNING_PUBLIC_KEYS_STAGING`. Only staging builds read them;
+      production builds trust nothing but the pinned keys.
 
 Lifetime licenses and permanent grants never expire: activated once, they
 work offline for good, so their only protection against forgery is that the
