@@ -197,8 +197,9 @@ from Supabase. `pnpm backend keys` writes an encrypted copy (scrypt +
 AES-256-GCM, your passphrase) to `~/remappr-key-backups/` before setting
 them. Keep that file in a password manager or on an offline drive, the
 passphrase somewhere else, and check it now and then with
-`pnpm backend keys-verify <file>`. Recovery: `pnpm backend keys-restore
-<file> prod`. Without a backup, a lost key means a rotation (supabase/README.md).
+`pnpm backend keys-verify <file>`. Recovery:
+`pnpm backend keys-restore <file> prod`. Without a backup, a lost key means
+a rotation (supabase/README.md).
 They are not in the database backups.
 
 ## Account data requests
