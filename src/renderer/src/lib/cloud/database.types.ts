@@ -9,6 +9,182 @@ export type Json =
 export type Database = {
     public: {
         Tables: {
+            library_item_versions: {
+                Row: {
+                    changelog: string
+                    created_at: string
+                    document: NonNullable<Json>
+                    git_commit_sha: string | null
+                    item_id: string
+                    kind: string
+                    license: string | null
+                    message: string
+                    release_no: number | null
+                    size_bytes: number
+                    version: number
+                }
+                ComputedFields: never
+                Insert: {
+                    changelog?: string
+                    created_at?: string
+                    document: NonNullable<Json>
+                    git_commit_sha?: string | null
+                    item_id: string
+                    kind?: string
+                    license?: string | null
+                    message?: string
+                    release_no?: number | null
+                    size_bytes: number
+                    version: number
+                }
+                Update: {
+                    changelog?: string
+                    created_at?: string
+                    document?: NonNullable<Json>
+                    git_commit_sha?: string | null
+                    item_id?: string
+                    kind?: string
+                    license?: string | null
+                    message?: string
+                    release_no?: number | null
+                    size_bytes?: number
+                    version?: number
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: 'library_item_versions_item_id_fkey'
+                        columns: ['item_id']
+                        isOneToOne: false
+                        referencedRelation: 'library_items'
+                        referencedColumns: ['id']
+                    },
+                ]
+            }
+            library_items: {
+                Row: {
+                    client_id: string | null
+                    comments_count: number
+                    created_at: string
+                    deleted_at: string | null
+                    description: string
+                    device_id: string | null
+                    downloads_count: number
+                    forked_from: string | null
+                    forked_license: string | null
+                    forked_release: number | null
+                    forks_count: number
+                    head_version: number
+                    id: string
+                    identifiers: string[]
+                    license: string | null
+                    meta: NonNullable<Json>
+                    moderation: string
+                    name: string
+                    owner_id: string
+                    published_at: string | null
+                    published_version: number | null
+                    search: unknown
+                    share_hash: string | null
+                    share_rev: number
+                    stars_count: number
+                    summary: string
+                    tags: string[]
+                    type: string
+                    updated_at: string
+                    verified: boolean
+                    visibility: string
+                }
+                ComputedFields: never
+                Insert: {
+                    client_id?: string | null
+                    comments_count?: number
+                    created_at?: string
+                    deleted_at?: string | null
+                    description?: string
+                    device_id?: string | null
+                    downloads_count?: number
+                    forked_from?: string | null
+                    forked_license?: string | null
+                    forked_release?: number | null
+                    forks_count?: number
+                    head_version?: number
+                    id?: string
+                    identifiers?: string[]
+                    license?: string | null
+                    meta?: NonNullable<Json>
+                    moderation?: string
+                    name: string
+                    owner_id: string
+                    published_at?: string | null
+                    published_version?: number | null
+                    search?: unknown
+                    share_hash?: string | null
+                    share_rev?: number
+                    stars_count?: number
+                    summary?: string
+                    tags?: string[]
+                    type: string
+                    updated_at?: string
+                    verified?: boolean
+                    visibility?: string
+                }
+                Update: {
+                    client_id?: string | null
+                    comments_count?: number
+                    created_at?: string
+                    deleted_at?: string | null
+                    description?: string
+                    device_id?: string | null
+                    downloads_count?: number
+                    forked_from?: string | null
+                    forked_license?: string | null
+                    forked_release?: number | null
+                    forks_count?: number
+                    head_version?: number
+                    id?: string
+                    identifiers?: string[]
+                    license?: string | null
+                    meta?: NonNullable<Json>
+                    moderation?: string
+                    name?: string
+                    owner_id?: string
+                    published_at?: string | null
+                    published_version?: number | null
+                    search?: unknown
+                    share_hash?: string | null
+                    share_rev?: number
+                    stars_count?: number
+                    summary?: string
+                    tags?: string[]
+                    type?: string
+                    updated_at?: string
+                    verified?: boolean
+                    visibility?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: 'library_items_device_id_fkey'
+                        columns: ['device_id']
+                        isOneToOne: false
+                        referencedRelation: 'library_items'
+                        referencedColumns: ['id']
+                    },
+                    {
+                        foreignKeyName: 'library_items_forked_from_fkey'
+                        columns: ['forked_from']
+                        isOneToOne: false
+                        referencedRelation: 'library_items'
+                        referencedColumns: ['id']
+                    },
+                    {
+                        foreignKeyName: 'library_items_owner_id_fkey'
+                        columns: ['owner_id']
+                        isOneToOne: false
+                        referencedRelation: 'users'
+                        referencedColumns: ['id']
+                    },
+                ]
+            }
             lookups: {
                 Row: {
                     category: string
@@ -156,7 +332,34 @@ export type Database = {
         }
         Functions: {
             billing_upsert: { Args: { p_row: Json }; Returns: undefined }
+            create_item: {
+                Args: { p_document: Json; p_item: Json }
+                Returns: string
+            }
+            delete_item: { Args: { p_item: string }; Returns: undefined }
             my_plan: { Args: Record<PropertyKey, never>; Returns: Json }
+            my_usage: { Args: Record<PropertyKey, never>; Returns: Json }
+            save_device_backup: { Args: { p_backup: Json }; Returns: string }
+            save_item: {
+                Args: {
+                    p_base_version: number
+                    p_changes: Json
+                    p_item: string
+                }
+                Returns: number
+            }
+            sync_pull: {
+                Args: { p_since: string }
+                Returns: {
+                    client_id: string
+                    deleted_at: string
+                    head_version: number
+                    id: string
+                    name: string
+                    type: string
+                    updated_at: string
+                }[]
+            }
         }
         Enums: {
             [_ in never]: never
