@@ -109,6 +109,9 @@ export const IpcChannels = {
     // Sign-in: the auth code a remappr://auth/callback deep link carried, if
     // one is waiting (cleared on read).
     AUTH_TAKE_CALLBACK: 'auth:take-callback',
+
+    // Builder licenses: sha256(app salt ‖ OS machine id), or null.
+    LICENSE_MACHINE_HASH: 'license:machine-hash',
 } as const
 
 /** Event channels (main pushes to renderer) */

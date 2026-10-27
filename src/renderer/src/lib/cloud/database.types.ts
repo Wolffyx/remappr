@@ -9,6 +9,37 @@ export type Json =
 export type Database = {
     public: {
         Tables: {
+            builder_packages: {
+                Row: {
+                    changelog: string
+                    channel: string
+                    files: NonNullable<Json>
+                    host_api: string
+                    published_at: string
+                    storage_prefix: string
+                    version: string
+                }
+                ComputedFields: never
+                Insert: {
+                    changelog?: string
+                    channel?: string
+                    files: NonNullable<Json>
+                    host_api: string
+                    published_at?: string
+                    storage_prefix: string
+                    version: string
+                }
+                Update: {
+                    changelog?: string
+                    channel?: string
+                    files?: NonNullable<Json>
+                    host_api?: string
+                    published_at?: string
+                    storage_prefix?: string
+                    version?: string
+                }
+                Relationships: []
+            }
             content_reports: {
                 Row: {
                     comment_id: string | null
@@ -337,6 +368,43 @@ export type Database = {
                     },
                 ]
             }
+            licensed_devices: {
+                Row: {
+                    activated_at: string
+                    device_pub_hash: string
+                    id: string
+                    label: string
+                    last_seen_at: string
+                    machine_hash: string | null
+                    platform: string
+                    revoked_at: string | null
+                    user_id: string
+                }
+                ComputedFields: never
+                Insert: {
+                    activated_at?: string
+                    device_pub_hash: string
+                    id?: string
+                    label?: string
+                    last_seen_at?: string
+                    machine_hash?: string | null
+                    platform: string
+                    revoked_at?: string | null
+                    user_id: string
+                }
+                Update: {
+                    activated_at?: string
+                    device_pub_hash?: string
+                    id?: string
+                    label?: string
+                    last_seen_at?: string
+                    machine_hash?: string | null
+                    platform?: string
+                    revoked_at?: string | null
+                    user_id?: string
+                }
+                Relationships: []
+            }
             lookups: {
                 Row: {
                     category: string
@@ -499,6 +567,7 @@ export type Database = {
                 Args: { p_document: Json; p_item: Json }
                 Returns: string
             }
+            deactivate_device: { Args: { p_id: string }; Returns: undefined }
             delete_comment: { Args: { p_comment: string }; Returns: undefined }
             delete_item: { Args: { p_item: string }; Returns: undefined }
             dismiss_reports: {
@@ -524,6 +593,23 @@ export type Database = {
                 }[]
             }
             hide_comment: { Args: { p_comment: string }; Returns: undefined }
+            license_register_device: {
+                Args: {
+                    p_device: string
+                    p_machine: string
+                    p_meta: Json
+                    p_user: string
+                }
+                Returns: boolean
+            }
+            license_state: {
+                Args: { p_device: string; p_user: string }
+                Returns: Json
+            }
+            log_package_download: {
+                Args: { p_entry: Json }
+                Returns: undefined
+            }
             match_devices: {
                 Args: { p_identifiers: Json }
                 Returns: {

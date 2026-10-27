@@ -29,6 +29,7 @@ import { isElectron as isElectronEnv } from '@/transport'
 import { isCloudConfigured } from '@/lib/cloud/env'
 import useAuthStore from '@/stores/authStore'
 import useSyncStore from '@/stores/syncStore'
+import useLicenseStore from '@/stores/licenseStore'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
 import { connectDemo } from '@/features/connection/demo/connectDemo'
 import { connectTransport } from '@/features/connection/connectTransport'
@@ -100,6 +101,7 @@ function App(): JSX.Element {
         if (!isCloudConfigured()) return
         void useAuthStore.getState().init()
         useSyncStore.getState().start()
+        void useLicenseStore.getState().init()
     }, [])
 
     useEffect(() => {

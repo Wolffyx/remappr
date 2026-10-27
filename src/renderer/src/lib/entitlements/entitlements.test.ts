@@ -17,6 +17,8 @@ import {
     getPlanSnapshot,
     hasBuilderAccess,
     isBuilderFree,
+    needsBuilderActivation,
+    setBuilderLicenseValid,
     refreshPlan,
     setPlanSnapshot,
 } from './index'
@@ -100,12 +102,17 @@ describe('entitlements', () => {
         expect(hasBuilderAccess()).toBe(false)
     })
 
-    it('a purchase unlocks it once the free plan stops granting it', async () => {
+    it('once paid, a purchase needs a device license too', async () => {
         cloud.configured = true
         cloud.client = fakeClient(0, 1)
         await refreshPlan()
         expect(getBuilderStage()).toBe('ga')
+        expect(hasBuilderAccess()).toBe(false)
+        expect(needsBuilderActivation()).toBe(true)
+        setBuilderLicenseValid(true)
         expect(hasBuilderAccess()).toBe(true)
+        expect(needsBuilderActivation()).toBe(false)
+        setBuilderLicenseValid(false)
     })
 
     it('a failed read keeps the last cached answer', async () => {

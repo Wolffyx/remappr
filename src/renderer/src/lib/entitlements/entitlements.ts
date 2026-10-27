@@ -76,6 +76,21 @@ export function isBuilderFree(): boolean {
     return getBuilderStage() !== 'ga'
 }
 
+let licenseValid = false
+
+/** Whether this device holds a verified builder license (the license store
+ *  verifies it offline and reports here). */
+export function setBuilderLicenseValid(valid: boolean): void {
+    if (valid === licenseValid) return
+    licenseValid = valid
+    if (typeof window !== 'undefined')
+        window.dispatchEvent(new Event(ENTITLEMENTS_CHANGE_EVENT))
+}
+
+export function hasBuilderLicense(): boolean {
+    return licenseValid
+}
+
 /** Local dev builds (not tests, not production) always have the builder. */
 function isDevBypass(): boolean {
     return import.meta.env.DEV && import.meta.env.MODE !== 'test'
@@ -85,6 +100,16 @@ function isDevBypass(): boolean {
 export function hasBuilderAccess(): boolean {
     if (isDevBypass()) return true
     const snapshot = getPlanSnapshot()
-    if (!snapshot) return isBuilderFree()
-    return snapshot.freeBuilder || snapshot.builder
+    if (!snapshot) return isBuilderFree() || licenseValid
+    // Paid stage: a purchase alone is not enough on this device; it needs a
+    // device license, verified offline (see stores/licenseStore).
+    return snapshot.freeBuilder || licenseValid
+}
+
+/** The plan grants the builder but this device has no license yet. */
+export function needsBuilderActivation(): boolean {
+    const snapshot = getPlanSnapshot()
+    return (
+        !!snapshot && !snapshot.freeBuilder && snapshot.builder && !licenseValid
+    )
 }

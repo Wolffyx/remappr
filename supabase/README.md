@@ -59,3 +59,24 @@ E2E_API_URL=http://127.0.0.1:54321 E2E_PUBLISHABLE_KEY=sb_publishable_… E2E_SE
 If `pnpm db:start` leaves the API on :54321 unreachable, the gateway container
 was left stopped from an earlier run: `pnpm db:stop && pnpm db:start` (data is
 kept).
+
+## Builder licenses (Edge Functions)
+
+`license-activate` and `license-refresh` sign Ed25519 builder licenses.
+Locally they read `supabase/functions/.env` (gitignored; a dev key pair whose
+public half is pinned for dev builds only in
+`src/renderer/src/lib/license/keys.ts`). Serve them with:
+
+```bash
+pnpm exec supabase functions serve --env-file supabase/functions/.env
+```
+
+Per environment, once:
+
+1. Generate an Ed25519 key pair and a 32-byte watermark key.
+2. `supabase secrets set LICENSE_SIGNING_KEY=<hex> LICENSE_SIGNING_KID=lic-<env>-1 PACKAGE_SIGNING_KEY=<hex> PACKAGE_SIGNING_KID=pkg-<env>-1 WATERMARK_KEY=<hex>`
+3. Add the public key under its kid to `PRODUCTION_KEYS` in `keys.ts` and ship
+   that release before the server signs with it.
+
+`src/renderer/src/lib/license/license.integration.test.ts` exercises the
+functions end to end (needs them served plus the `E2E_*` variables above).

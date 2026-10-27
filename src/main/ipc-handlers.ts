@@ -36,6 +36,7 @@ import {
     writeHid,
 } from './hid'
 import { registerSecretHandlers } from './secret-store'
+import { registerMachineIdHandler } from './machine-id'
 import { registerGithubArtifactHandler } from './github-artifact'
 
 const log = createLogger('ipc')
@@ -159,6 +160,8 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
     // pattern-check: skip — add one registration call, no logic change
     // --- Secret storage (safeStorage-backed) ---
     registerSecretHandlers()
+    // --- Builder license machine hash ---
+    registerMachineIdHandler()
     // --- GitHub artifact download proxy (dodges renderer CORS) ---
     registerGithubArtifactHandler()
 

@@ -6,3 +6,6 @@
 .env.keys
 .env.local
 .env.*.local
+
+# Local Edge Function secrets (dev signing keys)
+functions/.env

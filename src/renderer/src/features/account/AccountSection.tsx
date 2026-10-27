@@ -18,6 +18,7 @@ import { Modal } from '@/ui/modal'
 import { SignInPanel } from './SignInPanel'
 import { SyncSettings } from './SyncSettings'
 import { ModerationQueue } from './ModerationQueue'
+import { BuilderDevices } from './BuilderDevices'
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,31}$/
 
@@ -110,6 +111,7 @@ function ProfileForm(): JSX.Element {
             </div>
 
             <SyncSettings />
+            <BuilderDevices />
             <ModerationQueue />
 
             <Modal
