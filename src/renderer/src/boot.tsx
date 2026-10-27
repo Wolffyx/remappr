@@ -10,6 +10,7 @@ import { silenceConsoleInProduction } from '@shared/logger.ts'
 // import order (discovery.ts pins it by priority).
 import { ensureFirmwareClientsLoaded } from '@/transport/adapter/firmwareClients'
 import './index.css'
+import { registerAppShell } from '@/lib/pwa'
 
 silenceConsoleInProduction()
 
@@ -23,3 +24,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 // render isn't held up. Connect paths await the same memoized promise, so this
 // is purely a latency optimization; failures surface there, not here.
 void ensureFirmwareClientsLoaded()
+
+// Web: the app-shell service worker (offline + update prompt).
+registerAppShell()

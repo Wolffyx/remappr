@@ -6,6 +6,7 @@ import pkg from './package.json' with { type: 'json' }
 import { remapprDedupe } from './scripts/remappr-dedupe'
 import { builderSourceDefine } from './scripts/builder-source'
 import { webSecurityPlugin } from './scripts/web-security'
+import { pwaPlugin } from './scripts/pwa'
 import { vendorChunks } from './scripts/vendor-chunks'
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -17,6 +18,8 @@ export default defineConfig(({ mode }) => ({
         tailwindcss(),
         // Production web builds carry a CSP (meta + Cloudflare _headers).
         webSecurityPlugin(loadEnv(mode, __dirname, 'VITE_').VITE_SUPABASE_URL),
+        // Production web builds: the offline app-shell service worker.
+        pwaPlugin(),
     ],
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),

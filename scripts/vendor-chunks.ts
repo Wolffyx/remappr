@@ -6,6 +6,11 @@
 // from the symlinked @remappr/* siblings' node_modules land in the same
 // chunk as the app's.
 export function vendorChunks(id: string): string | undefined {
+    // Vite's dynamic-import preload helper (and Rollup's CommonJS helpers) are
+    // shared by every lazy import. Unassigned, Rollup folded them into the
+    // monaco chunk, so the entry statically imported 4 MB of Monaco on start.
+    if (id.includes('vite/preload-helper') || id.includes('commonjsHelpers'))
+        return 'runtime-helpers'
     if (!id.includes('node_modules')) return undefined
     // Monaco is only reachable through the lazy JSON-config panel — keep every
     // monaco module in one async chunk instead of smearing it across chunks.
