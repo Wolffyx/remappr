@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
     backupDir,
+    cleanInput,
     decryptBackup,
     encryptBackup,
     writeBackup,
@@ -65,5 +66,11 @@ describe('signing-key backup', () => {
             join(homedir(), 'key-backups'),
         )
         expect(backupDir(repo)).toBe(join(homedir(), 'remappr-key-backups'))
+    })
+
+    it('keeps a pasted passphrase exactly, without terminal markers', () => {
+        expect(cleanInput('\u001b[200~ab cd!\u001b[201~')).toBe('ab cd!')
+        expect(cleanInput('pass\u001b[Dword')).toBe('password')
+        expect(cleanInput('  spaces kept  ')).toBe('  spaces kept  ')
     })
 })

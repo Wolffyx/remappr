@@ -37,6 +37,7 @@ export function decryptBackup(
 export function backupDir(repoRoot: string, wanted?: string): string
 export function writeBackup(dir: string, backup: SealedBackup): string
 export function readBackup(file: string): SealedBackup
+export function cleanInput(raw: string): string
 export function askPassphrase(
     prompt: string,
     options?: { confirm?: boolean },

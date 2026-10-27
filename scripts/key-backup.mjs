@@ -124,11 +124,23 @@ export function readBackup(file) {
 export async function askPassphrase(prompt, { confirm = false } = {}) {
     const first = await readHidden(prompt)
     if (!confirm) return first
-    const again = await readHidden('Type it again: ')
+    const again = await readHidden('Type or paste it again: ')
     if (again !== first) throw new Error('the passphrases do not match')
     return first
 }
 
+// Terminal escape sequences: bracketed-paste markers (ESC[200~ / ESC[201~),
+// arrow keys and the like. None belongs in a passphrase.
+// eslint-disable-next-line no-control-regex -- matching ESC is the point
+const ESCAPES = /\u001b\[[0-9;]*[~A-Za-z]|\u001b./g
+
+/** What was typed or pasted, without escape sequences. Exported for tests. */
+export function cleanInput(raw) {
+    return raw.replace(ESCAPES, '')
+}
+
+/** Read a line without echoing it; typing and pasting both work. Says how
+ *  many characters arrived, so a paste can be checked against its source. */
 function readHidden(prompt) {
     const { stdin, stdout } = process
     if (!stdin.isTTY)
@@ -140,7 +152,7 @@ function readHidden(prompt) {
         stdin.resume()
         stdin.setEncoding('utf8')
         const onData = (chunk) => {
-            for (const ch of chunk) {
+            for (const ch of cleanInput(chunk)) {
                 if (ch === '\r' || ch === '\n') return finish()
                 if (ch === '\u0003') return finish(new Error('cancelled'))
                 if (ch === '\u007f' || ch === '\b') text = text.slice(0, -1)
@@ -151,7 +163,7 @@ function readHidden(prompt) {
             stdin.off('data', onData)
             stdin.setRawMode(false)
             stdin.pause()
-            stdout.write('\n')
+            stdout.write(error ? '\n' : ` (${[...text].length} characters)\n`)
             if (error) fail(error)
             else done(text)
         }
