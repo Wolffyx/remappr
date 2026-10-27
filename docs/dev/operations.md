@@ -174,6 +174,17 @@ The admin signs out and in again (the role is read from a fresh session),
 then activates the device in Settings → Account → Builder devices. Remove
 the role with `raw_app_meta_data - 'role'`.
 
+## Signing-key backups
+
+Each project's signing keys (Edge Functions → Secrets) cannot be read back
+from Supabase. `pnpm backend keys` writes an encrypted copy (scrypt +
+AES-256-GCM, your passphrase) to `~/remappr-key-backups/` before setting
+them. Keep that file in a password manager or on an offline drive, the
+passphrase somewhere else, and check it now and then with
+`pnpm backend keys-verify <file>`. Recovery: `pnpm backend keys-restore
+<file> prod`. Without a backup, a lost key means a rotation (supabase/README.md).
+They are not in the database backups.
+
 ## Account data requests
 
 Users handle both themselves in **Settings → Account → Your data**:

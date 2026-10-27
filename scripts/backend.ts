@@ -3,7 +3,11 @@
 //   pnpm backend                 which backend local runs use, and why
 //   pnpm backend push <dev|prod>    apply supabase/migrations to that project
 //   pnpm backend deploy <dev|prod>  deploy the Edge Functions there
-//   pnpm backend keys <dev|prod>    create its signing keys (once per project)
+//   pnpm backend keys <dev|prod> [--replace] [--backup-dir <dir>]
+//                                   create its signing keys, with an encrypted
+//                                   backup outside the repo (~/remappr-key-backups)
+//   pnpm backend keys-verify <backup>          check a backup (asks its passphrase)
+//   pnpm backend keys-restore <backup> <dev|prod>  put backed-up keys on a project
 //   pnpm backend sync               before dev / edev: update dev or local,
 //                                   never prod (scripts/backend-sync.ts)
 //
@@ -52,7 +56,10 @@ async function confirm(target: Target, what: string): Promise<void> {
     if (answer.trim() !== 'prod') throw new Error('stopped; nothing changed')
 }
 
-const COMMANDS: Record<string, (arg?: string) => Promise<void>> = {
+const COMMANDS: Record<
+    string,
+    (arg?: string, rest?: string[]) => Promise<void>
+> = {
     async show() {
         const chosen = resolveBackend(root, 'development')
         console.log(
@@ -87,26 +94,51 @@ const COMMANDS: Record<string, (arg?: string) => Promise<void>> = {
             projectRef(target),
         ])
     },
-    async keys(arg) {
+    async keys(arg, rest = []) {
         const target = targetOf(arg)
-        await confirm(target, 'create the signing keys')
+        await confirm(
+            target,
+            rest.includes('--replace')
+                ? 'REPLACE the signing keys'
+                : 'create the signing keys',
+        )
         run(process.execPath, [
             join(root, 'scripts', 'gen-signing-keys.mjs'),
             target === 'prod' ? 'production' : 'staging',
+            projectRef(target),
+            ...rest,
+        ])
+    },
+    async 'keys-verify'(file) {
+        if (!file) throw new Error('which backup file?')
+        run(process.execPath, [
+            join(root, 'scripts', 'signing-keys-backup.mjs'),
+            'verify',
+            file,
+        ])
+    },
+    async 'keys-restore'(file, rest = []) {
+        const target = targetOf(rest[0])
+        if (!file) throw new Error('which backup file?')
+        await confirm(target, 'restore the signing keys')
+        run(process.execPath, [
+            join(root, 'scripts', 'signing-keys-backup.mjs'),
+            'restore',
+            file,
             projectRef(target),
         ])
     },
 }
 
-const [command = 'show', arg] = process.argv.slice(2)
+const [command = 'show', arg, ...rest] = process.argv.slice(2)
 const handler = Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined
 if (!handler) {
     console.error(
-        `unknown command "${command}": show, sync, push, deploy or keys`,
+        `unknown command "${command}": show, sync, push, deploy, keys, keys-verify or keys-restore`,
     )
     process.exit(2)
 }
-handler(arg).catch((e: unknown) => {
+handler(arg, rest).catch((e: unknown) => {
     console.error(e instanceof Error ? e.message : e)
     process.exit(1)
 })

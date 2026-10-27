@@ -96,10 +96,20 @@ pnpm exec supabase functions serve --env-file supabase/functions/.env
 Per environment, once (after `pnpm exec supabase login`):
 
 1. `pnpm backend keys dev|prod` (scripts/gen-signing-keys.mjs) generates the
-   license and package key pairs and the watermark key in memory and sets
-   them as that project's secrets. The private keys are never written to
-   disk or shown, and Supabase does not show them again: only the project can
-   sign licenses. It refuses a project that already has keys.
+   license and package key pairs and the watermark key in memory, writes an
+   **encrypted backup** of them first (you type a passphrase, at least 16
+   characters, never stored), then sets them as that project's secrets.
+   Supabase does not show them again; the backup is the only other copy. It
+   refuses a project that already has keys (`--replace` to swap keys that
+   never signed a license).
+    - The backup goes to `~/remappr-key-backups/` (folder 700, file 600), or
+      `--backup-dir <dir>`; a folder inside the repository is refused. Move it
+      to your password manager or an offline drive, with the passphrase kept
+      apart from it.
+    - `pnpm backend keys-verify <file>` checks a backup opens and matches the
+      keys this checkout trusts (prints key ids and yes/no, no secrets).
+    - `pnpm backend keys-restore <file> dev|prod` puts backed-up keys back on
+      a project (one that lost them, or a replacement).
 2. The public halves:
     - **prod**: pinned in `src/renderer/src/lib/license/keys.ts` and
       `src/shared/builderPackage.ts`. Commit them and ship that release
