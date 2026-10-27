@@ -156,23 +156,39 @@ Your dev stack on `5432x` is not touched.
 5. Deploy the Edge Functions and secrets, then point the app's
    `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` at the new project.
 
-## Admins
+## Free builder access
 
-An account whose `app_metadata.role` is `admin` uses the builder without
-paying: it counts as holding a permanent grant of the `staff` plan (the paid
-plans' limits, 10 devices), works offline like a lifetime license, and also
-opens the moderation queue (with two-factor sign-in). Only the service role or
-the dashboard can set it, in the SQL editor:
+Free access is a `comp` purchase on the `staff` plan (builder, the paid plans'
+limits, 10 devices). It licenses like a permanent grant: offline for good on
+its devices. In the SQL editor of each project:
 
 ```sql
-update auth.users
-   set raw_app_meta_data = raw_app_meta_data || '{"role": "admin"}'
- where email = 'you@example.com';
+insert into public.purchases (user_id, plan_key, type, status, note)
+select id, 'staff', 'comp', 'active', 'team'
+  from auth.users where email = 'you@example.com';
 ```
 
-The admin signs out and in again (the role is read from a fresh session),
-then activates the device in Settings → Account → Builder devices. Remove
-the role with `raw_app_meta_data - 'role'`.
+The person signs in and activates the device in Settings → Account → Builder
+devices. To take it back, end the row; devices learn it at their next online
+check:
+
+```sql
+update public.purchases set status = 'ended'
+ where plan_key = 'staff' and user_id = (select id from auth.users where email = 'you@example.com');
+```
+
+The admin role (`app_metadata.role = 'admin'`, with two-factor sign-in) is for
+moderation only and grants no builder access.
+
+## Banning
+
+Ban in the dashboard (Authentication → Users → the user → Ban user), or set
+`auth.users.banned_until`. A banned account cannot sign in or renew its
+session, and it is not entitled to the builder whatever it bought or was
+granted: activations fail, renewals come back revoked and builder downloads
+are refused. Its devices that stay offline keep a lifetime license until they
+next go online. A ban that expires restores everything. Hide their public
+items or comments from the moderation queue.
 
 ## Signing-key backups
 
