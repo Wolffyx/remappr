@@ -25,6 +25,20 @@ import {
     registerStorageMigrationHandler,
 } from './storage-migration'
 
+// A packaged app never runs with a debugger attached: Chromium's remote
+// debugging would let anyone script the renderer (and its builder gate). The
+// Node --inspect switches are already off through the EnableNodeCliInspect
+// fuse; these are Chromium's.
+const DEBUG_SWITCHES = [
+    'remote-debugging-port',
+    'remote-debugging-pipe',
+    'remote-debugging-address',
+    'remote-allow-origins',
+    'auto-open-devtools-for-tabs',
+]
+if (app.isPackaged && DEBUG_SWITCHES.some((s) => app.commandLine.hasSwitch(s)))
+    app.exit(1)
+
 // One instance only: a second launch (e.g. the OS opening a remappr:// sign-in
 // link) hands its argv to this one through 'second-instance' and quits.
 const hasInstanceLock = app.requestSingleInstanceLock()
@@ -132,6 +146,8 @@ function createWindow(): void {
             nodeIntegration: false,
             contextIsolation: true,
             webviewTag: false,
+            // No DevTools in a packaged app (see DEBUG_SWITCHES).
+            devTools: !app.isPackaged,
         },
     })
 

@@ -6,6 +6,11 @@ const cloud = vi.hoisted(() => ({
     reply: null as unknown,
     replyError: null as unknown,
     invoked: 0,
+    free: true,
+}))
+
+vi.mock('@/lib/entitlements/entitlements', () => ({
+    isBuilderFree: () => cloud.free,
 }))
 
 vi.mock('@/lib/secretStore', () => ({ getSecret: async () => '' }))
@@ -57,8 +62,13 @@ function fakeStore(
             const m = JSON.parse(signed.manifest) as {
                 version: string
                 hostApi: string
+                licensee?: string
             }
-            const p = { version: m.version, hostApi: m.hostApi }
+            const p = {
+                version: m.version,
+                hostApi: m.hostApi,
+                licensee: m.licensee ?? 'u1',
+            }
             stored.push(p)
             return p
         },
@@ -67,8 +77,8 @@ function fakeStore(
     }
 }
 
-const reply = (version: string): unknown => ({
-    manifest: JSON.stringify({ version, hostApi: '^1' }),
+const reply = (version: string, licensee = 'u1'): unknown => ({
+    manifest: JSON.stringify({ version, hostApi: '^1', licensee }),
     signature: 'sig',
     kid: 'k',
     files: {},
@@ -84,6 +94,7 @@ describe('ensureBuilderPackage', () => {
         cloud.reply = null
         cloud.replyError = null
         cloud.invoked = 0
+        cloud.free = true
         setOnline(true)
     })
 
@@ -91,7 +102,9 @@ describe('ensureBuilderPackage', () => {
         setOnline(false)
         expect(
             await ensureBuilderPackage(
-                fakeStore([{ version: '1.0.0', hostApi: '^1' }]),
+                fakeStore([
+                    { version: '1.0.0', hostApi: '^1', licensee: 'u1' },
+                ]),
             ),
         ).toBe('1.0.0')
         await expect(ensureBuilderPackage(fakeStore())).rejects.toThrow(
@@ -115,7 +128,9 @@ describe('ensureBuilderPackage', () => {
         setOnline(false)
         await expect(
             ensureBuilderPackage(
-                fakeStore([{ version: '9.0.0', hostApi: '^2' }]),
+                fakeStore([
+                    { version: '9.0.0', hostApi: '^2', licensee: 'u1' },
+                ]),
             ),
         ).rejects.toThrow()
     })
@@ -127,11 +142,29 @@ describe('ensureBuilderPackage', () => {
         })
         expect(
             await ensureBuilderPackage(
-                fakeStore([{ version: '1.0.0', hostApi: '^1' }]),
+                fakeStore([
+                    { version: '1.0.0', hostApi: '^1', licensee: 'u1' },
+                ]),
             ),
         ).toBe('1.0.0')
         await expect(ensureBuilderPackage(fakeStore())).rejects.toThrow(
             'rate_limited',
         )
+    })
+
+    it('once paid, a free-stage copy no longer counts', async () => {
+        cloud.free = false
+        const freeCopy = { version: '1.0.0', hostApi: '^1', licensee: 'free' }
+        setOnline(false)
+        await expect(
+            ensureBuilderPackage(fakeStore([freeCopy])),
+        ).rejects.toThrow(/connect once/)
+        // Online, the licensed copy of the same version is fetched.
+        setOnline(true)
+        cloud.reply = reply('1.0.0')
+        const store = fakeStore([freeCopy])
+        expect(await ensureBuilderPackage(store)).toBe('1.0.0')
+        expect(cloud.invoked).toBe(1)
+        expect(store.stored.at(-1)?.licensee).toBe('u1')
     })
 })

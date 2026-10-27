@@ -58,6 +58,7 @@ async function dumpFileOrigin(userData: string): Promise<StorageDump> {
             sandbox: true,
             contextIsolation: true,
             nodeIntegration: false,
+            devTools: false,
         },
     })
     try {

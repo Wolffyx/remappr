@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(14);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000008a1', 'lic-a@test.local'),
@@ -43,6 +43,16 @@ reset role;
 set local role service_role;
 select is(public.license_register_device('00000000-0000-0000-0000-0000000008a1', repeat('4', 64), null,
             '{"platform": "linux"}'), true, 'the freed slot takes a new device');
+
+reset role;
+select is((select count(*)::int from private.audit_log
+            where kind = 'license_activated' and user_id = '00000000-0000-0000-0000-0000000008a1'),
+          (select count(*)::int from public.licensed_devices
+            where user_id = '00000000-0000-0000-0000-0000000008a1'),
+          'every activated device is audit-logged');
+select ok(exists (select 1 from private.audit_log
+                   where kind = 'license_refused' and user_id = '00000000-0000-0000-0000-0000000008a1'),
+          'a refused activation is audit-logged');
 
 select * from finish();
 rollback;

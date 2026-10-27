@@ -10,6 +10,7 @@ import { compareVersions } from '@shared/builderPackage'
 import { getCloudClient } from '@/lib/cloud/client'
 import { cloudErrorMessage } from '@/lib/cloud/errors'
 import { getSecret } from '@/lib/secretStore'
+import { isBuilderFree } from '@/lib/entitlements/entitlements'
 import type { BuilderPackage } from './loader'
 import { loadSignedPackage } from './loader'
 import { HOST_API } from './hostModules'
@@ -18,6 +19,7 @@ import { packageStore, type PackageStore, type StoredPackage } from './stores'
 const log = createLogger('BuilderPackage')
 const LICENSE_KEY = 'builderLicense'
 const SEED_PATH = '_seed/builder.json'
+const FREE_LICENSEE = 'free'
 
 interface DeliveryReply {
     manifest?: string
@@ -26,8 +28,16 @@ interface DeliveryReply {
     files?: Record<string, string>
 }
 
+/** The newest package this host can run. Once the builder is paid, copies
+ *  from the free stage (the seed, earlier downloads) no longer count: the
+ *  licensed copy is fetched instead. */
 function newest(packages: readonly StoredPackage[]): StoredPackage | null {
-    const runnable = packages.filter((p) => p.hostApi === `^${HOST_API}`)
+    const free = isBuilderFree()
+    const runnable = packages.filter(
+        (p) =>
+            p.hostApi === `^${HOST_API}` &&
+            (free || p.licensee !== FREE_LICENSEE),
+    )
     return (
         runnable.sort((a, b) => compareVersions(b.version, a.version))[0] ??
         null
@@ -115,7 +125,7 @@ async function installSeed(store: PackageStore): Promise<StoredPackage | null> {
             },
             seed.files,
         )
-        return stored.hostApi === `^${HOST_API}` ? stored : null
+        return newest([stored])
     } catch (e) {
         log.warn('the bundled builder seed does not verify', e)
         return null

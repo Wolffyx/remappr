@@ -17,6 +17,8 @@ import { isElectron } from '@/transport'
 export interface StoredPackage {
     version: string
     hostApi: string
+    /** The signed watermark: "free" for free-stage copies, else per user. */
+    licensee: string
 }
 
 export interface PackageStore {
@@ -86,6 +88,7 @@ export function createWebPackageStore(): PackageStore {
                         ? {
                               version: manifest.version,
                               hostApi: manifest.hostApi,
+                              licensee: manifest.licensee,
                           }
                         : null
                 }),
@@ -119,7 +122,11 @@ export function createWebPackageStore(): PackageStore {
                     headers: { 'Content-Type': TYPES['.json'] },
                 }),
             )
-            return { version: manifest.version, hostApi: manifest.hostApi }
+            return {
+                version: manifest.version,
+                hostApi: manifest.hostApi,
+                licensee: manifest.licensee,
+            }
         },
         async remove(version) {
             const cache = await caches.open(CACHE)

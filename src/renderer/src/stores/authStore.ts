@@ -13,6 +13,7 @@ import { IpcChannels, IpcEvents } from '@shared/ipc-types'
 import { getCloudClient, type CloudClient } from '@/lib/cloud/client'
 import { oauthRedirectTo, stripAuthParams } from '@/lib/cloud/authRedirect'
 import { refreshPlan } from '@/lib/entitlements/plan'
+import { setBuilderAccount } from '@/lib/entitlements/entitlements'
 import type { Database } from '@/lib/cloud/database.types'
 import { isElectron } from '@/transport'
 
@@ -107,12 +108,36 @@ function userOf(session: Session | null): AuthUser | null {
 
 let started: Promise<void> | null = null
 
+// The account last signed in here, kept until an explicit sign-out. Offline,
+// an expired session cannot refresh and reads as signed out, yet a lifetime
+// builder license must keep working: the builder gate counts this account.
+const LAST_ACCOUNT_KEY = 'remappr.auth.lastAccount'
+
+function rememberAccount(id: string | null): void {
+    try {
+        if (id) localStorage.setItem(LAST_ACCOUNT_KEY, id)
+        else localStorage.removeItem(LAST_ACCOUNT_KEY)
+    } catch {
+        // Storage blocked: the gate then sees only the live session.
+    }
+}
+
+function lastAccount(): string | null {
+    try {
+        return localStorage.getItem(LAST_ACCOUNT_KEY)
+    } catch {
+        return null
+    }
+}
+
 // Whose plan was last read (undefined = none yet, null = signed out).
 let planUser: string | null | undefined
 
 const useAuthStore = create<AuthState>()((set, get) => {
     const applySession = (session: Session | null): void => {
         const user = userOf(session)
+        if (user) rememberAccount(user.id)
+        setBuilderAccount(user?.id ?? lastAccount())
         const changed = user?.id !== get().user?.id
         set({
             user,
@@ -158,7 +183,10 @@ const useAuthStore = create<AuthState>()((set, get) => {
             return
         }
         set({ status: 'loading' })
-        client.auth.onAuthStateChange((_event, session) => {
+        client.auth.onAuthStateChange((event, session) => {
+            // A real sign-out (not a refresh that failed offline) forgets the
+            // account, so the builder asks to sign in again.
+            if (event === 'SIGNED_OUT') rememberAccount(null)
             applySession(session)
         })
         const { data, error } = await client.auth.getSession()

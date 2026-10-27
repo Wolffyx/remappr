@@ -54,6 +54,19 @@ select j.jobname, d.status, d.return_message, d.start_time
  order by d.start_time desc;
 ```
 
+Also weekly, look for builder licenses being shared or forged: accounts that
+activated or were refused many devices lately.
+
+```sql
+select user_id, kind, count(*) as times, max(at) as last
+  from private.audit_log
+ where kind in ('license_activated', 'license_refused', 'device_deactivated')
+   and at > now() - interval '30 days'
+ group by user_id, kind
+having count(*) >= 4
+ order by times desc;
+```
+
 ## Backups
 
 Supabase keeps daily backups (7 days on Pro). On top of that,

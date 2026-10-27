@@ -99,6 +99,8 @@ export function parsePackageUrl(
 export interface StoredPackage {
     version: string
     hostApi: string
+    /** The signed watermark: "free" for free-stage copies, else per user. */
+    licensee: string
 }
 
 export interface PackageCache {
@@ -155,7 +157,11 @@ export function createPackageCache(root: string, dev: boolean): PackageCache {
             await writeFile(join(tmp, SIGNED), JSON.stringify(signed))
             await rm(dir(manifest.version), { recursive: true, force: true })
             await rename(tmp, dir(manifest.version))
-            return { version: manifest.version, hostApi: manifest.hostApi }
+            return {
+                version: manifest.version,
+                hostApi: manifest.hostApi,
+                licensee: manifest.licensee,
+            }
         },
 
         /** Every cached package whose signature still verifies. */
@@ -168,7 +174,11 @@ export function createPackageCache(root: string, dev: boolean): PackageCache {
             )
             return found
                 .filter((m): m is SignedManifest => !!m)
-                .map((m) => ({ version: m.version, hostApi: m.hostApi }))
+                .map((m) => ({
+                    version: m.version,
+                    hostApi: m.hostApi,
+                    licensee: m.licensee,
+                }))
         },
 
         async remove(version: string): Promise<void> {

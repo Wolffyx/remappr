@@ -18,7 +18,7 @@ import { cloudErrorMessage, functionErrorCode } from '@/lib/cloud/errors'
 import {
     ENTITLEMENTS_CHANGE_EVENT,
     needsBuilderActivation,
-    setBuilderLicenseValid,
+    setBuilderLicense,
 } from '@/lib/entitlements'
 import { getDeviceKey } from '@/lib/license/deviceKey'
 import { licensePublicKey } from '@/lib/license/keys'
@@ -59,7 +59,9 @@ export interface LicenseState {
     /** Verify the stored license; refresh it when online. Idempotent. */
     init: () => Promise<void>
     activate: () => Promise<void>
-    refresh: () => Promise<void>
+    /** Ask the server about the stored license (at most hourly unless
+     *  `force`); offline or failing, the license held stays. */
+    refresh: (opts?: { force?: boolean }) => Promise<void>
     /** Forget this device's license (sign-out of a shared machine, revoked). */
     clear: () => Promise<void>
 }
@@ -128,7 +130,7 @@ const useLicenseStore = create<LicenseState>()((set, get) => {
             claims: verdict.ok ? verdict.claims : null,
             problem: verdict.ok ? null : verdict.problem,
         })
-        setBuilderLicenseValid(verdict.ok)
+        setBuilderLicense(verdict.ok ? verdict.claims.sub : null)
         return verdict.ok
     }
 
@@ -222,11 +224,12 @@ const useLicenseStore = create<LicenseState>()((set, get) => {
             await store(data.token)
         },
 
-        refresh: async () => {
+        refresh: async (opts) => {
             const token = await getSecret(TOKEN_KEY)
             if (!token) return
-            if (Date.now() - readNumber(LAST_REFRESH_KEY) < REFRESH_EVERY_MS)
-                return
+            const recent =
+                Date.now() - readNumber(LAST_REFRESH_KEY) < REFRESH_EVERY_MS
+            if (recent && !opts?.force) return
             const client = await getCloudClient()
             if (!client) return
             const { data, error } = await client.functions.invoke<{
@@ -254,7 +257,7 @@ const useLicenseStore = create<LicenseState>()((set, get) => {
             await setSecret(TOKEN_KEY, '')
             writeNumber(LAST_REFRESH_KEY, 0)
             set({ status: 'none', claims: null, problem: null })
-            setBuilderLicenseValid(false)
+            setBuilderLicense(null)
         },
     }
 })

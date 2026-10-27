@@ -1,4 +1,4 @@
-import { JSX, Suspense, lazy, useCallback, useEffect } from 'react'
+import { JSX, useCallback, useEffect } from 'react'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
 import { LeaveGuardDialog } from '@/features/connection/LeaveGuardDialog'
 import { DongleLanding } from '@/features/connection/DongleLanding'
@@ -37,13 +37,9 @@ import { categoryForFirmware } from '@/lib/adapterCategories'
 import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
 import { SyncOnboardingDialog } from '@/features/library/SyncOnboardingDialog'
-import { loadBuilderComponent } from '@/lib/builderPackage/source'
+import { BuilderGate } from '@/features/builder-gate/BuilderGate'
 import { startBuilderPrefetch } from '@/lib/builderPackage/prefetch'
 import { ShareLinkHandler } from '@/features/community/ShareLinkHandler'
-
-// Code-split the full-screen builder: it drags in Monaco (multi-MB), which
-// otherwise lands in the entry chunk for users who never open the builder.
-const Builder = lazy(loadBuilderComponent)
 
 function App(): JSX.Element {
     // pattern-check: skip — UI sweep, replace store-connection with store-service
@@ -127,11 +123,7 @@ function App(): JSX.Element {
 
     // Pattern check: Dispatch Map (Tier 0) — applied — landing → screen table replaces the nested service.kind ternary; one entry per screen.
     const screens: Record<Landing, () => JSX.Element> = {
-        builder: () => (
-            <Suspense fallback={null}>
-                <Builder />
-            </Suspense>
-        ),
+        builder: () => <BuilderGate />,
         start: () => (
             <StartPage
                 onTransportCreated={connectTransport}

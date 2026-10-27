@@ -14,6 +14,7 @@ import { ArrowRight, Lock, Ruler, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { useBuilderAccess, useBuilderStage } from '@/hooks/use-premium'
 import useBuilderStore from '@/stores/builderStore'
+import { explainBuilderLock } from '@/features/builder-gate/lock'
 
 export function BuilderCard(): JSX.Element {
     const access = useBuilderAccess()
@@ -23,10 +24,7 @@ export function BuilderCard(): JSX.Element {
 
     const onOpen = (): void => {
         if (!access) {
-            toast.info('The keyboard builder is a premium feature', {
-                description:
-                    'Sign in to an account to unlock it once monetization is live.',
-            })
+            explainBuilderLock()
             return
         }
         if (free) {
