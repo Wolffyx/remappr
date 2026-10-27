@@ -245,7 +245,9 @@ const useAuthStore = create<AuthState>()((set, get) => {
         },
         signOut: async () => {
             const client = await requireClient()
-            const { error } = await client.auth.signOut()
+            // This device only. The default (global) ends the account's
+            // sessions everywhere, e.g. the browser that signed this app in.
+            const { error } = await client.auth.signOut({ scope: 'local' })
             if (error) throw error
         },
         updateProfile: async (changes) => {

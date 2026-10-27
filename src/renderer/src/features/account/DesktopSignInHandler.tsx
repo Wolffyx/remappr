@@ -22,7 +22,6 @@ import { SignInPanel } from './SignInPanel'
 const HANDOFF_ERRORS: Record<string, string> = {
     state_used:
         'This sign-in was already sent to the app. Start again from Remappr.',
-    not_authenticated: 'Sign in first.',
 }
 
 export function DesktopSignInHandler(): JSX.Element | null {
@@ -30,6 +29,7 @@ export function DesktopSignInHandler(): JSX.Element | null {
     const status = useAuthStore((s) => s.status)
     const email = useAuthStore((s) => s.user?.email ?? '')
     const init = useAuthStore((s) => s.init)
+    const signOut = useAuthStore((s) => s.signOut)
     const [busy, setBusy] = useState(false)
     const [sent, setSent] = useState(false)
 
@@ -54,6 +54,13 @@ export function DesktopSignInHandler(): JSX.Element | null {
             window.location.href = link
         } catch (e) {
             const code = e instanceof Error ? e.message : ''
+            if (code === 'not_authenticated') {
+                // The session here was ended elsewhere (a sign-out on another
+                // device): drop it and ask to sign in again.
+                await signOut().catch(() => undefined)
+                toast.info('Your sign-in here has ended. Sign in again.')
+                return
+            }
             toast.error(HANDOFF_ERRORS[code] ?? cloudErrorMessage(e))
         } finally {
             setBusy(false)
