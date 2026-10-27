@@ -1,11 +1,22 @@
-// pattern-check: skip — memoized accessor for the community repository plus
-// two pure helpers for share links.
+// pattern-check: skip — memoized accessors for the community, social and
+// collection repositories plus pure helpers for share links.
 //
 // Shared by the community surfaces: one CommunityLibrary over the app's cloud
 // client (null in builds without a backend), and the share-link format.
 import { authSiteUrl } from '@/lib/cloud/authRedirect'
 import { getCloudClient } from '@/lib/cloud/client'
 import { isElectron } from '@/transport'
+import {
+    createCollectionLibrary,
+    readCollectionMembers,
+    type CollectionLibrary,
+    type CollectionMember,
+} from '@/lib/library/collectionLibrary'
+import {
+    createSocialLibrary,
+    type SocialLibrary,
+} from '@/lib/library/socialLibrary'
+import useAuthStore from '@/stores/authStore'
 import {
     createCommunityLibrary,
     type CommunityLibrary,
@@ -54,4 +65,26 @@ export function takeShareTokenFromLocation(): string | null {
     url.searchParams.delete(SHARE_PARAM)
     window.history.replaceState(window.history.state, '', url.toString())
     return shareTokenFrom(token)
+}
+
+let social: Promise<SocialLibrary | null> | null = null
+
+export function getSocial(): Promise<SocialLibrary | null> {
+    social ??= getCloudClient().then((c) => (c ? createSocialLibrary(c) : null))
+    return social
+}
+
+/** The signed-in user's collections, or null when signed out. */
+export async function getCollections(): Promise<CollectionLibrary | null> {
+    const owner = useAuthStore.getState().user?.id
+    const client = owner ? await getCloudClient() : null
+    return client && owner ? createCollectionLibrary(client, owner) : null
+}
+
+/** A collection's visible members; works signed out too. */
+export async function getCollectionMembers(
+    collectionId: string,
+): Promise<CollectionMember[]> {
+    const client = await getCloudClient()
+    return client ? readCollectionMembers(client, collectionId) : []
 }

@@ -17,6 +17,7 @@ import useSyncStore from '@/stores/syncStore'
 import { Modal } from '@/ui/modal'
 import { SignInPanel } from './SignInPanel'
 import { SyncSettings } from './SyncSettings'
+import { ModerationQueue } from './ModerationQueue'
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,31}$/
 
@@ -109,6 +110,7 @@ function ProfileForm(): JSX.Element {
             </div>
 
             <SyncSettings />
+            <ModerationQueue />
 
             <Modal
                 size="sm"

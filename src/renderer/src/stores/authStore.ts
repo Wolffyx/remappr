@@ -28,6 +28,17 @@ export type ProfileChanges = Partial<
 export interface AuthUser {
     id: string
     email: string | null
+    /** app_metadata.role = 'admin' (set by the service role only). */
+    isAdmin: boolean
+    /** aal2 once a second factor was verified this session. */
+    aal: 'aal1' | 'aal2'
+}
+
+/** A TOTP factor being enrolled: show the QR (or the secret) and ask for a code. */
+export interface TotpEnrollment {
+    factorId: string
+    qrCode: string
+    secret: string
 }
 
 export interface AuthState {
@@ -46,6 +57,12 @@ export interface AuthState {
     signOut: () => Promise<void>
     updateProfile: (changes: ProfileChanges) => Promise<void>
     refreshProfile: () => Promise<void>
+    /** Start adding an authenticator app (admins need one for moderation). */
+    enrollTotp: () => Promise<TotpEnrollment>
+    /** The verified authenticator app, if any. */
+    totpFactorId: () => Promise<string | null>
+    /** Prove the second factor; the session becomes aal2. */
+    verifyTotp: (factorId: string, code: string) => Promise<void>
 }
 
 interface IpcBridge {
@@ -64,9 +81,28 @@ async function requireClient(): Promise<CloudClient> {
     return client
 }
 
+/** The assurance level in the access token (aal1 when unreadable). */
+function aalOf(accessToken: string): AuthUser['aal'] {
+    try {
+        const payload = accessToken.split('.')[1] ?? ''
+        const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+        return (JSON.parse(json) as { aal?: string }).aal === 'aal2'
+            ? 'aal2'
+            : 'aal1'
+    } catch {
+        // A malformed token is treated as the weaker level.
+        return 'aal1'
+    }
+}
+
 function userOf(session: Session | null): AuthUser | null {
     if (!session) return null
-    return { id: session.user.id, email: session.user.email ?? null }
+    return {
+        id: session.user.id,
+        email: session.user.email ?? null,
+        isAdmin: session.user.app_metadata?.role === 'admin',
+        aal: aalOf(session.access_token),
+    }
 }
 
 let started: Promise<void> | null = null
@@ -211,6 +247,41 @@ const useAuthStore = create<AuthState>()((set, get) => {
                 return
             }
             if (get().user?.id === user.id) set({ profile: data })
+        },
+        enrollTotp: async () => {
+            const client = await requireClient()
+            // An enrollment abandoned before its first code blocks a new one.
+            const { data: factors, error: listError } =
+                await client.auth.mfa.listFactors()
+            if (listError) throw listError
+            for (const f of factors.all.filter(
+                (f) => f.status === 'unverified',
+            ))
+                await client.auth.mfa.unenroll({ factorId: f.id })
+            const { data, error } = await client.auth.mfa.enroll({
+                factorType: 'totp',
+                friendlyName: `Remappr ${new Date().toISOString().slice(0, 10)}`,
+            })
+            if (error) throw error
+            return {
+                factorId: data.id,
+                qrCode: data.totp.qr_code,
+                secret: data.totp.secret,
+            }
+        },
+        totpFactorId: async () => {
+            const client = await requireClient()
+            const { data, error } = await client.auth.mfa.listFactors()
+            if (error) throw error
+            return data.totp[0]?.id ?? null
+        },
+        verifyTotp: async (factorId, code) => {
+            const client = await requireClient()
+            const { error } = await client.auth.mfa.challengeAndVerify({
+                factorId,
+                code,
+            })
+            if (error) throw error
         },
     }
 })

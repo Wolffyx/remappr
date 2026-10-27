@@ -6,7 +6,15 @@
 // the ones that drive the operating system). Save copies the latest release
 // into the local library; Fork copies it into the user's account.
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Download, GitFork, Globe } from 'lucide-react'
+import {
+    AlertTriangle,
+    Download,
+    Flag,
+    FolderPlus,
+    GitFork,
+    Globe,
+    Star,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { parseKeymap } from '@firmware/config'
 import { Button } from '@/ui/button'
@@ -24,7 +32,10 @@ import useAuthStore from '@/stores/authStore'
 import useLibraryStore from '@/stores/libraryStore'
 import useSyncStore from '@/stores/syncStore'
 import { summaryFacts } from '@/features/library/entryFacts'
-import { getCommunity } from './community'
+import { getCommunity, getSocial } from './community'
+import { CommentsSection } from './CommentsSection'
+import { AddToCollectionDialog, CollectionMembers } from './CollectionsDialogs'
+import { ReportDialog } from './ReportDialog'
 
 /** What the dialog shows: a listed item by id, or an unlisted one by token. */
 export type CommunityTarget = { itemId: string } | { token: string }
@@ -39,6 +50,10 @@ interface ItemView {
     owner: string | null
     imageUrl: string | null
     releases: Release[]
+    /** Set for listed items (search, collections); absent for a share link. */
+    ownerId?: string
+    visibility?: string
+    stars?: number
 }
 
 async function loadView(target: CommunityTarget): Promise<ItemView | null> {
@@ -96,6 +111,49 @@ function factsOf(document: unknown, type: string | undefined): string | null {
     }
 }
 
+function StarButton({
+    itemId,
+    count,
+}: {
+    itemId: string
+    count: number
+}): JSX.Element {
+    const [starred, setStarred] = useState(false)
+    const [stars, setStars] = useState(count)
+    useEffect(() => {
+        let live = true
+        void getSocial()
+            .then((social) => social?.isStarred(itemId))
+            .then((on) => {
+                if (live) setStarred(!!on)
+            })
+        return () => {
+            live = false
+        }
+    }, [itemId])
+    const toggle = async (): Promise<void> => {
+        try {
+            const social = await getSocial()
+            if (!social) return
+            await (starred ? social.unstar(itemId) : social.star(itemId))
+            setStars((n) => n + (starred ? -1 : 1))
+            setStarred(!starred)
+        } catch (e) {
+            toast.error(cloudErrorMessage(e))
+        }
+    }
+    return (
+        <Button
+            size="sm"
+            variant={starred ? 'default' : 'outline'}
+            aria-pressed={starred}
+            onClick={() => void toggle()}
+        >
+            <Star className="size-3.5" /> {stars}
+        </Button>
+    )
+}
+
 function MacroList({ macros }: { macros: MacroReport[] }): JSX.Element | null {
     if (macros.length === 0) return null
     const flagged = macros.filter((m) => m.warnings.length > 0)
@@ -150,6 +208,9 @@ export function CommunityItemDialog({
     const [view, setView] = useState<ItemView | null>(null)
     const [missing, setMissing] = useState(false)
     const [busy, setBusy] = useState(false)
+    const [reporting, setReporting] = useState(false)
+    const [collecting, setCollecting] = useState(false)
+    const [member, setMember] = useState<CommunityTarget | null>(null)
 
     useEffect(() => {
         if (!target) return
@@ -170,6 +231,8 @@ export function CommunityItemDialog({
 
     const latest = view?.releases[0]
     const macros = useMemo(() => macrosOf(latest?.document), [latest])
+    const isCollection = view?.type === 'collection'
+    const listed = !!view?.ownerId
     const facts = useMemo(
         () => factsOf(latest?.document, view?.type),
         [latest, view?.type],
@@ -263,14 +326,16 @@ export function CommunityItemDialog({
                                 <GitFork className="size-4" /> Fork
                             </Button>
                         )}
-                        <Button
-                            variant={onOpen ? 'outline' : 'default'}
-                            disabled={busy}
-                            onClick={() => void save()}
-                        >
-                            <Download className="size-4" /> Save to library
-                        </Button>
-                        {onOpen && (
+                        {!isCollection && (
+                            <Button
+                                variant={onOpen ? 'outline' : 'default'}
+                                disabled={busy}
+                                onClick={() => void save()}
+                            >
+                                <Download className="size-4" /> Save to library
+                            </Button>
+                        )}
+                        {onOpen && !isCollection && (
                             <Button disabled={busy} onClick={() => void open()}>
                                 Open
                             </Button>
@@ -295,8 +360,43 @@ export function CommunityItemDialog({
                             className="max-h-56 w-full rounded-xl object-cover"
                         />
                     )}
+                    {listed && view.ownerId && (
+                        <div className="flex flex-wrap gap-2">
+                            {signedIn && (
+                                <StarButton
+                                    itemId={view.id}
+                                    count={view.stars ?? 0}
+                                />
+                            )}
+                            {signedIn && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setCollecting(true)}
+                                >
+                                    <FolderPlus className="size-3.5" /> Add to
+                                    collection
+                                </Button>
+                            )}
+                            {signedIn && (
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setReporting(true)}
+                                >
+                                    <Flag className="size-3.5" /> Report
+                                </Button>
+                            )}
+                        </div>
+                    )}
                     {facts && (
                         <p className="text-xs text-muted-foreground">{facts}</p>
+                    )}
+                    {isCollection && (
+                        <CollectionMembers
+                            collectionId={view.id}
+                            onOpen={(itemId) => setMember({ itemId })}
+                        />
                     )}
                     {view.summary && <p className="text-sm">{view.summary}</p>}
                     {view.description && (
@@ -333,6 +433,29 @@ export function CommunityItemDialog({
                             </ul>
                         </div>
                     )}
+                    {listed && view.ownerId && (
+                        <CommentsSection
+                            itemId={view.id}
+                            ownerId={view.ownerId}
+                            isPublic={view.visibility === 'public'}
+                        />
+                    )}
+                    <ReportDialog
+                        target={reporting ? { itemId: view.id } : null}
+                        what="this item"
+                        onClose={() => setReporting(false)}
+                    />
+                    <AddToCollectionDialog
+                        item={
+                            collecting ? { id: view.id, name: view.name } : null
+                        }
+                        onClose={() => setCollecting(false)}
+                    />
+                    <CommunityItemDialog
+                        target={member}
+                        onClose={() => setMember(null)}
+                        onOpen={onOpen}
+                    />
                 </div>
             )}
         </Modal>

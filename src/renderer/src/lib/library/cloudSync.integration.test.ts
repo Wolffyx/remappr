@@ -154,6 +154,7 @@ describe.skipIf(!url)('library sync against the local stack', () => {
         const { data: bobView } = await bob.client
             .from('library_items')
             .select('id')
+            .eq('owner_id', alice.id)
         expect(bobView).toEqual([])
         expect(
             (

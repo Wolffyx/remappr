@@ -20,7 +20,7 @@ export const LICENSES: readonly { id: License; label: string }[] = [
 ]
 
 export interface SearchFilters {
-    type?: 'device' | 'config'
+    type?: 'device' | 'config' | 'collection'
     device_kind?: string
     target?: string
     device_id?: string
@@ -59,11 +59,15 @@ export interface CommunityItem {
     description: string
     license: string | null
     owner: string | null
+    ownerId: string
+    visibility: string
     meta: Record<string, unknown>
     imageUrl: string | null
     forkedFrom: string | null
     downloads: number
     forks: number
+    stars: number
+    comments: number
     releases: Release[]
 }
 
@@ -235,7 +239,7 @@ export function createCommunityLibrary(client: CloudClient): CommunityLibrary {
             const { data: row, error } = await client
                 .from('library_items')
                 .select(
-                    'id, type, name, summary, description, license, meta, forked_from, downloads_count, forks_count, users(username)',
+                    'id, owner_id, visibility, type, name, summary, description, license, meta, forked_from, downloads_count, forks_count, stars_count, comments_count, users!library_items_owner_id_fkey(username)',
                 )
                 .eq('id', itemId)
                 .maybeSingle()
@@ -267,6 +271,10 @@ export function createCommunityLibrary(client: CloudClient): CommunityLibrary {
                 forkedFrom: row.forked_from,
                 downloads: row.downloads_count,
                 forks: row.forks_count,
+                stars: row.stars_count,
+                comments: row.comments_count,
+                ownerId: row.owner_id,
+                visibility: row.visibility,
                 releases: versions.map((v) => ({
                     releaseNo: v.release_no as number,
                     version: v.version,

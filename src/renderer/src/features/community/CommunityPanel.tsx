@@ -6,7 +6,7 @@
 // (its firmware's identity() matched against community boards), or paste an
 // unlisted item's share link.
 import { useCallback, useEffect, useState } from 'react'
-import { Cpu, Download, Link2, Search } from 'lucide-react'
+import { Cpu, Download, Library, Link2, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
@@ -19,16 +19,24 @@ import type {
     SearchSort,
 } from '@/lib/library/communityLibrary'
 import type { LibraryEntry } from '@/lib/library/types'
+import useAuthStore from '@/stores/authStore'
 import useConnectionStore from '@/stores/connectionStore'
+import { MyCollectionsDialog } from './CollectionsDialogs'
 import { getCommunity, shareTokenFrom } from './community'
 import {
     CommunityItemDialog,
     type CommunityTarget,
 } from './CommunityItemDialog'
 
-type TypeFilter = 'all' | 'config' | 'device'
+type TypeFilter = 'all' | 'config' | 'device' | 'collection'
 const PAGE_SIZE = 24
 const SEARCH_DELAY_MS = 300
+
+const HIT_KIND: Record<string, string> = {
+    device: 'Board',
+    config: 'Config',
+    collection: 'Collection',
+}
 
 interface DeviceMatch {
     deviceId: string
@@ -54,7 +62,7 @@ function HitRow({
     onOpen: () => void
 }): JSX.Element {
     const facts = [
-        hit.type === 'device' ? 'Board' : 'Config',
+        HIT_KIND[hit.type] ?? 'Config',
         hit.deviceKind,
         hit.target,
         hit.owner && `by ${hit.owner}`,
@@ -96,6 +104,8 @@ export function CommunityPanel({
     onOpen?: (entry: LibraryEntry) => Promise<boolean> | boolean
 }): JSX.Element {
     const connected = useConnectionStore((s) => !!s.service?.identity)
+    const signedIn = useAuthStore((s) => s.status === 'signed_in')
+    const [collectionsOpen, setCollectionsOpen] = useState(false)
     const [query, setQuery] = useState('')
     const [type, setType] = useState<TypeFilter>('all')
     const [sort, setSort] = useState<SearchSort>('new')
@@ -187,6 +197,7 @@ export function CommunityPanel({
                         { value: 'all', label: 'All' },
                         { value: 'config', label: 'Configs' },
                         { value: 'device', label: 'Boards' },
+                        { value: 'collection', label: 'Collections' },
                     ]}
                 />
                 <AppSelect
@@ -205,6 +216,15 @@ export function CommunityPanel({
                         onClick={() => void toggleDevice()}
                     >
                         <Cpu className="size-3.5" /> For this device
+                    </Button>
+                )}
+                {signedIn && (
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setCollectionsOpen(true)}
+                    >
+                        <Library className="size-3.5" /> My collections
                     </Button>
                 )}
             </div>
@@ -263,6 +283,11 @@ export function CommunityPanel({
                 target={target}
                 onClose={() => setTarget(null)}
                 onOpen={onOpen}
+            />
+            <MyCollectionsDialog
+                open={collectionsOpen}
+                onClose={() => setCollectionsOpen(false)}
+                onOpenItem={(itemId) => setTarget({ itemId })}
             />
         </div>
     )

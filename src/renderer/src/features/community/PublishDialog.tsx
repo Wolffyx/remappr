@@ -2,7 +2,7 @@
 // community repository, the library store and the sync store; no logic beyond
 // sequencing.
 //
-// Publish a synced library entry: unlisted (a link only) or public (listed in
+// Publish a synced library entry (or a cloud-only collection): unlisted (a link only) or public (listed in
 // the community), with a license and a changelog. Each publish stamps the
 // current version as a release; later edits stay private until the next one.
 // Board items can carry a photo.
@@ -95,11 +95,20 @@ function UsernamePrompt(): JSX.Element {
     )
 }
 
+/** A cloud-only item (a collection), published as it is in the cloud. */
+export interface CloudOnlyItem {
+    itemId: string
+    name: string
+}
+
 export function PublishDialog({
     entry,
+    item,
     onClose,
 }: {
-    entry: LibraryEntry | null
+    /** A library entry: its latest edit syncs before publishing. */
+    entry?: LibraryEntry | null
+    item?: CloudOnlyItem | null
     onClose: () => void
 }): JSX.Element {
     const username = useAuthStore((s) => s.profile?.username ?? null)
@@ -111,7 +120,8 @@ export function PublishDialog({
     const [image, setImage] = useState<File | null>(null)
     const [link, setLink] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
-    const itemId = entry?.sync.itemId ?? null
+    const itemId = entry?.sync.itemId ?? item?.itemId ?? null
+    const name = entry?.name ?? item?.name ?? ''
 
     useEffect(() => {
         if (!itemId) return
@@ -165,9 +175,9 @@ export function PublishDialog({
 
     const publish = (): Promise<void> =>
         run(async () => {
-            if (!entry || !userId || !itemId) return
-            await attachImage(entry.localId, userId, itemId)
-            const id = await syncedItemId(entry.localId)
+            if (!userId || !itemId) return
+            if (entry) await attachImage(entry.localId, userId, itemId)
+            const id = entry ? await syncedItemId(entry.localId) : itemId
             const community = await getCommunity()
             if (!community) return
             const release = await community.publish(
@@ -183,7 +193,7 @@ export function PublishDialog({
             setLink(token ? shareUrl(token) : null)
             setStatus(await community.status(id))
             setChangelog('')
-            toast.success(`Published release ${release} of "${entry.name}"`)
+            toast.success(`Published release ${release} of "${name}"`)
         })
 
     const unpublish = (): Promise<void> =>
@@ -223,9 +233,9 @@ export function PublishDialog({
     return (
         <Modal
             size="sm"
-            opened={!!entry}
+            opened={!!itemId}
             onClose={onClose}
-            title={`Publish "${entry?.name ?? ''}"`}
+            title={`Publish "${name}"`}
             subtitle={statusLine(status)}
             headerIcon={<Globe />}
             footer={
