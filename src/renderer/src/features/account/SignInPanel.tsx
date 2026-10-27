@@ -14,6 +14,7 @@ import { codeFromPaste } from '@/lib/cloud/authRedirect'
 import { cloudErrorMessage } from '@/lib/cloud/errors'
 import useAuthStore, { type AuthProvider } from '@/stores/authStore'
 import { isElectron } from '@/transport'
+import { PRIVACY_URL, TERMS_URL } from '@/lib/legal'
 
 const PROVIDERS: readonly { id: AuthProvider; label: string }[] = [
     { id: 'github', label: 'GitHub' },
@@ -150,6 +151,28 @@ export function SignInPanel(): JSX.Element {
                     ))}
                 </div>
             </div>
+
+            <p className="text-xs text-muted-foreground">
+                Signing in means you agree to the{' '}
+                <a
+                    href={TERMS_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-2"
+                >
+                    terms
+                </a>{' '}
+                and the{' '}
+                <a
+                    href={PRIVACY_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-2"
+                >
+                    privacy policy
+                </a>
+                .
+            </p>
 
             {desktop && waitingForBrowser && (
                 <form onSubmit={handlePaste} className="space-y-2">

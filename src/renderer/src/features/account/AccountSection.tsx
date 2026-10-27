@@ -114,7 +114,6 @@ function ProfileForm(): JSX.Element {
             <SyncSettings />
             <BuilderDevices />
             <ModerationQueue />
-            <AccountData />
 
             <Modal
                 size="sm"
@@ -185,6 +184,8 @@ function ProfileForm(): JSX.Element {
                     Save profile
                 </Button>
             </form>
+
+            <AccountData />
         </div>
     )
 }

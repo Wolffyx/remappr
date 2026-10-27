@@ -184,6 +184,16 @@ export default defineConfig({
                     ],
                 },
             ],
+            '/legal/': [
+                {
+                    text: 'Legal',
+                    items: [
+                        { text: 'Privacy policy', link: '/legal/privacy' },
+                        { text: 'Terms of service', link: '/legal/terms' },
+                        { text: 'Refund policy', link: '/legal/refunds' },
+                    ],
+                },
+            ],
             '/dev/': [
                 {
                     text: 'Developers',
@@ -220,7 +230,8 @@ export default defineConfig({
         },
 
         footer: {
-            message: 'Released under the Apache-2.0 License.',
+            message:
+                'Released under the Apache-2.0 License. · <a href="/legal/privacy">Privacy</a> · <a href="/legal/terms">Terms</a> · <a href="/legal/refunds">Refunds</a>',
             copyright: 'Remappr',
         },
     },

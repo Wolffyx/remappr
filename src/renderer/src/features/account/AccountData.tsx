@@ -16,8 +16,7 @@ import { deleteAccount, exportAccount } from '@/lib/cloud/account'
 import { cloudErrorMessage } from '@/lib/cloud/errors'
 import useAuthStore from '@/stores/authStore'
 import useSyncStore from '@/stores/syncStore'
-
-const PRIVACY_URL = 'https://docs.remappr.com/legal/privacy'
+import { PRIVACY_URL } from '@/lib/legal'
 
 export function AccountData(): JSX.Element {
     const email = useAuthStore((s) => s.user?.email ?? '')
