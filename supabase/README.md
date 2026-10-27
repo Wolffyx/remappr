@@ -43,3 +43,19 @@ header account button appear.
   page shows instead.
 
 Remove `.env.local` to get the local-only app back.
+
+## Library sync integration test
+
+`src/renderer/src/lib/library/cloudSync.integration.test.ts` drives the real
+cloud library and sync engine against the local stack: two machines on one
+account, a conflict, another account's isolation, the free-plan quota, a cloud
+delete and a device backup. It creates and deletes its own users. It is skipped
+unless these are set (values from `pnpm exec supabase status -o env`):
+
+```bash
+E2E_API_URL=http://127.0.0.1:54321 E2E_PUBLISHABLE_KEY=sb_publishable_… E2E_SERVICE_ROLE_KEY=eyJ… pnpm exec vitest run src/renderer/src/lib/library/cloudSync.integration.test.ts
+```
+
+If `pnpm db:start` leaves the API on :54321 unreachable, the gateway container
+was left stopped from an earlier run: `pnpm db:stop && pnpm db:start` (data is
+kept).

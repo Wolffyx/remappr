@@ -28,12 +28,14 @@ import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
 import { isCloudConfigured } from '@/lib/cloud/env'
 import useAuthStore from '@/stores/authStore'
+import useSyncStore from '@/stores/syncStore'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
 import { connectDemo } from '@/features/connection/demo/connectDemo'
 import { connectTransport } from '@/features/connection/connectTransport'
 import { categoryForFirmware } from '@/lib/adapterCategories'
 import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
+import { SyncOnboardingDialog } from '@/features/library/SyncOnboardingDialog'
 
 // Code-split the full-screen builder: it drags in Monaco (multi-MB), which
 // otherwise lands in the entry chunk for users who never open the builder.
@@ -94,7 +96,9 @@ function App(): JSX.Element {
     // Restore a signed-in session (and pick up a desktop sign-in deep link that
     // launched the app). Builds without a backend never load supabase-js.
     useEffect(() => {
-        if (isCloudConfigured()) void useAuthStore.getState().init()
+        if (!isCloudConfigured()) return
+        void useAuthStore.getState().init()
+        useSyncStore.getState().start()
     }, [])
 
     useEffect(() => {
@@ -169,6 +173,7 @@ function App(): JSX.Element {
             <UpdateNotification />
             <WhatsNewDialog />
             <Toaster richColors position="top-center" />
+            {isCloudConfigured() && <SyncOnboardingDialog />}
             <UnlockPanel layout="card" />
             <LeaveGuardDialog />
         </ThemeProvider>

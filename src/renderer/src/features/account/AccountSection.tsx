@@ -2,7 +2,7 @@
 // auth state; the profile form calls authStore.updateProfile.
 //
 // Settings → Account. Signed out: the sign-in panel. Signed in: the public
-// profile (username is needed to publish) and sign-out. Profile edits save on
+// profile (username is needed to publish), library sync and sign-out. Profile edits save on
 // their own button, apart from the dialog's Save / Cancel.
 import { useEffect, useState } from 'react'
 import { LogOut } from 'lucide-react'
@@ -12,7 +12,11 @@ import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
 import { cloudErrorMessage } from '@/lib/cloud/errors'
 import useAuthStore from '@/stores/authStore'
+import useLibraryStore from '@/stores/libraryStore'
+import useSyncStore from '@/stores/syncStore'
+import { Modal } from '@/ui/modal'
 import { SignInPanel } from './SignInPanel'
+import { SyncSettings } from './SyncSettings'
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,31}$/
 
@@ -53,13 +57,29 @@ function ProfileForm(): JSX.Element {
         }
     }
 
-    const handleSignOut = async (): Promise<void> => {
+    const removeCloudCopies = useSyncStore((s) => s.removeCloudCopies)
+    const hasSynced = useLibraryStore((s) =>
+        s.entries.some((e) => e.sync.accountId === user?.id && e.sync.itemId),
+    )
+    const [confirming, setConfirming] = useState(false)
+
+    const finishSignOut = async (
+        before?: () => Promise<void>,
+    ): Promise<void> => {
+        setConfirming(false)
         try {
+            await before?.()
             await signOut()
             toast.success('Signed out')
         } catch (err) {
             toast.error(cloudErrorMessage(err))
         }
+    }
+
+    // With synced copies here, ask whether they stay (shared PCs).
+    const handleSignOut = (): void => {
+        if (hasSynced) setConfirming(true)
+        else void finishSignOut()
     }
 
     return (
@@ -83,10 +103,41 @@ function ProfileForm(): JSX.Element {
                         {user?.email}
                     </div>
                 </div>
-                <Button variant="outline" onClick={() => void handleSignOut()}>
+                <Button variant="outline" onClick={handleSignOut}>
                     <LogOut className="size-4" /> Sign out
                 </Button>
             </div>
+
+            <SyncSettings />
+
+            <Modal
+                size="sm"
+                opened={confirming}
+                onClose={() => setConfirming(false)}
+                title="Sign out"
+                subtitle="Your synced library stays in your account either way."
+                headerIcon={<LogOut />}
+                footer={
+                    <div className="flex w-full flex-wrap justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() =>
+                                void finishSignOut(removeCloudCopies)
+                            }
+                        >
+                            Sign out and remove synced copies
+                        </Button>
+                        <Button onClick={() => void finishSignOut()}>
+                            Sign out
+                        </Button>
+                    </div>
+                }
+            >
+                <p className="text-sm text-muted-foreground">
+                    On a shared computer, remove the synced copies so the next
+                    person does not see them. Items only on this device stay.
+                </p>
+            </Modal>
 
             <form onSubmit={(e) => void handleSave(e)} className="space-y-3">
                 <div className="space-y-1.5">

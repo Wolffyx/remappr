@@ -125,6 +125,9 @@ function defaultRepository(): LibraryRepository {
     return createMemoryLibrary()
 }
 
-const useLibraryStore = createLibraryStore(defaultRepository())
+/** The local library the store (and the sync engine) read and write. */
+export const libraryRepository = defaultRepository()
+
+const useLibraryStore = createLibraryStore(libraryRepository)
 
 export default useLibraryStore

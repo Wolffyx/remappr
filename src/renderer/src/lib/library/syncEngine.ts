@@ -22,6 +22,7 @@ import type {
     LibraryEntry,
     LibraryItemType,
     LibrarySync,
+    NewLibraryEntry,
     LibrarySyncState,
 } from './types'
 
@@ -61,6 +62,8 @@ export interface SyncEngine {
     keepLocal(localId: string): Promise<void>
     /** Delete the entry's cloud item (the caller removes the local copy). */
     removeCloud(localId: string): Promise<void>
+    /** The cloud head of a conflicted entry, parsed, for the conflict dialog. */
+    cloudCopy(localId: string): Promise<NewLibraryEntry | null>
 }
 
 const PAGE = 500
@@ -391,6 +394,22 @@ export function createSyncEngine(
         async removeCloud(localId) {
             const itemId = (await local.get(localId))?.sync.itemId
             if (itemId) await cloud.remove(itemId)
+        },
+        async cloudCopy(localId) {
+            const entry = await local.get(localId)
+            const itemId = entry?.sync.itemId
+            const head = itemId ? await cloud.head(itemId) : null
+            if (!entry || !itemId || head === null) return null
+            const [doc] = await cloud.fetch([{ itemId, version: head }])
+            const kind = (doc?.document as { kind?: string } | undefined)
+                ?.kind as LibraryDocKind | undefined
+            if (!doc || !kind) return null
+            return entryFromSource(
+                kind,
+                sourceOf(doc.document),
+                entry.type,
+                doc.meta.extra as Record<string, unknown> | undefined,
+            )
         },
     }
 }

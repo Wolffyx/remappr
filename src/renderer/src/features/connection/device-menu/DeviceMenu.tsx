@@ -6,6 +6,7 @@ import undoRedoStore from '@/stores/undoRedoStore'
 import { useShallow } from 'zustand/react/shallow'
 import {
     ArrowLeft,
+    CloudUpload,
     Power,
     RotateCcw,
     Settings as SettingsIcon,
@@ -24,6 +25,8 @@ import { toast } from 'sonner'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import useProfileBackupStore, { backupKey } from '@/stores/profileBackupStore'
 import { applyRestore } from '@/features/connection/applyRestore'
+import { pushBackupToCloud } from '@/features/connection/cloudBackup'
+import useAuthStore from '@/stores/authStore'
 
 export const DeviceMenu = (): JSX.Element => {
     // useShallow-scoped subscription — a bare useConnectionStore() re-renders
@@ -73,6 +76,20 @@ export const DeviceMenu = (): JSX.Element => {
     const backup = deviceKey ? backups[deviceKey] : undefined
     const canRestore =
         !readOnly && !!service?.capabilities.profileRestore && !!backup
+    // Cloud backup needs an account and a hardware serial to match the unit.
+    const signedIn = useAuthStore((s) => s.status === 'signed_in')
+    const setCloudBackup = useProfileBackupStore((s) => s.setCloud)
+    const canCloudBackup = canRestore && signedIn && !!backup?.serialNumber
+    const toggleCloudBackup = (on: boolean): void => {
+        if (!deviceKey || !backup) return
+        setCloudBackup(deviceKey, on)
+        if (!on) return
+        void pushBackupToCloud({ ...backup, cloud: true }).then((ok) =>
+            ok
+                ? toast.success('Backup saved to your account')
+                : toast.error('Could not save the backup to your account'),
+        )
+    }
     // Only pick-and-connect devices carry an id we can auto-reconnect to; web
     // simple-connect transports leave lastConnectedDevice null.
     const autoConnectId = lastConnectedDevice?.id ?? null
@@ -208,6 +225,16 @@ export const DeviceMenu = (): JSX.Element => {
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Restore backup
                         </DropdownMenuItem>
+                    )}
+                    {canCloudBackup && (
+                        <DropdownMenuCheckboxItem
+                            checked={!!backup?.cloud}
+                            onCheckedChange={toggleCloudBackup}
+                            onSelect={(e): void => e.preventDefault()}
+                        >
+                            <CloudUpload className="mr-2 h-4 w-4" />
+                            Back up to my account
+                        </DropdownMenuCheckboxItem>
                     )}
                     {!readOnly && (
                         <RestoreStockModal

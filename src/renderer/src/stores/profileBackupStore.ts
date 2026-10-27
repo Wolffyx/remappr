@@ -31,12 +31,15 @@ export interface ProfileBackup {
      *  to this value — suppresses the restore prompt until the live state changes. */
     dismissedHash?: string
     savedAt: number
+    /** The user opted this device into cloud backups (needs a serial). */
+    cloud?: boolean
 }
 
 interface ProfileBackupState {
     backups: Record<string, ProfileBackup>
     saveBackup: (key: string, backup: ProfileBackup) => void
     setDismissedHash: (key: string, hash: string) => void
+    setCloud: (key: string, cloud: boolean) => void
 }
 
 const useProfileBackupStore = create<ProfileBackupState>()(
@@ -48,6 +51,17 @@ const useProfileBackupStore = create<ProfileBackupState>()(
                     set((s) => ({
                         backups: { ...s.backups, [key]: backup },
                     })),
+                setCloud: (key, cloud) =>
+                    set((s) => {
+                        const existing = s.backups[key]
+                        if (!existing) return s
+                        return {
+                            backups: {
+                                ...s.backups,
+                                [key]: { ...existing, cloud },
+                            },
+                        }
+                    }),
                 setDismissedHash: (key, hash) =>
                     set((s) => {
                         const existing = s.backups[key]
