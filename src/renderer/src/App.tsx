@@ -40,6 +40,7 @@ import { SyncOnboardingDialog } from '@/features/library/SyncOnboardingDialog'
 import { BuilderGate } from '@/features/builder-gate/BuilderGate'
 import { startBuilderPrefetch } from '@/lib/builderPackage/prefetch'
 import { ShareLinkHandler } from '@/features/community/ShareLinkHandler'
+import { DesktopSignInHandler } from '@/features/account/DesktopSignInHandler'
 
 function App(): JSX.Element {
     // pattern-check: skip — UI sweep, replace store-connection with store-service
@@ -171,6 +172,7 @@ function App(): JSX.Element {
             <Toaster richColors position="top-center" />
             {isCloudConfigured() && <SyncOnboardingDialog />}
             {isCloudConfigured() && <ShareLinkHandler />}
+            {isCloudConfigured() && !isElectron && <DesktopSignInHandler />}
             <UnlockPanel layout="card" />
             <LeaveGuardDialog />
         </ThemeProvider>

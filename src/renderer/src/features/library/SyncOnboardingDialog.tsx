@@ -11,6 +11,7 @@ import { Checkbox } from '@/ui/checkbox'
 import { Modal } from '@/ui/modal'
 import useLibraryStore from '@/stores/libraryStore'
 import useSyncStore from '@/stores/syncStore'
+import { isDesktopSignInTab } from '@/lib/cloud/desktopHandoff'
 import { summaryFacts } from './entryFacts'
 
 export function SyncOnboardingDialog(): JSX.Element | null {
@@ -35,7 +36,8 @@ export function SyncOnboardingDialog(): JSX.Element | null {
         void refreshQuota()
     }, [asking, load, refreshQuota])
 
-    if (!asking) return null
+    // A tab that only signs the desktop app in is not where syncing is set up.
+    if (!asking || isDesktopSignInTab()) return null
 
     const selected = candidates.filter((e) => !unticked.has(e.localId))
     const toggle = (localId: string, on: boolean): void => {

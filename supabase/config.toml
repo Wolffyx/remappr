@@ -472,3 +472,11 @@ verify_jwt = false
 
 [functions.delete-account]
 verify_jwt = false
+
+# Desktop sign-in through the browser: authenticates inside (getUser); the
+# claim side has no account yet and proves itself with its nonce.
+[functions.desktop-handoff]
+verify_jwt = false
+
+[functions.desktop-handoff-claim]
+verify_jwt = false

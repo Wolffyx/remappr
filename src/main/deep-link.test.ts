@@ -3,8 +3,12 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('electron', () => ({ app: {}, ipcMain: {} }))
 
-const { createAuthCallbackQueue, deepLinkFromArgv, parseAuthCallback } =
-    await import('./deep-link')
+const {
+    createAuthCallbackQueue,
+    deepLinkFromArgv,
+    parseAuthCallback,
+    parseHandoff,
+} = await import('./deep-link')
 
 const CODE = '2b4c6a1e-9f0d-4c1b-8a3e-5d7f9b1c3e5a'
 
@@ -52,5 +56,24 @@ describe('createAuthCallbackQueue', () => {
         expect(q.take()).toBe(CODE)
         expect(q.take()).toBeNull()
         expect(q.accept('remappr://auth/callback?code=x')).toBe(false)
+    })
+})
+
+describe('parseHandoff', () => {
+    const STATE = 'A'.repeat(42) + '_'
+    it('accepts remappr://auth/handoff with a 43-character state', () => {
+        expect(parseHandoff(`remappr://auth/handoff?state=${STATE}`)).toBe(
+            STATE,
+        )
+    })
+    it('refuses anything else', () => {
+        for (const url of [
+            `remappr://auth/callback?state=${STATE}`,
+            `remappr://evil/handoff?state=${STATE}`,
+            'remappr://auth/handoff?state=short',
+            `https://auth/handoff?state=${STATE}`,
+            'remappr://auth/handoff',
+        ])
+            expect(parseHandoff(url)).toBeNull()
     })
 })

@@ -30,6 +30,24 @@ export function parseAuthCallback(raw: string): string | null {
     return code && CODE_RE.test(code) ? code : null
 }
 
+// A browser sign-in's state: base64url(sha256(nonce)), 43 characters.
+const STATE_RE = /^[A-Za-z0-9_-]{43}$/
+
+/** The state in a remappr://auth/handoff?state=… URL, or null. It claims
+ *  nothing by itself: it only tells the app to collect its login now. */
+export function parseHandoff(raw: string): string | null {
+    let u: URL
+    try {
+        u = new URL(raw)
+    } catch {
+        return null
+    }
+    if (u.protocol !== `${PROTOCOL}:`) return null
+    if (u.hostname !== 'auth' || u.pathname !== '/handoff') return null
+    const state = u.searchParams.get('state')
+    return state && STATE_RE.test(state) ? state : null
+}
+
 /** The first remappr:// URL in a process argv, if any. */
 export function deepLinkFromArgv(argv: readonly string[]): string | null {
     return argv.find((a) => a.startsWith(`${PROTOCOL}://`)) ?? null
@@ -89,18 +107,27 @@ export function setupDeepLinks(getWindow: () => BrowserWindow | null): void {
 
     ipcMain.handle(IpcChannels.AUTH_TAKE_CALLBACK, () => queue.take())
 
+    // A handoff link only nudges a running sign-in; on a cold start the
+    // sign-in is not running, and the app's own checks cover the rest.
+    const route = (url: string): void => {
+        const state = parseHandoff(url)
+        if (state)
+            getWindow()?.webContents.send(IpcEvents.AUTH_HANDOFF, { state })
+        else queue.accept(url)
+    }
+
     app.on('second-instance', (_e, argv) => {
         const url = deepLinkFromArgv(argv)
-        if (url) queue.accept(url)
+        if (url) route(url)
         focus()
     })
     app.on('will-finish-launching', () => {
         app.on('open-url', (event, url) => {
             event.preventDefault()
-            queue.accept(url)
+            route(url)
             focus()
         })
     })
     const cold = deepLinkFromArgv(process.argv)
-    if (cold) queue.accept(cold)
+    if (cold) route(cold)
 }

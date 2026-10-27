@@ -134,6 +134,9 @@ export const IpcEvents = {
     WINDOW_LEAVE_REQUESTED: 'window:leave-requested',
     /** A remappr://auth/callback deep link arrived: `{ code }`. */
     AUTH_CALLBACK: 'auth:callback',
+    /** A remappr://auth/handoff deep link arrived: `{ state }` (browser
+     *  sign-in finished; the app claims its login). */
+    AUTH_HANDOFF: 'auth:handoff',
 } as const
 
 // pattern-check: skip — flat IPC DTO, no behavior

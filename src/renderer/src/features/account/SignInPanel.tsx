@@ -1,20 +1,20 @@
 // Pattern check: no GoF pattern (-) — rejected — a two-step form (email → code)
 // plus provider buttons, all calling authStore actions.
 //
-// Sign in with a 6-digit email code or GitHub / Discord / Google. On desktop a
-// provider opens the system browser; the code returns over remappr:// or, where
-// that link can't be registered (AppImage, tar.gz), is pasted here.
+// Web: sign in with a 6-digit email code or GitHub / Discord / Google. Desktop:
+// sign in through the browser (BrowserSignIn), which covers every method and
+// works without the app ever holding a password or code.
 import { useState } from 'react'
 import { ArrowLeft, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
-import { codeFromPaste } from '@/lib/cloud/authRedirect'
 import { cloudErrorMessage } from '@/lib/cloud/errors'
 import useAuthStore, { type AuthProvider } from '@/stores/authStore'
 import { isElectron } from '@/transport'
 import { PRIVACY_URL, TERMS_URL } from '@/lib/legal'
+import { BrowserSignIn } from './BrowserSignIn'
 
 const PROVIDERS: readonly { id: AuthProvider; label: string }[] = [
     { id: 'github', label: 'GitHub' },
@@ -23,17 +23,17 @@ const PROVIDERS: readonly { id: AuthProvider; label: string }[] = [
 ]
 
 export function SignInPanel(): JSX.Element {
+    return isElectron() ? <BrowserSignIn /> : <WebSignIn />
+}
+
+function WebSignIn(): JSX.Element {
     const sendEmailCode = useAuthStore((s) => s.sendEmailCode)
     const verifyEmailCode = useAuthStore((s) => s.verifyEmailCode)
     const signInWithProvider = useAuthStore((s) => s.signInWithProvider)
-    const completeWithCode = useAuthStore((s) => s.completeWithCode)
     const [email, setEmail] = useState('')
     const [code, setCode] = useState('')
     const [step, setStep] = useState<'email' | 'code'>('email')
     const [busy, setBusy] = useState(false)
-    const [waitingForBrowser, setWaitingForBrowser] = useState(false)
-    const [pasted, setPasted] = useState('')
-    const desktop = isElectron()
 
     const run = async (task: () => Promise<void>): Promise<void> => {
         setBusy(true)
@@ -63,18 +63,7 @@ export function SignInPanel(): JSX.Element {
     const handleProvider = (provider: AuthProvider): void => {
         void run(async () => {
             await signInWithProvider(provider)
-            if (desktop) setWaitingForBrowser(true)
         })
-    }
-
-    const handlePaste = (e: React.FormEvent): void => {
-        e.preventDefault()
-        const found = codeFromPaste(pasted)
-        if (!found) {
-            toast.error('That is not a sign-in code')
-            return
-        }
-        void run(() => completeWithCode(found))
     }
 
     return (
@@ -173,27 +162,6 @@ export function SignInPanel(): JSX.Element {
                 </a>
                 .
             </p>
-
-            {desktop && waitingForBrowser && (
-                <form onSubmit={handlePaste} className="space-y-2">
-                    <Label htmlFor="signin-paste">
-                        Finish in your browser. If Remappr does not open by
-                        itself, paste the code the page shows:
-                    </Label>
-                    <div className="flex gap-2">
-                        <Input
-                            id="signin-paste"
-                            value={pasted}
-                            onChange={(e) => setPasted(e.target.value)}
-                            placeholder="Sign-in code"
-                            className="font-mono"
-                        />
-                        <Button type="submit" disabled={busy || !pasted.trim()}>
-                            Continue
-                        </Button>
-                    </div>
-                </form>
-            )}
         </div>
     )
 }

@@ -575,6 +575,15 @@ export type Database = {
             deactivate_device: { Args: { p_id: string }; Returns: undefined }
             delete_comment: { Args: { p_comment: string }; Returns: undefined }
             delete_item: { Args: { p_item: string }; Returns: undefined }
+            desktop_handoff_known: {
+                Args: { p_state: string }
+                Returns: boolean
+            }
+            desktop_handoff_put: {
+                Args: { p_state: string; p_token_hash: string; p_user: string }
+                Returns: boolean
+            }
+            desktop_handoff_take: { Args: { p_state: string }; Returns: string }
             dismiss_reports: {
                 Args: { p_id: string; p_target: string }
                 Returns: undefined
