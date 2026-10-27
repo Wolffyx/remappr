@@ -24,6 +24,12 @@ async function fetchMine(): Promise<Collection[]> {
     return lib ? lib.mine() : []
 }
 
+const KIND_LABEL: Record<string, string> = {
+    device: 'Board',
+    config: 'Config',
+    collection: 'Collection',
+}
+
 function useMyCollections(open: boolean): {
     collections: Collection[]
     reload: () => Promise<void>
@@ -197,7 +203,7 @@ export function CollectionMembers({
                         </span>
                         <span className="block text-xs text-muted-foreground">
                             {[
-                                m.type === 'device' ? 'Board' : 'Config',
+                                KIND_LABEL[m.type] ?? 'Config',
                                 m.owner && `by ${m.owner}`,
                                 m.note,
                             ]
