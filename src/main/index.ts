@@ -30,6 +30,10 @@ import {
 const hasInstanceLock = app.requestSingleInstanceLock()
 if (!hasInstanceLock) app.quit()
 
+// True until the first main window exists. The storage migration's hidden
+// window closes before then, and that must not count as "all windows closed".
+let starting = true
+
 // Origin allowlist: file:// (packaged app) and the dev-server URL (HMR).
 // Used by permission/device handlers and `will-navigate` lockdown so an
 // attacker cannot pivot a renderer compromise into self-granting hardware
@@ -328,11 +332,15 @@ app.whenReady().then((): void => {
 
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
         createWindow()
+        starting = false
     } else {
         // Packaged: serve the renderer over app://, and carry the old file://
         // storage across first (see storage-migration.ts).
         registerAppProtocol(join(__dirname, '../renderer'), APP_CSP)
-        void prepareStorageMigration().finally(createWindow)
+        void prepareStorageMigration().finally(() => {
+            createWindow()
+            starting = false
+        })
     }
 
     app.on('activate', function (): void {
@@ -346,6 +354,7 @@ app.whenReady().then((): void => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', (): void => {
+    if (starting) return
     if (process.platform !== 'darwin') {
         app.quit()
     }
