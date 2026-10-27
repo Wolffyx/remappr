@@ -23,6 +23,7 @@ import type {
 import useAuthStore from '@/stores/authStore'
 import useLibraryStore from '@/stores/libraryStore'
 import useSyncStore from '@/stores/syncStore'
+import { summaryFacts } from '@/features/library/entryFacts'
 import { getCommunity } from './community'
 
 /** What the dialog shows: a listed item by id, or an unlisted one by token. */
@@ -75,6 +76,23 @@ function macrosOf(document: unknown): MacroReport[] {
     } catch {
         // A keymap that does not parse is refused on save anyway.
         return []
+    }
+}
+
+/** "36 keys · 3 layers" for the latest release, or null when it does not parse. */
+function factsOf(document: unknown, type: string | undefined): string | null {
+    const kind = kindOf(document)
+    if (!kind || !type) return null
+    try {
+        const entry = entryFromSource(
+            kind,
+            JSON.stringify(document),
+            type as LibraryItemType,
+        )
+        return summaryFacts(entry.summary) || null
+    } catch {
+        // Facts are decoration; an unparsable release still lists.
+        return null
     }
 }
 
@@ -152,6 +170,10 @@ export function CommunityItemDialog({
 
     const latest = view?.releases[0]
     const macros = useMemo(() => macrosOf(latest?.document), [latest])
+    const facts = useMemo(
+        () => factsOf(latest?.document, view?.type),
+        [latest, view?.type],
+    )
 
     const saveLocal = async (): Promise<LibraryEntry | null> => {
         if (!view || !latest) return null
@@ -273,6 +295,9 @@ export function CommunityItemDialog({
                             className="max-h-56 w-full rounded-xl object-cover"
                         />
                     )}
+                    {facts && (
+                        <p className="text-xs text-muted-foreground">{facts}</p>
+                    )}
                     {view.summary && <p className="text-sm">{view.summary}</p>}
                     {view.description && (
                         <p className="whitespace-pre-line text-sm text-muted-foreground">
@@ -280,7 +305,7 @@ export function CommunityItemDialog({
                         </p>
                     )}
                     <MacroList macros={macros} />
-                    {view.releases.some((r) => r.createdAt) && (
+                    {view.releases.length > 0 && (
                         <div className="space-y-1.5">
                             <div className="eyebrow">Releases</div>
                             <ul className="space-y-1.5 text-sm">
@@ -293,11 +318,9 @@ export function CommunityItemDialog({
                                             Release {r.releaseNo}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
-                                            {' '}
-                                            ·{' '}
-                                            {new Date(
-                                                r.createdAt,
-                                            ).toLocaleDateString()}
+                                            {r.createdAt
+                                                ? ` · ${new Date(r.createdAt).toLocaleDateString()}`
+                                                : ''}
                                             {r.license ? ` · ${r.license}` : ''}
                                         </span>
                                         {r.changelog && (
