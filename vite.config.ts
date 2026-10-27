@@ -1,17 +1,23 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import pkg from './package.json' with { type: 'json' }
 import { remapprDedupe } from './scripts/remappr-dedupe'
 import { builderSourceDefine } from './scripts/builder-source'
+import { webSecurityPlugin } from './scripts/web-security'
 import { vendorChunks } from './scripts/vendor-chunks'
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     base: '/', //todo remove it after finishing refactoring
     root: path.resolve(__dirname, 'src/renderer'),
     publicDir: path.resolve(__dirname, 'public'),
-    plugins: [react(), tailwindcss()],
+    plugins: [
+        react(),
+        tailwindcss(),
+        // Production web builds carry a CSP (meta + Cloudflare _headers).
+        webSecurityPlugin(loadEnv(mode, __dirname, 'VITE_').VITE_SUPABASE_URL),
+    ],
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
         ...builderSourceDefine(__dirname),
@@ -38,4 +44,4 @@ export default defineConfig({
             output: { manualChunks: vendorChunks },
         },
     },
-})
+}))

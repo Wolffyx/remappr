@@ -1,3 +1,5 @@
+// Must stay the first import: it configures zod before any schema is used.
+import './zodConfig'
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
