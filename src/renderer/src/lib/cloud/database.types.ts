@@ -28,6 +28,97 @@ export type Database = {
                 }
                 Relationships: []
             }
+            plans: {
+                Row: {
+                    billing: string
+                    billing_interval: string | null
+                    is_active: boolean
+                    key: string
+                    limits: NonNullable<Json>
+                    name: string
+                    stripe_price_id: string | null
+                }
+                ComputedFields: never
+                Insert: {
+                    billing: string
+                    billing_interval?: string | null
+                    is_active?: boolean
+                    key: string
+                    limits: NonNullable<Json>
+                    name: string
+                    stripe_price_id?: string | null
+                }
+                Update: {
+                    billing?: string
+                    billing_interval?: string | null
+                    is_active?: boolean
+                    key?: string
+                    limits?: NonNullable<Json>
+                    name?: string
+                    stripe_price_id?: string | null
+                }
+                Relationships: []
+            }
+            purchases: {
+                Row: {
+                    amount_cents: number | null
+                    created_at: string
+                    currency: string | null
+                    id: string
+                    note: string
+                    plan_key: string
+                    status: string
+                    stripe_checkout_session_id: string | null
+                    stripe_payment_intent_id: string | null
+                    stripe_subscription_id: string | null
+                    type: string
+                    updated_at: string
+                    user_id: string | null
+                    valid_until: string | null
+                }
+                ComputedFields: never
+                Insert: {
+                    amount_cents?: number | null
+                    created_at?: string
+                    currency?: string | null
+                    id?: string
+                    note?: string
+                    plan_key: string
+                    status: string
+                    stripe_checkout_session_id?: string | null
+                    stripe_payment_intent_id?: string | null
+                    stripe_subscription_id?: string | null
+                    type: string
+                    updated_at?: string
+                    user_id?: string | null
+                    valid_until?: string | null
+                }
+                Update: {
+                    amount_cents?: number | null
+                    created_at?: string
+                    currency?: string | null
+                    id?: string
+                    note?: string
+                    plan_key?: string
+                    status?: string
+                    stripe_checkout_session_id?: string | null
+                    stripe_payment_intent_id?: string | null
+                    stripe_subscription_id?: string | null
+                    type?: string
+                    updated_at?: string
+                    user_id?: string | null
+                    valid_until?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: 'purchases_plan_key_fkey'
+                        columns: ['plan_key']
+                        isOneToOne: false
+                        referencedRelation: 'plans'
+                        referencedColumns: ['key']
+                    },
+                ]
+            }
             users: {
                 Row: {
                     avatar_url: string | null
@@ -64,7 +155,8 @@ export type Database = {
             [_ in never]: never
         }
         Functions: {
-            [_ in never]: never
+            billing_upsert: { Args: { p_row: Json }; Returns: undefined }
+            my_plan: { Args: Record<PropertyKey, never>; Returns: Json }
         }
         Enums: {
             [_ in never]: never

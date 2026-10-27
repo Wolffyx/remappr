@@ -5,16 +5,16 @@ export {
     isFeatureEnabled,
 } from './featureFlags'
 export {
-    licenseKeyHash,
-    getLicenseKey,
-    setLicenseKey,
-    verifyLicense,
-    hasPremium,
     type BuilderStage,
+    type PlanSnapshot,
     getBuilderStage,
     isBuilderFree,
     hasBuilderAccess,
-    LICENSE_CHANGE_EVENT,
+    getPlanSnapshot,
+    setPlanSnapshot,
+    ENTITLEMENTS_CHANGE_EVENT,
+    PLAN_STORAGE_KEY,
 } from './entitlements'
-// `usePremium` is a React hook — it lives in hooks/use-premium.ts (lib/ is
+export { refreshPlan } from './plan'
+// `useBuilderAccess` is a React hook — it lives in hooks/use-premium.ts (lib/ is
 // pure-logic only). Import it from '@/hooks/use-premium'.

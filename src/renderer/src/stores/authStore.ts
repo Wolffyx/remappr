@@ -12,6 +12,7 @@ import { createLogger } from '@shared/logger'
 import { IpcChannels, IpcEvents } from '@shared/ipc-types'
 import { getCloudClient, type CloudClient } from '@/lib/cloud/client'
 import { oauthRedirectTo, stripAuthParams } from '@/lib/cloud/authRedirect'
+import { refreshPlan } from '@/lib/entitlements/plan'
 import type { Database } from '@/lib/cloud/database.types'
 import { isElectron } from '@/transport'
 
@@ -70,6 +71,9 @@ function userOf(session: Session | null): AuthUser | null {
 
 let started: Promise<void> | null = null
 
+// Whose plan was last read (undefined = none yet, null = signed out).
+let planUser: string | null | undefined
+
 const useAuthStore = create<AuthState>()((set, get) => {
     const applySession = (session: Session | null): void => {
         const user = userOf(session)
@@ -82,6 +86,10 @@ const useAuthStore = create<AuthState>()((set, get) => {
         // auth-js holds a lock while this callback runs; calling back into it
         // synchronously would deadlock, so read the profile on the next tick.
         if (user && changed) setTimeout(() => void get().refreshProfile(), 0)
+        const id = user?.id ?? null
+        if (id === planUser) return
+        planUser = id
+        setTimeout(() => void refreshPlan(), 0)
     }
 
     const completeFromDeepLink = (code: string): void => {

@@ -1,115 +1,90 @@
-// Pattern check: no GoF pattern (-) — rejected — license-key gate is a handful of
-// plain pure functions over an env var / localStorage; no abstraction.
+// Pattern check: no GoF pattern (-) — rejected — cached plan snapshot read by
+// plain pure predicates; the compiled stage is the fallback, no abstraction.
 //
-// Owner-only entitlement stub. Open-source ⇒ NO plaintext secret in the tree:
-// the repo ships only EXPECTED_LICENSE_HASH (an obfuscated, non-cryptographic
-// fingerprint). The owner generates it once with `licenseKeyHash('<their key>')`,
-// pastes it below, and sets VITE_REMAPPR_LICENSE_KEY locally to unlock. This is a
-// SEAM — swap the whole stub for real public-key signature verification (and a
-// billing/auth backend) later without touching call sites.
+// Who may use the builder. With a backend, the answer comes from the plans the
+// server holds (see ./plan): the free plan's `builder` limit says whether the
+// builder is free for everyone, and the user's effective limits say whether
+// they have it. The last answer is cached, so the gate works offline and on the
+// first frame. A build without a backend uses the compiled BUILDER_STAGE.
+import { isCloudConfigured } from '@/lib/cloud/env'
 
-const LICENSE_STORAGE_KEY = 'remappr.licenseKey'
+/** Dispatched on the window when the cached plan changes, so hooks in the SAME
+ *  tab re-evaluate (the `storage` event only fires in OTHER tabs). */
+export const ENTITLEMENTS_CHANGE_EVENT = 'remappr:entitlements-change'
 
-/** Dispatched on the window when the local license key changes, so hooks in the
- *  SAME tab re-evaluate (the `storage` event only fires in OTHER tabs). */
-export const LICENSE_CHANGE_EVENT = 'remappr:license-change'
-
-// Pattern check: no GoF pattern (-) — rejected — string-literal stage flag plus
-// pure predicates over the existing entitlement stub; no abstraction warranted.
+export const PLAN_STORAGE_KEY = 'remappr.plan'
 
 /** Lifecycle stage of the builder. `alpha`/`beta` are FREE for everyone; `ga`
  *  (general availability) is the paid premium feature. */
 export type BuilderStage = 'alpha' | 'beta' | 'ga'
 
 /**
- * Current builder stage. While `alpha` or `beta`, the builder is FREE for
- * everyone — no license key, no account. It's still a *premium feature*: the UI
- * says so and explains that monetization (account sign-in) lands at `ga`, once
- * it's fully working and compatible with every supported firmware. Bump to `ga`
- * when billing ships; access then falls back to `hasPremium()` / the license gate.
+ * The stage a build without a backend uses, and the label the free stage shows.
+ * While `alpha` or `beta` the builder is free for everyone. With a backend the
+ * server decides instead: setting the free plan's `builder` limit to 0 starts
+ * charging, no release needed.
  */
 const BUILDER_STAGE: BuilderStage = 'alpha'
 
-/** The builder's current lifecycle stage (drives badge label + "free" copy). */
-export function getBuilderStage(): BuilderStage {
-    return BUILDER_STAGE
+/** What the server last said about the builder. */
+export interface PlanSnapshot {
+    /** The free plan grants the builder, so everyone has it. */
+    freeBuilder: boolean
+    /** The current user's effective plan grants the builder. */
+    builder: boolean
 }
 
-/** Whether the builder is in a free pre-release stage (alpha or beta). */
-export function isBuilderFree(): boolean {
-    return BUILDER_STAGE === 'alpha' || BUILDER_STAGE === 'beta'
+function isPlanSnapshot(value: unknown): value is PlanSnapshot {
+    const v = value as Partial<PlanSnapshot> | null
+    return typeof v?.freeBuilder === 'boolean' && typeof v.builder === 'boolean'
 }
 
-/**
- * The gate the builder entry reads. During alpha/beta everyone gets in; at `ga`
- * it collapses to the premium entitlement. Keeping this separate from
- * `hasPremium()` means bumping `BUILDER_STAGE` is the only change to start charging.
- */
-export function hasBuilderAccess(): boolean {
-    return isBuilderFree() || hasPremium()
-}
-
-/**
- * Fingerprint of the accepted license key. Default `'00000000'` matches no real
- * key, so premium is off for everyone. To unlock locally: run
- * `licenseKeyHash('YOUR-KEY')` in a console, paste the result here, then set
- * `VITE_REMAPPR_LICENSE_KEY=YOUR-KEY` (env) or call `setLicenseKey('YOUR-KEY')`.
- */
-const EXPECTED_LICENSE_HASH = '00000000'
-
-/**
- * FNV-1a 32-bit hex digest. Deterministic and dependency-free — enough to avoid
- * shipping the key in plaintext, but NOT cryptographic. Real signature checks
- * replace this when billing lands.
- */
-export function licenseKeyHash(key: string): string {
-    let h = 0x811c9dc5
-    for (let i = 0; i < key.length; i++) {
-        h ^= key.charCodeAt(i)
-        h = Math.imul(h, 0x01000193)
-    }
-    return (h >>> 0).toString(16).padStart(8, '0')
-}
-
-/** Build-time env wins; else a locally-stored key. `null` when neither is set. */
-export function getLicenseKey(): string | null {
-    const env = (import.meta.env as Record<string, string | undefined>)
-        .VITE_REMAPPR_LICENSE_KEY
-    if (typeof env === 'string' && env.length > 0) return env
+/** The cached plan, or null with no backend or before the first fetch. */
+export function getPlanSnapshot(): PlanSnapshot | null {
+    if (!isCloudConfigured()) return null
     try {
-        return localStorage.getItem(LICENSE_STORAGE_KEY)
+        const raw = localStorage.getItem(PLAN_STORAGE_KEY)
+        const parsed: unknown = raw ? JSON.parse(raw) : null
+        return isPlanSnapshot(parsed) ? parsed : null
     } catch {
+        // Storage blocked or a corrupt entry: behave as if nothing is cached.
         return null
     }
 }
 
-// pattern-check: skip — add same-tab change notification to existing setter
-/** Persist (or clear, when `null`) the local license key. */
-export function setLicenseKey(key: string | null): void {
+/** Cache what the server said and tell same-tab listeners. */
+export function setPlanSnapshot(snapshot: PlanSnapshot): void {
     try {
-        if (key) localStorage.setItem(LICENSE_STORAGE_KEY, key)
-        else localStorage.removeItem(LICENSE_STORAGE_KEY)
+        localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(snapshot))
     } catch {
-        /* storage unavailable — non-fatal, stays locked */
+        // Storage blocked: the answer lasts until reload, then falls back.
     }
-    // localStorage's `storage` event only fires in OTHER tabs, so the tab that
-    // called this would not re-evaluate until remount. Notify same-tab listeners.
     if (typeof window !== 'undefined')
-        window.dispatchEvent(new Event(LICENSE_CHANGE_EVENT))
+        window.dispatchEvent(new Event(ENTITLEMENTS_CHANGE_EVENT))
 }
 
-/** Whether a key matches the accepted fingerprint. */
-export function verifyLicense(key: string | null): boolean {
-    if (!key) return false
-    return licenseKeyHash(key) === EXPECTED_LICENSE_HASH
+/** The builder's current lifecycle stage (drives badge label + "free" copy). */
+export function getBuilderStage(): BuilderStage {
+    const snapshot = getPlanSnapshot()
+    if (!snapshot) return BUILDER_STAGE
+    if (!snapshot.freeBuilder) return 'ga'
+    return BUILDER_STAGE === 'ga' ? 'beta' : BUILDER_STAGE
 }
 
-// Pattern check: no GoF pattern (-) — rejected — one dev-bypass conditional added
-// to the existing entitlement gate; no new symbol, no abstraction.
-/** The single entitlement gate the app reads. Defaults to `false` for everyone.
- *  Dev bypass: a local dev build (not test, not production) unlocks premium so
- *  the owner can work on gated features without a key; shipped builds stay gated. */
-export function hasPremium(): boolean {
-    if (import.meta.env.DEV && import.meta.env.MODE !== 'test') return true
-    return verifyLicense(getLicenseKey())
+/** Whether the builder is free for everyone right now. */
+export function isBuilderFree(): boolean {
+    return getBuilderStage() !== 'ga'
+}
+
+/** Local dev builds (not tests, not production) always have the builder. */
+function isDevBypass(): boolean {
+    return import.meta.env.DEV && import.meta.env.MODE !== 'test'
+}
+
+/** The gate the builder entry reads. */
+export function hasBuilderAccess(): boolean {
+    if (isDevBypass()) return true
+    const snapshot = getPlanSnapshot()
+    if (!snapshot) return isBuilderFree()
+    return snapshot.freeBuilder || snapshot.builder
 }
