@@ -39,6 +39,21 @@ const foreignPrebuilds = [
 ]
 
 /** @type {import('electron-builder').Configuration} */
+// Real code signing turns on when its credentials are in the environment
+// (release CI secrets); without them builds stay ad-hoc / unsigned as before.
+// macOS: CSC_LINK + CSC_KEY_PASSWORD (Developer ID Application cert) and, to
+// notarize, APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID.
+// Windows: AZURE_* (Azure Trusted Signing; see winSigning below) or CSC_LINK.
+const macDeveloperId = !!process.env.CSC_LINK && !!process.env.APPLE_TEAM_ID
+const winAzure = process.env.AZURE_TRUSTED_SIGNING_ENDPOINT
+    ? {
+          publisherName: process.env.AZURE_PUBLISHER_NAME,
+          endpoint: process.env.AZURE_TRUSTED_SIGNING_ENDPOINT,
+          certificateProfileName: process.env.AZURE_CERT_PROFILE_NAME,
+          codeSigningAccountName: process.env.AZURE_CODE_SIGNING_NAME,
+      }
+    : null
+
 module.exports = {
     appId: 'dev.remappr.app',
     productName: 'Remappr',
@@ -99,6 +114,7 @@ module.exports = {
     asarUnpack: ['resources/**'],
     win: {
         executableName: 'app',
+        ...(winAzure ? { azureSignOptions: winAzure } : {}),
     },
     nsis: {
         artifactName: '${name}-electron-${version}-setup.${ext}',
@@ -141,19 +157,21 @@ module.exports = {
         // Gatekeeper on download (users still right-click → Open once, or run
         // `xattr -dr com.apple.quarantine`), which only Developer ID +
         // notarization removes.
-        identity: '-',
+        // With a Developer ID in the environment, sign for real (identity
+        // picked from CSC_LINK), under the hardened runtime, and notarize.
+        identity: macDeveloperId ? undefined : '-',
         // hardenedRuntime is only needed for notarization (which requires a
         // Developer ID we don't have). With ad-hoc signing it forces library
         // validation, which would reject our own non-Apple-signed native modules
         // and fail launch unless further entitlements are added — so keep it off.
-        hardenedRuntime: false,
+        hardenedRuntime: macDeveloperId,
         entitlements: 'build/entitlements.mac.plist',
         entitlementsInherit: 'build/entitlements.mac.plist',
         extendInfo: {
             NSBluetoothAlwaysUsageDescription:
                 'Remappr uses Bluetooth to connect to keyboards over BLE.',
         },
-        notarize: false,
+        notarize: macDeveloperId && !!process.env.APPLE_ID,
     },
     dmg: {
         artifactName: '${name}-electron-${version}.${ext}',
@@ -196,6 +214,19 @@ module.exports = {
     },
     pacman: {
         artifactName: '${name}-electron-${version}.${ext}',
+    },
+    // Electron fuses: no running the binary as plain Node, no NODE_OPTIONS or
+    // --inspect, the app only loads from its (integrity-checked) ASAR, cookies
+    // are encrypted, and file:// pages get no extra privileges (the packaged
+    // renderer is served over app://, see src/main/app-scheme.ts).
+    electronFuses: {
+        runAsNode: false,
+        enableCookieEncryption: true,
+        enableNodeOptionsEnvironmentVariable: false,
+        enableNodeCliInspectArguments: false,
+        enableEmbeddedAsarIntegrityValidation: true,
+        onlyLoadAppFromAsar: true,
+        grantFileProtocolExtraPrivileges: false,
     },
     npmRebuild: true,
     afterPack: path.join(__dirname, 'build', 'afterPack.cjs'),

@@ -17,7 +17,18 @@ export default defineConfig({
             },
         },
     },
-    preload: { define: versionDefine },
+    // The window runs sandboxed (sandbox: true), and a sandboxed preload must be
+    // one self-contained CommonJS file: bundle its deps, emit .cjs (the package
+    // is "type": "module").
+    preload: {
+        define: versionDefine,
+        build: {
+            externalizeDeps: false,
+            rollupOptions: {
+                output: { format: 'cjs', entryFileNames: '[name].cjs' },
+            },
+        },
+    },
     renderer: {
         // .env* live at the repo root (same as the web vite.config.ts).
         envDir: resolve('.'),

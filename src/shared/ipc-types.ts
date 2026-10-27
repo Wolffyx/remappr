@@ -118,6 +118,9 @@ export const IpcChannels = {
     PACKAGE_STORE: 'package:store',
     PACKAGE_LIST: 'package:list',
     PACKAGE_REMOVE: 'package:remove',
+
+    // One-time hand-over of the old file:// storage after the move to app://.
+    STORAGE_MIGRATION_TAKE: 'storage:migration-take',
 } as const
 
 /** Event channels (main pushes to renderer) */

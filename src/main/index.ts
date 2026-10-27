@@ -1,5 +1,5 @@
 // pattern-check: skip — defensive Electron lifecycle hooks, no new abstraction
-import { app, BrowserWindow, dialog, shell } from 'electron'
+import { app, BrowserWindow, dialog, protocol, shell } from 'electron'
 import { join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -12,9 +12,18 @@ import { checkForUpdates, registerUpdateIpc } from './update-checker'
 import { guardWindowLeave, registerWindowControlsIpc } from './window-controls'
 import { setupDeepLinks } from './deep-link'
 import {
+    PACKAGE_SCHEME_PRIVILEGES,
     registerPackageHandlers,
-    registerPackageScheme,
 } from './builder-packages'
+import {
+    APP_ORIGIN,
+    APP_SCHEME_PRIVILEGES,
+    registerAppProtocol,
+} from './app-scheme'
+import {
+    prepareStorageMigration,
+    registerStorageMigrationHandler,
+} from './storage-migration'
 
 // One instance only: a second launch (e.g. the OS opening a remappr:// sign-in
 // link) hands its argv to this one through 'second-instance' and quits.
@@ -28,9 +37,34 @@ if (!hasInstanceLock) app.quit()
 function isAllowedOrigin(origin: string): boolean {
     const devUrl = process.env['ELECTRON_RENDERER_URL']
     return (
-        origin.startsWith('file://') || (!!devUrl && origin.startsWith(devUrl))
+        origin === APP_ORIGIN ||
+        origin.startsWith(`${APP_ORIGIN}/`) ||
+        (!!devUrl && origin.startsWith(devUrl))
     )
 }
+
+// The packaged renderer's CSP (sent with every app:// response and on any
+// other response the session sees). Skipped in dev: Vite's HMR client and the
+// React refresh preamble need inline scripts and ws:// to localhost.
+// style-src 'unsafe-inline' is required for Radix / Tailwind runtime style
+// injection. img-src data: covers icon/svg inlining. connect-src
+// https://api.github.com matches update-checker and the start-page release
+// news; raw.githubusercontent.com serves news.json and its cover images.
+// *.supabase.co (or api.remappr.com) is the cloud backend; the avatar hosts
+// serve sign-in provider profile pictures; remappr-pkg: serves the delivered
+// builder package.
+const APP_CSP =
+    "default-src 'self'; " +
+    "script-src 'self' 'wasm-unsafe-eval' remappr-pkg:; " +
+    "style-src 'self' 'unsafe-inline' remappr-pkg:; " +
+    "img-src 'self' data: blob: https://raw.githubusercontent.com https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://cdn.discordapp.com https://*.supabase.co; " +
+    "font-src 'self' data:; " +
+    "connect-src 'self' remappr-pkg: https://api.github.com https://raw.githubusercontent.com https://*.supabase.co wss://*.supabase.co https://api.remappr.com wss://api.remappr.com; " +
+    "worker-src 'self' blob:; " +
+    "frame-src 'none'; " +
+    "object-src 'none'; " +
+    "base-uri 'self'; " +
+    "form-action 'none';"
 
 silenceConsoleInProduction()
 
@@ -38,8 +72,12 @@ if (hasInstanceLock) {
     setupDeepLinks(() => BrowserWindow.getAllWindows()[0] ?? null)
 }
 
-// Delivered builder packages are served over remappr-pkg:// (before ready).
-registerPackageScheme()
+// Before ready, in one call (Electron takes one registration): app:// serves
+// the packaged renderer, remappr-pkg:// the delivered builder package.
+protocol.registerSchemesAsPrivileged([
+    APP_SCHEME_PRIVILEGES,
+    PACKAGE_SCHEME_PRIVILEGES,
+])
 
 // Enable Web Bluetooth (navigator.bluetooth) in Chromium. Must run before
 // app.whenReady(). Without this, Electron exposes no `navigator.bluetooth`
@@ -83,13 +121,10 @@ function createWindow(): void {
             : { frame: false }),
         ...(isLinux ? { icon } : {}),
         webPreferences: {
-            preload: join(__dirname, '../preload/index.mjs'),
-            // sandbox:false — electron-vite emits the preload as ESM (.mjs),
-            // and Chromium's sandboxed preload loader only accepts CommonJS.
-            // contextIsolation:true + nodeIntegration:false still confine the
-            // renderer; flipping the sandbox here would need a build-side
-            // change to emit a CJS preload bundle first.
-            sandbox: false,
+            preload: join(__dirname, '../preload/index.cjs'),
+            // The preload is a bundled CommonJS file (electron.vite.config.ts),
+            // so the renderer can run in Chromium's sandbox.
+            sandbox: true,
             nodeIntegration: false,
             contextIsolation: true,
             webviewTag: false,
@@ -126,34 +161,14 @@ function createWindow(): void {
         )
     })
 
-    // Inject a strict CSP in production so a future XSS sink in the renderer
-    // cannot pull remote code or exfiltrate via arbitrary fetch/connect.
-    // Skipped in dev because Vite's HMR client + @vitejs/plugin-react-swc
-    // preamble inject inline scripts and need ws:// to localhost — the
-    // packaged file:// build has none of that.
-    // style-src 'unsafe-inline' is required for Radix / Tailwind runtime
-    // style injection. img-src data: covers icon/svg inlining. connect-src
-    // https://api.github.com matches update-checker and the start-page release
-    // news; raw.githubusercontent.com serves news.json and its cover images.
-    // *.supabase.co (or api.remappr.com) is the cloud backend; the avatar
-    // hosts serve sign-in provider profile pictures.
+    // The CSP on every response the window's session sees (app:// responses
+    // also carry it themselves).
     if (!is.dev) {
         sess.webRequest.onHeadersReceived((details, cb) => {
             cb({
                 responseHeaders: {
                     ...details.responseHeaders,
-                    'Content-Security-Policy': [
-                        "default-src 'self'; " +
-                            "script-src 'self' 'wasm-unsafe-eval' remappr-pkg:; " +
-                            "style-src 'self' 'unsafe-inline' remappr-pkg:; " +
-                            "img-src 'self' data: blob: https://raw.githubusercontent.com https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://cdn.discordapp.com https://*.supabase.co; " +
-                            "font-src 'self' data:; " +
-                            "connect-src 'self' remappr-pkg: https://api.github.com https://raw.githubusercontent.com https://*.supabase.co wss://*.supabase.co https://api.remappr.com wss://api.remappr.com; " +
-                            "frame-src 'none'; " +
-                            "object-src 'none'; " +
-                            "base-uri 'self'; " +
-                            "form-action 'none';",
-                    ],
+                    'Content-Security-Policy': [APP_CSP],
                 },
             })
         })
@@ -255,7 +270,7 @@ function createWindow(): void {
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
         mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
     } else {
-        mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+        mainWindow.loadURL(`${APP_ORIGIN}/index.html`)
     }
 }
 
@@ -287,7 +302,7 @@ app.whenReady().then((): void => {
         contents.on('will-navigate', (event, navUrl) => {
             try {
                 const u = new URL(navUrl)
-                if (!isAllowedOrigin(u.origin) && u.protocol !== 'file:') {
+                if (!isAllowedOrigin(u.origin)) {
                     event.preventDefault()
                 }
             } catch {
@@ -303,6 +318,7 @@ app.whenReady().then((): void => {
     // Register all IPC handlers
     registerIpcHandlers(() => BrowserWindow.getAllWindows())
     registerPackageHandlers()
+    registerStorageMigrationHandler()
     registerBleIpcHandlers()
     registerUpdateIpc(() => BrowserWindow.getAllWindows()[0] ?? null)
     registerWindowControlsIpc(() => BrowserWindow.getAllWindows()[0] ?? null)
@@ -310,7 +326,14 @@ app.whenReady().then((): void => {
     // Start USB hotplug polling — pushes SERIAL_DEVICES_CHANGED on changes.
     startSerialDevicePolling(() => BrowserWindow.getAllWindows())
 
-    createWindow()
+    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+        createWindow()
+    } else {
+        // Packaged: serve the renderer over app://, and carry the old file://
+        // storage across first (see storage-migration.ts).
+        registerAppProtocol(join(__dirname, '../renderer'), APP_CSP)
+        void prepareStorageMigration().finally(createWindow)
+    }
 
     app.on('activate', function (): void {
         // On macOS it's common to re-create a window in the app when the

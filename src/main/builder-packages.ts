@@ -161,19 +161,16 @@ export function createPackageCache(root: string, dev: boolean): PackageCache {
     }
 }
 
-/** Before app ready: make remappr-pkg a standard, secure, fetchable scheme. */
-export function registerPackageScheme(): void {
-    protocol.registerSchemesAsPrivileged([
-        {
-            scheme: PACKAGE_SCHEME,
-            privileges: {
-                standard: true,
-                secure: true,
-                supportFetchAPI: true,
-                corsEnabled: true,
-            },
-        },
-    ])
+/** The privileges remappr-pkg needs (registered with the other schemes before
+ *  ready, since Electron takes one registration call). */
+export const PACKAGE_SCHEME_PRIVILEGES = {
+    scheme: PACKAGE_SCHEME,
+    privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        corsEnabled: true,
+    },
 }
 
 interface StoreArg {
