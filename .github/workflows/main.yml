@@ -74,6 +74,10 @@ jobs:
                   REMAPPR_GIT_TOKEN: ${{ secrets.REMAPPR_GIT_TOKEN }}
             - name: Build
               run: pnpm build
+              env:
+                  # The production backend (public-safe: URL and publishable key).
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
             - name: Setup Pages
               uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
             - name: Upload artifact

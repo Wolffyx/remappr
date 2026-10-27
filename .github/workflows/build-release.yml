@@ -71,18 +71,24 @@ jobs:
               run: pnpm run build:linux
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
 
             - name: Build (Windows)
               if: matrix.os == 'windows-latest'
               run: pnpm run build:win
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
 
             - name: Build (macOS)
               if: matrix.os == 'macos-latest'
               run: pnpm run build:mac
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
 
             # electron-builder's pnpm node-modules collector has twice shipped
             # an app.asar missing transitive runtime deps (debug -> ms, needed

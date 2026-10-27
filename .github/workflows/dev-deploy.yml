@@ -62,8 +62,8 @@ jobs:
               env:
                   # The staging backend (public-safe values: URL and
                   # publishable key). Unset → the site builds with no cloud.
-                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_STAGING }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_STAGING }}
 
             - name: Deploy to Cloudflare Pages (dev)
               id: cf

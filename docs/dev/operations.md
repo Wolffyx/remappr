@@ -5,6 +5,30 @@ restore drill, and what happens when someone deletes their account. Everything
 here is optional for the app itself: with no Supabase project configured, the
 app runs fully local.
 
+## Environments
+
+|                        | Staging                      | Production                          |
+| ---------------------- | ---------------------------- | ----------------------------------- |
+| Supabase project       | second free project          | `Remappr`, Frankfurt (eu-central-1) |
+| Web                    | dev.remappr.com, PR previews | remappr.com, the installers         |
+| Migrations + functions | on push to `dev`             | on a published release              |
+
+GitHub settings:
+
+| Where                                      | Name                                                                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| environment `remappr`, variables           | `VITE_SUPABASE_URL_STAGING`, `VITE_SUPABASE_PUBLISHABLE_KEY_STAGING`, `VITE_SUPABASE_URL_PRODUCTION`, `VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION` |
+| environment `supabase-staging`, secrets    | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_STAGING`, `SUPABASE_DB_PASSWORD_STAGING`                                                          |
+| environment `supabase-production`, secrets | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_PRODUCTION`, `SUPABASE_DB_PASSWORD_PRODUCTION` (plus the backup settings below)                   |
+
+Each Supabase project also needs its own Edge Function secrets
+(`supabase secrets set --project-ref <ref> …`): `LICENSE_SIGNING_KEY`,
+`LICENSE_SIGNING_KID`, `PACKAGE_SIGNING_KEY`, `PACKAGE_SIGNING_KID`,
+`WATERMARK_KEY`. Never reuse the local keys from `supabase/functions/.env`.
+
+Free projects pause after a week without activity and have no daily backups,
+so production relies on the weekly backup below until it moves to a paid plan.
+
 ## Health checks
 
 | Check                     | URL                                                 | Healthy                    |

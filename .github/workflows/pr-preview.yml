@@ -57,6 +57,10 @@ jobs:
 
             - name: Build
               run: pnpm build
+              env:
+                  # Previews only ever get the staging backend.
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_STAGING }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_STAGING }}
 
             - name: Deploy to Cloudflare Pages (preview)
               if: env.CAN_DEPLOY == 'true'
