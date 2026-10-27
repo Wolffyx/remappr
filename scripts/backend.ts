@@ -4,6 +4,8 @@
 //   pnpm backend push <dev|prod>    apply supabase/migrations to that project
 //   pnpm backend deploy <dev|prod>  deploy the Edge Functions there
 //   pnpm backend keys <dev|prod>    create its signing keys (once per project)
+//   pnpm backend sync               before dev / edev: update dev or local,
+//                                   never prod (scripts/backend-sync.ts)
 //
 // The projects come from .env.local (DEV_/PROD_SUPABASE_URL, see
 // scripts/backend-env.ts). Anything aimed at prod asks first.
@@ -12,6 +14,7 @@ import { createInterface } from 'node:readline/promises'
 import { join } from 'node:path'
 import { loadEnv } from 'vite'
 import { resolveBackend } from './backend-env.ts'
+import { syncBackend } from './backend-sync.ts'
 
 const root = join(import.meta.dirname, '..')
 const supabase = join(root, 'node_modules', '.bin', 'supabase')
@@ -60,11 +63,19 @@ const COMMANDS: Record<string, (arg?: string) => Promise<void>> = {
             'Change it with REMAPPR_BACKEND in .env.local, or per run: REMAPPR_BACKEND=prod pnpm dev',
         )
     },
+    async sync() {
+        const { backend } = resolveBackend(root, 'development')
+        syncBackend(backend, {
+            root,
+            supabase,
+            devRef: () => projectRef('dev'),
+        })
+    },
     async push(arg) {
         const target = targetOf(arg)
         await confirm(target, 'apply the database migrations')
-        run(supabase, ['link', '--project-ref', projectRef(target)])
-        run(supabase, ['db', 'push'])
+        // Forward only: db push applies new migrations, never resets.
+        run(supabase, ['db', 'push', '--project-ref', projectRef(target)])
     },
     async deploy(arg) {
         const target = targetOf(arg)
@@ -90,7 +101,9 @@ const COMMANDS: Record<string, (arg?: string) => Promise<void>> = {
 const [command = 'show', arg] = process.argv.slice(2)
 const handler = Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined
 if (!handler) {
-    console.error(`unknown command "${command}": show, push, deploy or keys`)
+    console.error(
+        `unknown command "${command}": show, sync, push, deploy or keys`,
+    )
     process.exit(2)
 }
 handler(arg).catch((e: unknown) => {

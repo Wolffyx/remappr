@@ -38,6 +38,14 @@ For one run against another backend: `REMAPPR_BACKEND=local pnpm dev` or
 Restart `pnpm edev` / `pnpm dev` after changing it. Each backend's builds
 trust only that environment's signing keys (`__REMAPPR_ENV__`).
 
+`pnpm dev` and `pnpm edev` first bring the selected backend up to date,
+forward only (`pnpm backend sync`): on dev they apply new migrations and
+redeploy the Edge Functions when they changed; on local they apply new
+migrations to the running stack. **Production is never changed this way**,
+and nothing ever resets or rolls back (`pnpm db:reset` only touches the
+local stack). Offline, it warns and starts anyway; `REMAPPR_SKIP_SYNC=1`
+skips it.
+
 Hosted projects: `pnpm backend push dev|prod` applies the migrations,
 `pnpm backend deploy dev|prod` deploys the Edge Functions and
 `pnpm backend keys dev|prod` creates the signing keys once; prod asks first.
