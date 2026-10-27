@@ -22,14 +22,21 @@ export interface SecretBackend {
 const secretBackend: SecretBackend = { get: getSecret, set: setSecret }
 
 /** auth-js storage over `backend`. `''` means "not stored", so it maps to null
- *  and a remove writes `''`. */
+ *  and a remove writes `''`.
+ *
+ *  `cache` keeps reads off the IPC bridge, and is for Electron only (one
+ *  window). On the web every tab of the site shares localStorage, and auth-js
+ *  rotates the refresh token on each refresh: a tab reading its own stale copy
+ *  would refresh with a used token, and Supabase then revokes the whole
+ *  session. So the web reads through every time (localStorage is instant). */
 export function createAuthStorage(
     backend: SecretBackend = secretBackend,
+    { cache: useCache = false }: { cache?: boolean } = {},
 ): AuthStorage {
     const cache = new Map<string, string | null>()
     return {
         async getItem(key) {
-            if (cache.has(key)) return cache.get(key) ?? null
+            if (useCache && cache.has(key)) return cache.get(key) ?? null
             const value = (await backend.get(key)) || null
             cache.set(key, value)
             return value

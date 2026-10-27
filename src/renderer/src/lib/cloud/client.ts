@@ -26,7 +26,8 @@ async function createCloudClient(): Promise<CloudClient | null> {
             detectSessionInUrl: !electron,
             persistSession: true,
             autoRefreshToken: true,
-            storage: createAuthStorage(),
+            // Cached only in Electron; tabs must see each other's refreshes.
+            storage: createAuthStorage(undefined, { cache: electron }),
         },
     })
 }

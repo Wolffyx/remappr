@@ -52,12 +52,22 @@ describe('createAuthStorage', () => {
         expect(backend.store.get('s')).toBe('')
     })
 
-    it('reads the backend once per key', async () => {
+    it('with the cache (Electron), reads the backend once per key', async () => {
         const backend = memoryBackend()
         backend.store.set('s', 'stored')
-        const storage = createAuthStorage(backend)
+        const storage = createAuthStorage(backend, { cache: true })
         await storage.getItem('s')
         await storage.getItem('s')
         expect(backend.get).toHaveBeenCalledTimes(1)
+    })
+
+    it("without it (web), sees another tab's write", async () => {
+        const backend = memoryBackend()
+        backend.store.set('s', 'old-refresh-token')
+        const storage = createAuthStorage(backend)
+        expect(await storage.getItem('s')).toBe('old-refresh-token')
+        // Another tab refreshed and stored the rotated token.
+        backend.store.set('s', 'new-refresh-token')
+        expect(await storage.getItem('s')).toBe('new-refresh-token')
     })
 })
