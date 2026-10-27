@@ -83,13 +83,16 @@ Per environment, once (after `pnpm exec supabase login`):
 2. Commit the pinned public keys and ship that release before the server's
    licenses reach users.
 
-Licenses are 30-day leases (`claimsFor` in `_shared/license.ts`); the app
-renews them online, and `license-refresh` checks the database every time.
-Even a token signed by someone holding the key stops working within a month,
-unless the real server renews it.
+Lifetime licenses and permanent grants never expire: activated once, they
+work offline for good, so their only protection against forgery is that the
+private key never leaves the project. Subscriptions are 30-day leases
+(`claimsFor` in `_shared/license.ts`) that the app renews online, and
+`license-refresh` checks the database every time. Never unpin an old key id:
+lifetime devices that stay offline keep tokens signed with it.
 
 Rotating a key: pin the new public key in a release first, then set the new
-private key and kid. Losing a project's secrets means doing exactly that.
+private key and kid; keep the old public key pinned. Losing a project's
+secrets means doing exactly that.
 
 ## Builder packages
 

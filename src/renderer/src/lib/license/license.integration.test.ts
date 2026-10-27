@@ -110,7 +110,7 @@ describe.skipIf(!url)('builder licenses against the local stack', () => {
         })
         expect(verdict).toMatchObject({
             ok: true,
-            claims: { sub: uid, plan: 'lifetime', exp: expect.any(Number) },
+            claims: { sub: uid, plan: 'lifetime', exp: null },
         })
 
         // A forged proof is refused.

@@ -4,10 +4,10 @@
 // A builder license is base64url(claims JSON) "." base64url(Ed25519 signature),
 // signed by the license-activate / license-refresh Edge Functions. Offline
 // checks, in order: the key is pinned, the signature holds, it names this
-// device (and, on desktop, this machine), it carries a lease of at most 31
-// days that has not run out, and the clock was not turned back to stretch it.
-// The app renews the lease online (license-refresh checks the database), so a
-// token the server did not issue stops working within a month.
+// device (and, on desktop, this machine), and it has not expired. Lifetime
+// and permanent-grant licenses never expire: activated once, they work offline
+// for good. Subscriptions carry a lease of at most 31 days that the app renews
+// online, guarded against a clock turned back to stretch it.
 import { ed25519 } from '@noble/curves/ed25519.js'
 
 export interface LicenseClaims {
@@ -19,8 +19,8 @@ export interface LicenseClaims {
     feat: { builder?: number }
     plan: 'lifetime' | 'subscription' | 'grant'
     iat: number
-    /** Seconds since the epoch: the end of this token's lease. Older tokens
-     *  without one (null) are no longer accepted. */
+    /** Seconds since the epoch: the end of a subscription's lease; null =
+     *  never (lifetime / permanent grant only). */
     exp: number | null
 }
 
@@ -50,8 +50,8 @@ export interface VerifyContext {
     publicKey: (kid: string) => string | null
 }
 
-/** The longest lease a token may carry (the server issues 30 days). A token
- *  with none, or a longer one, was not issued by our server as it is now. */
+/** The longest lease a subscription token may carry (the server issues 30
+ *  days). One with none, or a longer one, was not issued by our server. */
 export const LEASE_MAX_S = 31 * 24 * 60 * 60
 
 /** A clock more than this far behind the latest time seen is a rollback. */
@@ -107,7 +107,12 @@ export function verifyLicense(
     if (claims.dev !== ctx.device) return { ok: false, problem: 'other_device' }
     if (claims.mach && ctx.machine !== null && claims.mach !== ctx.machine)
         return { ok: false, problem: 'other_machine' }
-    if (claims.exp === null || claims.exp - claims.iat > LEASE_MAX_S)
+    if (claims.exp === null) {
+        if (claims.plan === 'subscription')
+            return { ok: false, problem: 'no_lease' }
+        return { ok: true, claims }
+    }
+    if (claims.plan === 'subscription' && claims.exp - claims.iat > LEASE_MAX_S)
         return { ok: false, problem: 'no_lease' }
     if (claims.exp * 1000 <= ctx.now) return { ok: false, problem: 'expired' }
     if (ctx.now < ctx.maxSeen - ROLLBACK_TOLERANCE_MS)

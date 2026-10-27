@@ -135,13 +135,14 @@ export function BuilderDevices(): JSX.Element | null {
             </div>
             <p className="text-xs text-muted-foreground">
                 The builder works on the devices holding your license, also
-                offline. Each device renews it online at least once every 30
-                days; it happens on its own whenever you are connected.
+                offline. A lifetime license needs no internet after activation;
+                a subscription renews on its own whenever you are online, at
+                least once every 30 days.
             </p>
             {leaseOut && (
                 <p className="text-xs text-destructive">
-                    This device&apos;s license ran out while offline. It renews
-                    as soon as you are back online.
+                    This device&apos;s subscription license ran out while
+                    offline. It renews as soon as you are back online.
                 </p>
             )}
             <ul className="space-y-1.5">

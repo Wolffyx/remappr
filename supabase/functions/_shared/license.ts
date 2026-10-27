@@ -18,7 +18,8 @@ export interface LicenseClaims {
     feat: { builder: 1 }
     plan: 'lifetime' | 'subscription' | 'grant'
     iat: number
-    exp: number
+    /** null = never: lifetime and permanent grants work offline for good. */
+    exp: number | null
 }
 
 export interface LicenseState {
@@ -115,14 +116,13 @@ export async function licenseState(
     return data as LicenseState
 }
 
-/** How long a license works without the server: every token is a lease that
- *  the app renews online. A token signed by anyone but this server stops
- *  working within this time unless the server, checking the database,
- *  renews it. */
+/** How long a subscription license works without the server: a lease the
+ *  app renews online, so a cancelled or refunded subscription reaches it. */
 const LEASE_S = 30 * 24 * 60 * 60
 
-/** The claims for what the user holds now: a lease of LEASE_S, cut short by
- *  the latest valid_until of a subscription or timed grant. */
+/** The claims for what the user holds now. Lifetime and permanent grants never
+ *  expire (activate once, offline for good). Subscriptions and timed grants
+ *  get a lease of LEASE_S, cut short by their paid-until. */
 export function claimsFor(
     state: LicenseState,
     sub: string,
@@ -148,6 +148,6 @@ export function claimsFor(
         feat: { builder: 1 },
         plan,
         iat,
-        exp: Math.min(iat + LEASE_S, paidUntil),
+        exp: forever ? null : Math.min(iat + LEASE_S, paidUntil),
     }
 }

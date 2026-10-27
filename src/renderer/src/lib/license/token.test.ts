@@ -26,7 +26,7 @@ function sign(claims: Partial<LicenseClaims>): string {
         feat: { builder: 1 },
         plan: 'lifetime',
         iat: IAT,
-        exp: IAT + LEASE,
+        exp: null,
         ...claims,
     }
     const body = new TextEncoder().encode(JSON.stringify(full))
@@ -42,20 +42,28 @@ const ctx: VerifyContext = {
 }
 
 describe('verifyLicense', () => {
-    it('refuses a token without a lease or with one over 31 days', () => {
-        expect(verifyLicense(sign({ exp: null }), ctx)).toEqual({
+    it('needs a lease of at most 31 days on a subscription', () => {
+        const sub = { plan: 'subscription' as const }
+        expect(verifyLicense(sign(sub), ctx)).toEqual({
             ok: false,
             problem: 'no_lease',
         })
         expect(
-            verifyLicense(sign({ exp: IAT + LEASE_MAX_S + 1 }), ctx),
+            verifyLicense(sign({ ...sub, exp: IAT + LEASE_MAX_S + 1 }), ctx),
         ).toEqual({ ok: false, problem: 'no_lease' })
+        expect(
+            verifyLicense(sign({ ...sub, exp: IAT + LEASE }), ctx),
+        ).toMatchObject({ ok: true })
     })
 
-    it('expires a lifetime lease after its 30 days', () => {
+    it('keeps a lifetime license working offline for good', () => {
         expect(
-            verifyLicense(sign({}), { ...ctx, now: (IAT + LEASE) * 1000 }),
-        ).toEqual({ ok: false, problem: 'expired' })
+            verifyLicense(sign({}), {
+                ...ctx,
+                now: NOW + 2 * 365 * 86_400_000,
+                maxSeen: NOW + 3 * 365 * 86_400_000,
+            }),
+        ).toMatchObject({ ok: true })
     })
 
     it('accepts a lifetime license for this device', () => {
@@ -117,9 +125,9 @@ describe('verifyLicense', () => {
                 maxSeen: NOW + 3 * 86_400_000,
             }),
         ).toEqual({ ok: false, problem: 'clock_rollback' })
-        // Lifetime leases are guarded the same way.
+        // A lifetime license ignores the clock.
         expect(
-            verifyLicense(sign({}), { ...ctx, maxSeen: NOW + 3 * 86_400_000 }),
-        ).toEqual({ ok: false, problem: 'clock_rollback' })
+            verifyLicense(sign({}), { ...ctx, maxSeen: NOW + 30 * 86_400_000 }),
+        ).toMatchObject({ ok: true })
     })
 })

@@ -4,10 +4,10 @@
 //
 // This device's builder license. On start it is verified offline (pinned key,
 // this device, this machine, expiry, clock rollback) and the result feeds the
-// builder gate. Every token is a 30-day lease. It is renewed at most hourly
-// while online (on start, when the connection comes back, and every hour), so
-// it never runs out for a device that goes online now and then; one that has
-// been offline longer renews the moment it reconnects. A refund, a lapsed
+// builder gate. Lifetime licenses never expire and never need the server
+// again. Subscription tokens are 30-day leases. Whenever the app is online
+// (on start, when the connection comes back, and hourly) it refreshes in the
+// background: a subscription's lease is renewed, and a refund, a lapsed
 // subscription or a deactivated device comes back `revoked` and the license is
 // dropped. Activation needs a signed-in account with a real entitlement.
 import { create } from 'zustand'
