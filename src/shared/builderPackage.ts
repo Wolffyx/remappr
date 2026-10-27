@@ -8,7 +8,10 @@
 // supabase/functions/.env, so it is trusted in dev builds only.
 import { ed25519 } from '@noble/curves/ed25519.js'
 
-const PRODUCTION_PACKAGE_KEYS: Readonly<Record<string, string>> = {}
+const PRODUCTION_PACKAGE_KEYS: Readonly<Record<string, string>> = {
+    'pkg-production-1':
+        '2a2c0bccaa0794b92bffebad91d783793caffe975b34b7b9c1fd18c036192039',
+}
 
 const DEV_PACKAGE_KEYS: Readonly<Record<string, string>> = {
     'pkg-dev-1':
