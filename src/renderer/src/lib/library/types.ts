@@ -29,6 +29,10 @@ export interface LibrarySync {
     dirty: boolean
     state: LibrarySyncState
     lastSyncedAt?: number
+    /** The cloud head when a conflict was found. */
+    remoteVersion?: number
+    /** Kept on this device only; sync never pushes it. */
+    localOnly?: boolean
 }
 
 /** List facts shown without parsing `source`. */
