@@ -17,6 +17,7 @@ import { packageStore, type PackageStore, type StoredPackage } from './stores'
 
 const log = createLogger('BuilderPackage')
 const LICENSE_KEY = 'builderLicense'
+const SEED_PATH = '_seed/builder.json'
 
 interface DeliveryReply {
     manifest?: string
@@ -92,11 +93,40 @@ async function dropAll(store: PackageStore): Promise<void> {
     for (const p of await store.list()) await store.remove(p.version)
 }
 
+/** The seed shipped with free-stage builds (public/_seed/builder.json, see
+ *  scripts/fetch-builder-seed.cjs): kept like any delivered package, so the
+ *  first run needs no download. Null when this build has none. */
+async function installSeed(store: PackageStore): Promise<StoredPackage | null> {
+    if (typeof document === 'undefined') return null
+    const res = await fetch(new URL(SEED_PATH, document.baseURI)).catch(
+        () => null,
+    )
+    if (!res?.ok || !res.headers.get('Content-Type')?.includes('json'))
+        return null
+    const seed = (await res.json()) as DeliveryReply
+    if (!seed.manifest || !seed.signature || !seed.kid || !seed.files)
+        return null
+    try {
+        const stored = await store.store(
+            {
+                manifest: seed.manifest,
+                signature: seed.signature,
+                kid: seed.kid,
+            },
+            seed.files,
+        )
+        return stored.hostApi === `^${HOST_API}` ? stored : null
+    } catch (e) {
+        log.warn('the bundled builder seed does not verify', e)
+        return null
+    }
+}
+
 /** The version to load: refreshed when online, cached otherwise. */
 export async function ensureBuilderPackage(
     store: PackageStore = packageStore(),
 ): Promise<string> {
-    const cached = newest(await store.list())
+    const cached = newest(await store.list()) ?? (await installSeed(store))
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
         if (cached) return cached.version
         throw new Error(
@@ -117,10 +147,24 @@ export async function ensureBuilderPackage(
     return cached.version
 }
 
+let inFlight: Promise<string> | null = null
+
+/** ensureBuilderPackage on the default store, shared by concurrent callers
+ *  (a background prefetch and opening the builder never download twice). */
+export function ensureBuilderPackageOnce(): Promise<string> {
+    inFlight ??= ensureBuilderPackage().finally(() => {
+        inFlight = null
+    })
+    return inFlight
+}
+
 export async function loadDeliveredBuilder(
-    store: PackageStore = packageStore(),
+    given?: PackageStore,
 ): Promise<BuilderPackage> {
-    const version = await ensureBuilderPackage(store)
+    const store = given ?? packageStore()
+    const version = await (given
+        ? ensureBuilderPackage(given)
+        : ensureBuilderPackageOnce())
     await store.prepare()
     try {
         return await loadSignedPackage(store.baseUrl(version))

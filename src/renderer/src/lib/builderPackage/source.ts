@@ -1,48 +1,62 @@
-// pattern-check: skip — picks where the builder component comes from.
+// Pattern check: Dispatch Map (Tier 0) — applied — one decision (where the
+// builder comes from) and a loader per source; prefetch reads the same decision.
 //
-// The builder is bundled with the app today. In a dev build, setting
-// localStorage `remappr.builder.packageUrl` to a package folder (e.g.
-// "/_pkg/builder/0.1.0/", see `pnpm builder:package`) loads the delivered
-// package instead, to try it against the live app. VITE_BUILDER_SOURCE=delivered
-// (or, in dev, localStorage `remappr.builder.source` = "delivered") gets it from
-// get-package: licensed, verified, cached for offline use.
+// Where the builder component comes from:
+// - "bundled": compiled into this app (dev builds, the default).
+// - "delivered": the licensed, signed package from get-package, cached for
+//   offline use. Builds made with REMAPPR_BUILDER=package carry only a stub of
+//   the builder, so they always use this; VITE_BUILDER_SOURCE=delivered or, in
+//   dev, localStorage `remappr.builder.source` = "delivered" choose it too.
+// - "dev-package": in dev, localStorage `remappr.builder.packageUrl` pointing
+//   at an unsigned package folder (see `pnpm builder:package`).
 import type { ComponentType } from 'react'
 import { loadDeliveredBuilder } from './delivery'
 import { loadBuilderPackage } from './loader'
 
+export type BuilderSource = 'bundled' | 'delivered' | 'dev-package'
+
 const DEV_PACKAGE_KEY = 'remappr.builder.packageUrl'
 const DEV_SOURCE_KEY = 'remappr.builder.source'
 
-/** Delivered (licensed, cached, offline) when the build says so, or in dev
- *  when localStorage `remappr.builder.source` is "delivered". */
-function wantsDelivered(): boolean {
-    if (import.meta.env.VITE_BUILDER_SOURCE === 'delivered') return true
-    if (!import.meta.env.DEV) return false
-    try {
-        return localStorage.getItem(DEV_SOURCE_KEY) === 'delivered'
-    } catch {
-        // Storage blocked: use the bundled builder.
-        return false
-    }
-}
-
-function devPackageUrl(): string | null {
+function devSetting(key: string): string | null {
     if (!import.meta.env.DEV) return null
     try {
-        return localStorage.getItem(DEV_PACKAGE_KEY)
+        return localStorage.getItem(key)
     } catch {
-        // Storage blocked: use the bundled builder.
+        // Storage blocked: no dev override.
         return null
     }
 }
 
-export async function loadBuilderComponent(): Promise<{
-    default: ComponentType
-}> {
-    if (wantsDelivered())
-        return { default: (await loadDeliveredBuilder()).BuilderRoot }
-    const url = devPackageUrl()
-    if (url) return { default: (await loadBuilderPackage(url)).BuilderRoot }
-    const m = await import('@/features/builder')
-    return { default: m.Builder }
+/** The configured source; a build whose bundle is only the stub
+ *  (REMAPPR_BUILDER=package) turns "bundled" into "delivered" at load time. */
+export function builderSource(): BuilderSource {
+    if (import.meta.env.VITE_BUILDER_SOURCE === 'delivered') return 'delivered'
+    if (devSetting(DEV_SOURCE_KEY) === 'delivered') return 'delivered'
+    if (devSetting(DEV_PACKAGE_KEY)) return 'dev-package'
+    return 'bundled'
+}
+
+type Loaded = { default: ComponentType }
+
+const LOADERS: Record<BuilderSource, () => Promise<Loaded>> = {
+    delivered: async () => ({
+        default: (await loadDeliveredBuilder()).BuilderRoot,
+    }),
+    'dev-package': async () => ({
+        default: (await loadBuilderPackage(devSetting(DEV_PACKAGE_KEY) ?? ''))
+            .BuilderRoot,
+    }),
+    bundled: async () => {
+        const m = (await import('@/features/builder')) as {
+            Builder: ComponentType
+            BUILDER_STUB?: boolean
+        }
+        if (m.BUILDER_STUB) return LOADERS.delivered()
+        return { default: m.Builder }
+    },
+}
+
+export async function loadBuilderComponent(): Promise<Loaded> {
+    return LOADERS[builderSource()]()
 }

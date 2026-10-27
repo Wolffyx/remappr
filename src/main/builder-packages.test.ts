@@ -10,7 +10,11 @@ vi.mock('electron', () => ({
     protocol: {},
 }))
 
-import { createPackageCache, parsePackageUrl } from './builder-packages'
+import {
+    createPackageCache,
+    installSeed,
+    parsePackageUrl,
+} from './builder-packages'
 
 const SAMPLE = process.env.REMAPPR_PKG_SAMPLE
 
@@ -72,5 +76,20 @@ describe.skipIf(!SAMPLE)('package cache', () => {
             cache.store(reply, { ...reply.files, 'style.css': btoa('x') }),
         ).rejects.toThrow(/does not match/)
         expect(await cache.list()).toEqual([])
+    })
+
+    it('installs the seed into an empty cache only', async () => {
+        root = mkdtempSync(join(tmpdir(), 'remappr-pkg-'))
+        const cache = createPackageCache(root, true)
+        writeFileSync(join(root, 'seed.json'), readFileSync(SAMPLE!))
+        expect(await installSeed(cache, join(root, 'seed.json'))).toBe(true)
+        expect(await cache.list()).toHaveLength(1)
+        expect(await installSeed(cache, join(root, 'seed.json'))).toBe(false)
+        expect(
+            await installSeed(
+                createPackageCache(join(root, 'none'), true),
+                join(root, 'missing.json'),
+            ),
+        ).toBe(false)
     })
 })

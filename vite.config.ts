@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import pkg from './package.json' with { type: 'json' }
 import { remapprDedupe } from './scripts/remappr-dedupe'
+import { builderSourceDefine } from './scripts/builder-source'
 import { vendorChunks } from './scripts/vendor-chunks'
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -13,6 +14,7 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
+        ...builderSourceDefine(__dirname),
     },
     resolve: {
         // Symlinked @remappr/* sibling repos carry their own node_modules.

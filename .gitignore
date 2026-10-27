@@ -59,3 +59,4 @@ docs/.vitepress/cache/
 
 # Builder package copied in for dev (pnpm builder:package)
 public/_pkg
+public/_seed

@@ -11,6 +11,8 @@
  *      the "something that fetches the projects" so the app works on download.
  *   4. (builder only) a generated stub          -> builder is OPTIONAL and
  *      access-gated; if its private repo can't be cloned, the app still builds.
+ *      REMAPPR_BUILDER=package always stubs it: the app then loads the
+ *      delivered builder package instead (public builds).
  *
  * The wired paths + the .remappr cache are git-ignored (generated, not stored).
  * Override a project URL with env REMAPPR_<NAME>_URL; skip all network with
@@ -89,8 +91,11 @@ function writeBuilderStub(linkAbs) {
     fs.writeFileSync(
         path.join(linkAbs, 'index.tsx'),
         [
-            '// Generated stub: the builder is an optional, access-gated project',
-            '// (@remappr/builder) that was not found. The builder UI is disabled.',
+            '// Generated stub: the builder is not bundled into this build — either',
+            '// REMAPPR_BUILDER=package (it is delivered as a licensed package at',
+            '// runtime) or its private repo was not available.',
+            '/** Tells the app to load the delivered builder package instead. */',
+            'export const BUILDER_STUB = true',
             'export function Builder(): null {',
             '    return null',
             '}',
@@ -195,8 +200,20 @@ function tryClone(t) {
     return null
 }
 
+// Public/staging/release builds never bundle the builder: it is delivered as a
+// licensed, signed package at runtime (see src/renderer/src/lib/builderPackage).
+const builderAsPackage =
+    process.env.REMAPPR_BUILDER === 'package' ||
+    process.argv.includes('--builder=package')
+
 for (const t of targets) {
     const linkAbs = path.join(appRoot, t.link)
+
+    if (t.name === 'builder' && builderAsPackage) {
+        writeBuilderStub(linkAbs)
+        console.log('[link-remappr] builder -> stub (REMAPPR_BUILDER=package)')
+        continue
+    }
     const fromUmbrella = path.join(
         umbrella,
         t.umbrellaDir || t.repoDir,

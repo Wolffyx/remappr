@@ -38,6 +38,7 @@ import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
 import { SyncOnboardingDialog } from '@/features/library/SyncOnboardingDialog'
 import { loadBuilderComponent } from '@/lib/builderPackage/source'
+import { startBuilderPrefetch } from '@/lib/builderPackage/prefetch'
 import { ShareLinkHandler } from '@/features/community/ShareLinkHandler'
 
 // Code-split the full-screen builder: it drags in Monaco (multi-MB), which
@@ -101,6 +102,7 @@ function App(): JSX.Element {
         void useAuthStore.getState().init()
         useSyncStore.getState().start()
         void useLicenseStore.getState().init()
+        return startBuilderPrefetch()
     }, [])
 
     useEffect(() => {

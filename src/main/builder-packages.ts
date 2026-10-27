@@ -181,11 +181,43 @@ interface StoreArg {
     files?: Record<string, string>
 }
 
+interface SeedReply {
+    manifest?: string
+    signature?: string
+    kid?: string
+    files?: Record<string, string>
+}
+
+/** Free-stage builds ship a seed package (renderer/_seed/builder.json, see
+ *  scripts/fetch-builder-seed.cjs); keep it when the cache is empty, so the
+ *  builder opens on the first run without a network. */
+export async function installSeed(
+    cache: PackageCache,
+    seedFile: string,
+): Promise<boolean> {
+    if ((await cache.list()).length > 0) return false
+    const raw = await readFile(seedFile, 'utf8').catch(() => null)
+    if (!raw) return false
+    const seed = JSON.parse(raw) as SeedReply
+    if (!seed.manifest || !seed.signature || !seed.kid || !seed.files)
+        return false
+    await cache.store(
+        { manifest: seed.manifest, signature: seed.signature, kid: seed.kid },
+        seed.files,
+    )
+    return true
+}
+
 /** After app ready: serve the scheme and handle store / list / remove. */
 export function registerPackageHandlers(): void {
     const cache = createPackageCache(
         join(app.getPath('userData'), 'packages', 'builder'),
         !app.isPackaged,
+    )
+    // The renderer is served from out/renderer in packaged builds.
+    installSeed(cache, join(__dirname, '../renderer/_seed/builder.json')).catch(
+        (e: unknown) =>
+            console.warn('[builder-packages] seed not installed', e),
     )
     protocol.handle(PACKAGE_SCHEME, (req) => cache.serve(req.url))
     ipcMain.handle(IpcChannels.PACKAGE_STORE, (_e, arg: StoreArg) => {

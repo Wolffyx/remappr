@@ -98,3 +98,28 @@ available offline.
 
 `src/renderer/src/lib/license/license.integration.test.ts` exercises the
 functions end to end (needs them served plus the `E2E_*` variables above).
+
+### Public builds without the bundled builder
+
+Builds meant for users stop bundling the builder:
+
+```bash
+pnpm link:builder-package   # the builder folder becomes a stub
+pnpm builder:seed           # free stage only: a signed seed for the first run
+pnpm build                  # (or the electron build)
+```
+
+With the stub in place the app loads the builder through get-package
+(licensed, verified, cached) and prefetches it in the background on start,
+when the connection comes back and when the desktop app finds an update. The
+seed lands in public/\_seed/builder.json; the web installs it on first use and
+the desktop main process installs it into its package cache at start, so the
+first run works without a download. Once the builder is paid, get-package
+refuses anonymous calls and `builder:seed` removes the seed.
+
+Production builds trust only `PRODUCTION_PACKAGE_KEYS`: a seed or package
+signed with the local dev key is refused there (by design). `pnpm
+link:builder-source` brings the bundled builder back for development.
+
+The CI workflows still build with the bundled builder: switch them once
+staging/production have signing keys and a published package (P11).

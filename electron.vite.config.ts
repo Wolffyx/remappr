@@ -3,6 +3,7 @@ import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react-swc'
 import pkg from './package.json' with { type: 'json' }
 import { remapprDedupe } from './scripts/remappr-dedupe'
+import { builderSourceDefine } from './scripts/builder-source'
 import { vendorChunks } from './scripts/vendor-chunks'
 
 const versionDefine = { __APP_VERSION__: JSON.stringify(pkg.version) }
@@ -24,7 +25,7 @@ export default defineConfig({
         // in the repo-root public/, as for the web build; electron-vite's
         // default (src/renderer/public) does not exist.
         publicDir: resolve('public'),
-        define: versionDefine,
+        define: { ...versionDefine, ...builderSourceDefine(resolve('.')) },
         resolve: {
             // See scripts/remappr-dedupe.ts — single copy of context/store deps
             // across the app + symlinked @remappr/* sibling repos.
