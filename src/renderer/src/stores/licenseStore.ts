@@ -11,7 +11,7 @@ import { create } from 'zustand'
 import { createLogger } from '@shared/logger'
 import { IpcChannels } from '@shared/ipc-types'
 import { getCloudClient } from '@/lib/cloud/client'
-import { cloudErrorMessage } from '@/lib/cloud/errors'
+import { cloudErrorMessage, functionErrorCode } from '@/lib/cloud/errors'
 import {
     ENTITLEMENTS_CHANGE_EVENT,
     needsBuilderActivation,
@@ -105,14 +105,6 @@ function touchMaxSeen(now: number): number {
 }
 
 /** The error code an Edge Function answered with, if any. */
-async function functionError(error: unknown): Promise<string> {
-    const response = (error as { context?: Response }).context
-    const body = (await response?.json?.().catch(() => null)) as {
-        error?: string
-    } | null
-    return body?.error ?? cloudErrorMessage(error)
-}
-
 let started: Promise<void> | null = null
 let autoActivateTried = false
 
@@ -206,7 +198,7 @@ const useLicenseStore = create<LicenseState>()((set, get) => {
                 },
             })
             if (error) {
-                const code = await functionError(error)
+                const code = await functionErrorCode(error)
                 set({ error: ACTIVATE_ERRORS[code] ?? code })
                 throw new Error(ACTIVATE_ERRORS[code] ?? code)
             }
@@ -229,7 +221,10 @@ const useLicenseStore = create<LicenseState>()((set, get) => {
             }>('license-refresh', { body: { token } })
             // Offline or the server is down: keep the license we have.
             if (error) {
-                log.warn('license refresh failed', await functionError(error))
+                log.warn(
+                    'license refresh failed',
+                    await functionErrorCode(error),
+                )
                 return
             }
             writeNumber(LAST_REFRESH_KEY, Date.now())

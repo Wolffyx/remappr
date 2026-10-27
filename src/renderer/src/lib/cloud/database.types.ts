@@ -551,6 +551,11 @@ export type Database = {
             [_ in never]: never
         }
         Functions: {
+            account_export: { Args: { p_user: string }; Returns: Json }
+            account_prepare_delete: {
+                Args: { p_user: string }
+                Returns: string[]
+            }
             billing_upsert: { Args: { p_row: Json }; Returns: undefined }
             collection_members: {
                 Args: { p_collection: string }
@@ -592,6 +597,7 @@ export type Database = {
                     type: string
                 }[]
             }
+            health: { Args: Record<PropertyKey, never>; Returns: boolean }
             hide_comment: { Args: { p_comment: string }; Returns: undefined }
             license_register_device: {
                 Args: {

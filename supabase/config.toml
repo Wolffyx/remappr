@@ -462,3 +462,13 @@ verify_jwt = false
 
 [functions.get-package]
 verify_jwt = false
+
+# Account functions authenticate inside (getUser); health is public.
+[functions.health]
+verify_jwt = false
+
+[functions.export-account]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false

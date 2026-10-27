@@ -19,6 +19,7 @@ import { SignInPanel } from './SignInPanel'
 import { SyncSettings } from './SyncSettings'
 import { ModerationQueue } from './ModerationQueue'
 import { BuilderDevices } from './BuilderDevices'
+import { AccountData } from './AccountData'
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,31}$/
 
@@ -113,6 +114,7 @@ function ProfileForm(): JSX.Element {
             <SyncSettings />
             <BuilderDevices />
             <ModerationQueue />
+            <AccountData />
 
             <Modal
                 size="sm"

@@ -30,3 +30,12 @@ export function cloudErrorMessage(e: unknown): string {
     const friendly = FRIENDLY.find(([re]) => re.test(raw))
     return friendly?.[1] ?? (raw || 'Something went wrong')
 }
+
+/** The `{ error }` code an Edge Function replied with, else a readable message. */
+export async function functionErrorCode(error: unknown): Promise<string> {
+    const response = (error as { context?: Response }).context
+    const body = (await response?.json?.().catch(() => null)) as {
+        error?: string
+    } | null
+    return body?.error ?? cloudErrorMessage(error)
+}
