@@ -78,6 +78,7 @@ jobs:
                   # The production backend (public-safe: URL and publishable key).
                   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
                   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
+                  VITE_REMAPPR_ENV: production
             - name: Setup Pages
               uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
             - name: Upload artifact

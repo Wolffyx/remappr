@@ -4,8 +4,10 @@
 // get-package returns the builder with a manifest signed by PACKAGE_SIGNING_KEY
 // (Ed25519). Hosts trust a signature only from these pinned keys, and every
 // file's sha256 must match the signed manifest before it is served or loaded.
-// The dev key's private half lives only in a developer's gitignored
-// supabase/functions/.env, so it is trusted in dev builds only.
+// One key set per environment: a build trusts only the set for its
+// __REMAPPR_ENV__. The dev key's private half lives only in a developer's
+// gitignored supabase/functions/.env, so it is trusted in dev builds and
+// local-backend builds only.
 import { ed25519 } from '@noble/curves/ed25519.js'
 
 const PRODUCTION_PACKAGE_KEYS: Readonly<Record<string, string>> = {
@@ -13,17 +15,36 @@ const PRODUCTION_PACKAGE_KEYS: Readonly<Record<string, string>> = {
         '2a2c0bccaa0794b92bffebad91d783793caffe975b34b7b9c1fd18c036192039',
 }
 
+const STAGING_PACKAGE_KEYS: Readonly<Record<string, string>> = {}
+
+const TRUSTED_PACKAGE_KEYS: Readonly<
+    Record<string, Readonly<Record<string, string>>>
+> = {
+    production: PRODUCTION_PACKAGE_KEYS,
+    staging: STAGING_PACKAGE_KEYS,
+}
+
 const DEV_PACKAGE_KEYS: Readonly<Record<string, string>> = {
     'pkg-dev-1':
         'e7b77f3051d7cf988dc218393056a50ca137ce4bf555ff54292114f77b7af1a6',
 }
 
+/** map[key] when it is the map's own entry (a kid comes from the manifest,
+ *  so "constructor" and the like must not reach the prototype). */
+function own<T>(map: Readonly<Record<string, T>>, key: string): T | null {
+    return Object.hasOwn(map, key) ? map[key] : null
+}
+
 /** The Ed25519 public key (hex) for a package key id, or null when untrusted. */
-export function packagePublicKey(kid: string, dev: boolean): string | null {
-    return (
-        PRODUCTION_PACKAGE_KEYS[kid] ??
-        (dev ? (DEV_PACKAGE_KEYS[kid] ?? null) : null)
-    )
+export function packagePublicKey(
+    kid: string,
+    dev: boolean,
+    envName: string = __REMAPPR_ENV__,
+): string | null {
+    const hosted = own(TRUSTED_PACKAGE_KEYS, envName)
+    const key = hosted ? own(hosted, kid) : null
+    if (key) return key
+    return dev || envName === 'local' ? own(DEV_PACKAGE_KEYS, kid) : null
 }
 
 export interface SignedPackageFile {

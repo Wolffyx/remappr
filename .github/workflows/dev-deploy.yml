@@ -64,6 +64,7 @@ jobs:
                   # publishable key). Unset → the site builds with no cloud.
                   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_STAGING }}
                   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_STAGING }}
+                  VITE_REMAPPR_ENV: staging
 
             - name: Deploy to Cloudflare Pages (dev)
               id: cf

@@ -73,6 +73,7 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
                   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
+                  VITE_REMAPPR_ENV: production
 
             - name: Build (Windows)
               if: matrix.os == 'windows-latest'
@@ -81,6 +82,7 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
                   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
+                  VITE_REMAPPR_ENV: production
 
             - name: Build (macOS)
               if: matrix.os == 'macos-latest'
@@ -89,6 +91,7 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
                   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
+                  VITE_REMAPPR_ENV: production
 
             # electron-builder's pnpm node-modules collector has twice shipped
             # an app.asar missing transitive runtime deps (debug -> ms, needed

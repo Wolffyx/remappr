@@ -20,13 +20,27 @@ pnpm db:stop
 
 ## Run the app against it
 
-Create `.env.local` in the repo root (gitignored), using the values
-`pnpm db:start` printed:
+`.env.local` in the repo root (gitignored) holds all three backends, and
+`REMAPPR_BACKEND` picks one, **dev by default** (scripts/backend-env.ts):
 
 ```
-VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+REMAPPR_BACKEND=dev
+DEV_SUPABASE_URL=https://avwxfpuayobtsgpyrwoz.supabase.co
+DEV_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+PROD_SUPABASE_URL=https://ljzmmudynmlnaqraqbau.supabase.co
+PROD_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+LOCAL_SUPABASE_URL=http://127.0.0.1:54321
+LOCAL_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...   # printed by pnpm db:start
 ```
+
+For one run against another backend: `REMAPPR_BACKEND=local pnpm dev` or
+`REMAPPR_BACKEND=prod pnpm edev`. `pnpm backend` shows which one is active.
+Restart `pnpm edev` / `pnpm dev` after changing it. Each backend's builds
+trust only that environment's signing keys (`__REMAPPR_ENV__`).
+
+Hosted projects: `pnpm backend push dev|prod` applies the migrations,
+`pnpm backend deploy dev|prod` deploys the Edge Functions and
+`pnpm backend keys dev|prod` creates the signing keys once; prod asks first.
 
 Then `pnpm dev` (web) or `pnpm edev` (Electron). Settings → Account and the
 header account button appear.

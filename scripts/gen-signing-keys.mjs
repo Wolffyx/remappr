@@ -74,17 +74,11 @@ const lic = pair()
 const pkg = pair()
 const licKid = `lic-${env}-1`
 const pkgKid = `pkg-${env}-1`
+// Each environment's builds trust only their own set (see keys.ts).
+const SET = env === 'production' ? 'PRODUCTION' : 'STAGING'
 const pins = [
-    pinTarget(
-        'src/renderer/src/lib/license/keys.ts',
-        'PRODUCTION_KEYS',
-        licKid,
-    ),
-    pinTarget(
-        'src/shared/builderPackage.ts',
-        'PRODUCTION_PACKAGE_KEYS',
-        pkgKid,
-    ),
+    pinTarget('src/renderer/src/lib/license/keys.ts', `${SET}_KEYS`, licKid),
+    pinTarget('src/shared/builderPackage.ts', `${SET}_PACKAGE_KEYS`, pkgKid),
 ]
 
 // Arguments, not a file: nothing lands on disk. They are visible only to this

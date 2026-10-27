@@ -13,6 +13,14 @@ app runs fully local.
 | Web                    | dev.remappr.com, PR previews | remappr.com, the installers         |
 | Migrations + functions | on push to `dev`             | on a published release              |
 
+Builds also need `VITE_REMAPPR_ENV` (`production` or `staging`); the
+workflows set it. It picks the signing keys the build trusts, so a
+production app never accepts a license signed by staging. On CI a missing
+variable gives a build with no backend and no trusted keys.
+
+Locally, `.env.local` holds all three backends and `REMAPPR_BACKEND` picks
+one (dev by default); see `supabase/README.md` and `pnpm backend`.
+
 GitHub settings:
 
 | Where                                      | Name                                                                                                                                             |

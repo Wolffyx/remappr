@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config'
 import path from 'path'
 
 export default defineConfig({
+    // Build constants the app reads (see scripts/backend-env.ts).
+    define: { __REMAPPR_ENV__: JSON.stringify('test') },
     test: {
         globals: true,
         environment: 'node',

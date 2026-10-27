@@ -42,6 +42,7 @@
         "db:lint": "supabase db lint --level warning --fail-on warning",
         "db:types": "supabase gen types typescript --local --schema public > src/renderer/src/lib/cloud/database.types.ts && prettier --write src/renderer/src/lib/cloud/database.types.ts",
         "db:new": "supabase migration new",
+        "backend": "node --no-warnings scripts/backend.ts",
         "docs:dev": "vitepress dev docs",
         "docs:build": "vitepress build docs",
         "docs:preview": "vitepress preview docs"
