@@ -65,12 +65,13 @@ you choose. Comments on public items are public.
 
 ## Who processes it for us
 
-| Service                 | What for                                                             | Where                   |
-| ----------------------- | -------------------------------------------------------------------- | ----------------------- |
-| Supabase                | database, sign-in and sign-in emails, file storage, server functions | EU (Frankfurt, Germany) |
-| Stripe                  | payments and invoices                                                | US / EU                 |
-| Cloudflare              | the docs and staging sites; encrypted database backups (R2)          | global                  |
-| GitHub, Discord, Google | only if you sign in with them                                        | US                      |
+| Service                 | What for                                                    | Where                   |
+| ----------------------- | ----------------------------------------------------------- | ----------------------- |
+| Supabase                | database, sign-in, file storage, server functions           | EU (Frankfurt, Germany) |
+| Resend                  | sending sign-in emails                                      | EU (Ireland)            |
+| Stripe                  | payments and invoices                                       | US / EU                 |
+| Cloudflare              | the docs and staging sites; encrypted database backups (R2) | global                  |
+| GitHub, Discord, Google | only if you sign in with them                               | US                      |
 
 Where data leaves the EEA, the transfer relies on the provider's Standard
 Contractual Clauses or the EU–US Data Privacy Framework.

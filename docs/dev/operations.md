@@ -41,6 +41,43 @@ app (see `supabase/README.md`). The private keys exist nowhere else.
 Free projects pause after a week without activity and have no daily backups,
 so production relies on the weekly backup below until it moves to a paid plan.
 
+## Email
+
+Sign-in emails (the 6-digit code) go out through [Resend](https://resend.com)
+over SMTP. Supabase's built-in mailer is for testing only: a few emails an
+hour, sent from `noreply@mail.app.supabase.io`, and only to members of the
+Supabase organization.
+
+1. **Resend → Domains → Add domain**: `mail.remappr.com`, region **EU
+   (Ireland, eu-west-1)** (the privacy policy lists Resend there).
+2. Add the DNS records Resend shows (SPF and DKIM, plus its suggested DMARC)
+   where remappr.com's DNS lives, and wait until the domain shows Verified.
+3. **Resend → API Keys → Create**: permission _Sending access_, limited to
+   that domain; one key per Supabase project (`supabase-dev`,
+   `supabase-prod`), so either can be revoked alone. The key is shown once:
+   paste it straight into step 4, keep no other copy.
+4. Per Supabase project, **Authentication → Emails → SMTP Settings** →
+   enable custom SMTP:
+
+    | Field        | Value                         |
+    | ------------ | ----------------------------- |
+    | Sender email | `noreply@mail.remappr.com`    |
+    | Sender name  | `Remappr`                     |
+    | Host         | `smtp.resend.com`             |
+    | Port         | `587`                         |
+    | Username     | `resend`                      |
+    | Password     | that project's Resend API key |
+
+5. **Authentication → Rate Limits**: raise _emails sent per hour_ (dev 30,
+   prod to taste).
+6. **Authentication → Emails → Templates**: _Magic Link_ and _Confirm
+   signup_ both get the subject `Your Remappr sign-in code` and the body of
+   `supabase/templates/sign_in_code.html` (its `.Token` placeholder, in double curly braces, becomes the code). The local stack reads that file itself; hosted projects do not.
+
+Test: sign in with a fresh address and check the code arrives from
+`noreply@mail.remappr.com`. Locally nothing changes: codes land in Mailpit
+(`http://127.0.0.1:54324`).
+
 ## Health checks
 
 | Check                     | URL                                                 | Healthy                    |
