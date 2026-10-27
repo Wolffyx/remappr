@@ -79,6 +79,8 @@ export interface CloudLibrary {
     ): Promise<CloudDocument[]>
     /** The item's current head version, or null when it is gone. */
     head(itemId: string): Promise<number | null>
+    /** The item's sync-feed row, or null when it is gone. */
+    row(itemId: string): Promise<CloudRow | null>
 }
 
 const REFUSALS: readonly CloudRefusal[] = [
@@ -189,6 +191,26 @@ export function createCloudLibrary(client: CloudClient): CloudLibrary {
                 .maybeSingle()
             if (error) throw toError(error)
             return data && !data.deleted_at ? data.head_version : null
+        },
+        async row(itemId) {
+            const { data, error } = await client
+                .from('library_items')
+                .select(
+                    'id, client_id, type, name, head_version, updated_at, deleted_at',
+                )
+                .eq('id', itemId)
+                .maybeSingle()
+            if (error) throw toError(error)
+            if (!data || data.deleted_at) return null
+            return {
+                id: data.id,
+                clientId: data.client_id,
+                type: data.type,
+                name: data.name,
+                headVersion: data.head_version,
+                updatedAt: data.updated_at,
+                deletedAt: data.deleted_at,
+            }
         },
     }
 }

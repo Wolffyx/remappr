@@ -40,6 +40,8 @@ export interface LibraryModalProps {
     onBack?: () => void
     size?: ModalSize
     title?: string
+    /** What the library holds here ("Keymaps and boards"); the modal adds
+     *  where it lives (this machine, or synced with the account). */
     subtitle?: string
     save?: LibrarySaveAction
     /** The sections this host can open. Others are not listed. */
@@ -72,7 +74,7 @@ export function LibraryModal({
     onBack,
     size = 'sm',
     title = 'Library',
-    subtitle,
+    subtitle = 'Everything',
     save,
     openers,
     emptyText = 'Nothing saved yet. Save what you are working on to reopen it later.',
@@ -150,10 +152,9 @@ export function LibraryModal({
             onClose={onClose}
             onBack={onBack}
             title={title}
-            subtitle={
-                subtitle ??
-                (syncing ? 'Synced with your account' : 'Saved on this machine')
-            }
+            subtitle={`${subtitle} ${
+                syncing ? 'synced with your account' : 'saved on this machine'
+            }`}
             headerIcon={<Layers />}
             showFooter={false}
         >

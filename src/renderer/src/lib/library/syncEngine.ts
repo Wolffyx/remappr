@@ -85,6 +85,24 @@ const REFUSAL_STATE: Record<CloudRefusal, LibrarySyncState> = {
     not_found: 'local',
 }
 
+const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** The cloud client_id (a uuid) for a local id. Entries migrated from the old
+ *  localStorage libraries keep ids like "corne-1793…"; they get a stable uuid
+ *  derived from the id, so re-uploads stay idempotent. */
+export async function clientIdOf(localId: string): Promise<string> {
+    if (UUID_RE.test(localId)) return localId.toLowerCase()
+    const bytes = new TextEncoder().encode(`remappr.library:${localId}`)
+    const h = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+    h[6] = (h[6] & 0x0f) | 0x80 // version 8 (custom)
+    h[8] = (h[8] & 0x3f) | 0x80 // RFC 4122 variant
+    const hex = [...h.slice(0, 16)]
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 function sourceOf(document: unknown): string {
     return JSON.stringify(document, null, 2)
 }
@@ -137,7 +155,7 @@ export function createSyncEngine(
             })
         const itemId = await cloud.create(
             {
-                clientId: entry.localId,
+                clientId: await clientIdOf(entry.localId),
                 type: entry.type,
                 name: entry.name,
                 meta,
@@ -277,7 +295,10 @@ export function createSyncEngine(
         const byItem = new Map(
             entries.filter((e) => e.sync.itemId).map((e) => [e.sync.itemId, e]),
         )
-        const byLocal = new Map(entries.map((e) => [e.localId, e]))
+        const clientIds = await Promise.all(
+            entries.map((e) => clientIdOf(e.localId)),
+        )
+        const byLocal = new Map(entries.map((e, i) => [clientIds[i], e]))
         const toDownload: { row: CloudRow; local?: LibraryEntry }[] = []
         const tombstones: LibraryEntry[] = []
         const conflicts: LibraryEntry[] = []
@@ -323,20 +344,10 @@ export function createSyncEngine(
     }
 
     const takeCloud = async (entry: LibraryEntry): Promise<void> => {
-        const itemId = entry.sync.itemId
-        if (!itemId) return
-        const head = await cloud.head(itemId)
-        if (head === null) return
-        const row: CloudRow = {
-            id: itemId,
-            clientId: entry.localId,
-            type: entry.type,
-            name: entry.name,
-            headVersion: head,
-            updatedAt: new Date().toISOString(),
-            deletedAt: null,
-        }
-        await download([{ row, local: entry }])
+        const row = entry.sync.itemId
+            ? await cloud.row(entry.sync.itemId)
+            : null
+        if (row) await download([{ row, local: entry }])
     }
 
     const RESOLVE: Record<

@@ -95,10 +95,10 @@ export function SyncConflictDialog({
                         disabled={busy}
                         onClick={() => void choose('cloud')}
                     >
-                        Use the cloud version
+                        Use cloud
                     </Button>
                     <Button disabled={busy} onClick={() => void choose('mine')}>
-                        Keep this device’s
+                        Keep mine
                     </Button>
                 </div>
             }

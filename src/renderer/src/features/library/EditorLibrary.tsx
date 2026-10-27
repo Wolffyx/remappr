@@ -30,7 +30,7 @@ export function EditorLibrary({
         <LibraryModal
             open={opened}
             onClose={onClose}
-            subtitle="Keymaps and boards saved on this machine"
+            subtitle="Keymaps and boards"
             openers={openers}
             save={{
                 label: 'Save current keymap',

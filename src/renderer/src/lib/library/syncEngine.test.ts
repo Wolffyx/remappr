@@ -10,7 +10,7 @@ import {
 } from './cloudLibrary'
 import { keymapEntry } from './entries'
 import { createMemoryLibrary, type LibraryRepository } from './localLibrary'
-import { createSyncEngine } from './syncEngine'
+import { clientIdOf, createSyncEngine } from './syncEngine'
 import { LOCAL_SYNC, type LibraryEntry } from './types'
 
 const corne = parseKeymap(
@@ -133,6 +133,19 @@ function fakeCloud(quota = 10): CloudLibrary & {
             const it = items.get(itemId)
             return it && !it.deletedAt ? it.versions.length : null
         },
+        async row(itemId) {
+            const it = items.get(itemId)
+            if (!it || it.deletedAt) return null
+            return {
+                id: it.id,
+                clientId: it.clientId,
+                type: it.type,
+                name: it.name,
+                headVersion: it.versions.length,
+                updatedAt: it.updatedAt,
+                deletedAt: null,
+            }
+        },
     }
 }
 
@@ -238,6 +251,7 @@ describe('syncEngine', () => {
         const e = await save(machineA, 'Corne')
         await a.pushPending()
         const itemId = (await machineA.get(e.localId))!.sync.itemId!
+        cloud.items.get(itemId)!.name = 'Remote'
         cloud.editRemote(
             itemId,
             JSON.parse(
@@ -260,6 +274,7 @@ describe('syncEngine', () => {
             state: 'synced',
             baseVersion: 2,
         })
+        expect(all.find((x) => x.localId === e.localId)?.name).toBe('Remote')
         expect(all.find((x) => x.localId !== e.localId)?.name).toBe(
             'Local (this device)',
         )
@@ -344,5 +359,32 @@ describe('syncEngine', () => {
             baseVersion: 2,
             dirty: false,
         })
+    })
+
+    it('gives legacy local ids a stable uuid client id', async () => {
+        const uuid =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+        const id = await clientIdOf('my_keyboard-1793089561795')
+        expect(id).toMatch(uuid)
+        expect(await clientIdOf('my_keyboard-1793089561795')).toBe(id)
+        const plain = crypto.randomUUID()
+        expect(await clientIdOf(plain)).toBe(plain)
+
+        const a = createSyncEngine(machineA, cloud, ACCOUNT)
+        const e = await save(machineA, 'Legacy')
+        const legacy = { ...e, localId: 'my_keyboard-1793089561795' }
+        await machineA.remove(e.localId)
+        await machineA.put(legacy)
+        await a.pushPending()
+        expect([...cloud.items.values()][0].clientId).toBe(id)
+        // Lost reply: re-upload maps to the same item.
+        await machineA.put({ ...legacy, sync: { ...LOCAL_SYNC } })
+        await a.pushPending()
+        expect(cloud.items.size).toBe(1)
+        // Another machine pulls it under the uuid; this one keeps its id.
+        await a.pull(null)
+        expect((await machineA.list()).map((x) => x.localId)).toEqual([
+            legacy.localId,
+        ])
     })
 })
