@@ -1,0 +1,39 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended",
+        "helpers:pinGitHubActionDigests",
+        ":semanticCommits"
+    ],
+    "baseBranches": ["dev"],
+    "timezone": "Europe/Bucharest",
+    "schedule": ["before 6am on monday"],
+    "prConcurrentLimit": 5,
+    "lockFileMaintenance": {
+        "enabled": true,
+        "schedule": ["before 6am on the first day of the month"]
+    },
+    "vulnerabilityAlerts": {
+        "labels": ["security"],
+        "schedule": ["at any time"]
+    },
+    "packageRules": [
+        {
+            "description": "Minor and patch updates of npm packages land as one PR.",
+            "matchManagers": ["npm"],
+            "matchUpdateTypes": ["minor", "patch"],
+            "groupName": "npm minor and patch"
+        },
+        {
+            "description": "Actions stay pinned to a commit SHA, grouped.",
+            "matchManagers": ["github-actions"],
+            "groupName": "github actions"
+        },
+        {
+            "description": "Electron majors change the native ABI and the V8 cage; review by hand.",
+            "matchPackageNames": ["electron"],
+            "matchUpdateTypes": ["major"],
+            "dependencyDashboardApproval": true
+        }
+    ]
+}
