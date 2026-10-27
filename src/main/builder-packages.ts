@@ -37,6 +37,45 @@ const TYPES: Record<string, string> = {
     '.json': 'application/json',
 }
 
+// Pattern check: no GoF pattern (-) — rejected — a bounds check of one IPC
+// payload with guard clauses; its one caller is store().
+/** Bounds on what store() takes, checked before any decoding or hashing, so a
+ *  bad renderer cannot make main decode or write an unbounded payload. Today's
+ *  builder package is a handful of files around 2 MB. */
+export const PACKAGE_LIMITS = {
+    files: 64,
+    fileBytes: 8 * 1024 * 1024,
+    totalBytes: 32 * 1024 * 1024,
+    manifestChars: 64 * 1024,
+}
+
+/** Bytes a base64 string decodes to (upper bound, padding ignored). */
+const decodedBytes = (b64: string): number => Math.ceil((b64.length * 3) / 4)
+
+/** Throws when a store payload is over PACKAGE_LIMITS or malformed. */
+export function checkPackagePayload(
+    signed: PackageSignature,
+    files: Record<string, string>,
+): void {
+    if (typeof signed?.manifest !== 'string')
+        throw new Error('package manifest missing')
+    if (signed.manifest.length > PACKAGE_LIMITS.manifestChars)
+        throw new Error('package manifest too large')
+    const values = Object.values(files ?? {})
+    if (values.length > PACKAGE_LIMITS.files)
+        throw new Error('package has too many files')
+    let total = 0
+    for (const value of values) {
+        if (typeof value !== 'string')
+            throw new Error('package file is not base64 text')
+        const bytes = decodedBytes(value)
+        if (bytes > PACKAGE_LIMITS.fileBytes)
+            throw new Error('package file too large')
+        total += bytes
+    }
+    if (total > PACKAGE_LIMITS.totalBytes) throw new Error('package too large')
+}
+
 /** { version, file } of a remappr-pkg URL, or null when it is not one we serve
  *  (any other host, a bad version, a file name with a path in it). */
 export function parsePackageUrl(
@@ -99,8 +138,11 @@ export function createPackageCache(root: string, dev: boolean): PackageCache {
             signed: PackageSignature,
             files: Record<string, string>,
         ): Promise<StoredPackage> {
+            checkPackagePayload(signed, files)
             const manifest = verifySignedManifest(signed, dev)
             if (!manifest) throw new Error('package signature does not verify')
+            if (manifest.files.length > PACKAGE_LIMITS.files)
+                throw new Error('package has too many files')
             const tmp = join(root, `.${manifest.version}.${process.pid}.tmp`)
             await rm(tmp, { recursive: true, force: true })
             await mkdir(tmp, { recursive: true })

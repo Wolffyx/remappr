@@ -38,6 +38,7 @@
     "src/preload/**/*",
     "src/shared/**/*",
     "src/firmware/**/*",
+    "scripts/*.ts",
     "scripts/release/**/*"
   ],
   "exclude": [

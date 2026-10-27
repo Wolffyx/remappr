@@ -11,8 +11,10 @@ vi.mock('electron', () => ({
 }))
 
 import {
+    checkPackagePayload,
     createPackageCache,
     installSeed,
+    PACKAGE_LIMITS,
     parsePackageUrl,
 } from './builder-packages'
 
@@ -32,6 +34,59 @@ describe('parsePackageUrl', () => {
             parsePackageUrl('remappr-pkg://builder/latest/index.mjs'),
         ).toBeNull()
         expect(parsePackageUrl('https://builder/1.2.3/index.mjs')).toBeNull()
+    })
+})
+
+describe('checkPackagePayload', () => {
+    const signed = { manifest: '{}', signature: '', kid: 'dev' }
+    const b64 = (bytes: number): string => 'A'.repeat(Math.ceil(bytes / 3) * 4)
+
+    it('takes a payload within the limits', () => {
+        expect(() =>
+            checkPackagePayload(signed, { 'index.mjs': b64(1024) }),
+        ).not.toThrow()
+    })
+
+    it('refuses too many files, a big file, a big total, a big manifest', () => {
+        const many = Object.fromEntries(
+            Array.from({ length: PACKAGE_LIMITS.files + 1 }, (_, i) => [
+                `f${i}.js`,
+                '',
+            ]),
+        )
+        expect(() => checkPackagePayload(signed, many)).toThrow(/too many/)
+        expect(() =>
+            checkPackagePayload(signed, {
+                'a.js': b64(PACKAGE_LIMITS.fileBytes + 3),
+            }),
+        ).toThrow(/file too large/)
+        const half = b64(PACKAGE_LIMITS.fileBytes - 3)
+        const big = Object.fromEntries(
+            Array.from({ length: 5 }, (_, i) => [`f${i}.js`, half]),
+        )
+        expect(() => checkPackagePayload(signed, big)).toThrow(
+            /package too large/,
+        )
+        expect(() =>
+            checkPackagePayload(
+                {
+                    ...signed,
+                    manifest: 'x'.repeat(PACKAGE_LIMITS.manifestChars + 1),
+                },
+                {},
+            ),
+        ).toThrow(/manifest too large/)
+    })
+
+    it('refuses a non-string file or a missing manifest', () => {
+        expect(() =>
+            checkPackagePayload(signed, {
+                'a.js': 1 as unknown as string,
+            }),
+        ).toThrow(/base64/)
+        expect(() => checkPackagePayload({} as typeof signed, {})).toThrow(
+            /manifest missing/,
+        )
     })
 })
 
