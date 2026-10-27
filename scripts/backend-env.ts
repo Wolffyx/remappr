@@ -26,9 +26,9 @@ const ENV_NAME: Record<Backend, string> = {
     prod: 'production',
 }
 
-/** The site the desktop app opens to sign in (lib/cloud/desktopHandoff);
- *  <PREFIX>_AUTH_SITE_URL in .env.local overrides it, e.g. a local web dev
- *  server while testing a change to the sign-in page. */
+/** The site a built desktop app opens to sign in (lib/cloud/desktopHandoff).
+ *  Dev runs (pnpm edev / pnpm dev) open their own dev server instead.
+ *  <PREFIX>_AUTH_SITE_URL in .env.local overrides both. */
 const AUTH_SITE: Record<Backend, string> = {
     local: 'http://localhost:5173',
     dev: 'https://dev.remappr.com',
@@ -45,8 +45,11 @@ export interface BackendEnv {
     envName: string
     /** "kid:hex,kid:hex" public signing keys for staging builds. */
     signingKeys: string
-    /** Where desktop sign-in opens the browser. */
+    /** Where desktop sign-in opens the browser, in a build. */
     authSiteUrl: string
+    /** An explicit <PREFIX>_AUTH_SITE_URL from .env.local, also in dev runs
+     *  (which otherwise open their own dev server). */
+    authSiteOverride: string
 }
 
 export interface ExtraKeys {
@@ -89,6 +92,7 @@ export function resolveBackend(root: string, mode: string): BackendEnv {
             envName: process.env.VITE_REMAPPR_ENV ?? '',
             signingKeys: process.env.VITE_SIGNING_PUBLIC_KEYS ?? '',
             authSiteUrl: process.env.VITE_AUTH_SITE_URL ?? '',
+            authSiteOverride: process.env.VITE_AUTH_SITE_OVERRIDE ?? '',
         }
     const env = loadEnv(mode, root, '')
     const chosen = process.env.REMAPPR_BACKEND ?? env.REMAPPR_BACKEND
@@ -105,6 +109,7 @@ export function resolveBackend(root: string, mode: string): BackendEnv {
         envName: ENV_NAME[backend],
         signingKeys: env[`${prefix}_SIGNING_PUBLIC_KEYS`] ?? '',
         authSiteUrl: env[`${prefix}_AUTH_SITE_URL`] || AUTH_SITE[backend],
+        authSiteOverride: env[`${prefix}_AUTH_SITE_URL`] ?? '',
     }
 }
 
@@ -122,6 +127,7 @@ export function backendDefine(
     process.env.VITE_REMAPPR_ENV = chosen.envName
     process.env.VITE_SIGNING_PUBLIC_KEYS = chosen.signingKeys
     process.env.VITE_AUTH_SITE_URL = chosen.authSiteUrl
+    process.env.VITE_AUTH_SITE_OVERRIDE = chosen.authSiteOverride
     const extra = parseSigningKeys(chosen.signingKeys, chosen.envName)
     if (mode !== 'test')
         console.info(

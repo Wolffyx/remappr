@@ -7,12 +7,31 @@
 
 const AUTH_PARAMS = ['code', 'error', 'error_code', 'error_description']
 
-/** The site that hosts auth/desktop.html for this build. */
+/** This page's origin when it is served over http(s) (a dev server, or the
+ *  web app); null under app:// or file://. */
+function httpOrigin(): string | null {
+    if (typeof window === 'undefined') return null
+    const { protocol, origin } = window.location
+    return protocol === 'http:' || protocol === 'https:' ? origin : null
+}
+
+/** The site the desktop app opens to sign in (and that hosts
+ *  auth/desktop.html). In order: an explicit override from .env.local; in a
+ *  dev run, this dev server itself (the same app, opened in the browser, on
+ *  whatever port it got); the build's site for its backend; remappr.com. */
 export function authSiteUrl(
-    env: Pick<ImportMetaEnv, 'VITE_AUTH_SITE_URL' | 'DEV'> = import.meta.env,
+    env: Pick<
+        ImportMetaEnv,
+        'VITE_AUTH_SITE_URL' | 'VITE_AUTH_SITE_OVERRIDE' | 'DEV'
+    > = import.meta.env,
+    origin: string | null = httpOrigin(),
 ): string {
+    const trim = (url: string): string => url.trim().replace(/\/+$/, '')
+    const override = env.VITE_AUTH_SITE_OVERRIDE?.trim()
+    if (override) return trim(override)
+    if (env.DEV && origin) return trim(origin)
     const configured = env.VITE_AUTH_SITE_URL?.trim()
-    if (configured) return configured.replace(/\/+$/, '')
+    if (configured) return trim(configured)
     return env.DEV ? 'http://localhost:5173' : 'https://remappr.com'
 }
 
