@@ -21,10 +21,10 @@ GitHub settings:
 | environment `supabase-staging`, secrets    | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_STAGING`, `SUPABASE_DB_PASSWORD_STAGING`                                                          |
 | environment `supabase-production`, secrets | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_PRODUCTION`, `SUPABASE_DB_PASSWORD_PRODUCTION` (plus the backup settings below)                   |
 
-Each Supabase project also needs its own Edge Function secrets
-(`supabase secrets set --project-ref <ref> …`): `LICENSE_SIGNING_KEY`,
-`LICENSE_SIGNING_KID`, `PACKAGE_SIGNING_KEY`, `PACKAGE_SIGNING_KID`,
-`WATERMARK_KEY`. Never reuse the local keys from `supabase/functions/.env`.
+Each Supabase project also needs its own signing keys. Make them with
+`node scripts/gen-signing-keys.mjs <staging|production> <project-ref>`: it
+sets them straight as the project's secrets and pins the public keys in the
+app (see `supabase/README.md`). The private keys exist nowhere else.
 
 Free projects pause after a week without activity and have no daily backups,
 so production relies on the weekly backup below until it moves to a paid plan.

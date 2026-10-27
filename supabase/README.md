@@ -71,16 +71,25 @@ public half is pinned for dev builds only in
 pnpm exec supabase functions serve --env-file supabase/functions/.env
 ```
 
-Per environment, once:
+Per environment, once (after `pnpm exec supabase login`):
 
-1. `node scripts/gen-signing-keys.mjs <staging|production>` writes the private
-   keys to `supabase/secrets.<env>.env` (gitignored, mode 600) and pins the
-   public keys under `lic-<env>-1` / `pkg-<env>-1` in
-   `src/renderer/src/lib/license/keys.ts` and `src/shared/builderPackage.ts`.
-   It refuses to overwrite an existing file; keep a copy offline.
-2. `pnpm exec supabase secrets set --project-ref <ref> --env-file supabase/secrets.<env>.env`
-3. Ship the release with the pinned public keys before the server signs with
-   them.
+1. `node scripts/gen-signing-keys.mjs <staging|production> <project-ref>`
+   generates the license and package key pairs and the watermark key in
+   memory, sets them as that project's secrets, and pins the public keys under
+   `lic-<env>-1` / `pkg-<env>-1` in `src/renderer/src/lib/license/keys.ts` and
+   `src/shared/builderPackage.ts`. The private keys are never written to disk
+   or shown, and Supabase does not show them again: only the project can sign
+   licenses. It refuses a project that already has keys.
+2. Commit the pinned public keys and ship that release before the server's
+   licenses reach users.
+
+Licenses are 30-day leases (`claimsFor` in `_shared/license.ts`); the app
+renews them online, and `license-refresh` checks the database every time.
+Even a token signed by someone holding the key stops working within a month,
+unless the real server renews it.
+
+Rotating a key: pin the new public key in a release first, then set the new
+private key and kid. Losing a project's secrets means doing exactly that.
 
 ## Builder packages
 

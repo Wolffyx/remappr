@@ -67,6 +67,9 @@ export function BuilderDevices(): JSX.Element | null {
     const status = useLicenseStore((s) => s.status)
     const deviceHash = useLicenseStore((s) => s.deviceHash)
     const licenseError = useLicenseStore((s) => s.error)
+    const leaseOut = useLicenseStore(
+        (s) => s.problem === 'expired' || s.problem === 'no_lease',
+    )
     const activate = useLicenseStore((s) => s.activate)
     const clear = useLicenseStore((s) => s.clear)
     const [view, setView] = useState<DevicesView | null>(null)
@@ -132,8 +135,15 @@ export function BuilderDevices(): JSX.Element | null {
             </div>
             <p className="text-xs text-muted-foreground">
                 The builder works on the devices holding your license, also
-                offline.
+                offline. Each device renews it online at least once every 30
+                days; it happens on its own whenever you are connected.
             </p>
+            {leaseOut && (
+                <p className="text-xs text-destructive">
+                    This device&apos;s license ran out while offline. It renews
+                    as soon as you are back online.
+                </p>
+            )}
             <ul className="space-y-1.5">
                 {view.devices.map((d) => (
                     <li

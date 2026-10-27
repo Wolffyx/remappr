@@ -67,7 +67,10 @@ contest a decision at [wolffyx-remappr@wolffyx.com](mailto:wolffyx-remappr@wolff
 
 The Builder is free during its alpha and beta. Paid plans, when offered, give
 you a personal, non-transferable license to use it on a limited number of
-devices at a time (shown in **Settings → Account → Builder devices**). You may
+devices at a time (shown in **Settings → Account → Builder devices**). Each
+device renews its license online at least once every 30 days; it happens on
+its own whenever you are connected, and the Builder waits for it on a device
+that has been offline longer. You may
 not copy, resell, redistribute or remove the license checks from the Builder.
 Firmware and files you make with it are yours.
 

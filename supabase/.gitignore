@@ -10,5 +10,3 @@
 # Local Edge Function secrets (dev signing keys)
 functions/.env
 
-# Per-environment signing keys (scripts/gen-signing-keys.mjs)
-secrets.*.env

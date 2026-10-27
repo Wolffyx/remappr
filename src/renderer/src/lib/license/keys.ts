@@ -5,12 +5,7 @@
 // The dev key's private half exists only in a developer's gitignored
 // supabase/functions/.env, so it is trusted in dev builds only.
 
-const PRODUCTION_KEYS: Readonly<Record<string, string>> = {
-    'lic-staging-1':
-        '436efdfe19b82638e1affb948ea8694bed81368ff8f007b3964a2d5e11247bc4',
-    'lic-production-1':
-        '4eaa422d1f93162e320739e3b64d2d1bf0184c87adeb3af7199be81cee9d5a4d',
-}
+const PRODUCTION_KEYS: Readonly<Record<string, string>> = {}
 
 const DEV_KEYS: Readonly<Record<string, string>> = {
     'lic-dev-1':

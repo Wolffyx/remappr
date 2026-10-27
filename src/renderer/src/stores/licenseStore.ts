@@ -4,7 +4,10 @@
 //
 // This device's builder license. On start it is verified offline (pinned key,
 // this device, this machine, expiry, clock rollback) and the result feeds the
-// builder gate. When online it is refreshed at most hourly: a refund, a lapsed
+// builder gate. Every token is a 30-day lease. It is renewed at most hourly
+// while online (on start, when the connection comes back, and every hour), so
+// it never runs out for a device that goes online now and then; one that has
+// been offline longer renews the moment it reconnects. A refund, a lapsed
 // subscription or a deactivated device comes back `revoked` and the license is
 // dropped. Activation needs a signed-in account with a real entitlement.
 import { create } from 'zustand'
@@ -144,6 +147,17 @@ const useLicenseStore = create<LicenseState>()((set, get) => {
         init: () => {
             started ??= (async () => {
                 set({ status: 'checking' })
+                // Keep the lease fresh while the app runs, and renew one that ran
+                // out offline as soon as the connection is back.
+                const renew = (): void => {
+                    get()
+                        .refresh()
+                        .catch((e: unknown) =>
+                            log.warn('license renew failed', e),
+                        )
+                }
+                window.addEventListener('online', renew)
+                setInterval(renew, REFRESH_EVERY_MS)
                 // Once the builder is paid and the plan grants it, activate
                 // this device on its own (once per session; the Devices list
                 // in Settings → Account explains a refusal).

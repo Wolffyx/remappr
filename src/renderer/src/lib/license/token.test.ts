@@ -1,11 +1,20 @@
 // pattern-check: skip — unit tests for offline license verification
 import { describe, expect, it } from 'vitest'
 import { ed25519 } from '@noble/curves/ed25519.js'
-import { verifyLicense, type LicenseClaims, type VerifyContext } from './token'
+import {
+    LEASE_MAX_S,
+    verifyLicense,
+    type LicenseClaims,
+    type VerifyContext,
+} from './token'
 
 const secret = ed25519.utils.randomSecretKey()
 const pub = Buffer.from(ed25519.getPublicKey(secret)).toString('hex')
 const b64url = (u: Uint8Array): string => Buffer.from(u).toString('base64url')
+
+const NOW = Date.UTC(2026, 9, 27)
+const IAT = Math.floor(NOW / 1000) - 60
+const LEASE = 30 * 24 * 60 * 60
 
 function sign(claims: Partial<LicenseClaims>): string {
     const full: LicenseClaims = {
@@ -16,15 +25,14 @@ function sign(claims: Partial<LicenseClaims>): string {
         mach: null,
         feat: { builder: 1 },
         plan: 'lifetime',
-        iat: 1,
-        exp: null,
+        iat: IAT,
+        exp: IAT + LEASE,
         ...claims,
     }
     const body = new TextEncoder().encode(JSON.stringify(full))
     return `${b64url(body)}.${b64url(ed25519.sign(body, secret))}`
 }
 
-const NOW = Date.UTC(2026, 9, 27)
 const ctx: VerifyContext = {
     device: 'd'.repeat(64),
     machine: null,
@@ -34,6 +42,22 @@ const ctx: VerifyContext = {
 }
 
 describe('verifyLicense', () => {
+    it('refuses a token without a lease or with one over 31 days', () => {
+        expect(verifyLicense(sign({ exp: null }), ctx)).toEqual({
+            ok: false,
+            problem: 'no_lease',
+        })
+        expect(
+            verifyLicense(sign({ exp: IAT + LEASE_MAX_S + 1 }), ctx),
+        ).toEqual({ ok: false, problem: 'no_lease' })
+    })
+
+    it('expires a lifetime lease after its 30 days', () => {
+        expect(
+            verifyLicense(sign({}), { ...ctx, now: (IAT + LEASE) * 1000 }),
+        ).toEqual({ ok: false, problem: 'expired' })
+    })
+
     it('accepts a lifetime license for this device', () => {
         expect(verifyLicense(sign({}), ctx)).toMatchObject({ ok: true })
     })
@@ -93,9 +117,9 @@ describe('verifyLicense', () => {
                 maxSeen: NOW + 3 * 86_400_000,
             }),
         ).toEqual({ ok: false, problem: 'clock_rollback' })
-        // A lifetime license ignores the clock.
+        // Lifetime leases are guarded the same way.
         expect(
-            verifyLicense(sign({}), { ...ctx, maxSeen: NOW + 30 * 86_400_000 }),
-        ).toMatchObject({ ok: true })
+            verifyLicense(sign({}), { ...ctx, maxSeen: NOW + 3 * 86_400_000 }),
+        ).toEqual({ ok: false, problem: 'clock_rollback' })
     })
 })
