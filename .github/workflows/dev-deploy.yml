@@ -59,6 +59,11 @@ jobs:
 
             - name: Build
               run: pnpm build
+              env:
+                  # The staging backend (public-safe values: URL and
+                  # publishable key). Unset → the site builds with no cloud.
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
             - name: Deploy to Cloudflare Pages (dev)
               id: cf

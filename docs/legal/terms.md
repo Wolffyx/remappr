@@ -61,7 +61,7 @@ Do not upload or publish:
 
 We may hide or remove content that breaks these rules, or that is reported
 and found to break them, and suspend accounts that keep doing so. You can
-contest a decision at `[CONTACT_EMAIL]`.
+contest a decision at [wolffyx-remappr@wolffyx.com](mailto:wolffyx-remappr@wolffyx.com).
 
 ## 5. The Builder
 
@@ -105,7 +105,7 @@ paid us in the 12 months before the claim.
 
 ## 10. Law
 
-These terms are governed by the law of `[GOVERNING_LAW]`. If you are a
+These terms are governed by the law of Romania. If you are a
 consumer, you also keep the protection of the law of the country you live in,
 and may bring a claim there.
 
@@ -114,4 +114,4 @@ and may bring a claim there.
 We will tell you in the app at least 30 days before a change that affects
 you. If you do not agree, you can delete your account before it takes effect.
 
-Questions: `[CONTACT_EMAIL]`.
+Questions: [wolffyx-remappr@wolffyx.com](mailto:wolffyx-remappr@wolffyx.com).

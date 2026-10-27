@@ -17,7 +17,7 @@ policy is about what happens when you choose to sign in.
 
 **Who we are.** Remappr is run by `[OPERATOR]`, `[OPERATOR_ADDRESS]`
 ("Remappr", "we"). For anything about your data, write to
-`[CONTACT_EMAIL]`.
+[wolffyx-remappr@wolffyx.com](mailto:wolffyx-remappr@wolffyx.com).
 
 ## Without an account
 
@@ -29,7 +29,7 @@ policy is about what happens when you choose to sign in.
   cookies**, signed in or not.
 - The app loads its news and release notes from GitHub (`api.github.com`,
   `raw.githubusercontent.com`), so GitHub sees your IP address when it does.
-  The web app itself is served by `[WEB_HOST]`, which sees your IP address
+  The web app itself is served by GitHub Pages, which sees your IP address
   as any web host does.
 
 ## With an account
@@ -65,13 +65,12 @@ you choose. Comments on public items are public.
 
 ## Who processes it for us
 
-| Service                 | What for                                                    | Where               |
-| ----------------------- | ----------------------------------------------------------- | ------------------- |
-| Supabase                | database, sign-in, file storage, server functions           | `[SUPABASE_REGION]` |
-| Stripe                  | payments and invoices                                       | US / EU             |
-| `[SMTP_PROVIDER]`       | sign-in emails                                              | `[SMTP_REGION]`     |
-| Cloudflare              | the docs and staging sites; encrypted database backups (R2) | global              |
-| GitHub, Discord, Google | only if you sign in with them                               | US                  |
+| Service                 | What for                                                             | Where                   |
+| ----------------------- | -------------------------------------------------------------------- | ----------------------- |
+| Supabase                | database, sign-in and sign-in emails, file storage, server functions | EU (Frankfurt, Germany) |
+| Stripe                  | payments and invoices                                                | US / EU                 |
+| Cloudflare              | the docs and staging sites; encrypted database backups (R2)          | global                  |
+| GitHub, Discord, Google | only if you sign in with them                                        | US                      |
 
 Where data leaves the EEA, the transfer relies on the provider's Standard
 Contractual Clauses or the EU–US Data Privacy Framework.
@@ -84,8 +83,9 @@ Contractual Clauses or the EU–US Data Privacy Framework.
 - **Audit log**: 1 year; builder download records 2 years.
 - **Purchases**: as long as tax law requires, without a link to you once your
   account is deleted.
-- **Backups**: daily backups for 7 days and weekly encrypted backups for 90
-  days. Deleted data disappears from them as they expire.
+- **Backups**: weekly encrypted backups for 90 days, plus Supabase's own
+  daily backups (7 days) where the plan includes them. Deleted data
+  disappears from them as they expire.
 
 ## Your rights
 
@@ -98,8 +98,9 @@ Account**:
   their threads as "[deleted]", without their text.
 
 You can also object to processing, ask us to restrict it, or ask any question,
-at `[CONTACT_EMAIL]`. We answer within one month. You may complain to your data
-protection authority (`[SUPERVISORY_AUTHORITY]`).
+at [wolffyx-remappr@wolffyx.com](mailto:wolffyx-remappr@wolffyx.com). We answer within one month. You may complain to your data
+protection authority; in Romania that is ANSPDCP
+([dataprotection.ro](https://www.dataprotection.ro)).
 
 ## Children
 

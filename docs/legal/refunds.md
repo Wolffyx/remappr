@@ -13,29 +13,34 @@ _Effective `[EFFECTIVE_DATE]`_
 
 Remappr is free to use. This policy covers paid plans, once they are offered.
 
-## Money-back refund
+## Refunds before you activate
 
-If a paid plan is not right for you, ask for a refund within
-**`[REFUND_WINDOW]` days** of your first payment and you get the full amount
-back, no questions asked. Write to `[CONTACT_EMAIL]` from your account's email
-address, or reply to your receipt.
+Ask within **15 days of purchase** and you get the full amount back, as long
+as the plan has **not been activated on any device** yet (activation happens
+the first time the Builder is unlocked on a computer or browser, and shows in
+**Settings → Account → Builder devices**). Write to
+[wolffyx-remappr@wolffyx.com](mailto:wolffyx-remappr@wolffyx.com) from your
+account's email address, or reply to your receipt.
 
-- **Subscriptions**: the first payment is covered. Later renewals are not
-  refunded, but you can cancel at any time in the billing portal and keep
-  access until the end of the period you paid for.
-- **Lifetime plans**: covered within the same `[REFUND_WINDOW]` days.
+Once a plan has been activated, the license has been delivered and the
+purchase is not refunded, except as the next two sections say.
+
+- **Subscriptions**: the rule above covers the first payment. You can cancel
+  at any time in the billing portal and keep access until the end of the
+  period you paid for; renewals are not refunded.
+- **Lifetime plans**: the same 15 days, before activation.
 
 Refunds go back to the original payment method through Stripe, usually within
-5–10 days. A refunded plan ends straight away and its Builder devices are
-released.
+5–10 days. A refunded plan ends straight away.
 
 ## Your right of withdrawal (EU and UK)
 
 Digital services start as soon as you buy them. At checkout you are asked to
 agree that the plan starts at once and that you lose the statutory 14-day
-right of withdrawal once it has. The refund above applies regardless.
+right of withdrawal once it is activated. Before activation, the 15-day refund
+above applies.
 
 ## Problems
 
-If something you paid for does not work, write to `[CONTACT_EMAIL]`. Your
+If something you paid for does not work, write to [wolffyx-remappr@wolffyx.com](mailto:wolffyx-remappr@wolffyx.com). Your
 consumer rights for faulty digital content are not affected by this policy.
