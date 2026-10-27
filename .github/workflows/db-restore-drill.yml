@@ -4,7 +4,7 @@ name: Database restore drill
 # a throwaway Supabase stack on the runner, and fail unless every table comes
 # back with the row count recorded at backup time (scripts/db/restore-drill.sh).
 #
-# Environment "supabase-production": the db-backup.yml bucket settings, plus
+# Environment "supabase-backups": the db-backup.yml bucket settings, plus
 #   secrets  AGE_IDENTITY (the age private key matching AGE_RECIPIENT)
 
 on:
@@ -18,7 +18,7 @@ permissions:
 jobs:
     drill:
         runs-on: ubuntu-latest
-        environment: supabase-production
+        environment: supabase-backups
         env:
             AGE_IDENTITY: ${{ secrets.AGE_IDENTITY }}
             AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}

@@ -74,7 +74,6 @@ jobs:
         environment: supabase-staging
         env:
             SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-            SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_STAGING }}
             PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF_STAGING }}
         steps:
             - name: Skip without a staging project
@@ -106,17 +105,15 @@ jobs:
                   pnpm install --frozen-lockfile --ignore-scripts
                   pnpm rebuild supabase
 
-            - name: Link staging
-              if: steps.guard.outputs.skip != 'true'
-              run: pnpm exec supabase link --project-ref "$PROJECT_REF"
-
             - name: Push migrations
               if: steps.guard.outputs.skip != 'true'
-              run: pnpm exec supabase db push
+              # Forward only: applies new migrations, never resets. The access
+              # token is enough; no database password is needed.
+              run: pnpm exec supabase db push --yes --project-ref "$PROJECT_REF"
 
             - name: Deploy Edge Functions
               if: steps.guard.outputs.skip != 'true' && hashFiles('supabase/functions/*/index.ts') != ''
-              run: pnpm exec supabase functions deploy
+              run: pnpm exec supabase functions deploy --project-ref "$PROJECT_REF"
 
     deploy-production:
         if: github.event_name == 'release'
@@ -124,7 +121,6 @@ jobs:
         environment: supabase-production
         env:
             SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-            SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_PRODUCTION }}
             PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF_PRODUCTION }}
         steps:
             - name: Skip without a production project
@@ -156,14 +152,12 @@ jobs:
                   pnpm install --frozen-lockfile --ignore-scripts
                   pnpm rebuild supabase
 
-            - name: Link production
-              if: steps.guard.outputs.skip != 'true'
-              run: pnpm exec supabase link --project-ref "$PROJECT_REF"
-
             - name: Push migrations
               if: steps.guard.outputs.skip != 'true'
-              run: pnpm exec supabase db push
+              # Forward only: applies new migrations, never resets. The access
+              # token is enough; no database password is needed.
+              run: pnpm exec supabase db push --yes --project-ref "$PROJECT_REF"
 
             - name: Deploy Edge Functions
               if: steps.guard.outputs.skip != 'true' && hashFiles('supabase/functions/*/index.ts') != ''
-              run: pnpm exec supabase functions deploy
+              run: pnpm exec supabase functions deploy --project-ref "$PROJECT_REF"

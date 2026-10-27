@@ -6,7 +6,7 @@ name: Database backup
 # leaves the runner, uploaded to an S3-compatible bucket (R2), and copies older
 # than 90 days are pruned. db-restore-drill.yml restores the newest one.
 #
-# Environment "supabase-production":
+# Environment "supabase-backups":
 #   secrets  SUPABASE_DB_URL (session pooler URL), BACKUP_S3_ACCESS_KEY_ID,
 #            BACKUP_S3_SECRET_ACCESS_KEY
 #   vars     AGE_RECIPIENT (age public key), BACKUP_S3_ENDPOINT, BACKUP_S3_BUCKET
@@ -26,7 +26,7 @@ concurrency:
 jobs:
     backup:
         runs-on: ubuntu-latest
-        environment: supabase-production
+        environment: supabase-backups
         env:
             SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
             AGE_RECIPIENT: ${{ vars.AGE_RECIPIENT }}

@@ -23,11 +23,15 @@ one (dev by default); see `supabase/README.md` and `pnpm backend`.
 
 GitHub settings:
 
-| Where                                      | Name                                                                                                                                                                                                                 |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| environment `remappr`, variables           | `VITE_SUPABASE_URL_STAGING`, `VITE_SUPABASE_PUBLISHABLE_KEY_STAGING`, `VITE_SUPABASE_URL_PRODUCTION`, `VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION`, `SIGNING_PUBLIC_KEYS_STAGING` (printed by `pnpm backend keys dev`) |
-| environment `supabase-staging`, secrets    | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_STAGING`, `SUPABASE_DB_PASSWORD_STAGING`                                                                                                                              |
-| environment `supabase-production`, secrets | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_PRODUCTION`, `SUPABASE_DB_PASSWORD_PRODUCTION` (plus the backup settings below)                                                                                       |
+| Where                                                                       | Name                                                                                                                                                                                                                 |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| environment `remappr`, variables                                            | `VITE_SUPABASE_URL_STAGING`, `VITE_SUPABASE_PUBLISHABLE_KEY_STAGING`, `VITE_SUPABASE_URL_PRODUCTION`, `VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION`, `SIGNING_PUBLIC_KEYS_STAGING` (printed by `pnpm backend keys dev`) |
+| environment `supabase-staging` (branch `dev`), secrets                      | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_STAGING`                                                                                                                                                              |
+| environment `supabase-production` (tags `v*`, needs your approval), secrets | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_PRODUCTION`                                                                                                                                                           |
+
+Deploys need no database password: the Supabase CLI signs in with the
+access token. Use a dedicated token (Supabase dashboard → Account →
+Access Tokens), not your personal CLI login.
 
 Each Supabase project also needs its own signing keys. Make them with
 `node scripts/gen-signing-keys.mjs <staging|production> <project-ref>`: it
@@ -93,7 +97,7 @@ rely on Supabase's own storage durability.
 
 ### Setup
 
-In the repository, create the environment `supabase-production` with:
+In the repository, the environment `supabase-backups` (branch `main`, no approval, so the weekly run never waits) holds:
 
 | Kind     | Name                                                     | Value                                          |
 | -------- | -------------------------------------------------------- | ---------------------------------------------- |
@@ -151,6 +155,24 @@ Your dev stack on `5432x` is not touched.
 4. Compare row counts with `scripts/db/counts.sql` against `counts.tsv`.
 5. Deploy the Edge Functions and secrets, then point the app's
    `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` at the new project.
+
+## Admins
+
+An account whose `app_metadata.role` is `admin` uses the builder without
+paying: it counts as holding a permanent grant of the `staff` plan (the paid
+plans' limits, 10 devices), works offline like a lifetime license, and also
+opens the moderation queue (with two-factor sign-in). Only the service role or
+the dashboard can set it, in the SQL editor:
+
+```sql
+update auth.users
+   set raw_app_meta_data = raw_app_meta_data || '{"role": "admin"}'
+ where email = 'you@example.com';
+```
+
+The admin signs out and in again (the role is read from a fresh session),
+then activates the device in Settings → Account → Builder devices. Remove
+the role with `raw_app_meta_data - 'role'`.
 
 ## Account data requests
 
