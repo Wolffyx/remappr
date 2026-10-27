@@ -73,12 +73,14 @@ pnpm exec supabase functions serve --env-file supabase/functions/.env
 
 Per environment, once:
 
-1. Generate an Ed25519 key pair and a 32-byte watermark key.
-2. `supabase secrets set LICENSE_SIGNING_KEY=<hex> LICENSE_SIGNING_KID=lic-<env>-1 PACKAGE_SIGNING_KEY=<hex> PACKAGE_SIGNING_KID=pkg-<env>-1 WATERMARK_KEY=<hex>`
-3. Add the license public key under its kid to `PRODUCTION_KEYS` in
-   `src/renderer/src/lib/license/keys.ts` and the package public key to
-   `PRODUCTION_PACKAGE_KEYS` in `src/shared/builderPackage.ts`, and ship that
-   release before the server signs with them.
+1. `node scripts/gen-signing-keys.mjs <staging|production>` writes the private
+   keys to `supabase/secrets.<env>.env` (gitignored, mode 600) and pins the
+   public keys under `lic-<env>-1` / `pkg-<env>-1` in
+   `src/renderer/src/lib/license/keys.ts` and `src/shared/builderPackage.ts`.
+   It refuses to overwrite an existing file; keep a copy offline.
+2. `pnpm exec supabase secrets set --project-ref <ref> --env-file supabase/secrets.<env>.env`
+3. Ship the release with the pinned public keys before the server signs with
+   them.
 
 ## Builder packages
 
