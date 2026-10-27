@@ -13,3 +13,7 @@ create policy device_images_update on storage.objects for update to authenticate
   using (bucket_id = 'device-images' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy device_images_delete on storage.objects for delete to authenticated
   using (bucket_id = 'device-images' and (storage.foldername(name))[1] = (select auth.uid())::text);
+-- Upserts (replacing a photo) read the existing object first, so owners also
+-- need SELECT on their own folder. Everyone else reads through the public URL.
+create policy device_images_select on storage.objects for select to authenticated
+  using (bucket_id = 'device-images' and (storage.foldername(name))[1] = (select auth.uid())::text);

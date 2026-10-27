@@ -36,6 +36,7 @@ import { categoryForFirmware } from '@/lib/adapterCategories'
 import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
 import { SyncOnboardingDialog } from '@/features/library/SyncOnboardingDialog'
+import { ShareLinkHandler } from '@/features/community/ShareLinkHandler'
 
 // Code-split the full-screen builder: it drags in Monaco (multi-MB), which
 // otherwise lands in the entry chunk for users who never open the builder.
@@ -174,6 +175,7 @@ function App(): JSX.Element {
             <WhatsNewDialog />
             <Toaster richColors position="top-center" />
             {isCloudConfigured() && <SyncOnboardingDialog />}
+            {isCloudConfigured() && <ShareLinkHandler />}
             <UnlockPanel layout="card" />
             <LeaveGuardDialog />
         </ThemeProvider>

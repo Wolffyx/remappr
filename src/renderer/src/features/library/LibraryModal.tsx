@@ -6,7 +6,7 @@
 // saves. Entries live in the local IndexedDB library, so saves are unlimited and
 // need no account.
 import { useEffect, useMemo, useState } from 'react'
-import { CloudOff, Layers, Plus, Trash2 } from 'lucide-react'
+import { CloudOff, Globe, Layers, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { DeviceForm } from '@firmware/devices/types'
 import { Modal, type ModalSize } from '@/ui/modal'
@@ -16,6 +16,11 @@ import { FORM_ICON } from '@/features/devices/formIcons'
 import type { LibraryEntry } from '@/lib/library/types'
 import useLibraryStore from '@/stores/libraryStore'
 import useSyncStore from '@/stores/syncStore'
+import useAuthStore from '@/stores/authStore'
+import { isCloudConfigured } from '@/lib/cloud/env'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
+import { CommunityPanel } from '@/features/community/CommunityPanel'
+import { PublishDialog } from '@/features/community/PublishDialog'
 import {
     SECTION_ORDER,
     SECTION_TITLE,
@@ -89,6 +94,8 @@ export function LibraryModal({
     const removeEverywhere = useSyncStore((s) => s.removeEverywhere)
     const [conflict, setConflict] = useState<LibraryEntry | null>(null)
     const [deleting, setDeleting] = useState<LibraryEntry | null>(null)
+    const [publishing, setPublishing] = useState<LibraryEntry | null>(null)
+    const signedIn = useAuthStore((s) => s.status === 'signed_in')
 
     useEffect(() => {
         if (open) void load()
@@ -145,6 +152,132 @@ export function LibraryModal({
         else void handleDelete(entry)
     }
 
+    // Opens something saved from the community, when this host can open it.
+    const openFromCommunity = async (entry: LibraryEntry): Promise<boolean> => {
+        const opener = openers[sectionOf(entry)]
+        if (!opener || !(await opener(entry))) return false
+        onClose()
+        return true
+    }
+
+    const mine = (
+        <div className="space-y-4">
+            {save && (
+                <Button
+                    onClick={() => void handleSave()}
+                    disabled={save.disabled}
+                    className="flex w-full items-center justify-center gap-2"
+                >
+                    <Plus className="size-4" /> {save.label}
+                </Button>
+            )}
+
+            {tombstones.map((t) => (
+                <div
+                    key={t.localId}
+                    className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 text-sm"
+                >
+                    <CloudOff className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
+                        “{t.name}” was deleted from your account on another
+                        device.
+                    </span>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void settleTombstone(t.localId, true)}
+                    >
+                        Keep here
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void settleTombstone(t.localId, false)}
+                    >
+                        Remove
+                    </Button>
+                </div>
+            ))}
+
+            {status === 'error' && (
+                <p className="py-2 text-center text-sm text-destructive">
+                    The library could not be read in this browser.
+                </p>
+            )}
+
+            {total === 0 && status !== 'error' ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                    {emptyText}
+                </p>
+            ) : (
+                sections
+                    .filter((s) => s.items.length > 0)
+                    .map(({ section, items }) => (
+                        <div key={section}>
+                            {sections.length > 1 && (
+                                <div className="eyebrow mb-2">
+                                    {SECTION_TITLE[section]}
+                                </div>
+                            )}
+                            <ul className="space-y-2">
+                                {items.map((e) => (
+                                    <li
+                                        key={e.localId}
+                                        className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
+                                    >
+                                        <EntryThumb entry={e} />
+                                        <div className="min-w-0 flex-1">
+                                            <div className="truncate text-panel-title font-semibold">
+                                                {e.name}
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                                                {summaryFacts(
+                                                    e.summary,
+                                                    e.updatedAt,
+                                                )}
+                                                <SyncBadge
+                                                    entry={e}
+                                                    onResolve={() =>
+                                                        setConflict(e)
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                        {signedIn && e.sync.itemId && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                aria-label={`Publish ${e.name}`}
+                                                title="Publish or share"
+                                                onClick={() => setPublishing(e)}
+                                            >
+                                                <Globe className="size-4 text-muted-foreground" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => void handleOpen(e)}
+                                        >
+                                            Open
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            aria-label={`Delete ${e.name}`}
+                                            onClick={() => askDelete(e)}
+                                        >
+                                            <Trash2 className="size-4 text-muted-foreground" />
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))
+            )}
+        </div>
+    )
+
     return (
         <Modal
             size={size}
@@ -158,119 +291,27 @@ export function LibraryModal({
             headerIcon={<Layers />}
             showFooter={false}
         >
-            <div className="space-y-4">
-                {save && (
-                    <Button
-                        onClick={() => void handleSave()}
-                        disabled={save.disabled}
-                        className="flex w-full items-center justify-center gap-2"
-                    >
-                        <Plus className="size-4" /> {save.label}
-                    </Button>
-                )}
-
-                {tombstones.map((t) => (
-                    <div
-                        key={t.localId}
-                        className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 text-sm"
-                    >
-                        <CloudOff className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="min-w-0 flex-1">
-                            “{t.name}” was deleted from your account on another
-                            device.
-                        </span>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                                void settleTombstone(t.localId, true)
-                            }
-                        >
-                            Keep here
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                                void settleTombstone(t.localId, false)
-                            }
-                        >
-                            Remove
-                        </Button>
-                    </div>
-                ))}
-
-                {status === 'error' && (
-                    <p className="py-2 text-center text-sm text-destructive">
-                        The library could not be read in this browser.
-                    </p>
-                )}
-
-                {total === 0 && status !== 'error' ? (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                        {emptyText}
-                    </p>
-                ) : (
-                    sections
-                        .filter((s) => s.items.length > 0)
-                        .map(({ section, items }) => (
-                            <div key={section}>
-                                {sections.length > 1 && (
-                                    <div className="eyebrow mb-2">
-                                        {SECTION_TITLE[section]}
-                                    </div>
-                                )}
-                                <ul className="space-y-2">
-                                    {items.map((e) => (
-                                        <li
-                                            key={e.localId}
-                                            className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
-                                        >
-                                            <EntryThumb entry={e} />
-                                            <div className="min-w-0 flex-1">
-                                                <div className="truncate text-panel-title font-semibold">
-                                                    {e.name}
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                                                    {summaryFacts(
-                                                        e.summary,
-                                                        e.updatedAt,
-                                                    )}
-                                                    <SyncBadge
-                                                        entry={e}
-                                                        onResolve={() =>
-                                                            setConflict(e)
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    void handleOpen(e)
-                                                }
-                                            >
-                                                Open
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                aria-label={`Delete ${e.name}`}
-                                                onClick={() => askDelete(e)}
-                                            >
-                                                <Trash2 className="size-4 text-muted-foreground" />
-                                            </Button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))
-                )}
-            </div>
+            {isCloudConfigured() ? (
+                <Tabs defaultValue="mine">
+                    <TabsList className="mb-3">
+                        <TabsTrigger value="mine">My library</TabsTrigger>
+                        <TabsTrigger value="community">Community</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="mine">{mine}</TabsContent>
+                    <TabsContent value="community">
+                        <CommunityPanel onOpen={openFromCommunity} />
+                    </TabsContent>
+                </Tabs>
+            ) : (
+                mine
+            )}
             <SyncConflictDialog
                 entry={conflict}
                 onClose={() => setConflict(null)}
+            />
+            <PublishDialog
+                entry={publishing}
+                onClose={() => setPublishing(null)}
             />
             <Modal
                 size="sm"

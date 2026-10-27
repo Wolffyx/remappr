@@ -143,6 +143,10 @@ export function cloudMetaOf(entry: LibraryEntry): {
         firmware: d?.firmware ?? [],
         target: d?.target ?? null,
         ...(entry.extra ? { extra: entry.extra } : {}),
+        // A device image uploaded on publish (see PublishDialog).
+        ...(typeof entry.extra?.imagePath === 'string'
+            ? { image_path: entry.extra.imagePath }
+            : {}),
     }
     const identifiers = entry.type === 'device' ? (d?.identifiers ?? []) : []
     return { meta, identifiers }
