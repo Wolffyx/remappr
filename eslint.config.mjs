@@ -14,6 +14,8 @@ export default defineConfig(
             '**/out',
             '**/out-types',
             '**/build',
+            // A built builder package copied in for dev (pnpm builder:package).
+            'public/_pkg',
             // Consumed @remappr/* sibling repos: symlinked into the app (firmware/
             // ui/builder) and the CI clone cache (.remappr). They are separate
             // repos with their own lint/CI — don't re-lint vendored source here.

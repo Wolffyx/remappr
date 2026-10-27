@@ -56,3 +56,6 @@ docs/.vitepress/cache/
 /src/renderer/src/features/builder
 # Clone cache used when the Remappr/ umbrella is absent (fresh download / CI).
 /.remappr/
+
+# Builder package copied in for dev (pnpm builder:package)
+public/_pkg

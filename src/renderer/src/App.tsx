@@ -37,13 +37,12 @@ import { categoryForFirmware } from '@/lib/adapterCategories'
 import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
 import { SyncOnboardingDialog } from '@/features/library/SyncOnboardingDialog'
+import { loadBuilderComponent } from '@/lib/builderPackage/source'
 import { ShareLinkHandler } from '@/features/community/ShareLinkHandler'
 
 // Code-split the full-screen builder: it drags in Monaco (multi-MB), which
 // otherwise lands in the entry chunk for users who never open the builder.
-const Builder = lazy(() =>
-    import('@/features/builder').then((m) => ({ default: m.Builder })),
-)
+const Builder = lazy(loadBuilderComponent)
 
 function App(): JSX.Element {
     // pattern-check: skip — UI sweep, replace store-connection with store-service

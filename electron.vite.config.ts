@@ -20,6 +20,10 @@ export default defineConfig({
     renderer: {
         // .env* live at the repo root (same as the web vite.config.ts).
         envDir: resolve('.'),
+        // Static files (fonts, icons, auth pages, a dev builder package) live
+        // in the repo-root public/, as for the web build; electron-vite's
+        // default (src/renderer/public) does not exist.
+        publicDir: resolve('public'),
         define: versionDefine,
         resolve: {
             // See scripts/remappr-dedupe.ts — single copy of context/store deps

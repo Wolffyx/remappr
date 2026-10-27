@@ -30,6 +30,7 @@
         "build:linux": "electron-vite build && electron-builder --linux --publish never --config electron-builder.config.cjs",
         "test": "vitest run",
         "test:watch": "vitest",
+        "builder:package": "node scripts/builder-package-dev.cjs",
         "db:start": "supabase start",
         "db:stop": "supabase stop",
         "db:reset": "supabase db reset",
