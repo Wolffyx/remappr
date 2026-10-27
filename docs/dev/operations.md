@@ -48,7 +48,7 @@ over SMTP. Supabase's built-in mailer is for testing only: a few emails an
 hour, sent from `noreply@mail.app.supabase.io`, and only to members of the
 Supabase organization.
 
-1. **Resend → Domains → Add domain**: `mail.remappr.com`, region **EU
+1. **Resend → Domains → Add domain**: `remappr.com`, region **EU
    (Ireland, eu-west-1)** (the privacy policy lists Resend there).
 2. Add the DNS records Resend shows (SPF and DKIM, plus its suggested DMARC)
    where remappr.com's DNS lives, and wait until the domain shows Verified.
@@ -61,7 +61,7 @@ Supabase organization.
 
     | Field        | Value                         |
     | ------------ | ----------------------------- |
-    | Sender email | `noreply@mail.remappr.com`    |
+    | Sender email | `noreply@remappr.com`         |
     | Sender name  | `Remappr`                     |
     | Host         | `smtp.resend.com`             |
     | Port         | `587`                         |
@@ -75,7 +75,7 @@ Supabase organization.
    `supabase/templates/sign_in_code.html` (its `.Token` placeholder, in double curly braces, becomes the code). The local stack reads that file itself; hosted projects do not.
 
 Test: sign in with a fresh address and check the code arrives from
-`noreply@mail.remappr.com`. Locally nothing changes: codes land in Mailpit
+`noreply@remappr.com`. Locally nothing changes: codes land in Mailpit
 (`http://127.0.0.1:54324`).
 
 ## Health checks
