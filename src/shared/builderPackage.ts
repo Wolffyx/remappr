@@ -13,7 +13,7 @@ import { ed25519 } from '@noble/curves/ed25519.js'
 
 const PRODUCTION_PACKAGE_KEYS: Readonly<Record<string, string>> = {
     'pkg-production-1':
-        '2a2c0bccaa0794b92bffebad91d783793caffe975b34b7b9c1fd18c036192039',
+        '0c51ed1b60d994d5ca9573b41747c331403e58d2f11939f58bac47af9d622c26',
 }
 
 const TRUSTED_PACKAGE_KEYS: Readonly<

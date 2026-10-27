@@ -12,7 +12,7 @@
 
 const PRODUCTION_KEYS: Readonly<Record<string, string>> = {
     'lic-production-1':
-        '164631f8580ecfc37c19923d9fcf1c3d11a8c8e24e9bf8a05f509e52411d55c9',
+        '073cabf601aef60e26c6067aed2bfe1e9071bcc9096eab839bc559e5ecf98a2b',
 }
 
 const TRUSTED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
