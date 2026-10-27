@@ -9,6 +9,158 @@ export type Json =
 export type Database = {
     public: {
         Tables: {
+            content_reports: {
+                Row: {
+                    comment_id: string | null
+                    created_at: string
+                    id: string
+                    item_id: string | null
+                    note: string
+                    reason: string
+                    reporter_id: string
+                    resolved_at: string | null
+                    status: string
+                }
+                ComputedFields: never
+                Insert: {
+                    comment_id?: string | null
+                    created_at?: string
+                    id?: string
+                    item_id?: string | null
+                    note?: string
+                    reason: string
+                    reporter_id?: string
+                    resolved_at?: string | null
+                    status?: string
+                }
+                Update: {
+                    comment_id?: string | null
+                    created_at?: string
+                    id?: string
+                    item_id?: string | null
+                    note?: string
+                    reason?: string
+                    reporter_id?: string
+                    resolved_at?: string | null
+                    status?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: 'content_reports_comment_id_fkey'
+                        columns: ['comment_id']
+                        isOneToOne: false
+                        referencedRelation: 'item_comments'
+                        referencedColumns: ['id']
+                    },
+                    {
+                        foreignKeyName: 'content_reports_item_id_fkey'
+                        columns: ['item_id']
+                        isOneToOne: false
+                        referencedRelation: 'library_items'
+                        referencedColumns: ['id']
+                    },
+                    {
+                        foreignKeyName: 'content_reports_reporter_id_fkey'
+                        columns: ['reporter_id']
+                        isOneToOne: false
+                        referencedRelation: 'users'
+                        referencedColumns: ['id']
+                    },
+                ]
+            }
+            item_comments: {
+                Row: {
+                    author_id: string | null
+                    body: string
+                    created_at: string
+                    deleted_at: string | null
+                    edited_at: string | null
+                    id: string
+                    item_id: string
+                    moderation: string
+                    parent_id: string | null
+                }
+                ComputedFields: never
+                Insert: {
+                    author_id?: string | null
+                    body: string
+                    created_at?: string
+                    deleted_at?: string | null
+                    edited_at?: string | null
+                    id?: string
+                    item_id: string
+                    moderation?: string
+                    parent_id?: string | null
+                }
+                Update: {
+                    author_id?: string | null
+                    body?: string
+                    created_at?: string
+                    deleted_at?: string | null
+                    edited_at?: string | null
+                    id?: string
+                    item_id?: string
+                    moderation?: string
+                    parent_id?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: 'item_comments_author_id_fkey'
+                        columns: ['author_id']
+                        isOneToOne: false
+                        referencedRelation: 'users'
+                        referencedColumns: ['id']
+                    },
+                    {
+                        foreignKeyName: 'item_comments_item_id_fkey'
+                        columns: ['item_id']
+                        isOneToOne: false
+                        referencedRelation: 'library_items'
+                        referencedColumns: ['id']
+                    },
+                    {
+                        foreignKeyName: 'item_comments_parent_id_fkey'
+                        columns: ['parent_id']
+                        isOneToOne: false
+                        referencedRelation: 'item_comments'
+                        referencedColumns: ['id']
+                    },
+                ]
+            }
+            item_stars: {
+                Row: {
+                    created_at: string
+                    item_id: string
+                    user_id: string
+                }
+                ComputedFields: never
+                Insert: {
+                    created_at?: string
+                    item_id: string
+                    user_id?: string
+                }
+                Update: {
+                    created_at?: string
+                    item_id?: string
+                    user_id?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: 'item_stars_item_id_fkey'
+                        columns: ['item_id']
+                        isOneToOne: false
+                        referencedRelation: 'library_items'
+                        referencedColumns: ['id']
+                    },
+                    {
+                        foreignKeyName: 'item_stars_user_id_fkey'
+                        columns: ['user_id']
+                        isOneToOne: false
+                        referencedRelation: 'users'
+                        referencedColumns: ['id']
+                    },
+                ]
+            }
             library_item_versions: {
                 Row: {
                     changelog: string
@@ -332,11 +484,27 @@ export type Database = {
         }
         Functions: {
             billing_upsert: { Args: { p_row: Json }; Returns: undefined }
+            collection_members: {
+                Args: { p_collection: string }
+                Returns: {
+                    item_id: string
+                    name: string
+                    note: string
+                    ord: number
+                    owner_username: string
+                    type: string
+                }[]
+            }
             create_item: {
                 Args: { p_document: Json; p_item: Json }
                 Returns: string
             }
+            delete_comment: { Args: { p_comment: string }; Returns: undefined }
             delete_item: { Args: { p_item: string }; Returns: undefined }
+            dismiss_reports: {
+                Args: { p_id: string; p_target: string }
+                Returns: undefined
+            }
             fork_item: {
                 Args: { p_item: string; p_token: string }
                 Returns: string
@@ -355,11 +523,32 @@ export type Database = {
                     type: string
                 }[]
             }
+            hide_comment: { Args: { p_comment: string }; Returns: undefined }
             match_devices: {
                 Args: { p_identifiers: Json }
                 Returns: {
                     device_id: string
                     score: number
+                }[]
+            }
+            moderate: {
+                Args: { p_id: string; p_status: string; p_target: string }
+                Returns: undefined
+            }
+            moderation_queue: {
+                Args: Record<PropertyKey, never>
+                Returns: {
+                    body: string
+                    first_reported: string
+                    id: string
+                    item_id: string
+                    moderation: string
+                    notes: string[]
+                    owner_username: string
+                    reasons: string[]
+                    reports: number
+                    target: string
+                    title: string
                 }[]
             }
             my_plan: { Args: Record<PropertyKey, never>; Returns: Json }

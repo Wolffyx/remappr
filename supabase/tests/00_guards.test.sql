@@ -36,7 +36,7 @@ select set_eq(
        from pg_proc p
        join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute') $$,
-  array['my_plan', 'get_shared_item', 'search_items', 'match_devices']::text[],
+  array['my_plan', 'get_shared_item', 'search_items', 'match_devices', 'collection_members']::text[],
   'anon-executable public RPCs match the allowlist'
 );
 
