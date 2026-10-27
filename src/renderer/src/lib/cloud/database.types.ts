@@ -337,8 +337,44 @@ export type Database = {
                 Returns: string
             }
             delete_item: { Args: { p_item: string }; Returns: undefined }
+            fork_item: {
+                Args: { p_item: string; p_token: string }
+                Returns: string
+            }
+            get_share_token: { Args: { p_item: string }; Returns: string }
+            get_shared_item: {
+                Args: { p_token: string }
+                Returns: {
+                    document: Json
+                    id: string
+                    license: string
+                    name: string
+                    owner_username: string
+                    release_no: number
+                    summary: string
+                    type: string
+                }[]
+            }
+            match_devices: {
+                Args: { p_identifiers: Json }
+                Returns: {
+                    device_id: string
+                    score: number
+                }[]
+            }
             my_plan: { Args: Record<PropertyKey, never>; Returns: Json }
             my_usage: { Args: Record<PropertyKey, never>; Returns: Json }
+            publish_item: {
+                Args: {
+                    p_changelog: string
+                    p_item: string
+                    p_license: string
+                    p_visibility: string
+                }
+                Returns: number
+            }
+            record_download: { Args: { p_item: string }; Returns: undefined }
+            rotate_share_token: { Args: { p_item: string }; Returns: string }
             save_device_backup: { Args: { p_backup: Json }; Returns: string }
             save_item: {
                 Args: {
@@ -347,6 +383,28 @@ export type Database = {
                     p_item: string
                 }
                 Returns: number
+            }
+            search_items: {
+                Args: {
+                    p_filters: Json
+                    p_page: number
+                    p_query: string
+                    p_sort: string
+                }
+                Returns: {
+                    device_kind: string
+                    downloads: number
+                    id: string
+                    license: string
+                    name: string
+                    owner_username: string
+                    published_at: string
+                    stars: number
+                    summary: string
+                    tags: string[]
+                    target: string
+                    type: string
+                }[]
             }
             sync_pull: {
                 Args: { p_since: string }
@@ -360,6 +418,7 @@ export type Database = {
                     updated_at: string
                 }[]
             }
+            unpublish_item: { Args: { p_item: string }; Returns: undefined }
         }
         Enums: {
             [_ in never]: never
