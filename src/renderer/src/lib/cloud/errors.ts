@@ -15,6 +15,14 @@ const FRIENDLY: readonly [RegExp, string][] = [
     [/users_username_key/, 'That username is taken'],
     [/users_username_check/, 'That username is not allowed'],
     [/rate_limited/, 'Too many attempts. Try again later.'],
+    [
+        /email rate limit exceeded|over_email_send_rate_limit/i,
+        'Too many sign-in emails were sent just now. Wait a while, or continue with GitHub, Discord or Google.',
+    ],
+    [
+        /For security purposes, you can only request this after/i,
+        'Wait a few seconds before asking for another code.',
+    ],
 ]
 
 /** A readable message for anything a cloud call threw or returned. */
