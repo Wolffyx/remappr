@@ -80,3 +80,36 @@ export async function recordVersion(
     if (kind === 'autosave') await prune(repo, [...versions, version])
     return version
 }
+
+/** What the sync engine needs from local history (it defines no storage of
+ *  its own): the checkpoints a synced entry has not sent yet, and a way to
+ *  record which cloud version each became. */
+export interface CheckpointSource {
+    /** Entries with checkpoints still to send (one pass over all history). */
+    pendingIds(): Promise<Set<string>>
+    /** An entry's unsent checkpoints, oldest first. */
+    pending(localId: string): Promise<LocalVersion[]>
+    /** Version n became cloud version `cloudVersion` (0: stays local). */
+    mark(localId: string, n: number, cloudVersion: number): Promise<void>
+}
+
+const unsent = (v: LocalVersion): boolean =>
+    v.kind === 'checkpoint' && v.cloudVersion === undefined
+
+// Pattern check: Adapter (Tier 1) — applied — the VersionRepository behind the
+// sync engine's narrow CheckpointSource.
+export function checkpointSource(repo: VersionRepository): CheckpointSource {
+    return {
+        async pendingIds() {
+            const all = await repo.listAll()
+            return new Set(all.filter(unsent).map((v) => v.localId))
+        },
+        async pending(localId) {
+            return (await repo.list(localId)).filter(unsent)
+        },
+        async mark(localId, n, cloudVersion) {
+            const v = (await repo.list(localId)).find((x) => x.n === n)
+            if (v) await repo.put({ ...v, cloudVersion })
+        },
+    }
+}

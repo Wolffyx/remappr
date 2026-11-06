@@ -11,6 +11,8 @@ import { createLogger } from '@shared/logger'
 import { getCloudClient } from '@/lib/cloud/client'
 import { cloudErrorMessage } from '@/lib/cloud/errors'
 import { createCloudLibrary } from '@/lib/library/cloudLibrary'
+import { checkpointSource } from '@/lib/library/history'
+import useHistoryStore, { historyRepository } from '@/stores/historyStore'
 import {
     createSyncEngine,
     type ConflictChoice,
@@ -107,6 +109,7 @@ async function engineFor(account: string): Promise<SyncEngine | null> {
             libraryRepository,
             createCloudLibrary(client),
             account,
+            checkpointSource(historyRepository),
         ),
     }
     return engine.engine
@@ -206,6 +209,10 @@ const useSyncStore = create<SyncState>()((set, get) => {
             // Any local save or edit: push it soon (the engine skips clean entries).
             useLibraryStore.subscribe((s, prev) => {
                 if (s.entries !== prev.entries) pushSoon()
+            })
+            // A saved version (checkpoint) goes up too, even on a clean entry.
+            useHistoryStore.subscribe((s, prev) => {
+                if (s.versions !== prev.versions) pushSoon()
             })
             window.addEventListener('focus', () => {
                 if (running()) void get().syncNow()

@@ -13,6 +13,9 @@ import { createDeviceBackupRepository } from './deviceBackups'
 import { keymapEntry } from './entries'
 import { createMemoryLibrary } from './localLibrary'
 import { createSyncEngine } from './syncEngine'
+import { checkpointSource, recordVersion } from './history'
+import { cloudOnlyVersions } from './cloudHistory'
+import { createMemoryVersions } from './versionRepo'
 import { LOCAL_SYNC, type LibraryEntry } from './types'
 
 const url = process.env.E2E_API_URL!
@@ -219,5 +222,75 @@ describe.skipIf(!url)('library sync against the local stack', () => {
 
         await admin.auth.admin.deleteUser(alice.id)
         await admin.auth.admin.deleteUser(bob.id)
+    }, 30000)
+
+    it('sends checkpoints with their messages; another machine sees them', async () => {
+        const admin = adminClient()
+        const alice = await account(admin, 'cp')
+        const cloud = createCloudLibrary(alice.client)
+        const machineA = createMemoryLibrary()
+        const history = createMemoryVersions()
+        const a = createSyncEngine(
+            machineA,
+            cloud,
+            alice.id,
+            checkpointSource(history),
+        )
+        const entry: LibraryEntry = {
+            ...keymapEntry(corne, 'config'),
+            localId: crypto.randomUUID(),
+            createdAt: 1,
+            updatedAt: 1,
+            sync: { ...LOCAL_SYNC },
+        }
+        await machineA.put(entry)
+        await a.pushPending()
+
+        // A checkpoint of the pushed head labels it; then an edited one is v2.
+        await recordVersion(history, entry, {
+            kind: 'checkpoint',
+            message: 'as shipped',
+        })
+        await a.pushPending()
+        const edited = keymapEntry(
+            { ...corne, meta: { ...corne.meta, name: 'Thumbs' } },
+            'config',
+        )
+        const current = (await machineA.get(entry.localId))!
+        await machineA.put({
+            ...current,
+            name: edited.name,
+            source: edited.source,
+            updatedAt: 2,
+            sync: { ...current.sync, dirty: true },
+        })
+        await recordVersion(
+            history,
+            {
+                localId: entry.localId,
+                name: edited.name,
+                source: edited.source,
+            },
+            { kind: 'checkpoint', message: 'thumb cluster' },
+        )
+        await a.pushPending()
+
+        const itemId = (await machineA.get(entry.localId))!.sync.itemId!
+        const rows = await cloud.versions(itemId)
+        expect(rows.map((r) => [r.version, r.kind, r.message])).toEqual([
+            [1, 'checkpoint', 'as shipped'],
+            [2, 'checkpoint', 'thumb cluster'],
+        ])
+        // This machine made both; a fresh machine (no history) sees both.
+        expect(
+            cloudOnlyVersions(rows, await history.list(entry.localId)),
+        ).toEqual([])
+        expect(cloudOnlyVersions(rows, [])).toHaveLength(2)
+        const [v2] = await cloud.fetch([{ itemId, version: 2 }])
+        expect((v2?.document as { meta?: { name?: string } }).meta?.name).toBe(
+            'Thumbs',
+        )
+
+        await admin.auth.admin.deleteUser(alice.id)
     }, 30000)
 })

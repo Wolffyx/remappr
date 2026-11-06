@@ -18,11 +18,17 @@ export interface LocalVersion {
     name: string
     source: string
     createdAt: number
+    /** For a synced entry's checkpoint: the cloud version it became, or 0
+     *  when it predates the cloud item and stays on this machine. Unset:
+     *  not sent yet. */
+    cloudVersion?: number
 }
 
 export interface VersionRepository {
     /** An entry's versions, oldest first. */
     list(localId: string): Promise<LocalVersion[]>
+    /** Every entry's versions (for one pass over what still needs sending). */
+    listAll(): Promise<LocalVersion[]>
     put(version: LocalVersion): Promise<void>
     remove(localId: string, n: number): Promise<void>
     removeAll(localId: string): Promise<void>
@@ -81,6 +87,10 @@ export function createIndexedDbVersions(
             )
             return all.sort(byNumber)
         },
+        async listAll() {
+            const { store } = await objectStore('readonly')
+            return request(store.getAll() as IDBRequest<LocalVersion[]>)
+        },
         async put(version) {
             const { tx, store } = await objectStore('readwrite')
             store.put(version)
@@ -112,6 +122,7 @@ export function createMemoryVersions(): VersionRepository {
                 .filter((v) => v.localId === localId)
                 .map((v) => structuredClone(v))
                 .sort(byNumber),
+        listAll: async () => [...rows.values()].map((v) => structuredClone(v)),
         put: async (version) => {
             rows.set(key(version.localId, version.n), structuredClone(version))
         },

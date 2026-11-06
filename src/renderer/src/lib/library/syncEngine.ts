@@ -16,6 +16,7 @@ import {
     type CloudRow,
 } from './cloudLibrary'
 import { cloudMetaOf, documentOf, entryFromSource } from './entries'
+import type { CheckpointSource } from './history'
 import type { LibraryRepository } from './localLibrary'
 import type {
     LibraryDocKind,
@@ -111,6 +112,7 @@ export function createSyncEngine(
     local: LibraryRepository,
     cloud: CloudLibrary,
     accountId: string,
+    checkpoints: CheckpointSource | null = null,
 ): SyncEngine {
     const mine = (e: LibraryEntry): boolean =>
         !e.sync.localOnly && (e.sync.accountId ?? accountId) === accountId
@@ -120,6 +122,13 @@ export function createSyncEngine(
         !REFUSED.has(e.sync.state) &&
         e.sync.state !== 'conflict' &&
         (!e.sync.itemId || e.sync.dirty)
+
+    /** A synced entry the engine may send to (checkpoints included). */
+    const needsSend = (e: LibraryEntry): boolean =>
+        mine(e) &&
+        !!e.sync.itemId &&
+        !REFUSED.has(e.sync.state) &&
+        e.sync.state !== 'conflict'
 
     /** Write new sync fields onto the CURRENT stored entry, so an edit made
      *  while a request was in flight is kept (and stays dirty). */
@@ -143,16 +152,61 @@ export function createSyncEngine(
         return next
     }
 
+    /** Send an entry's unsent checkpoints, oldest first, on top of `base`
+     *  (each becomes a cloud version with its message); the new base. */
+    const sendCheckpoints = async (
+        itemId: string,
+        localId: string,
+        base: number,
+    ): Promise<number> => {
+        let head = base
+        for (const v of (await checkpoints?.pending(localId)) ?? []) {
+            head = await cloud.save(itemId, head, {
+                document: JSON.parse(v.source) as unknown,
+                kind: 'checkpoint',
+                message: v.message,
+            })
+            await checkpoints?.mark(localId, v.n, head)
+        }
+        return head
+    }
+
+    /** A new cloud item starts at the current document: checkpoints of older
+     *  documents stay on this machine; one of the current document labels v1. */
+    const adoptCheckpoints = async (
+        itemId: string,
+        entry: LibraryEntry,
+    ): Promise<void> => {
+        for (const v of (await checkpoints?.pending(entry.localId)) ?? []) {
+            if (v.source !== entry.source) {
+                await checkpoints?.mark(entry.localId, v.n, 0)
+                continue
+            }
+            const head = await cloud.save(itemId, 1, {
+                document: documentOf(entry),
+                kind: 'checkpoint',
+                message: v.message,
+            })
+            await checkpoints?.mark(entry.localId, v.n, head)
+        }
+    }
+
     const upload = async (entry: LibraryEntry): Promise<number> => {
         const { meta, identifiers } = cloudMetaOf(entry)
         const document = documentOf(entry)
-        if (entry.sync.itemId)
-            return cloud.save(entry.sync.itemId, entry.sync.baseVersion ?? 1, {
+        if (entry.sync.itemId) {
+            const base = await sendCheckpoints(
+                entry.sync.itemId,
+                entry.localId,
+                entry.sync.baseVersion ?? 1,
+            )
+            return cloud.save(entry.sync.itemId, base, {
                 document,
                 name: entry.name,
                 meta,
                 identifiers,
             })
+        }
         const itemId = await cloud.create(
             {
                 clientId: await clientIdOf(entry.localId),
@@ -169,6 +223,7 @@ export function createSyncEngine(
         const head = (await cloud.head(itemId)) ?? 1
         if (head > 1)
             throw new CloudLibraryError('version_conflict', 'version_conflict')
+        await adoptCheckpoints(itemId, entry)
         return head
     }
 
@@ -386,7 +441,16 @@ export function createSyncEngine(
 
     return {
         push,
-        pushPending: () => pushAll(needsPush),
+        pushPending: async () => {
+            // A checkpoint saved on a clean synced entry still has to go up.
+            const withCheckpoints =
+                (await checkpoints?.pendingIds()) ?? new Set<string>()
+            return pushAll(
+                (e) =>
+                    needsPush(e) ||
+                    (needsSend(e) && withCheckpoints.has(e.localId)),
+            )
+        },
         retryRefused: () =>
             pushAll((e) => mine(e) && REFUSED.has(e.sync.state)),
         pull,

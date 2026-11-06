@@ -38,6 +38,10 @@ export interface CloudItemInput {
 
 export interface CloudChanges {
     document?: unknown
+    /** The version's kind (default autosave); a checkpoint of the head's own
+     *  document labels the head instead of adding a version. */
+    kind?: 'autosave' | 'checkpoint'
+    message?: string
     name?: string
     meta?: Record<string, unknown>
     identifiers?: string[]
@@ -61,6 +65,16 @@ export interface CloudDocument {
     meta: Record<string, unknown>
 }
 
+/** One version of a cloud item, without its document. */
+export interface CloudVersionInfo {
+    version: number
+    kind: 'autosave' | 'checkpoint' | 'github'
+    message: string
+    createdAt: string
+    /** Set when the version was published as a release. */
+    releaseNo: number | null
+}
+
 export interface CloudLibrary {
     /** Create an item (idempotent on clientId); resolves its id. */
     create(item: CloudItemInput, document: unknown): Promise<string>
@@ -77,6 +91,8 @@ export interface CloudLibrary {
     fetch(
         heads: readonly { itemId: string; version: number }[],
     ): Promise<CloudDocument[]>
+    /** The item's versions, oldest first (owners read them all). */
+    versions(itemId: string): Promise<CloudVersionInfo[]>
     /** The item's current head version, or null when it is gone. */
     head(itemId: string): Promise<number | null>
     /** The item's sync-feed row, or null when it is gone. */
@@ -158,6 +174,22 @@ export function createCloudLibrary(client: CloudClient): CloudLibrary {
                     p_changes: changes as Json,
                 }),
             )
+        },
+        async versions(itemId) {
+            const rows = unwrap(
+                await client
+                    .from('library_item_versions')
+                    .select('version, kind, message, created_at, release_no')
+                    .eq('item_id', itemId)
+                    .order('version'),
+            )
+            return rows.map((r) => ({
+                version: r.version,
+                kind: r.kind as CloudVersionInfo['kind'],
+                message: r.message,
+                createdAt: r.created_at,
+                releaseNo: r.release_no,
+            }))
         },
         async remove(itemId) {
             unwrap(await client.rpc('delete_item', { p_item: itemId }))

@@ -11,6 +11,8 @@ import {
 import { keymapEntry } from './entries'
 import { createMemoryLibrary, type LibraryRepository } from './localLibrary'
 import { clientIdOf, createSyncEngine } from './syncEngine'
+import { checkpointSource, recordVersion } from './history'
+import { createMemoryVersions } from './versionRepo'
 import { LOCAL_SYNC, type LibraryEntry } from './types'
 
 const corne = parseKeymap(
@@ -32,6 +34,8 @@ interface FakeItem {
     name: string
     meta: Record<string, unknown>
     versions: unknown[]
+    /** Kind and message per version number (checkpoints). */
+    labels: Map<number, string>
     updatedAt: string
     deletedAt: string | null
 }
@@ -70,6 +74,7 @@ function fakeCloud(quota = 10): CloudLibrary & {
                 name: item.name,
                 meta: item.meta,
                 versions: [document],
+                labels: new Map(),
                 updatedAt: tick(),
                 deletedAt: null,
             })
@@ -91,6 +96,14 @@ function fakeCloud(quota = 10): CloudLibrary & {
                         'version_conflict',
                     )
                 it.versions.push(changes.document)
+                if (changes.kind === 'checkpoint')
+                    it.labels.set(it.versions.length, changes.message ?? '')
+            } else if (changes.kind === 'checkpoint') {
+                // save_item labels the head with a checkpoint of its document.
+                it.labels.set(
+                    head,
+                    changes.message || it.labels.get(head) || '',
+                )
             }
             if (changes.name) it.name = changes.name
             it.updatedAt = tick()
@@ -128,6 +141,16 @@ function fakeCloud(quota = 10): CloudLibrary & {
                     meta: it.meta,
                 }
             })
+        },
+        async versions(itemId) {
+            const it = items.get(itemId)!
+            return it.versions.map((_, i) => ({
+                version: i + 1,
+                kind: it.labels.has(i + 1) ? 'checkpoint' : 'autosave',
+                message: it.labels.get(i + 1) ?? '',
+                createdAt: it.updatedAt,
+                releaseNo: null,
+            }))
         },
         async head(itemId) {
             const it = items.get(itemId)
@@ -386,5 +409,88 @@ describe('syncEngine', () => {
         expect((await machineA.list()).map((x) => x.localId)).toEqual([
             legacy.localId,
         ])
+    })
+
+    describe('checkpoints', () => {
+        const checkpoint = async (
+            versions: ReturnType<typeof createMemoryVersions>,
+            repo: LibraryRepository,
+            localId: string,
+            message: string,
+        ): Promise<void> => {
+            const e = (await repo.get(localId))!
+            await recordVersion(versions, e, { kind: 'checkpoint', message })
+        }
+
+        it('sends unsent checkpoints with their messages, then the head', async () => {
+            const versions = createMemoryVersions()
+            const a = createSyncEngine(
+                machineA,
+                cloud,
+                ACCOUNT,
+                checkpointSource(versions),
+            )
+            const e = await save(machineA, 'One')
+            await a.push(e.localId)
+            await edit(machineA, e.localId, 'Two')
+            await checkpoint(versions, machineA, e.localId, 'second')
+            await edit(machineA, e.localId, 'Three')
+            await a.pushPending()
+
+            const item = cloud.items.get(
+                (await machineA.get(e.localId))!.sync.itemId!,
+            )!
+            expect(item.versions).toHaveLength(3)
+            expect([...item.labels]).toEqual([[2, 'second']])
+            const [sent] = await versions.list(e.localId)
+            expect(sent?.cloudVersion).toBe(2)
+            // Nothing left to send.
+            expect(await checkpointSource(versions).pendingIds()).toEqual(
+                new Set(),
+            )
+        })
+
+        it('a checkpoint of the pushed head labels it; no new version', async () => {
+            const versions = createMemoryVersions()
+            const a = createSyncEngine(
+                machineA,
+                cloud,
+                ACCOUNT,
+                checkpointSource(versions),
+            )
+            const e = await save(machineA, 'One')
+            await a.push(e.localId)
+            await checkpoint(versions, machineA, e.localId, 'as it is')
+            // The entry is clean; the pending checkpoint alone gets it sent.
+            expect((await a.pushPending()).attempted).toBe(1)
+            const item = cloud.items.get(
+                (await machineA.get(e.localId))!.sync.itemId!,
+            )!
+            expect(item.versions).toHaveLength(1)
+            expect(item.labels.get(1)).toBe('as it is')
+        })
+
+        it('checkpoints from before the cloud item stay local, except the current one', async () => {
+            const versions = createMemoryVersions()
+            const a = createSyncEngine(
+                machineA,
+                cloud,
+                ACCOUNT,
+                checkpointSource(versions),
+            )
+            const e = await save(machineA, 'Old')
+            await checkpoint(versions, machineA, e.localId, 'old one')
+            await edit(machineA, e.localId, 'Now')
+            await checkpoint(versions, machineA, e.localId, 'current')
+            await a.push(e.localId)
+            const item = cloud.items.get(
+                (await machineA.get(e.localId))!.sync.itemId!,
+            )!
+            expect(item.versions).toHaveLength(1)
+            expect(item.labels.get(1)).toBe('current')
+            expect(
+                (await versions.list(e.localId)).map((v) => v.cloudVersion),
+            ).toEqual([0, 1])
+        })
     })
 })

@@ -34,6 +34,18 @@ export interface HistoryState {
     restore: (localId: string, n: number) => Promise<void>
     /** Save version n as a new library entry. */
     copyAsNew: (localId: string, n: number) => Promise<LibraryEntry | null>
+    /** Make a past document (e.g. a cloud version) the entry's document. */
+    restoreDocument: (
+        localId: string,
+        past: PastDocument,
+        message: string,
+    ) => Promise<void>
+    /** Save a past document as a new library entry with this name. */
+    copyDocument: (
+        localId: string,
+        past: PastDocument,
+        name: string,
+    ) => Promise<LibraryEntry | null>
     /** Start watching the library; safe to call more than once. */
     start: () => void
 }
@@ -53,7 +65,14 @@ const snapshotOf = (e: LibraryEntry): Snapshot => ({
     source: e.source,
 })
 
-function rebuild(entry: LibraryEntry, version: LocalVersion): NewLibraryEntry {
+/** A past document of an entry: a local version, or one fetched from the
+ *  cloud. */
+export interface PastDocument {
+    name: string
+    source: string
+}
+
+function rebuild(entry: LibraryEntry, version: PastDocument): NewLibraryEntry {
     const built = entryFromSource(
         entry.kind,
         version.source,
@@ -151,28 +170,40 @@ export function createHistoryStore(
             load: refresh,
             checkpoint: (localId, message) =>
                 record(localId, 'checkpoint', message.trim()),
-            restore: async (localId, n) => {
+            restoreDocument: async (localId, past, message) => {
                 const entry = find(localId)
+                if (!entry) return
+                await library.getState().update(localId, rebuild(entry, past))
+                await record(localId, 'checkpoint', message)
+            },
+            copyDocument: async (localId, past, name) => {
+                const entry = find(localId)
+                if (!entry) return null
+                return library
+                    .getState()
+                    .save({ ...rebuild(entry, past), name })
+            },
+            restore: async (localId, n) => {
                 const version = (await repo.list(localId)).find(
                     (v) => v.n === n,
                 )
-                if (!entry || !version) return
-                await library
-                    .getState()
-                    .update(localId, rebuild(entry, version))
-                await record(localId, 'checkpoint', `Restored version ${n}`)
+                if (!version) return
+                await get().restoreDocument(
+                    localId,
+                    version,
+                    `Restored version ${n}`,
+                )
             },
             copyAsNew: async (localId, n) => {
-                const entry = find(localId)
                 const version = (await repo.list(localId)).find(
                     (v) => v.n === n,
                 )
-                if (!entry || !version) return null
-                const built = rebuild(entry, version)
-                return library.getState().save({
-                    ...built,
-                    name: `${version.name} (version ${n})`,
-                })
+                if (!version) return null
+                return get().copyDocument(
+                    localId,
+                    version,
+                    `${version.name} (version ${n})`,
+                )
             },
             start: () => {
                 if (started) return
@@ -197,6 +228,9 @@ function defaultRepository(): VersionRepository {
     return createMemoryVersions()
 }
 
-const useHistoryStore = createHistoryStore(defaultRepository(), useLibraryStore)
+/** Local version history; the sync engine reads it to send checkpoints. */
+export const historyRepository = defaultRepository()
+
+const useHistoryStore = createHistoryStore(historyRepository, useLibraryStore)
 
 export default useHistoryStore
