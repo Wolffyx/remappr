@@ -7,6 +7,7 @@ const {
     createAuthCallbackQueue,
     deepLinkFromArgv,
     parseAuthCallback,
+    parseGithubCallback,
     parseHandoff,
 } = await import('./deep-link')
 
@@ -75,5 +76,26 @@ describe('parseHandoff', () => {
             'remappr://auth/handoff',
         ])
             expect(parseHandoff(url)).toBeNull()
+    })
+})
+
+describe('parseGithubCallback', () => {
+    const STATE = 'a'.repeat(43)
+    it('accepts remappr://github/callback with a code and our state', () => {
+        expect(
+            parseGithubCallback(
+                `remappr://github/callback?code=8f2e4c1a9b7d3e5f6a0c&state=${STATE}`,
+            ),
+        ).toEqual({ code: '8f2e4c1a9b7d3e5f6a0c', state: STATE })
+    })
+
+    it.each([
+        `remappr://auth/callback?code=8f2e4c1a9b7d3e5f6a0c&state=${STATE}`,
+        `remappr://github/callback?code=8f2e4c1a9b7d3e5f6a0c`,
+        `remappr://github/callback?code=8f2e4c1a9b7d3e5f6a0c&state=short`,
+        `remappr://github/callback?code=%3Cx%3E&state=${STATE}`,
+        `https://github/callback?code=8f2e4c1a9b7d3e5f6a0c&state=${STATE}`,
+    ])('rejects %s', (url) => {
+        expect(parseGithubCallback(url)).toBeNull()
     })
 })

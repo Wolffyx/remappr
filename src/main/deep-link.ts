@@ -48,6 +48,31 @@ export function parseHandoff(raw: string): string | null {
     return state && STATE_RE.test(state) ? state : null
 }
 
+// GitHub OAuth codes are short hex strings; the state is ours (43 base64url).
+const GITHUB_CODE_RE = /^[A-Za-z0-9_-]{8,64}$/
+
+export interface GithubCallback {
+    code: string
+    state: string
+}
+
+/** Connect GitHub: the code and state in remappr://github/callback?…, as
+ *  auth/github.html hands them over, or null. */
+export function parseGithubCallback(raw: string): GithubCallback | null {
+    let u: URL
+    try {
+        u = new URL(raw)
+    } catch {
+        return null
+    }
+    if (u.protocol !== `${PROTOCOL}:`) return null
+    if (u.hostname !== 'github' || u.pathname !== '/callback') return null
+    const code = u.searchParams.get('code')
+    const state = u.searchParams.get('state')
+    if (!code || !GITHUB_CODE_RE.test(code)) return null
+    return state && STATE_RE.test(state) ? { code, state } : null
+}
+
 /** The first remappr:// URL in a process argv, if any. */
 export function deepLinkFromArgv(argv: readonly string[]): string | null {
     return argv.find((a) => a.startsWith(`${PROTOCOL}://`)) ?? null
@@ -107,13 +132,27 @@ export function setupDeepLinks(getWindow: () => BrowserWindow | null): void {
 
     ipcMain.handle(IpcChannels.AUTH_TAKE_CALLBACK, () => queue.take())
 
-    // A handoff link only nudges a running sign-in; on a cold start the
-    // sign-in is not running, and the app's own checks cover the rest.
+    // A handoff link only nudges a running sign-in, and a GitHub callback
+    // only completes a connect the open window started; on a cold start
+    // neither is running. Anything else is a sign-in code for the queue.
+    const send = (event: string, payload: unknown): void => {
+        getWindow()?.webContents.send(event, payload)
+    }
+    const handlers: ((url: string) => boolean)[] = [
+        (url) => {
+            const state = parseHandoff(url)
+            if (state) send(IpcEvents.AUTH_HANDOFF, { state })
+            return !!state
+        },
+        (url) => {
+            const callback = parseGithubCallback(url)
+            if (callback) send(IpcEvents.GITHUB_CALLBACK, callback)
+            return !!callback
+        },
+    ]
     const route = (url: string): void => {
-        const state = parseHandoff(url)
-        if (state)
-            getWindow()?.webContents.send(IpcEvents.AUTH_HANDOFF, { state })
-        else queue.accept(url)
+        if (handlers.some((handle) => handle(url))) return
+        queue.accept(url)
     }
 
     app.on('second-instance', (_e, argv) => {

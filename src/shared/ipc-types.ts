@@ -142,6 +142,9 @@ export const IpcEvents = {
     /** A remappr://auth/handoff deep link arrived: `{ state }` (browser
      *  sign-in finished; the app claims its login). */
     AUTH_HANDOFF: 'auth:handoff',
+    /** A remappr://github/callback deep link arrived: `{ code, state }`
+     *  (Connect GitHub finished in the browser). */
+    GITHUB_CALLBACK: 'github:callback',
 } as const
 
 // pattern-check: skip — flat IPC DTO, no behavior

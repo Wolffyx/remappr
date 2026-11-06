@@ -467,6 +467,10 @@ verify_jwt = false
 [functions.publish-package]
 verify_jwt = false
 
+# Connect GitHub: needs no Remappr account (the GitHub App's own secret stays here).
+[functions.github-oauth]
+verify_jwt = false
+
 # Account functions authenticate inside (getUser); health is public.
 [functions.health]
 verify_jwt = false
