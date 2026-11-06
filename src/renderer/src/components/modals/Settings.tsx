@@ -10,6 +10,7 @@ import {
     Radio,
     Settings as SettingsIcon,
     UserRound,
+    Plug,
 } from 'lucide-react'
 import { Modal } from '@/ui/modal'
 import { ScrollArea } from '@/ui/scroll-area'
@@ -32,6 +33,7 @@ import { WorkspaceSection } from './settings/WorkspaceSection'
 import { StartPageSection } from './settings/StartPageSection'
 import { CommunicationSection } from './settings/CommunicationSection'
 import { AboutSection } from './settings/AboutSection'
+import { IntegrationsSection } from './settings/IntegrationsSection'
 import { AccountSection } from '@/features/account/AccountSection'
 import { isCloudConfigured } from '@/lib/cloud/env'
 
@@ -68,15 +70,7 @@ interface SettingsProps {
     onClose?: () => void
     /** Limit which sections show (builder hides device-only "communication").
      *  Defaults to all. */
-    sections?: Array<
-        | 'general'
-        | 'keycaps'
-        | 'workspace'
-        | 'start'
-        | 'communication'
-        | 'account'
-        | 'about'
-    >
+    sections?: SettingsSection[]
 }
 
 type SettingsSection =
@@ -86,6 +80,7 @@ type SettingsSection =
     | 'start'
     | 'communication'
     | 'account'
+    | 'integrations'
     | 'about'
 
 const SECTIONS: {
@@ -99,6 +94,7 @@ const SECTIONS: {
     { id: 'start', label: 'Start page', icon: Newspaper },
     { id: 'communication', label: 'Communication', icon: Radio },
     { id: 'account', label: 'Account', icon: UserRound },
+    { id: 'integrations', label: 'Integrations', icon: Plug },
     { id: 'about', label: 'About', icon: Info },
 ]
 
@@ -220,6 +216,7 @@ export function Settings({
                     {section === 'start' && <StartPageSection />}
                     {section === 'communication' && <CommunicationSection />}
                     {section === 'account' && <AccountSection />}
+                    {section === 'integrations' && <IntegrationsSection />}
                     {section === 'about' && <AboutSection />}
                 </ScrollArea>
             </div>

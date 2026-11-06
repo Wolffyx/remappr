@@ -101,6 +101,21 @@ registry on connect, instead of uploading a definition by hand with the
 toolbar's load button. Families with nothing of their own say so (_"No ZMK-specific
 settings yet."_).
 
+## Integrations
+
+**GitHub**: keep library items in your own GitHub repositories and build
+firmware there. No Remappr account is needed.
+
+- **Connect GitHub** opens GitHub in your browser to authorize the Remappr
+  GitHub App. On the desktop app, the browser hands the answer back to
+  Remappr. If it can't (AppImage), copy the code it shows and paste it under
+  **Waiting for GitHub**.
+- **Choose repositories** picks which repositories the app may use.
+- **Disconnect** forgets the connection here and revokes it on GitHub.
+- **Advanced: personal access token**: for setups the app can't reach. It
+  needs the `repo` and `workflow` scopes (or, fine-grained, Contents and
+  Workflows read/write and Actions read). It stays on this device.
+
 ## About
 
 ![Settings → About: version, download and What's new](/images/app/settings-about.webp)

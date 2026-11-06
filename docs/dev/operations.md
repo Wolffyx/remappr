@@ -78,6 +78,41 @@ Test: sign in with a fresh address and check the code arrives from
 `noreply@remappr.com`. Locally nothing changes: codes land in Mailpit
 (`http://127.0.0.1:54324`).
 
+## GitHub App (Connect GitHub)
+
+Settings → Integrations connects a user's GitHub account through the
+**Remappr GitHub App** (plan §6c A2). The app reads and writes only the
+repositories the user picks. One app serves every environment.
+
+1. **github.com → Settings → Developer settings → GitHub Apps → New GitHub
+   App** (under the account or organization that should own it).
+
+    | Field                                                  | Value                                                                                                                                                                  |
+    | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | GitHub App name                                        | `Remappr` (or another free name; its URL name is the slug)                                                                                                             |
+    | Homepage URL                                           | `https://remappr.com`                                                                                                                                                  |
+    | Callback URLs                                          | `https://remappr.com/auth/github.html`, `https://dev.remappr.com/auth/github.html`, `http://localhost:5173/auth/github.html`, `http://localhost:5175/auth/github.html` |
+    | Expire user authorization tokens                       | on                                                                                                                                                                     |
+    | Request user authorization (OAuth) during installation | **off** (the app starts its own sign-in, with PKCE)                                                                                                                    |
+    | Enable Device Flow                                     | off                                                                                                                                                                    |
+    | Setup URL / Redirect on update                         | empty / off                                                                                                                                                            |
+    | Webhook → Active                                       | **off**                                                                                                                                                                |
+    | Repository permissions                                 | Contents: Read and write · Workflows: Read and write · Actions: Read-only · Metadata: Read-only                                                                        |
+    | Organization / account permissions                     | none                                                                                                                                                                   |
+    | Where can this app be installed?                       | Any account                                                                                                                                                            |
+
+2. On the app's page: note the **Client ID**, then **Generate a new client
+   secret**. No private key is needed: the app only uses user tokens.
+3. Per Supabase project, **Edge Functions → Secrets**: `GITHUB_APP_CLIENT_ID`
+   and `GITHUB_APP_CLIENT_SECRET` (the `github-oauth` function).
+4. The public values for builds: repository variables (or the `remappr`
+   environment) `VITE_GITHUB_APP_CLIENT_ID` and `VITE_GITHUB_APP_SLUG`; for
+   local runs the same two lines in `.env.local`.
+
+Without them the app hides the GitHub App button and offers the personal
+access token only. A user revokes access in GitHub → Settings →
+Applications, or with **Disconnect** (which also revokes it on GitHub).
+
 ## Health checks
 
 | Check                     | URL                                                 | Healthy                    |

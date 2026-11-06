@@ -12,6 +12,10 @@ interface ImportMetaEnv {
     readonly VITE_AUTH_SITE_URL?: string
     /** <PREFIX>_AUTH_SITE_URL from .env.local: wins over everything. */
     readonly VITE_AUTH_SITE_OVERRIDE?: string
+    /** The Remappr GitHub App (Connect GitHub): its client id and URL name.
+     *  Public values; unset hides the GitHub App option. */
+    readonly VITE_GITHUB_APP_CLIENT_ID?: string
+    readonly VITE_GITHUB_APP_SLUG?: string
     /** "delivered": load the builder from get-package instead of the bundle. */
     readonly VITE_BUILDER_SOURCE?: string
 }

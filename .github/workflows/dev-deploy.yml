@@ -86,6 +86,8 @@ jobs:
                   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_STAGING }}
                   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_STAGING }}
                   VITE_REMAPPR_ENV: staging
+                  VITE_GITHUB_APP_CLIENT_ID: ${{ vars.VITE_GITHUB_APP_CLIENT_ID }}
+                  VITE_GITHUB_APP_SLUG: ${{ vars.VITE_GITHUB_APP_SLUG }}
                   VITE_AUTH_SITE_URL: https://dev.remappr.com
                   VITE_SIGNING_PUBLIC_KEYS: ${{ vars.SIGNING_PUBLIC_KEYS_STAGING }}
 

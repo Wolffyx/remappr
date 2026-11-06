@@ -86,6 +86,8 @@ jobs:
                   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
                   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
                   VITE_REMAPPR_ENV: production
+                  VITE_GITHUB_APP_CLIENT_ID: ${{ vars.VITE_GITHUB_APP_CLIENT_ID }}
+                  VITE_GITHUB_APP_SLUG: ${{ vars.VITE_GITHUB_APP_SLUG }}
                   VITE_AUTH_SITE_URL: https://remappr.com
 
             - name: Build (Windows)
@@ -96,6 +98,8 @@ jobs:
                   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
                   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
                   VITE_REMAPPR_ENV: production
+                  VITE_GITHUB_APP_CLIENT_ID: ${{ vars.VITE_GITHUB_APP_CLIENT_ID }}
+                  VITE_GITHUB_APP_SLUG: ${{ vars.VITE_GITHUB_APP_SLUG }}
                   VITE_AUTH_SITE_URL: https://remappr.com
 
             - name: Build (macOS)
@@ -106,6 +110,8 @@ jobs:
                   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
                   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
                   VITE_REMAPPR_ENV: production
+                  VITE_GITHUB_APP_CLIENT_ID: ${{ vars.VITE_GITHUB_APP_CLIENT_ID }}
+                  VITE_GITHUB_APP_SLUG: ${{ vars.VITE_GITHUB_APP_SLUG }}
                   VITE_AUTH_SITE_URL: https://remappr.com
 
             # electron-builder's pnpm node-modules collector has twice shipped
