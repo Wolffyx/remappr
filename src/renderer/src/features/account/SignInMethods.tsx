@@ -13,13 +13,13 @@ import { Input } from '@/ui/input'
 import { codeFromPaste } from '@/lib/cloud/authRedirect'
 import { cloudErrorMessage } from '@/lib/cloud/errors'
 import {
-    AUTH_PROVIDERS,
     providerLabel,
     type AuthProvider,
     type LinkedIdentity,
 } from '@/lib/cloud/identities'
 import useAuthStore from '@/stores/authStore'
 import { isElectron } from '@/transport'
+import { useEnabledProviders } from './useEnabledProviders'
 
 /** Desktop: the code from the bounce page, where remappr:// does not open. */
 function PasteLinkCode(): JSX.Element {
@@ -80,6 +80,7 @@ export function SignInMethods(): JSX.Element {
     const linkProvider = useAuthStore((s) => s.linkProvider)
     const unlinkIdentity = useAuthStore((s) => s.unlinkIdentity)
     const [busy, setBusy] = useState(false)
+    const providers = useEnabledProviders() ?? []
 
     const run = async (
         task: () => Promise<void>,
@@ -96,7 +97,7 @@ export function SignInMethods(): JSX.Element {
         }
     }
 
-    const linkable = AUTH_PROVIDERS.filter(
+    const linkable = providers.filter(
         (p) => !identities.some((i) => i.provider === p.id),
     )
     const removable = identities.length > 1

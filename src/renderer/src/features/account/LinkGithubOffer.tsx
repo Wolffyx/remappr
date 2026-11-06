@@ -20,6 +20,7 @@ import useAuthStore from '@/stores/authStore'
 import useGithubStore from '@/stores/githubStore'
 import { isElectron } from '@/transport'
 import { LinkWaiting } from './SignInMethods'
+import { useEnabledProviders } from './useEnabledProviders'
 
 const NONE: LinkedIdentity[] = []
 
@@ -35,9 +36,13 @@ export function LinkGithubOffer(): JSX.Element | null {
 
     const linkedLogin = githubLoginOf(identities)
     const verdict = githubLinkVerdict(offer, signedIn, linkedLogin)
+    // Only offer what can work: the backend must have GitHub sign-in on.
+    const providers = useEnabledProviders()
+    const githubOn = providers ? providers.some((p) => p.id === 'github') : null
+    const asking = verdict === 'ask' && githubOn === true
 
     useEffect(() => {
-        if (verdict === 'ask') return
+        if (asking || (verdict === 'ask' && githubOn === null)) return
         if (verdict === 'other')
             toast.warning(
                 `Your Remappr account signs in with @${linkedLogin}`,
@@ -47,9 +52,9 @@ export function LinkGithubOffer(): JSX.Element | null {
                 },
             )
         if (offer) dismiss()
-    }, [verdict, offer, linkedLogin, dismiss])
+    }, [asking, verdict, githubOn, offer, linkedLogin, dismiss])
 
-    if (verdict !== 'ask') return null
+    if (!asking) return null
 
     const close = (): void => {
         if (linking) cancelLink()
