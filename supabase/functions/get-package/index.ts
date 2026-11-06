@@ -1,8 +1,9 @@
 // pattern-check: skip — one request handler: decide who may have the builder,
 // watermark a copy, sign its manifest, log it.
 //
-// POST { hostApi, version?, license? }. While the builder is free (the free
-// plan grants it) anyone gets the newest stable package for their host API,
+// POST { hostApi, version?, license?, channel? }. While the builder is free (the free
+// plan grants it) anyone gets the newest package for their host API and
+// channel (stable, or stable + beta),
 // watermarked "free". Once it is paid, a valid license for an active device is
 // required; the copy is watermarked with hmac(WATERMARK_KEY, user) and every
 // delivery is logged (10 a day per user). Replies
@@ -18,6 +19,7 @@ import {
     readOwnLicense,
     sha256Hex,
 } from '../_shared/license.ts'
+import { channelsFor, compareVersions } from '../_shared/publish.ts'
 
 const PLACEHOLDER = '__REMAPPR_LICENSEE__'
 const enc = new TextEncoder()
@@ -26,6 +28,8 @@ interface GetBody {
     hostApi?: number
     version?: string
     license?: string
+    /** 'beta' also takes beta packages; anything else is stable only. */
+    channel?: string
 }
 
 interface StoredManifest {
@@ -118,14 +122,14 @@ Deno.serve(async (req) => {
     let query = anon
         .from('builder_packages')
         .select('version, storage_prefix')
-        .eq('channel', 'stable')
+        .in('channel', channelsFor(body.channel))
         .eq('host_api', `^${body.hostApi}`)
-        .order('published_at', { ascending: false })
-        .limit(1)
     if (body.version) query = query.eq('version', body.version)
     const { data: rows, error: listError } = await query
     if (listError) return json({ error: listError.message }, 500)
-    const row = rows?.[0]
+    const row = [...(rows ?? [])].sort((a, b) =>
+        compareVersions(b.version, a.version),
+    )[0]
     if (!row) return json({ error: 'no_package' }, 404)
 
     const read = async (file: string): Promise<Uint8Array> => {

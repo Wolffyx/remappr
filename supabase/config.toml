@@ -463,6 +463,10 @@ verify_jwt = false
 [functions.get-package]
 verify_jwt = false
 
+# The builder repo's release workflow: a GitHub Actions OIDC token, checked inside.
+[functions.publish-package]
+verify_jwt = false
+
 # Account functions authenticate inside (getUser); health is public.
 [functions.health]
 verify_jwt = false
