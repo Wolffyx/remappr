@@ -232,6 +232,11 @@ entry's row:
   so nothing in the history is lost. **Copy as new** saves it as a separate
   entry.
 
+With library sync on (**Settings → Account**), saved versions (with their messages) go
+to your account too; autosaves stay on the machine that made them. Saved
+versions from your other devices show under **Only in the cloud**, where you
+can compare, restore or copy them the same way.
+
 ## Keyboard shortcuts
 
 | Keys                                    | Action                      |

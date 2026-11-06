@@ -6,7 +6,7 @@
 // message, see what changed between any two versions, restore one (a new
 // version, never a rewrite) or copy it to a new entry.
 import { useEffect, useMemo, useState } from 'react'
-import { History } from 'lucide-react'
+import { Cloud, History } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
@@ -17,6 +17,9 @@ import type { LibraryEntry } from '@/lib/library/types'
 import type { LocalVersion, VersionKind } from '@/lib/library/versionRepo'
 import useHistoryStore from '@/stores/historyStore'
 import useLibraryStore from '@/stores/libraryStore'
+import useAuthStore from '@/stores/authStore'
+import { CloudVersionDetail, CloudVersionRow } from './CloudVersions'
+import { useCloudVersions } from './useCloudVersions'
 import { VersionDiff } from './VersionDiff'
 
 const KIND: Record<VersionKind, { label: string; tone: BadgeTone }> = {
@@ -99,6 +102,12 @@ function VersionRow({
                     <Badge tone={kind.tone} size="sm">
                         {kind.label}
                     </Badge>
+                    {!!version.cloudVersion && (
+                        <Cloud
+                            className="size-3 text-muted-foreground"
+                            aria-label="Also in the cloud"
+                        />
+                    )}
                     <span className="ml-auto text-muted-foreground">
                         {when(version.createdAt)}
                     </span>
@@ -237,9 +246,15 @@ export function HistoryDialog({
     )
     const entry = opened ? (live ?? opened) : null
     const versions = useHistoryStore((s) => s.versions[localId])
-    // The picked version, per entry (a newly opened entry starts at its newest).
-    const [picked, setPicked] = useState<{ id: string; n: number } | null>(null)
-    const selectedN = picked?.id === localId ? picked.n : null
+    const accountId = useAuthStore((s) => s.user?.id ?? null)
+    // The picked version, per entry (a newly opened entry starts at its
+    // newest): a local version number, or a cloud one.
+    const [picked, setPicked] = useState<{
+        id: string
+        local?: number
+        cloud?: number
+    } | null>(null)
+    const pick = picked?.id === localId ? picked : null
 
     useEffect(() => {
         if (localId) void useHistoryStore.getState().load(localId)
@@ -249,8 +264,22 @@ export function HistoryDialog({
         () => [...(versions ?? [])].reverse(),
         [versions],
     )
-    const selected =
-        newestFirst.find((v) => v.n === selectedN) ?? newestFirst[0] ?? null
+    const cloudRows = useCloudVersions(entry, versions ?? [], accountId)
+    // With no local versions (another device's entry) the newest cloud one
+    // starts selected.
+    const firstCloud = newestFirst.length === 0 ? (cloudRows[0] ?? null) : null
+    const cloudPicked =
+        pick?.cloud !== undefined
+            ? (cloudRows.find((v) => v.version === pick.cloud) ?? null)
+            : pick?.local === undefined
+              ? firstCloud
+              : null
+    const selected = cloudPicked
+        ? null
+        : (newestFirst.find((v) => v.n === pick?.local) ??
+          newestFirst[0] ??
+          null)
+    const empty = newestFirst.length === 0 && cloudRows.length === 0
 
     return (
         <Modal
@@ -258,32 +287,75 @@ export function HistoryDialog({
             onClose={onClose}
             size="lg"
             title={entry ? `History of "${entry.name}"` : 'History'}
-            subtitle="Versions are kept on this machine."
+            subtitle={
+                entry?.sync.itemId
+                    ? 'Saved versions sync with your account; autosaves stay on this machine.'
+                    : 'Versions are kept on this machine.'
+            }
             headerIcon={<History />}
             showFooter={false}
         >
             {entry && (
                 <div className="space-y-4">
                     <SaveVersionForm localId={entry.localId} />
-                    {newestFirst.length === 0 ? (
+                    {empty ? (
                         <p className="text-sm text-muted-foreground">
                             No versions yet. Edits are saved as versions a
                             moment after you stop, or save one now.
                         </p>
                     ) : (
                         <div className="flex flex-col gap-4 md:flex-row">
-                            <ul className="max-h-[50vh] shrink-0 space-y-0.5 overflow-y-auto md:w-64">
-                                {newestFirst.map((v) => (
-                                    <VersionRow
-                                        key={v.n}
-                                        version={v}
-                                        selected={v.n === selected?.n}
-                                        onSelect={() =>
-                                            setPicked({ id: localId, n: v.n })
-                                        }
-                                    />
-                                ))}
-                            </ul>
+                            <div className="max-h-[50vh] shrink-0 space-y-3 overflow-y-auto md:w-64">
+                                <ul className="space-y-0.5">
+                                    {newestFirst.map((v) => (
+                                        <VersionRow
+                                            key={v.n}
+                                            version={v}
+                                            selected={v.n === selected?.n}
+                                            onSelect={() =>
+                                                setPicked({
+                                                    id: localId,
+                                                    local: v.n,
+                                                })
+                                            }
+                                        />
+                                    ))}
+                                </ul>
+                                {cloudRows.length > 0 && (
+                                    <section>
+                                        <h4 className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Only in the cloud
+                                        </h4>
+                                        <ul className="space-y-0.5">
+                                            {cloudRows.map((v) => (
+                                                <CloudVersionRow
+                                                    key={v.version}
+                                                    version={v}
+                                                    selected={
+                                                        v.version ===
+                                                        cloudPicked?.version
+                                                    }
+                                                    onSelect={() =>
+                                                        setPicked({
+                                                            id: localId,
+                                                            cloud: v.version,
+                                                        })
+                                                    }
+                                                />
+                                            ))}
+                                        </ul>
+                                    </section>
+                                )}
+                            </div>
+                            {cloudPicked && (
+                                <CloudVersionDetail
+                                    key={`c${cloudPicked.version}`}
+                                    entry={entry}
+                                    version={cloudPicked}
+                                    accountId={accountId}
+                                    onOpen={onOpen}
+                                />
+                            )}
                             {selected && (
                                 <VersionDetail
                                     key={selected.n}

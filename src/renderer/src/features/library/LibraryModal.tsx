@@ -325,6 +325,8 @@ export function LibraryModal({
                 onClose={() => setPublishing(null)}
             />
             <HistoryDialog
+                // A fresh dialog per opening, so it starts at the newest version.
+                key={historyOf?.localId ?? 'closed'}
                 entry={historyOf}
                 onClose={() => setHistoryOf(null)}
                 onOpen={(e) => {
