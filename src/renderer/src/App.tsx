@@ -30,6 +30,7 @@ import { isElectron as isElectronEnv } from '@/transport'
 import { isCloudConfigured } from '@/lib/cloud/env'
 import useAuthStore from '@/stores/authStore'
 import useSyncStore from '@/stores/syncStore'
+import useHistoryStore from '@/stores/historyStore'
 import useLicenseStore from '@/stores/licenseStore'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
 import { connectDemo } from '@/features/connection/demo/connectDemo'
@@ -92,6 +93,11 @@ function App(): JSX.Element {
     }, [service, setPreferredAdapterCategory])
 
     const isElectron = isElectronEnv()
+
+    // Version history of library entries: local, no account needed.
+    useEffect(() => {
+        useHistoryStore.getState().start()
+    }, [])
 
     // Restore a signed-in session (and pick up a desktop sign-in deep link that
     // launched the app). Builds without a backend never load supabase-js.
