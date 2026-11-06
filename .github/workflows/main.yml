@@ -7,6 +7,10 @@ on:
     release:
         types: [published]
     workflow_dispatch:
+    # A stable builder release (the builder repo's release workflow): redeploy
+    # the latest release so remappr.com's builder seed is the new package.
+    repository_dispatch:
+        types: [builder-released]
 
 # Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
 permissions:
@@ -27,6 +31,9 @@ jobs:
     # GitHub-recommended Pages pattern). Without this, a single github-pages job
     # sees no token and the builder falls back to the stub on remappr.com.
     build:
+        # Beta builders reach remappr.com users from the cloud; only stable
+        # ones are worth a redeploy (the seed is stable).
+        if: github.event_name != 'repository_dispatch' || github.event.client_payload.channel == 'stable'
         environment: remappr
         runs-on: ubuntu-latest
         steps:
@@ -72,6 +79,18 @@ jobs:
                   REMAPPR_UI_URL: ${{ vars.REMAPPR_UI_URL }}
                   REMAPPR_BUILDER_URL: ${{ vars.REMAPPR_BUILDER_URL }}
                   REMAPPR_GIT_TOKEN: ${{ secrets.REMAPPR_GIT_TOKEN }}
+                  # `package` (repo variable) ships the builder as the delivered
+                  # package instead of bundling it; unset keeps it bundled.
+                  REMAPPR_BUILDER: ${{ vars.REMAPPR_BUILDER }}
+
+            # While the builder is free, delivered builds carry the newest signed
+            # package (public/_seed) so the first run needs no download.
+            - name: Builder seed
+              if: vars.REMAPPR_BUILDER == 'package'
+              run: pnpm builder:seed
+              env:
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
             - name: Build
               run: pnpm build
               env:
