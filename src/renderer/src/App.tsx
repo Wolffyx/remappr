@@ -23,6 +23,7 @@ import { StartPage } from '@/features/connection/start-page/StartPage'
 import useBuilderStore from '@/stores/builderStore'
 import { CoachmarkTour } from '@/features/onboarding/CoachmarkTour'
 import { UpdateNotification } from '@/components/UpdateNotification'
+import { BuilderUpdateNotice } from '@/components/BuilderUpdateNotice'
 import { WhatsNewDialog } from '@/features/news/WhatsNewDialog'
 import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
@@ -168,6 +169,7 @@ function App(): JSX.Element {
                 </div>
             </div>
             <UpdateNotification />
+            <BuilderUpdateNotice />
             <WhatsNewDialog />
             <Toaster richColors position="top-center" />
             {isCloudConfigured() && <SyncOnboardingDialog />}

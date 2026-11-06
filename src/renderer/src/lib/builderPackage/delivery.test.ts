@@ -1,16 +1,36 @@
 // pattern-check: skip — unit tests for the delivery flow over a fake store
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+interface Row {
+    version: string
+    host_api: string
+    changelog: string
+    channel: 'stable' | 'beta'
+}
+
 const cloud = vi.hoisted(() => ({
-    published: '1.0.0' as string | null,
+    rows: [] as Row[],
     reply: null as unknown,
     replyError: null as unknown,
     invoked: 0,
+    bodies: [] as unknown[],
     free: true,
+    channel: 'stable' as 'stable' | 'beta',
 }))
+
+/** One stable package for host API 1 (or none). */
+function publish(version: string | null, changelog = ''): void {
+    cloud.rows = version
+        ? [{ version, host_api: '^1', changelog, channel: 'stable' }]
+        : []
+}
 
 vi.mock('@/lib/entitlements/entitlements', () => ({
     isBuilderFree: () => cloud.free,
+}))
+
+vi.mock('@/stores/userSettingsStore', () => ({
+    default: { getState: () => ({ builderChannel: cloud.channel }) },
 }))
 
 vi.mock('@/lib/secretStore', () => ({ getSecret: async () => '' }))
@@ -18,23 +38,18 @@ vi.mock('@/lib/cloud/client', () => ({
     getCloudClient: async () => ({
         from: () => ({
             select: () => ({
-                eq: () => ({
-                    eq: () => ({
-                        order: () => ({
-                            limit: async () => ({
-                                data: cloud.published
-                                    ? [{ version: cloud.published }]
-                                    : [],
-                                error: null,
-                            }),
-                        }),
-                    }),
+                in: async (_col: string, channels: string[]) => ({
+                    data: cloud.rows.filter((r) =>
+                        channels.includes(r.channel),
+                    ),
+                    error: null,
                 }),
             }),
         }),
         functions: {
-            invoke: async () => {
+            invoke: async (_name: string, opts: { body: unknown }) => {
                 cloud.invoked++
+                cloud.bodies.push(opts.body)
                 return {
                     data: cloud.reply,
                     error:
@@ -48,6 +63,7 @@ vi.mock('@/lib/cloud/client', () => ({
 }))
 
 import { ensureBuilderPackage } from './delivery'
+import { onBuilderUpdate, type BuilderUpdate } from './updates'
 import type { PackageStore, StoredPackage } from './stores'
 
 function fakeStore(
@@ -90,11 +106,13 @@ function setOnline(online: boolean): void {
 
 describe('ensureBuilderPackage', () => {
     beforeEach(() => {
-        cloud.published = '1.0.0'
+        publish('1.0.0')
         cloud.reply = null
         cloud.replyError = null
         cloud.invoked = 0
+        cloud.bodies = []
         cloud.free = true
+        cloud.channel = 'stable'
         setOnline(true)
     })
 
@@ -119,7 +137,7 @@ describe('ensureBuilderPackage', () => {
         expect(cloud.invoked).toBe(1)
         expect(await ensureBuilderPackage(empty)).toBe('1.0.0')
         expect(cloud.invoked).toBe(1)
-        cloud.published = '1.1.0'
+        publish('1.1.0')
         cloud.reply = reply('1.1.0')
         expect(await ensureBuilderPackage(empty)).toBe('1.1.0')
     })
@@ -136,7 +154,7 @@ describe('ensureBuilderPackage', () => {
     })
 
     it('a failed download falls back to the cached package', async () => {
-        cloud.published = '2.0.0'
+        publish('2.0.0')
         cloud.replyError = () => ({
             context: new Response(JSON.stringify({ error: 'rate_limited' })),
         })
@@ -166,5 +184,82 @@ describe('ensureBuilderPackage', () => {
         expect(await ensureBuilderPackage(store)).toBe('1.0.0')
         expect(cloud.invoked).toBe(1)
         expect(store.stored.at(-1)?.licensee).toBe('u1')
+    })
+
+    it('announces a download that replaces a cached builder, with its notes', async () => {
+        const seen: BuilderUpdate[] = []
+        const off = onBuilderUpdate((u) => seen.push(u))
+        // A first download is not an update.
+        cloud.reply = reply('1.0.0')
+        const store = fakeStore()
+        await ensureBuilderPackage(store)
+        expect(seen).toEqual([])
+        publish('1.1.0', '### Features\n\n* knobs')
+        cloud.reply = reply('1.1.0')
+        expect(await ensureBuilderPackage(store)).toBe('1.1.0')
+        expect(seen).toEqual([
+            {
+                kind: 'ready',
+                version: '1.1.0',
+                changelog: '### Features\n\n* knobs',
+            },
+        ])
+        off()
+    })
+
+    it('asks get-package for the exact newest version on the channel', async () => {
+        cloud.rows = [
+            {
+                version: '1.2.0',
+                host_api: '^1',
+                changelog: '',
+                channel: 'stable',
+            },
+            {
+                version: '1.3.0',
+                host_api: '^1',
+                changelog: '',
+                channel: 'beta',
+            },
+        ]
+        cloud.reply = reply('1.2.0')
+        await ensureBuilderPackage(fakeStore())
+        expect(cloud.bodies.at(-1)).toMatchObject({
+            version: '1.2.0',
+            channel: 'stable',
+        })
+        cloud.channel = 'beta'
+        cloud.reply = reply('1.3.0')
+        expect(await ensureBuilderPackage(fakeStore())).toBe('1.3.0')
+        expect(cloud.bodies.at(-1)).toMatchObject({
+            version: '1.3.0',
+            channel: 'beta',
+        })
+    })
+
+    it('a newer builder for a newer host is announced, not downloaded', async () => {
+        const seen: BuilderUpdate[] = []
+        const off = onBuilderUpdate((u) => seen.push(u))
+        cloud.rows = [
+            {
+                version: '1.0.0',
+                host_api: '^1',
+                changelog: '',
+                channel: 'stable',
+            },
+            {
+                version: '2.0.0',
+                host_api: '^2',
+                changelog: '',
+                channel: 'stable',
+            },
+        ]
+        const store = fakeStore([
+            { version: '1.0.0', hostApi: '^1', licensee: 'u1' },
+        ])
+        expect(await ensureBuilderPackage(store)).toBe('1.0.0')
+        expect(cloud.invoked).toBe(0)
+        expect(seen).toEqual([{ kind: 'needs-host', version: '2.0.0' }])
+        off()
     })
 })
