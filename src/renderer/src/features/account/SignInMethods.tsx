@@ -111,8 +111,9 @@ export function SignInMethods(): JSX.Element {
                 </span>
             </div>
             <p className="text-xs text-muted-foreground">
-                Every way into this account. Link a provider here before you
-                sign in with it, or it makes a separate, empty account.
+                {providers.length > 0
+                    ? 'Every way into this account. Link a provider here before you sign in with it, or it makes a separate, empty account.'
+                    : 'Every way into this account. This server signs in with an email code only.'}
             </p>
             <ul className="space-y-1.5">
                 {identities.map((i) => (
