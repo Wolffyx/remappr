@@ -215,6 +215,23 @@ Boards are stored in the browser (or the desktop app's storage) on this machine
 only — export the [JSON config](/guide/builder/export-build-flash#the-remappr-json-config)
 to keep a copy elsewhere.
 
+### Version history {#version-history}
+
+Every library entry (boards, keymaps and device layouts) keeps its history on
+this machine, with no account needed. Open it with the clock button on the
+entry's row:
+
+- **Autosave**: a version is recorded a moment after you stop editing. The
+  newest 50 are kept.
+- **Save version**: records the entry as it is now, with an optional message
+  ("Esc and Tab on the top row"). Saved versions are always kept.
+- Pick a version to see **what changed** compared with the version before it,
+  the current document, or any other version: bindings per layer, layers,
+  combos, macros, keys added, removed or moved, hardware and settings.
+- **Restore** makes that version the entry's document again, as a new version,
+  so nothing in the history is lost. **Copy as new** saves it as a separate
+  entry.
+
 ## Keyboard shortcuts
 
 | Keys                                    | Action                      |

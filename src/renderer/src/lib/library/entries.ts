@@ -117,6 +117,24 @@ export function entryFromSource(
     return FROM_SOURCE[kind](source, type, extra)
 }
 
+/** A source parsed the way describeDocument / diffDocuments take it: the
+ *  canonical keymap for keymaps, the JSON object otherwise. Null when it does
+ *  not parse. */
+export function parseDocument(
+    kind: LibraryDocKind,
+    source: string,
+): Record<string, unknown> | null {
+    try {
+        if (kind === 'remappr.keymap')
+            return parseKeymap(source) as unknown as Record<string, unknown>
+        return JSON.parse(source) as Record<string, unknown>
+    } catch {
+        // A version that no longer parses (older schema, hand-edited) has no
+        // diff; the panel says so.
+        return null
+    }
+}
+
 /** The parsed document a cloud item stores. */
 export function documentOf(entry: LibraryEntry): Record<string, unknown> {
     return JSON.parse(entry.source) as Record<string, unknown>

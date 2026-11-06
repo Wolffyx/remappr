@@ -6,7 +6,7 @@
 // saves. Entries live in the local IndexedDB library, so saves are unlimited and
 // need no account.
 import { useEffect, useMemo, useState } from 'react'
-import { CloudOff, Globe, Layers, Plus, Trash2 } from 'lucide-react'
+import { CloudOff, Globe, History, Layers, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { DeviceForm } from '@firmware/devices/types'
 import { Modal, type ModalSize } from '@/ui/modal'
@@ -31,6 +31,7 @@ import {
 import { summaryFacts } from './entryFacts'
 import { SyncBadge } from './SyncBadge'
 import { SyncConflictDialog } from './SyncConflictDialog'
+import { HistoryDialog } from './HistoryDialog'
 
 export interface LibrarySaveAction {
     label: string
@@ -95,6 +96,7 @@ export function LibraryModal({
     const [conflict, setConflict] = useState<LibraryEntry | null>(null)
     const [deleting, setDeleting] = useState<LibraryEntry | null>(null)
     const [publishing, setPublishing] = useState<LibraryEntry | null>(null)
+    const [historyOf, setHistoryOf] = useState<LibraryEntry | null>(null)
     const signedIn = useAuthStore((s) => s.status === 'signed_in')
 
     useEffect(() => {
@@ -256,6 +258,15 @@ export function LibraryModal({
                                         )}
                                         <Button
                                             size="sm"
+                                            variant="ghost"
+                                            aria-label={`History of ${e.name}`}
+                                            title="Versions"
+                                            onClick={() => setHistoryOf(e)}
+                                        >
+                                            <History className="size-4 text-muted-foreground" />
+                                        </Button>
+                                        <Button
+                                            size="sm"
                                             variant="outline"
                                             onClick={() => void handleOpen(e)}
                                         >
@@ -312,6 +323,19 @@ export function LibraryModal({
             <PublishDialog
                 entry={publishing}
                 onClose={() => setPublishing(null)}
+            />
+            <HistoryDialog
+                entry={historyOf}
+                onClose={() => setHistoryOf(null)}
+                onOpen={(e) => {
+                    // Open what the entry holds now (a restore just changed it).
+                    const live =
+                        useLibraryStore
+                            .getState()
+                            .entries.find((x) => x.localId === e.localId) ?? e
+                    setHistoryOf(null)
+                    void handleOpen(live)
+                }}
             />
             <Modal
                 size="sm"
