@@ -5,7 +5,7 @@
 // Remappr: if the account has no GitHub sign-in yet, offer to link it, so
 // "Continue with GitHub" later opens this account instead of making a new
 // one. If the account signs in with a different GitHub login, say so.
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/ui/button'
@@ -33,16 +33,34 @@ export function LinkGithubOffer(): JSX.Element | null {
     const linking = useAuthStore((s) => s.linking)
     const linkProvider = useAuthStore((s) => s.linkProvider)
     const cancelLink = useAuthStore((s) => s.cancelLink)
+    const refreshIdentities = useAuthStore((s) => s.refreshIdentities)
+    const [fresh, setFresh] = useState<string | null>(null)
+
+    // Judge on the server's sign-in methods: GitHub may have been linked on
+    // another device since this session's copy was made.
+    useEffect(() => {
+        if (!offer || !signedIn) return
+        let live = true
+        void refreshIdentities().finally(() => {
+            if (live) setFresh(offer)
+        })
+        return () => {
+            live = false
+        }
+    }, [offer, signedIn, refreshIdentities])
 
     const linkedLogin = githubLoginOf(identities)
+    // Still reading the server's copy: decide nothing yet.
+    const pending = !!offer && signedIn && fresh !== offer
     const verdict = githubLinkVerdict(offer, signedIn, linkedLogin)
     // Only offer what can work: the backend must have GitHub sign-in on.
     const providers = useEnabledProviders()
     const githubOn = providers ? providers.some((p) => p.id === 'github') : null
-    const asking = verdict === 'ask' && githubOn === true
+    const asking = !pending && verdict === 'ask' && githubOn === true
 
     useEffect(() => {
-        if (asking || (verdict === 'ask' && githubOn === null)) return
+        if (pending || asking || (verdict === 'ask' && githubOn === null))
+            return
         if (verdict === 'other')
             toast.warning(
                 `Your Remappr account signs in with @${linkedLogin}`,
@@ -52,7 +70,7 @@ export function LinkGithubOffer(): JSX.Element | null {
                 },
             )
         if (offer) dismiss()
-    }, [asking, verdict, githubOn, offer, linkedLogin, dismiss])
+    }, [pending, asking, verdict, githubOn, offer, linkedLogin, dismiss])
 
     if (!asking) return null
 

@@ -5,7 +5,7 @@
 // email code, GitHub, Discord, Google). Linking a provider here means that
 // signing in with it later opens this account instead of making a new one.
 // The last method cannot be removed.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link2, Unlink, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/ui/button'
@@ -79,8 +79,14 @@ export function SignInMethods(): JSX.Element {
     const linking = useAuthStore((s) => s.linking)
     const linkProvider = useAuthStore((s) => s.linkProvider)
     const unlinkIdentity = useAuthStore((s) => s.unlinkIdentity)
+    const refreshIdentities = useAuthStore((s) => s.refreshIdentities)
     const [busy, setBusy] = useState(false)
     const providers = useEnabledProviders() ?? []
+
+    // A method linked on another device is missing from this session's copy.
+    useEffect(() => {
+        void refreshIdentities()
+    }, [refreshIdentities])
 
     const run = async (
         task: () => Promise<void>,

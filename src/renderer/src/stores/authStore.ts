@@ -82,6 +82,9 @@ export interface AuthState {
     cancelLink: () => void
     /** Remove a sign-in method (not the last one). */
     unlinkIdentity: (identityId: string) => Promise<void>
+    /** Re-read the sign-in methods from the server. The stored session's
+     *  copy misses a method linked on another device until its next token. */
+    refreshIdentities: () => Promise<void>
     signOut: () => Promise<void>
     updateProfile: (changes: ProfileChanges) => Promise<void>
     refreshProfile: () => Promise<void>
@@ -392,6 +395,20 @@ const useAuthStore = create<AuthState>()((set, get) => {
             // The session's user still lists it until the next token.
             const { error: refreshError } = await client.auth.refreshSession()
             if (refreshError) throw refreshError
+        },
+        refreshIdentities: async () => {
+            const before = get().user
+            const client = await getCloudClient()
+            if (!before || !client) return
+            const { data, error } = await client.auth.getUser()
+            if (error) {
+                log.error('sign-in methods read failed', error)
+                return
+            }
+            const now = get().user
+            // Signed out or switched while the read was out: drop it.
+            if (!now || now.id !== data.user.id) return
+            set({ user: { ...now, identities: identitiesOf(data.user) } })
         },
         signOut: async () => {
             const client = await requireClient()
