@@ -4,8 +4,11 @@
 //
 // Connect GitHub (Settings → Integrations, plan §6c A2): connect with the
 // Remappr GitHub App, or, as the advanced fallback, a personal access token.
-// Independent of the Remappr account.
+// Independent of the Remappr account, but right after a connect the
+// Integrations screen offers to link that GitHub to the signed-in account
+// (linkOffer), and a connect that replaces another GitHub account says so.
 import { create } from 'zustand'
+import { toast } from 'sonner'
 import { IpcEvents } from '@shared/ipc-types'
 import { getApi } from '@/electron/api'
 import {
@@ -29,6 +32,9 @@ export interface GithubState {
     via: 'app' | 'token' | null
     account: GithubAccount | null
     error: string | null
+    /** The login just connected, until the link offer is answered. */
+    linkOffer: string | null
+    dismissLinkOffer: () => void
     init: () => Promise<void>
     /** Open GitHub's authorization; resolves once it is open. */
     connect: () => Promise<void>
@@ -105,13 +111,19 @@ const useGithubStore = create<GithubState>()((set, get) => {
         }
         pending = null
         stop()
+        const before = get().account
         try {
             const c = await completeAppConnect(code, attempt)
+            if (before && before.login !== c.login)
+                toast.warning(`GitHub is now connected as @${c.login}`, {
+                    description: `It was connected as @${before.login}.`,
+                })
             set({
                 status: 'connected',
                 via: 'app',
                 account: { login: c.login, avatarUrl: c.avatarUrl },
                 error: null,
+                linkOffer: c.login,
             })
         } catch (e) {
             set({ status: 'disconnected', error: message(e) })
@@ -123,6 +135,9 @@ const useGithubStore = create<GithubState>()((set, get) => {
         via: null,
         account: null,
         error: null,
+        linkOffer: null,
+
+        dismissLinkOffer: () => set({ linkOffer: null }),
 
         init: async () => {
             const app = await readAppConnection()

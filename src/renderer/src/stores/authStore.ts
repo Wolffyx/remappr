@@ -5,13 +5,29 @@
 // nothing cloud renders. Sign-in is a 6-digit email code or an OAuth provider;
 // on desktop the provider's code comes back over remappr:// (main/deep-link.ts)
 // or is pasted from the bounce page.
+//
+// One account can sign in several ways: Account → Sign-in methods links a
+// provider to the signed-in account (linkProvider) so it does not make a
+// second account. A session that replaces another account's is announced.
 import { create } from 'zustand'
 import { toast } from 'sonner'
 import type { Session } from '@supabase/supabase-js'
 import { createLogger } from '@shared/logger'
 import { IpcChannels, IpcEvents } from '@shared/ipc-types'
 import { getCloudClient, type CloudClient } from '@/lib/cloud/client'
-import { oauthRedirectTo, stripAuthParams } from '@/lib/cloud/authRedirect'
+import {
+    authRedirectError,
+    oauthRedirectTo,
+    stripAuthParams,
+} from '@/lib/cloud/authRedirect'
+import { cloudErrorMessage } from '@/lib/cloud/errors'
+import {
+    identitiesOf,
+    isNewProviderAccount,
+    providerLabel,
+    type AuthProvider,
+    type LinkedIdentity,
+} from '@/lib/cloud/identities'
 import { refreshPlan } from '@/lib/entitlements/plan'
 import { setBuilderAccount } from '@/lib/entitlements/entitlements'
 import type { Database } from '@/lib/cloud/database.types'
@@ -19,7 +35,7 @@ import { isElectron } from '@/transport'
 
 const log = createLogger('Auth')
 
-export type AuthProvider = 'github' | 'discord' | 'google'
+export type { AuthProvider } from '@/lib/cloud/identities'
 export type AuthStatus = 'unconfigured' | 'loading' | 'signed_out' | 'signed_in'
 export type Profile = Database['public']['Tables']['users']['Row']
 export type ProfileChanges = Partial<
@@ -33,6 +49,8 @@ export interface AuthUser {
     isAdmin: boolean
     /** aal2 once a second factor was verified this session. */
     aal: 'aal1' | 'aal2'
+    /** The ways this account signs in (email, GitHub, …). */
+    identities: LinkedIdentity[]
 }
 
 /** A TOTP factor being enrolled: show the QR (or the secret) and ask for a code. */
@@ -53,8 +71,17 @@ export interface AuthState {
     /** Web: navigates away to the provider. Desktop: opens the system browser;
      *  the session lands later through completeWithCode. */
     signInWithProvider: (provider: AuthProvider) => Promise<void>
-    /** Finish an OAuth sign-in with the code from the callback. */
+    /** Finish an OAuth sign-in or link with the code from the callback. */
     completeWithCode: (code: string) => Promise<void>
+    /** The provider being linked to this account, while its browser round
+     *  trip is open (desktop: until the code arrives or is pasted). */
+    linking: AuthProvider | null
+    /** Add a provider as another way into the signed-in account. Web:
+     *  navigates away. Desktop: opens the system browser. */
+    linkProvider: (provider: AuthProvider) => Promise<void>
+    cancelLink: () => void
+    /** Remove a sign-in method (not the last one). */
+    unlinkIdentity: (identityId: string) => Promise<void>
     signOut: () => Promise<void>
     updateProfile: (changes: ProfileChanges) => Promise<void>
     refreshProfile: () => Promise<void>
@@ -103,7 +130,55 @@ function userOf(session: Session | null): AuthUser | null {
         email: session.user.email ?? null,
         isAdmin: session.user.app_metadata?.role === 'admin',
         aal: aalOf(session.access_token),
+        identities: identitiesOf(session.user),
     }
+}
+
+// The provider a link round trip is out for. Session storage, so the web
+// app still knows after the provider sends the page back.
+const LINKING_KEY = 'remappr.auth.linking'
+
+function readLinking(): AuthProvider | null {
+    try {
+        return (sessionStorage.getItem(LINKING_KEY) as AuthProvider) || null
+    } catch {
+        return null
+    }
+}
+
+function writeLinking(provider: AuthProvider | null): void {
+    try {
+        if (provider) sessionStorage.setItem(LINKING_KEY, provider)
+        else sessionStorage.removeItem(LINKING_KEY)
+    } catch {
+        // Storage blocked: only the success toast is lost.
+    }
+}
+
+const who = (u: AuthUser): string => u.email ?? 'another account'
+
+/** A session that replaced another account's (a sign-in that arrived while
+ *  signed in): say so, so nobody edits the wrong account unawares. */
+function announceSwitch(before: AuthUser, after: AuthUser): void {
+    toast.warning(`Switched account: now signed in as ${who(after)}`, {
+        description: `You were signed in as ${who(before)}. To go back, sign out and sign in with that account.`,
+        duration: 12000,
+    })
+}
+
+// Accounts already told they are new, so a re-sent SIGNED_IN stays quiet.
+const greeted = new Set<string>()
+
+/** A provider sign-in that just made an account: it may be a second one. */
+function announceNewAccount(session: Session): void {
+    const { user } = session
+    if (greeted.has(user.id) || !isNewProviderAccount(user)) return
+    greeted.add(user.id)
+    const provider = providerLabel(user.identities?.[0]?.provider ?? '')
+    toast.info(`New Remappr account made with ${provider}`, {
+        description: `Already have an account? Sign out, sign in with it, and link ${provider} under Account → Sign-in methods.`,
+        duration: 15000,
+    })
 }
 
 let started: Promise<void> | null = null
@@ -136,6 +211,9 @@ let planUser: string | null | undefined
 const useAuthStore = create<AuthState>()((set, get) => {
     const applySession = (session: Session | null): void => {
         const user = userOf(session)
+        const before = get().user
+        if (before && user && before.id !== user.id)
+            announceSwitch(before, user)
         if (user) rememberAccount(user.id)
         setBuilderAccount(user?.id ?? lastAccount())
         const changed = user?.id !== get().user?.id
@@ -154,13 +232,18 @@ const useAuthStore = create<AuthState>()((set, get) => {
     }
 
     const completeFromDeepLink = (code: string): void => {
+        const linking = get().linking
         get()
             .completeWithCode(code)
-            .then(() => toast.success('Signed in'))
+            .then(() => {
+                if (!linking) toast.success('Signed in')
+            })
             .catch((e: unknown) => {
                 log.error('deep-link sign-in failed', e)
                 toast.error(
-                    'Sign-in failed. Try again from Settings → Account.',
+                    linking
+                        ? cloudErrorMessage(e)
+                        : 'Sign-in failed. Try again from Settings → Account.',
                 )
             })
     }
@@ -187,19 +270,42 @@ const useAuthStore = create<AuthState>()((set, get) => {
             // A real sign-out (not a refresh that failed offline) forgets the
             // account, so the builder asks to sign in again.
             if (event === 'SIGNED_OUT') rememberAccount(null)
+            if (event === 'SIGNED_IN' && session) announceNewAccount(session)
             applySession(session)
         })
         const { data, error } = await client.auth.getSession()
         if (error) log.error('session restore failed', error)
         applySession(data.session)
-        if (!isElectron()) stripAuthParams()
+        if (!isElectron()) {
+            finishWebLink()
+            stripAuthParams()
+        }
         await listenForDesktopCallback()
+    }
+
+    /** A link the provider sent this page back from: say how it went. */
+    const finishWebLink = (): void => {
+        const refused = authRedirectError()
+        const linking = readLinking()
+        writeLinking(null)
+        if (refused) {
+            log.warn('OAuth came back refused', refused)
+            toast.error(cloudErrorMessage(refused))
+            return
+        }
+        const returned = new URL(window.location.href).searchParams.has('code')
+        if (linking && returned) linked(linking)
+    }
+
+    const linked = (provider: AuthProvider): void => {
+        toast.success(`${providerLabel(provider)} linked to your account`)
     }
 
     return {
         status: 'loading',
         user: null,
         profile: null,
+        linking: null,
         init: () => {
             started ??= start().catch((e) => {
                 log.error('auth init failed', e)
@@ -240,8 +346,52 @@ const useAuthStore = create<AuthState>()((set, get) => {
         },
         completeWithCode: async (code) => {
             const client = await requireClient()
+            const linking = get().linking
             const { error } = await client.auth.exchangeCodeForSession(code)
+            if (linking) {
+                writeLinking(null)
+                set({ linking: null })
+            }
             if (error) throw error
+            if (linking) linked(linking)
+        },
+        linkProvider: async (provider) => {
+            const client = await requireClient()
+            const electron = isElectron()
+            writeLinking(provider)
+            set({ linking: provider })
+            const { data, error } = await client.auth.linkIdentity({
+                provider,
+                options: {
+                    redirectTo: oauthRedirectTo(electron),
+                    skipBrowserRedirect: electron,
+                },
+            })
+            if (error) {
+                writeLinking(null)
+                set({ linking: null })
+                throw error
+            }
+            if (electron && data.url) window.open(data.url, '_blank')
+        },
+        cancelLink: () => {
+            writeLinking(null)
+            set({ linking: null })
+        },
+        unlinkIdentity: async (identityId) => {
+            const client = await requireClient()
+            const { data, error } = await client.auth.getUserIdentities()
+            if (error) throw error
+            const identity = data.identities.find(
+                (i) => i.identity_id === identityId,
+            )
+            if (!identity) throw new Error('That sign-in method is gone.')
+            const { error: unlinkError } =
+                await client.auth.unlinkIdentity(identity)
+            if (unlinkError) throw unlinkError
+            // The session's user still lists it until the next token.
+            const { error: refreshError } = await client.auth.refreshSession()
+            if (refreshError) throw refreshError
         },
         signOut: async () => {
             const client = await requireClient()

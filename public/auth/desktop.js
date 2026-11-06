@@ -10,7 +10,9 @@
     if (!code || !/^[A-Za-z0-9-]{16,128}$/.test(code)) {
         title.textContent = 'Sign-in did not finish'
         lead.textContent =
-            params.get('error_description') ||
+            (params.get('error_code') === 'identity_already_exists'
+                ? 'That login already belongs to another Remappr account. Sign in with it to use that account, or delete that account first and link the login again.'
+                : params.get('error_description')) ||
             'No sign-in code came back. Close this tab and try again from Remappr.'
         return
     }

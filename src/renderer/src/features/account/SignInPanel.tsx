@@ -11,16 +11,11 @@ import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
 import { cloudErrorMessage } from '@/lib/cloud/errors'
-import useAuthStore, { type AuthProvider } from '@/stores/authStore'
+import useAuthStore from '@/stores/authStore'
+import { AUTH_PROVIDERS, type AuthProvider } from '@/lib/cloud/identities'
 import { isElectron } from '@/transport'
 import { PRIVACY_URL, TERMS_URL } from '@/lib/legal'
 import { BrowserSignIn } from './BrowserSignIn'
-
-const PROVIDERS: readonly { id: AuthProvider; label: string }[] = [
-    { id: 'github', label: 'GitHub' },
-    { id: 'discord', label: 'Discord' },
-    { id: 'google', label: 'Google' },
-]
 
 export function SignInPanel(): JSX.Element {
     return isElectron() ? <BrowserSignIn /> : <WebSignIn />
@@ -128,7 +123,7 @@ function WebSignIn(): JSX.Element {
             <div className="space-y-2">
                 <div className="eyebrow">Or continue with</div>
                 <div className="flex flex-wrap gap-2">
-                    {PROVIDERS.map((p) => (
+                    {AUTH_PROVIDERS.map((p) => (
                         <Button
                             key={p.id}
                             variant="outline"
@@ -139,6 +134,11 @@ function WebSignIn(): JSX.Element {
                         </Button>
                     ))}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                    Already have an account? Sign in the way you made it. A
+                    provider with a different email makes a new account; link it
+                    afterwards under Sign-in methods instead.
+                </p>
             </div>
 
             <p className="text-xs text-muted-foreground">

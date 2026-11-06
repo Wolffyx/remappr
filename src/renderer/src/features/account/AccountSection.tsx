@@ -17,6 +17,7 @@ import useSyncStore from '@/stores/syncStore'
 import { Modal } from '@/ui/modal'
 import { SignInPanel } from './SignInPanel'
 import { SyncSettings } from './SyncSettings'
+import { SignInMethods } from './SignInMethods'
 import { ModerationQueue } from './ModerationQueue'
 import { BuilderDevices } from './BuilderDevices'
 import { AccountData } from './AccountData'
@@ -111,6 +112,7 @@ function ProfileForm(): JSX.Element {
                 </Button>
             </div>
 
+            <SignInMethods />
             <SyncSettings />
             <BuilderDevices />
             <ModerationQueue />

@@ -40,6 +40,25 @@ export function oauthRedirectTo(electron: boolean): string {
     return new URL(import.meta.env.BASE_URL, window.location.origin).href
 }
 
+/** The refusal an OAuth round trip came back with (a link to a login that
+ *  belongs to another account, say), shaped like an AuthError; null when the
+ *  address carries none. Read it before stripAuthParams. */
+export function authRedirectError(
+    href: string = window.location.href,
+): { code: string; message: string } | null {
+    const url = new URL(href)
+    // Implicit-flow errors arrive in the fragment, PKCE ones in the query.
+    const hash = new URLSearchParams(url.hash.replace(/^#/, ''))
+    const get = (k: string): string | null =>
+        url.searchParams.get(k) ?? hash.get(k)
+    const error = get('error')
+    if (!error) return null
+    return {
+        code: get('error_code') ?? error,
+        message: get('error_description') ?? error,
+    }
+}
+
 /** Drop auth query params from the address bar once the session is set. */
 export function stripAuthParams(): void {
     const url = new URL(window.location.href)

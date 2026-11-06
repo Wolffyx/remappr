@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { authSiteUrl, codeFromPaste } from './authRedirect'
+import { authRedirectError, authSiteUrl, codeFromPaste } from './authRedirect'
 
 const CODE = '2b4c6a1e-9f0d-4c1b-8a3e-5d7f9b1c3e5a'
 
@@ -53,5 +53,28 @@ describe('codeFromPaste', () => {
     it('rejects anything else', () => {
         expect(codeFromPaste('hello')).toBeNull()
         expect(codeFromPaste('https://remappr.com/?code=<x>')).toBeNull()
+    })
+})
+
+describe('authRedirectError', () => {
+    it('reads a refused link from the query', () => {
+        expect(
+            authRedirectError(
+                'https://remappr.com/?error=server_error&error_code=identity_already_exists&error_description=Identity+is+already+linked',
+            ),
+        ).toEqual({
+            code: 'identity_already_exists',
+            message: 'Identity is already linked',
+        })
+    })
+
+    it('reads the fragment too and falls back to the error', () => {
+        expect(
+            authRedirectError('https://remappr.com/#error=access_denied'),
+        ).toEqual({ code: 'access_denied', message: 'access_denied' })
+    })
+
+    it('is null on a clean address', () => {
+        expect(authRedirectError('https://remappr.com/?code=abc')).toBeNull()
     })
 })

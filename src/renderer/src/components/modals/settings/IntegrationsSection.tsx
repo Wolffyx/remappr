@@ -19,6 +19,7 @@ import {
 import { githubAppConfig, installUrl } from '@/lib/github/appAuth'
 import { isElectron } from '@/transport'
 import useGithubStore from '@/stores/githubStore'
+import { LinkGithubOffer } from '@/features/account/LinkGithubOffer'
 
 function ConnectedRow(): JSX.Element {
     const { account, via, disconnect } = useGithubStore()
@@ -186,6 +187,7 @@ export function IntegrationsSection(): JSX.Element {
                 )}
                 {status !== 'connected' && <PersonalToken />}
             </section>
+            <LinkGithubOffer />
         </div>
     )
 }
