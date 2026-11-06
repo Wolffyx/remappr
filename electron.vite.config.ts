@@ -16,7 +16,14 @@ export default defineConfig(({ mode }) => {
     }
     return {
         main: {
-            define: versionDefine,
+            define: {
+                ...versionDefine,
+                // Squirrel.Mac only installs updates into a Developer ID
+                // signed app; ad-hoc macOS builds stay notify-only.
+                __MAC_AUTO_UPDATE__: JSON.stringify(
+                    !!process.env.CSC_LINK && !!process.env.APPLE_TEAM_ID,
+                ),
+            },
             build: {
                 rollupOptions: {
                     external: ['serialport', 'dbus-next', 'node-hid'],

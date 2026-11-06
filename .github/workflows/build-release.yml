@@ -65,6 +65,18 @@ jobs:
                   REMAPPR_UI_URL: ${{ vars.REMAPPR_UI_URL }}
                   REMAPPR_BUILDER_URL: ${{ vars.REMAPPR_BUILDER_URL }}
                   REMAPPR_GIT_TOKEN: ${{ secrets.REMAPPR_GIT_TOKEN }}
+                  # `package` (repo variable) ships the builder as the delivered
+                  # package instead of bundling it; unset keeps it bundled.
+                  REMAPPR_BUILDER: ${{ vars.REMAPPR_BUILDER }}
+
+            # While the builder is free, delivered builds carry the newest signed
+            # package (public/_seed) so the first run needs no download.
+            - name: Builder seed
+              if: vars.REMAPPR_BUILDER == 'package'
+              run: pnpm builder:seed
+              env:
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_PRODUCTION }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}
 
             - name: Build (Linux)
               if: matrix.os == 'ubuntu-latest'
@@ -190,7 +202,9 @@ jobs:
                   TAG="${{ github.event.release.tag_name }}"
                   shopt -s nullglob
                   ASSETS=()
-                  for f in dist/*.AppImage dist/*.deb dist/*.rpm dist/*.pacman dist/*.tar.gz dist/*.snap dist/*.exe dist/*.msi dist/*.dmg; do
+                  # latest*.yml + .blockmap: electron-updater's metadata
+                  # (src/main/updates.ts); the zip: Squirrel.Mac (signed only).
+                  for f in dist/*.AppImage dist/*.deb dist/*.rpm dist/*.pacman dist/*.tar.gz dist/*.snap dist/*.exe dist/*.msi dist/*.dmg dist/*.zip dist/*.blockmap dist/latest*.yml; do
                     ASSETS+=("$f")
                   done
                   if [ ${#ASSETS[@]} -gt 0 ]; then

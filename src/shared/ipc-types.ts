@@ -83,6 +83,8 @@ export const IpcChannels = {
 
     // Update check (manual trigger from renderer)
     UPDATES_CHECK: 'updates:check',
+    /** Restart into a downloaded update (self-updating installs only). */
+    UPDATES_INSTALL: 'updates:install',
 
     // Window controls (custom titlebar)
     WINDOW_MINIMIZE: 'window:minimize',
@@ -130,6 +132,9 @@ export const IpcEvents = {
     BLE_DEVICES_DISCOVERED: 'ble:devices-discovered',
     SERIAL_DEVICES_CHANGED: 'serial:devices-changed',
     UPDATE_AVAILABLE: 'update:available',
+    /** A self-updating install (AppImage, NSIS, signed macOS) downloaded an
+     *  update; it installs on restart or quit. */
+    UPDATE_DOWNLOADED: 'update:downloaded',
     /** A close or quit waits on the renderer's unsaved-changes prompt. */
     WINDOW_LEAVE_REQUESTED: 'window:leave-requested',
     /** A remappr://auth/callback deep link arrived: `{ code }`. */
@@ -146,6 +151,11 @@ export interface UpdateAvailablePayload {
     notes: string
     /** ISO date-time the release was published. */
     publishedAt: string
+}
+
+// pattern-check: skip — flat IPC DTO, no behavior
+export interface UpdateDownloadedPayload {
+    version: string
 }
 
 // pattern-check: skip — flat IPC DTO, no behavior

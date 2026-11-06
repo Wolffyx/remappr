@@ -32,9 +32,11 @@ export function startBuilderPrefetch(): () => void {
     window.addEventListener('online', prefetch)
     const api = (globalThis as { api?: IpcBridge }).api
     const offUpdate = api?.on(IpcEvents.UPDATE_AVAILABLE, prefetch)
+    const offDownloaded = api?.on(IpcEvents.UPDATE_DOWNLOADED, prefetch)
     return () => {
         clearTimeout(timer)
         window.removeEventListener('online', prefetch)
         offUpdate?.()
+        offDownloaded?.()
     }
 }

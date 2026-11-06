@@ -132,10 +132,13 @@ module.exports = {
         // Intel and Apple Silicon Macs. Release CI runs on one `macos-latest`
         // (Apple Silicon) runner, so without an explicit arch electron-builder
         // defaults to an arm64-only app that Intel Macs reject with
-        // "not supported on this Mac". dmg only — there is no Squirrel.Mac /
-        // electron-updater in the app (updates are a GitHub releases check +
-        // notification), so a zip artifact would never be consumed.
-        target: [{ target: 'dmg', arch: ['universal'] }],
+        // "not supported on this Mac". A Developer ID build also ships a zip:
+        // Squirrel.Mac (electron-updater, src/main/updates.ts) installs from
+        // it. Ad-hoc builds only notify, so they ship the dmg alone.
+        target: [
+            { target: 'dmg', arch: ['universal'] },
+            ...(macDeveloperId ? [{ target: 'zip', arch: ['universal'] }] : []),
+        ],
         // node-hid bundles prebuilt single-arch darwin binaries
         // (prebuilds/HID-darwin-{x64,arm64}/*.node) that are byte-identical in
         // the x64 and arm64 single-arch builds. @electron/universal refuses to
@@ -230,8 +233,9 @@ module.exports = {
     },
     npmRebuild: true,
     afterPack: path.join(__dirname, 'build', 'afterPack.cjs'),
-    // No `publish` config on purpose: the app has no electron-updater /
-    // Squirrel — update-checker.ts polls GitHub releases and links the user
-    // there. A publish block would only emit dead latest*.yml metadata.
-    publish: null,
+    // Where electron-updater looks (src/main/updates.ts): this repo's GitHub
+    // releases. It makes electron-builder write app-update.yml into the app
+    // and latest*.yml (+ .blockmap) beside the installers; build-release.yml
+    // uploads them (`--publish never`: CI uploads, not electron-builder).
+    publish: [{ provider: 'github', owner: 'Wolffyx', repo: 'remappr' }],
 }

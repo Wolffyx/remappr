@@ -8,7 +8,7 @@ import { registerBleIpcHandlers, setupBleDeviceSelection } from './ble-manager'
 import { setupSerialDeviceSelection } from './serial-picker'
 import { startSerialDevicePolling } from './serial'
 import { silenceConsoleInProduction } from '../shared/logger'
-import { checkForUpdates, registerUpdateIpc } from './update-checker'
+import { checkForAppUpdates, registerUpdateIpc } from './updates'
 import { guardWindowLeave, registerWindowControlsIpc } from './window-controls'
 import { setupDeepLinks } from './deep-link'
 import {
@@ -243,7 +243,7 @@ function createWindow(): void {
     })
 
     mainWindow.webContents.once('did-finish-load', (): void => {
-        void checkForUpdates(mainWindow)
+        void checkForAppUpdates(() => mainWindow)
     })
 
     // Bestow a synthetic user gesture each time the renderer finishes loading

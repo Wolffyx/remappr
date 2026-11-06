@@ -108,8 +108,13 @@ settings yet."_).
 - The running version (**Remappr v0.0.16**).
 - **Download** — the desktop app for your OS (latest release).
 - **What’s new** — the release notes of the version you are running.
-- **Check for updates** — desktop app only; when a newer release exists, a
-  notification offers the download and a summary of what changed.
+- **Check for updates** — desktop app only. The AppImage, the Windows
+  installer and signed macOS builds download the update themselves and offer
+  **Restart** (otherwise it installs the next time you quit). Other installs
+  show a notification with the download and a summary of what changed.
+- **Beta builder updates** — when the builder is downloaded rather than built
+  in, get new builder versions before everyone else. A newer builder arrives
+  in the background and a notification says it is ready, with what's new.
 
 After an update, the desktop and web apps open **What's new** on their own the
 first time a new version starts — when the release brings new features.
