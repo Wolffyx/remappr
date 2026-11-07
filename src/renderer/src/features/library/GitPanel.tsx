@@ -24,6 +24,7 @@ import { SwitchRow } from '@/ui/switch-row'
 import { githubAppConfig, installUrl } from '@/lib/github/appAuth'
 import { getGithubToken } from '@/lib/github/connection'
 import { slugOf, sourcePath } from '@/lib/github/gitSync/layout'
+import { buildCheck } from '@/lib/github/gitSync/readiness'
 import { createRepoApi, type RepoInfo } from '@/lib/github/repoApi'
 import type { GitLink, GitSyncState, LibraryEntry } from '@/lib/library/types'
 import useGithubStore from '@/stores/githubStore'
@@ -92,6 +93,41 @@ function TargetSelect({
                     </option>
                 ))}
             </AppSelect>
+        </div>
+    )
+}
+
+/** Whether the chosen target's firmware files can build on GitHub; nothing
+ *  when they can (or none are generated). */
+function BuildWarning({
+    entry,
+    target,
+}: {
+    entry: LibraryEntry
+    target: string | null
+}): JSX.Element | null {
+    const check = useMemo(() => buildCheck(entry, target), [entry, target])
+    if (!check || !target) return null
+    const label = targetLabel(target)
+    if (!check.ciBuild)
+        return (
+            <p className="text-xs text-muted-foreground">
+                {label} files are kept in the repo, but GitHub does not build
+                them: build them on your machine (see the README).
+            </p>
+        )
+    if (check.blockers.length === 0) return null
+    return (
+        <div className="space-y-1 rounded-lg border border-warning/40 p-3 text-xs">
+            <p>
+                These {label} files cannot build yet, so every push starts a
+                GitHub build that fails. Fill in, in the builder:
+            </p>
+            <ul className="list-inside list-disc">
+                {check.blockers.map((b) => (
+                    <li key={b}>{b}</li>
+                ))}
+            </ul>
         </div>
     )
 }
@@ -213,6 +249,7 @@ function LinkForm({
                     onChange={setTarget}
                 />
             </div>
+            <BuildWarning entry={entry} target={target} />
             <SwitchRow
                 label="Push saved versions on their own"
                 hint="Each saved version becomes a commit. Off: only Sync now pushes."
@@ -452,6 +489,7 @@ function Linked({
                     }
                 />
             </div>
+            <BuildWarning entry={entry} target={link.target} />
             <GitReleases entry={entry} link={link} />
         </div>
     )
