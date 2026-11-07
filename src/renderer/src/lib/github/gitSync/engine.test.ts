@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { RemoteMovedError } from '@/lib/githubBuild'
 import type { GitLink, LibraryEntry } from '@/lib/library/types'
 import type { LocalVersion } from '@/lib/library/versionRepo'
-import type { RepoApi } from '../repoApi'
-import { createGitSync } from './engine'
+import { GithubApiError, type RepoApi } from '../repoApi'
+import { createGitSync, firstProblem } from './engine'
 import { gitBlobSha, MANIFEST_PATH, sourceText } from './layout'
 
 interface FakeCommit {
@@ -19,6 +19,8 @@ interface FakeGithub {
     file(path: string): string | undefined
     message(): string
     edit(path: string, content: string, message?: string): void
+    /** No commits at all, like a repo created without a README. */
+    wipe(): void
 }
 
 /** An in-memory branch: commits by sha, a head, an ETag per head. */
@@ -46,6 +48,7 @@ function fakeGithub(
         }),
         async branchHead(_full, _branch, etag) {
             calls.headReads++
+            if (!head) throw new GithubApiError(409, 'Git Repository is empty.')
             if (etag === `"${head}"`) {
                 calls.notModified++
                 return { changed: false }
@@ -65,6 +68,16 @@ function fakeGithub(
             author: commits.get(sha)!.author,
             date: '',
         }),
+        async initEmpty(_full, _branch, file, message) {
+            if (head) throw new GithubApiError(422, 'not empty')
+            head = nextSha()
+            commits.set(head, {
+                files: new Map([[file.path, file.content]]),
+                message,
+                author: 'remappr',
+            })
+            return head
+        },
         async commit(_full, _branch, parent, files, message) {
             if (parent !== head) throw new RemoteMovedError(head)
             calls.commits++
@@ -81,6 +94,9 @@ function fakeGithub(
         head: () => head,
         file: (path: string) => commits.get(head)!.files.get(path),
         message: () => commits.get(head)!.message,
+        wipe() {
+            head = ''
+        },
         /** Someone commits on GitHub. */
         edit(path: string, content: string, message = 'edit on github') {
             const next = new Map(commits.get(head)!.files)
@@ -258,6 +274,37 @@ describe('git sync: push', () => {
         h.gh.api.branchHead = real
         await h.sync.push('e1')
         expect(h.gh.message()).toBe('offline edit\n\nRemappr-Version: 1')
+    })
+})
+
+describe('firstProblem', () => {
+    it('names the first schema problem and where it is', () => {
+        const err = Object.assign(new Error('x'), {
+            issues: [
+                {
+                    message: 'unknown layer "base"',
+                    path: ['combos', 0, 'layers', 0],
+                },
+            ],
+        })
+        expect(firstProblem(err)).toBe(
+            'combos[0].layers[0]: unknown layer "base"',
+        )
+        expect(firstProblem(new SyntaxError('Unexpected token'))).toBe(
+            'Unexpected token',
+        )
+    })
+})
+
+describe('git sync: an empty repo', () => {
+    it('gets a first commit of its own, then the push', async () => {
+        const gh = fakeGithub()
+        gh.wipe()
+        const h = harness(gh)
+        await h.link()
+        await h.sync.push('e1', { head: true })
+        expect(h.gh.file('remappr/corne.remappr.json')).toBe(sourceText(doc(1)))
+        expect(h.get().git?.state).toBe('synced')
     })
 })
 

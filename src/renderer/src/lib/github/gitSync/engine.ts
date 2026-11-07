@@ -14,7 +14,12 @@ import type { BundleFile } from '@/lib/githubBuild'
 import { RemoteMovedError } from '@/lib/githubBuild'
 import type { GitLink, LibraryEntry } from '@/lib/library/types'
 import type { LocalVersion } from '@/lib/library/versionRepo'
-import { GithubApiError, type RepoApi } from '../repoApi'
+import {
+    GithubApiError,
+    isEmptyRepo,
+    type BranchHead,
+    type RepoApi,
+} from '../repoApi'
 import {
     commitMessage,
     commitSubject,
@@ -77,9 +82,30 @@ export function syncErrorText(e: unknown): string {
         if (e.status === 403 || e.status === 404)
             return 'GitHub denies access to this repo or branch. Check that the Remappr app is installed on it.'
         if (e.status === 409)
-            return 'The repo is empty; add a first commit on GitHub.'
+            return 'GitHub refused the change: the repo or branch is not ready for it.'
     }
     return e instanceof Error ? e.message : String(e)
+}
+
+/** The first schema problem of a parse failure (zod issues), else its
+ *  message: what to fix in the file. */
+export function firstProblem(err: unknown): string {
+    const issues = (err as { issues?: unknown }).issues
+    const first = Array.isArray(issues)
+        ? (issues[0] as { message?: unknown; path?: unknown } | undefined)
+        : undefined
+    if (first && typeof first.message === 'string') {
+        const path = Array.isArray(first.path)
+            ? first.path
+                  .map((p) =>
+                      typeof p === 'number' ? `[${p}]` : `.${String(p)}`,
+                  )
+                  .join('')
+                  .replace(/^\./, '')
+            : ''
+        return path ? `${path}: ${first.message}` : first.message
+    }
+    return err instanceof Error ? err.message : String(err)
 }
 
 const isOffline = (e: unknown): boolean =>
@@ -202,9 +228,10 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
         let n: number | null
         try {
             n = await deps.applyGithub(localId, text, message, remote.head)
-        } catch {
+        } catch (err) {
             throw new Error(
-                `${path} on GitHub is not a valid Remappr document.`,
+                `${path} on GitHub is not a valid Remappr document: ${firstProblem(err)}`,
+                { cause: err },
             )
         }
         const { e } = linkOf(localId)
@@ -216,16 +243,50 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
         })
     }
 
+    /** The branch head. An empty repo first gets a commit of its own (an
+     *  empty manifest), so the Git Data API has something to build on. */
+    const branchHeadOrInit = async (
+        api: RepoApi,
+        link: GitLink,
+    ): Promise<BranchHead> => {
+        try {
+            return await api.branchHead(
+                link.repo,
+                link.branch,
+                link.lastSyncedSha ? link.etag : undefined,
+            )
+        } catch (e) {
+            if (!isEmptyRepo(e)) throw e
+            const sha = await api
+                .initEmpty(
+                    link.repo,
+                    link.branch,
+                    {
+                        path: MANIFEST_PATH,
+                        content: manifestText({
+                            generator: deps.generator,
+                            items: [],
+                        }),
+                    },
+                    'Start syncing with Remappr',
+                )
+                // Someone made the first commit meanwhile: use theirs.
+                .catch((err: unknown) => {
+                    if (!(err instanceof GithubApiError) || err.status !== 422)
+                        throw err
+                    return null
+                })
+            if (!sha) return api.branchHead(link.repo, link.branch)
+            return { changed: true, sha, etag: null }
+        }
+    }
+
     const pullWith = async (
         api: RepoApi,
         localId: string,
     ): Promise<PullResult> => {
         const { e, link } = linkOf(localId)
-        const head = await api.branchHead(
-            link.repo,
-            link.branch,
-            link.lastSyncedSha ? link.etag : undefined,
-        )
+        const head = await branchHeadOrInit(api, link)
         if (!head.changed) return 'unchanged'
         const etag = head.etag ?? undefined
         const remote = await readRemote(api, link, head.sha)

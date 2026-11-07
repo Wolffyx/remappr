@@ -212,8 +212,14 @@ function LinkForm({
                     This connection cannot push to {picked.fullName}.
                 </p>
             )}
+            {repos?.length === 0 && (
+                <p className="text-xs text-warning">
+                    Remappr cannot reach any of your repositories yet. Install
+                    the Remappr app on one, or type owner/name.
+                </p>
+            )}
             <p className="text-xs text-muted-foreground">
-                The repo needs at least one commit. Missing one?{' '}
+                Repo not listed?{' '}
                 {app ? (
                     <button
                         type="button"

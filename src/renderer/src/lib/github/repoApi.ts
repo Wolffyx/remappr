@@ -73,6 +73,24 @@ export interface RepoApi {
         files: BundleFile[],
         message: string,
     ): Promise<string>
+    /** The first commit of an empty repo (one file, on `branch`); its sha.
+     *  The Git Data API cannot write to a repo with no commits. */
+    initEmpty(
+        full: string,
+        branch: string,
+        file: BundleFile,
+        message: string,
+    ): Promise<string>
+}
+
+/** The repo has no commits yet (GitHub answers 409). */
+export const isEmptyRepo = (e: unknown): boolean =>
+    e instanceof GithubApiError && e.status === 409
+
+const base64 = (text: string): string => {
+    let s = ''
+    for (const b of new TextEncoder().encode(text)) s += String.fromCharCode(b)
+    return btoa(s)
 }
 
 interface RawRepo {
@@ -209,6 +227,29 @@ export function createRepoApi(
                 author: c.author?.login ?? c.commit.author?.name ?? '',
                 date: c.commit.author?.date ?? '',
             }
+        },
+        async initEmpty(full, branch, file, message) {
+            const res = await fetchImpl(
+                `${API}${repoPath(full)}/contents/${pathOf(file.path)}`,
+                {
+                    method: 'PUT',
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        branch,
+                        content: base64(file.content),
+                    }),
+                },
+            )
+            if (!res.ok) {
+                const detail = await res.text().catch(() => '')
+                throw new GithubApiError(
+                    res.status,
+                    `GitHub PUT ${file.path} → ${res.status}${detail ? `: ${detail}` : ''}`,
+                )
+            }
+            const body = (await res.json()) as { commit: { sha: string } }
+            return body.commit.sha
         },
         async commit(full, branch, parent, files, message) {
             const { owner, name } = parseRepo(full)

@@ -134,6 +134,9 @@ export function createGithubBuildClient(
                 ? { ...headers, 'Content-Type': 'application/json' }
                 : headers,
             body: body ? JSON.stringify(body) : undefined,
+            // GitHub lets browsers cache GETs for 60 s: a branch ref read
+            // from the cache is a stale parent for the next commit.
+            cache: 'no-store',
         })
         if (!res.ok) {
             const detail = await res.text().catch(() => '')
@@ -151,6 +154,7 @@ export function createGithubBuildClient(
         const { login } = await getUser()
         const res = await fetchImpl(`${API}/repos/${seg(login)}/${seg(name)}`, {
             headers,
+            cache: 'no-store',
         })
         if (res.ok) {
             const repo = (await res.json()) as { default_branch: string }

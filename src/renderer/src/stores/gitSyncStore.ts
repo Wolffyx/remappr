@@ -176,18 +176,32 @@ const useGitSyncStore = create<GitSyncState>()((set, get) => {
     let lastFocus = 0
     const timers = new Map<string, ReturnType<typeof setTimeout>>()
 
-    const withBusy = async <T>(
+    // One GitHub call per entry at a time: a sync started while another
+    // runs (link + the panel's pull, auto push + focus) waits its turn, so
+    // two never build on the same branch head.
+    const lanes = new Map<string, Promise<unknown>>()
+
+    const withBusy = <T>(
         localId: string,
         task: () => Promise<T>,
     ): Promise<T> => {
-        set({ busy: { ...get().busy, [localId]: true } })
-        try {
-            return await task()
-        } finally {
-            const rest = { ...get().busy }
-            delete rest[localId]
-            set({ busy: rest })
+        const run = async (): Promise<T> => {
+            set({ busy: { ...get().busy, [localId]: true } })
+            try {
+                return await task()
+            } finally {
+                if (lanes.get(localId) === next) {
+                    lanes.delete(localId)
+                    const rest = { ...get().busy }
+                    delete rest[localId]
+                    set({ busy: rest })
+                }
+            }
         }
+        const prev = lanes.get(localId) ?? Promise.resolve()
+        const next: Promise<T> = prev.catch(() => undefined).then(run)
+        lanes.set(localId, next)
+        return next
     }
 
     const announce = (localId: string, result: PullResult): void => {
