@@ -40,7 +40,7 @@ interface StoredManifest {
     files: { path: string; sha256: string; bytes: number }[]
 }
 
-function hexToBytes(hex: string): Uint8Array {
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
     return Uint8Array.from(hex.match(/../g)!.map((h) => parseInt(h, 16)))
 }
 

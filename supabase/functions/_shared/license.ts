@@ -38,17 +38,21 @@ export function b64url(bytes: Uint8Array): string {
     return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-export function fromB64url(text: string): Uint8Array {
+// Web Crypto takes only ArrayBuffer-backed bytes (TS 5.7+ BufferSource).
+export function fromB64url(text: string): Uint8Array<ArrayBuffer> {
     const b = atob(text.replace(/-/g, '+').replace(/_/g, '/'))
     return Uint8Array.from(b, (c) => c.charCodeAt(0))
 }
 
-function hexToBytes(hex: string): Uint8Array {
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
     return Uint8Array.from(hex.match(/../g)!.map((h) => parseInt(h, 16)))
 }
 
 export async function sha256Hex(bytes: Uint8Array): Promise<string> {
-    const d = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+    // A copy is ArrayBuffer-backed, whatever buffer `bytes` views.
+    const d = new Uint8Array(
+        await crypto.subtle.digest('SHA-256', new Uint8Array(bytes)),
+    )
     return [...d].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
@@ -84,9 +88,9 @@ export function readOwnLicense(token: string): LicenseClaims | null {
 /** Proof that the caller holds the device's private key: an ECDSA P-256
  *  signature (raw r||s, as WebCrypto makes it) over `uid.dev.ts`. */
 export async function verifyDeviceProof(
-    spki: Uint8Array,
+    spki: Uint8Array<ArrayBuffer>,
     message: string,
-    signature: Uint8Array,
+    signature: Uint8Array<ArrayBuffer>,
 ): Promise<boolean> {
     const key = await crypto.subtle.importKey(
         'spki',
