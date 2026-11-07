@@ -33,6 +33,7 @@ import {
     generatedFiles,
     gitBlobSha,
     handEditedFiles,
+    keptFiles,
     MANIFEST_PATH,
     manifestText,
     parseManifest,
@@ -209,7 +210,7 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
             remote.manifest,
             merged.slug,
             remote.tree,
-            merged.keepTheirs,
+            keptFiles(remote.manifest, merged.slug, merged.keepTheirs),
         )
         const local = await gitBlobSha(sourceText(e.source))
         const state =
@@ -385,9 +386,10 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
         remote: Remote,
         version: number,
     ): Promise<{ files: BundleFile[]; manifest: Manifest }> => {
+        const kept = keptFiles(remote.manifest, link.slug, link.keepTheirs)
         const generated = generatedFiles(
             { kind: entry.kind, source },
-            link,
+            { target: link.target, keepTheirs: kept },
             new Set(remote.tree.keys()),
         )
         const blobs = await Promise.all(
@@ -404,6 +406,7 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
                     path: f.path,
                     blob: blobs[i],
                 })),
+                ...(kept.length > 0 ? { kept } : {}),
             },
             deps.generator,
         )

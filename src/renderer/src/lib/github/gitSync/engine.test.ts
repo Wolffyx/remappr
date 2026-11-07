@@ -506,6 +506,26 @@ describe('git sync: generated files edited on GitHub', () => {
         expect(h.gh.calls.commits).toBe(0)
     })
 
+    it('a kept file stays kept for another device too (the repo says so)', async () => {
+        const gh = await seeded()
+        const first = harness(gh)
+        await first.link()
+        await first.sync.pull('e1')
+        await first.sync.resolveHandEdits('e1', 'keep')
+        // A second device: the same link, without the local choice.
+        const second = harness(gh)
+        await second.link({ lastSyncedSha: gh.head() })
+        second.edit(doc(4))
+        second.checkpoint('from the other device')
+        await second.sync.push('e1')
+        expect(gh.message()).toBe('from the other device\n\nRemappr-Version: 1')
+        expect(gh.file('config/corne.keymap')).toBe('hand edited\n')
+        expect(JSON.parse(gh.file(MANIFEST_PATH)!).items[0].kept).toEqual([
+            'config/corne.keymap',
+        ])
+        expect(second.get().git?.state).toBe('synced')
+    })
+
     it('keep theirs: stops generating that file and pushes', async () => {
         const h = harness(await seeded())
         await h.link()

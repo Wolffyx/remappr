@@ -26,6 +26,10 @@ export interface ManifestItem {
     source: string
     target: string | null
     generated: { path: string; blob: string }[]
+    /** Generated files the user keeps as edited on GitHub: no device writes
+     *  them again. In the repo, so every device knows (not only the one
+     *  where the choice was made). */
+    kept?: string[]
 }
 
 export interface Manifest {
@@ -132,6 +136,16 @@ export function handEditedFiles(
         .filter((g) => !keepTheirs.includes(g.path))
         .filter((g) => tree.get(g.path) !== g.blob)
         .map((g) => g.path)
+}
+
+/** Files kept as edited on GitHub: the repo's record plus this device's. */
+export function keptFiles(
+    manifest: Manifest | null,
+    slug: string,
+    local: readonly string[] = [],
+): string[] {
+    const item = manifest?.items.find((i) => i.slug === slug)
+    return [...new Set([...(item?.kept ?? []), ...local])].sort()
 }
 
 /** The commit message: the version's message and the trailer. */

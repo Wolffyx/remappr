@@ -5,6 +5,7 @@ import {
     generatedFiles,
     gitBlobSha,
     handEditedFiles,
+    keptFiles,
     parseManifest,
     slugOf,
     sourcePath,
@@ -123,6 +124,27 @@ describe('git sync layout', () => {
             ['config/west.yml'],
         )
         expect(handEditedFiles(manifest, 'other', tree)).toEqual([])
+    })
+
+    it("merges the repo's kept files with this device's", () => {
+        const manifest = {
+            generator: '',
+            items: [
+                {
+                    slug: 'a',
+                    version: 1,
+                    source: 'r/a.remappr.json',
+                    target: 'zmk',
+                    generated: [],
+                    kept: ['build.yaml'],
+                },
+            ],
+        }
+        expect(
+            keptFiles(manifest, 'a', ['config/a.conf', 'build.yaml']),
+        ).toEqual(['build.yaml', 'config/a.conf'])
+        expect(keptFiles(manifest, 'other')).toEqual([])
+        expect(keptFiles(null, 'a', ['x'])).toEqual(['x'])
     })
 
     it('writes the trailer and reads the subject back', () => {
