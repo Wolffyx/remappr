@@ -477,8 +477,10 @@ export type Database = {
             }
             plans: {
                 Row: {
+                    amount_cents: number | null
                     billing: string
                     billing_interval: string | null
+                    currency: string | null
                     is_active: boolean
                     key: string
                     limits: NonNullable<Json>
@@ -487,8 +489,10 @@ export type Database = {
                 }
                 ComputedFields: never
                 Insert: {
+                    amount_cents?: number | null
                     billing: string
                     billing_interval?: string | null
+                    currency?: string | null
                     is_active?: boolean
                     key: string
                     limits: NonNullable<Json>
@@ -496,8 +500,10 @@ export type Database = {
                     stripe_price_id?: string | null
                 }
                 Update: {
+                    amount_cents?: number | null
                     billing?: string
                     billing_interval?: string | null
+                    currency?: string | null
                     is_active?: boolean
                     key?: string
                     limits?: NonNullable<Json>

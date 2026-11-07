@@ -491,3 +491,17 @@ verify_jwt = false
 
 [functions.desktop-handoff-claim]
 verify_jwt = false
+
+# Billing (P6). Checkout and the portal authenticate inside (getUser); the
+# webhook is checked by its Stripe signature, the reconcile by a cron secret.
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.create-portal-session]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.billing-reconcile]
+verify_jwt = false

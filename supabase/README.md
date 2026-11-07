@@ -181,3 +181,49 @@ link:builder-source` brings the bundled builder back for development.
 
 The CI workflows still build with the bundled builder: switch them once
 staging/production have signing keys and a published package (P11).
+
+## Billing (Stripe)
+
+Card and billing details stay on Stripe's hosted Checkout and Billing Portal;
+Remappr stores only Stripe ids, plan, status and amounts (`public.purchases`).
+Functions: `create-checkout`, `create-portal-session`, `stripe-webhook`,
+`billing-reconcile` (nightly replay of the last 3 days of events). Set up per
+environment, **test mode first**:
+
+1. Prices: create the products and prices and print the SQL that connects
+   `public.plans` to them (amounts in cents), then run that SQL in the
+   project's SQL editor:
+
+    ```bash
+    STRIPE_SECRET_KEY=sk_test_… node --no-warnings scripts/stripe-plans.ts --currency eur --lifetime 4900 --monthly 499 --yearly 4900
+    ```
+
+2. Webhook: in Stripe → Developers → Webhooks, add
+   `https://<ref>.supabase.co/functions/v1/stripe-webhook` with these events:
+   `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+   `checkout.session.async_payment_failed`, `checkout.session.expired`,
+   `customer.subscription.created`, `.updated`, `.deleted`, `.paused`,
+   `.resumed`, `invoice.paid`, `invoice.payment_failed`, `charge.refunded`,
+   `charge.dispute.created`, `.updated`, `.closed`.
+3. Billing Portal: in Stripe → Settings → Billing → Customer portal, allow
+   cancelling and switching between the Monthly and Yearly products.
+4. Function secrets (Dashboard → Edge Functions → Secrets):
+
+    | Secret                     | Value                                                                                                                                            |
+    | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+    | `STRIPE_SECRET_KEY`        | a **restricted** key: Checkout Sessions, Customers, Billing Portal write; Subscriptions, Invoices, Charges, Disputes, Events read                |
+    | `STRIPE_WEBHOOK_SECRET`    | the endpoint's signing secret (`whsec_…`)                                                                                                        |
+    | `BILLING_RECONCILE_SECRET` | a long random string                                                                                                                             |
+    | `CHECKOUT_RETURN_ORIGINS`  | optional; comma-separated origins Checkout may return to (default: remappr.com, dev.remappr.com, localhost:5173, [::1]:5173; PR previews always) |
+    | `STRIPE_AUTOMATIC_TAX`     | `on` once Stripe Tax has the business address                                                                                                    |
+
+5. Nightly reconcile (SQL editor):
+
+    ```sql
+    select vault.create_secret('https://<ref>.supabase.co/functions/v1/billing-reconcile', 'billing_reconcile_url');
+    select vault.create_secret('<BILLING_RECONCILE_SECRET>', 'billing_reconcile_secret');
+    ```
+
+Locally: `pnpm exec supabase functions serve` with the secrets in
+`supabase/functions/.env`, and `stripe listen --forward-to
+localhost:54321/functions/v1/stripe-webhook` for the webhook.
