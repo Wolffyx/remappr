@@ -119,6 +119,27 @@ export function withItem(
     }
 }
 
+/** The manifest after Remappr rewrote some generated files itself (a
+ *  workflow upgrade): every item that recorded the old blob of a path gets
+ *  the new one, so the next sync does not take the change for a hand edit. */
+export function withRewrittenBlobs(
+    manifest: Manifest,
+    rewrites: readonly { path: string; from: string; to: string }[],
+): Manifest {
+    type Generated = ManifestItem['generated'][number]
+    const rewrite = (g: Generated): Generated => {
+        const r = rewrites.find((w) => w.path === g.path && w.from === g.blob)
+        return r ? { ...g, blob: r.to } : g
+    }
+    return {
+        ...manifest,
+        items: manifest.items.map((i) => ({
+            ...i,
+            generated: i.generated.map(rewrite),
+        })),
+    }
+}
+
 export const manifestText = (m: Manifest): string =>
     `${JSON.stringify(m, null, 2)}\n`
 

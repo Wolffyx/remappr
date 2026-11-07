@@ -4,6 +4,7 @@ import type { GitLink, LibraryEntry } from '@/lib/library/types'
 import type { LocalVersion } from '@/lib/library/versionRepo'
 import { GithubApiError, type RepoApi } from '../repoApi'
 import { createGitSync, firstProblem } from './engine'
+import { buildProjectBundle, parseKeymap } from '@firmware/config'
 import { gitBlobSha, MANIFEST_PATH, sourceText } from './layout'
 
 interface FakeCommit {
@@ -538,6 +539,13 @@ describe('git sync: generated files edited on GitHub', () => {
 })
 
 describe('git sync: releases', () => {
+    const QMK_KEYMAP = JSON.stringify({
+        schemaVersion: 1,
+        kind: 'remappr.keymap',
+        meta: { name: 'Plank', target: 'qmk' },
+        keyboard: { id: 'plank', name: 'Plank', keys: [{ x: 0, y: 0 }] },
+        layers: [{ name: 'base', bindings: ['A'] }],
+    })
     const zmkV1 = [
         'name: Build ZMK firmware',
         'on: [push, pull_request, workflow_dispatch]',
@@ -571,6 +579,50 @@ describe('git sync: releases', () => {
         expect(h.gh.file(WF)).toContain('remappr:release')
         expect(h.gh.releases[0].target).toBe(h.gh.head())
         expect(h.get().git?.lastSyncedSha).toBe(h.gh.head())
+    })
+
+    it('upgrades an old workflow that already had the release job', async () => {
+        const QMK = '.github/workflows/build_binaries.yml'
+        const current = buildProjectBundle(
+            parseKeymap(QMK_KEYMAP),
+            'qmk',
+        ).files.find((f) => f.filename === QMK)!.content as string
+        // The P10g text: release job, but a path qmk/.github does not have.
+        const old = current
+            .replace('qmk/.github/.github/workflows/', 'qmk/.github/workflows/')
+            .replace(
+                '    permissions:\n      contents: write\n    with:',
+                '    with:',
+            )
+            .replace(/\n {6}preparation_command: .*/, '')
+        expect(old).not.toBe(current)
+        // Another item of the repo generated that workflow and tracks it.
+        const tracked = {
+            slug: 'other',
+            version: 1,
+            source: 'remappr/other.remappr.json',
+            target: 'qmk',
+            generated: [{ path: QMK, blob: await gitBlobSha(old) }],
+        }
+        const h = harness(
+            fakeGithub({
+                [QMK]: old,
+                [MANIFEST_PATH]: `${JSON.stringify({ generator: 'test', items: [tracked] })}\n`,
+            }),
+        )
+        await h.link()
+        const made = await h.sync.release('e1', '1.0.0', '')
+        expect(made.firmware).toBe('attached')
+        expect(h.gh.file(QMK)).toBe(current)
+        expect(h.gh.releases[0].target).toBe(h.gh.head())
+        // The upgrade is Remappr's own: the manifest follows, no hand edit.
+        const manifest = JSON.parse(h.gh.file(MANIFEST_PATH)!)
+        const other = manifest.items.find(
+            (i: { slug: string }) => i.slug === 'other',
+        )
+        expect(other.generated).toEqual([
+            { path: QMK, blob: await gitBlobSha(current) },
+        ])
     })
 
     it('leaves a hand-edited workflow alone and says so', async () => {

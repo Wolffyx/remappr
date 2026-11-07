@@ -40,6 +40,7 @@ import {
     sourcePath,
     sourceText,
     withItem,
+    withRewrittenBlobs,
     type Manifest,
 } from './layout'
 import { draftNotes, latestVersion, nextVersion, tagOf } from './release'
@@ -511,22 +512,55 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
         let manual = false
         for (const path of present) {
             const text = (await api.readFile(link.repo, path, head)) ?? ''
-            if (text.includes(RELEASE_MARKER)) continue
+            // An old Remappr workflow upgrades even when it already has the
+            // release job (an earlier one could not build).
             const next = upgradedWorkflow(path, text)
             if (next) upgrades.push({ path, content: next })
-            else manual = true
+            else if (!text.includes(RELEASE_MARKER)) manual = true
         }
         if (upgrades.length === 0)
             return { head, firmware: manual ? 'manual' : 'attached' }
+        const manifest = await rewrittenManifest(
+            api,
+            link,
+            { head, tree },
+            upgrades,
+        )
         const sha = await api.commit(
             link.repo,
             link.branch,
             head,
-            upgrades,
+            manifest ? [...upgrades, manifest] : upgrades,
             'Attach the firmware to GitHub Releases',
         )
         await save(localId, { lastSyncedSha: sha, etag: undefined })
         return { head: sha, firmware: manual ? 'manual' : 'attached' }
+    }
+
+    /** The manifest file with the upgraded workflows' new blobs; null when
+     *  the branch has no manifest. */
+    const rewrittenManifest = async (
+        api: RepoApi,
+        link: GitLink,
+        { head, tree }: { head: string; tree: ReadonlyMap<string, string> },
+        upgrades: readonly BundleFile[],
+    ): Promise<BundleFile | null> => {
+        if (!tree.has(MANIFEST_PATH)) return null
+        const manifest = parseManifest(
+            await api.readFile(link.repo, MANIFEST_PATH, head),
+        )
+        if (!manifest) return null
+        const rewrites = await Promise.all(
+            upgrades.map(async (u) => ({
+                path: u.path,
+                from: tree.get(u.path) ?? '',
+                to: await gitBlobSha(u.content),
+            })),
+        )
+        return {
+            path: MANIFEST_PATH,
+            content: manifestText(withRewrittenBlobs(manifest, rewrites)),
+        }
     }
 
     const run = async (
