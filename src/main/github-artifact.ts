@@ -17,8 +17,37 @@ import { getStoredSecret } from './secret-store'
 
 const log = createLogger('github-artifact')
 
-// Must match the renderer's secretStore GITHUB_TOKEN_KEY.
+// Must match the renderer's secretStore GITHUB_TOKEN_KEY and the GitHub App
+// connection key in lib/github/connection.ts.
 const GITHUB_TOKEN_KEY = 'githubToken'
+const GITHUB_APP_KEY = 'githubApp'
+// A token this close to running out is not used (the renderer refreshes it).
+const EXPIRY_MARGIN_MS = 30_000
+
+/** The GitHub App's user token while it is valid, else the personal access
+ *  token (Connect GitHub stores the former, the advanced fallback the latter). */
+export function githubToken(
+    read: (key: string) => string | null = getStoredSecret,
+    now: number = Date.now(),
+): string | null {
+    const raw = read(GITHUB_APP_KEY)
+    if (raw) {
+        try {
+            const app = JSON.parse(raw) as {
+                accessToken?: unknown
+                expiresAt?: unknown
+            }
+            const fresh =
+                typeof app.expiresAt !== 'number' ||
+                app.expiresAt - EXPIRY_MARGIN_MS > now
+            if (typeof app.accessToken === 'string' && app.accessToken && fresh)
+                return app.accessToken
+        } catch {
+            log.warn('stored GitHub App connection is unreadable')
+        }
+    }
+    return read(GITHUB_TOKEN_KEY) || null
+}
 
 function urlOf(arg: unknown): string | null {
     const u = (arg as { url?: unknown })?.url
@@ -43,7 +72,7 @@ export function registerGithubArtifactHandler(): void {
                 log.error('refused non-GitHub artifact url', host)
                 return null
             }
-            const token = getStoredSecret(GITHUB_TOKEN_KEY)
+            const token = githubToken()
             if (!token) {
                 log.error('no stored GitHub token for artifact download')
                 return null
