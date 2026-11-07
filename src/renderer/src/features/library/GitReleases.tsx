@@ -211,10 +211,16 @@ export function GitReleases({
                             disabled={
                                 !draft ||
                                 busy ||
+                                loading ||
                                 link.state === 'conflict' ||
                                 link.state === 'hand_edited'
                             }
-                            onClick={() => setWriting(true)}
+                            onClick={() => {
+                                // Draft from what is on GitHub now: a push
+                                // since the panel opened belongs in the notes.
+                                setLoading(true)
+                                void fetchDraft().then(() => setWriting(true))
+                            }}
                         >
                             Release…
                         </Button>
@@ -258,6 +264,7 @@ export function GitReleases({
             )}
             {writing && draft && (
                 <ReleaseForm
+                    key={checkedAt}
                     entry={entry}
                     draft={draft}
                     onDone={() => {
