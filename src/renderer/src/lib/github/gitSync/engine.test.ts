@@ -652,6 +652,24 @@ describe('git sync: releases', () => {
         expect((await h.sync.releaseDraft('e1', '2.0.0')).version).toBe('2.0.0')
     })
 
+    it('drafts notes from the branch when the latest tag is on other history', async () => {
+        const h = harness()
+        await h.link()
+        await h.sync.release('e1', '0.1.0', '')
+        h.edit(doc(2))
+        h.checkpoint('Add a thumb layer')
+        await h.sync.push('e1')
+        // Another item's branch made the latest tag: GitHub cannot compare.
+        const subjects = h.gh.api.commitSubjects.bind(h.gh.api)
+        h.gh.api.commitSubjects = async (full, base, head) => {
+            if (base) throw new GithubApiError(404, 'No common ancestor')
+            return subjects(full, base, head)
+        }
+        const draft = await h.sync.releaseDraft('e1')
+        expect(draft.notes).toContain('- Add a thumb layer')
+        expect(draft.releases.map((r) => r.tag)).toEqual(['v0.1.0'])
+    })
+
     it('refuses while the entry conflicts with GitHub', async () => {
         const h = harness()
         await h.link()

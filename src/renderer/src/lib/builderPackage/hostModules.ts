@@ -36,6 +36,8 @@ export const HOST_MODULES: Readonly<Record<string, () => Promise<unknown>>> = {
         import('@/features/keymap/keyboard/SliderCap'),
     '@/features/keymap/keyboard/ZoomHud': () =>
         import('@/features/keymap/keyboard/ZoomHud'),
+    '@/features/library/GitHubExport': () =>
+        import('@/features/library/GitHubExport'),
     '@/features/library/LibraryModal': () =>
         import('@/features/library/LibraryModal'),
     '@/features/lighting/engine': () => import('@/features/lighting/engine'),

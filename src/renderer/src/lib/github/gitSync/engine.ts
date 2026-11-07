@@ -640,11 +640,16 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
             const latest = latestVersion(tags)
             // The synced commit, else the branch (both name a commit there).
             const head: string = link.lastSyncedSha ?? link.branch
-            const subjects = await api.commitSubjects(
-                link.repo,
-                latest ? tagOf(latest) : null,
-                head,
-            )
+            // The latest tag can be on history this branch does not share
+            // (another item's branch): GitHub has no compare, so the notes
+            // come from the branch's own latest commits.
+            const subjects = await api
+                .commitSubjects(link.repo, latest ? tagOf(latest) : null, head)
+                .catch((e: unknown) => {
+                    if (!(e instanceof GithubApiError) || e.status !== 404)
+                        throw e
+                    return api.commitSubjects(link.repo, null, head)
+                })
             const build: TagBuild = releases[0]
                 ? await api
                       .tagBuild(link.repo, releases[0].tag)
