@@ -36,6 +36,28 @@ export type BranchHead =
     | { changed: false }
     | { changed: true; sha: string; etag: string | null }
 
+export interface ReleaseAsset {
+    name: string
+    url: string
+    size: number
+}
+
+export interface ReleaseInfo {
+    tag: string
+    name: string
+    url: string
+    createdAt: string
+    assets: ReleaseAsset[]
+}
+
+export interface NewRelease {
+    tag: string
+    /** The commit the tag points at. */
+    target: string
+    name: string
+    body: string
+}
+
 export interface CommitInfo {
     message: string
     author: string
@@ -73,6 +95,17 @@ export interface RepoApi {
         files: BundleFile[],
         message: string,
     ): Promise<string>
+    /** Releases, newest first (drafts left out). */
+    listReleases(full: string): Promise<ReleaseInfo[]>
+    /** A published Release; GitHub makes its tag at `target`. */
+    createRelease(full: string, release: NewRelease): Promise<ReleaseInfo>
+    /** Commit subjects after `base` (a tag or sha) up to `head`, oldest
+     *  first; with no base, the latest 30. */
+    commitSubjects(
+        full: string,
+        base: string | null,
+        head: string,
+    ): Promise<string[]>
     /** The first commit of an empty repo (one file, on `branch`); its sha.
      *  The Git Data API cannot write to a repo with no commits. */
     initEmpty(
@@ -92,6 +125,30 @@ const base64 = (text: string): string => {
     for (const b of new TextEncoder().encode(text)) s += String.fromCharCode(b)
     return btoa(s)
 }
+
+interface RawRelease {
+    tag_name: string
+    name: string | null
+    html_url: string
+    created_at: string
+    draft: boolean
+    assets: { name: string; browser_download_url: string; size: number }[]
+}
+
+const releaseInfo = (r: RawRelease): ReleaseInfo => ({
+    tag: r.tag_name,
+    name: r.name || r.tag_name,
+    url: r.html_url,
+    createdAt: r.created_at,
+    assets: r.assets.map((a) => ({
+        name: a.name,
+        url: a.browser_download_url,
+        size: a.size,
+    })),
+})
+
+const subjectOf = (c: { commit: { message: string } }): string =>
+    c.commit.message.split('\n')[0] ?? ''
 
 interface RawRepo {
     full_name: string
@@ -227,6 +284,46 @@ export function createRepoApi(
                 author: c.author?.login ?? c.commit.author?.name ?? '',
                 date: c.commit.author?.date ?? '',
             }
+        },
+        async listReleases(full) {
+            const list = await json<RawRelease[]>(
+                `${repoPath(full)}/releases?per_page=20`,
+            )
+            return list.filter((r) => !r.draft).map(releaseInfo)
+        },
+        async createRelease(full, release) {
+            const res = await fetchImpl(`${API}${repoPath(full)}/releases`, {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tag_name: release.tag,
+                    target_commitish: release.target,
+                    name: release.name,
+                    body: release.body,
+                }),
+            })
+            if (!res.ok) {
+                const detail = await res.text().catch(() => '')
+                throw new GithubApiError(
+                    res.status,
+                    /already_exists/.test(detail)
+                        ? `${release.tag} is already released on GitHub.`
+                        : `GitHub POST releases → ${res.status}${detail ? `: ${detail}` : ''}`,
+                )
+            }
+            return releaseInfo((await res.json()) as RawRelease)
+        },
+        async commitSubjects(full, base, head) {
+            if (!base) {
+                const list = await json<{ commit: { message: string } }[]>(
+                    `${repoPath(full)}/commits?sha=${seg(head)}&per_page=30`,
+                )
+                return list.map(subjectOf).reverse()
+            }
+            const cmp = await json<{
+                commits: { commit: { message: string } }[]
+            }>(`${repoPath(full)}/compare/${seg(base)}...${seg(head)}`)
+            return cmp.commits.map(subjectOf)
         },
         async initEmpty(full, branch, file, message) {
             const res = await fetchImpl(

@@ -21,11 +21,12 @@ import {
     type ConflictChoice,
     type HandEditChoice,
     type PullResult,
+    type ReleaseDraft,
 } from '@/lib/github/gitSync/engine'
 import { slugOf } from '@/lib/github/gitSync/layout'
 import { createRepoApi } from '@/lib/github/repoApi'
 import { entryFromSource } from '@/lib/library/entries'
-import type { GitLink, LibraryEntry } from '@/lib/library/types'
+import type { GitLink, GitRelease, LibraryEntry } from '@/lib/library/types'
 import useAuthStore from '@/stores/authStore'
 import useHistoryStore, { historyRepository } from '@/stores/historyStore'
 import useLibraryStore from '@/stores/libraryStore'
@@ -58,11 +59,32 @@ export interface GitSyncState {
     pull: (localId: string) => Promise<PullResult>
     resolveConflict: (localId: string, choice: ConflictChoice) => Promise<void>
     resolveHandEdits: (localId: string, choice: HandEditChoice) => Promise<void>
+    /** The version and notes to offer, and the releases made so far. */
+    releaseDraft: (localId: string) => Promise<ReleaseDraft>
+    /** Sync, then publish a GitHub Release of the synced commit. */
+    release: (
+        localId: string,
+        version: string,
+        notes: string,
+    ) => Promise<GitRelease>
     start: () => void
 }
 
 const entryOf = (localId: string): LibraryEntry | undefined =>
     useLibraryStore.getState().entries.find((e) => e.localId === localId)
+
+/** The version the document gives itself (meta.version), if any. */
+function docVersion(entry: LibraryEntry): string | undefined {
+    try {
+        const meta = (
+            JSON.parse(entry.source) as { meta?: { version?: unknown } }
+        ).meta
+        return typeof meta?.version === 'string' ? meta.version : undefined
+    } catch {
+        // An unreadable document has no version of its own.
+        return undefined
+    }
+}
 
 const linked = (): LibraryEntry[] =>
     useLibraryStore.getState().entries.filter((e) => e.git)
@@ -294,6 +316,12 @@ const useGitSyncStore = create<GitSyncState>()((set, get) => {
             withBusy(localId, () => engine.resolveConflict(localId, choice)),
         resolveHandEdits: (localId, choice) =>
             withBusy(localId, () => engine.resolveHandEdits(localId, choice)),
+        releaseDraft: (localId) => {
+            const e = entryOf(localId)
+            return engine.releaseDraft(localId, e ? docVersion(e) : undefined)
+        },
+        release: (localId, version, notes) =>
+            withBusy(localId, () => engine.release(localId, version, notes)),
         start: () => {
             if (started) return
             started = true

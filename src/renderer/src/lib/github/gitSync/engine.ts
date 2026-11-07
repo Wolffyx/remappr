@@ -12,12 +12,18 @@
 //   twice and a version saved offline goes out on the next sync.
 import type { BundleFile } from '@/lib/githubBuild'
 import { RemoteMovedError } from '@/lib/githubBuild'
-import type { GitLink, LibraryEntry } from '@/lib/library/types'
+import {
+    RELEASE_MARKER,
+    upgradedWorkflow,
+    WORKFLOW_PATHS,
+} from '@firmware/config'
+import type { GitLink, GitRelease, LibraryEntry } from '@/lib/library/types'
 import type { LocalVersion } from '@/lib/library/versionRepo'
 import {
     GithubApiError,
     isEmptyRepo,
     type BranchHead,
+    type ReleaseInfo,
     type RepoApi,
 } from '../repoApi'
 import {
@@ -34,6 +40,7 @@ import {
     withItem,
     type Manifest,
 } from './layout'
+import { draftNotes, latestVersion, nextVersion, tagOf } from './release'
 
 export interface GitSyncDeps {
     /** The GitHub client; null when GitHub is not connected. */
@@ -132,6 +139,23 @@ export interface GitSync {
     /** Generated files edited on GitHub: write over them, or keep them
      *  (Remappr stops generating those files). */
     resolveHandEdits(localId: string, choice: HandEditChoice): Promise<void>
+    /** What to offer for the next release: version, notes and the releases
+     *  already made. */
+    releaseDraft(localId: string, docVersion?: string): Promise<ReleaseDraft>
+    /** Sync, then tag the synced commit and publish a GitHub Release. A
+     *  workflow Remappr wrote before releases is upgraded first, so the
+     *  firmware gets attached. */
+    release(
+        localId: string,
+        version: string,
+        notes: string,
+    ): Promise<GitRelease>
+}
+
+export interface ReleaseDraft {
+    version: string
+    notes: string
+    releases: ReleaseInfo[]
 }
 
 export function createGitSync(deps: GitSyncDeps): GitSync {
@@ -467,6 +491,38 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
         await settle(localId, remote, {})
     }
 
+    /** Make the workflows attach firmware to releases; how it stands. */
+    const prepareWorkflows = async (
+        api: RepoApi,
+        localId: string,
+        head: string,
+    ): Promise<{ head: string; firmware: GitRelease['firmware'] }> => {
+        const { link } = linkOf(localId)
+        const tree = await api.tree(link.repo, head)
+        const present = WORKFLOW_PATHS.filter((p) => tree.has(p))
+        if (present.length === 0) return { head, firmware: 'none' }
+        const upgrades: BundleFile[] = []
+        let manual = false
+        for (const path of present) {
+            const text = (await api.readFile(link.repo, path, head)) ?? ''
+            if (text.includes(RELEASE_MARKER)) continue
+            const next = upgradedWorkflow(path, text)
+            if (next) upgrades.push({ path, content: next })
+            else manual = true
+        }
+        if (upgrades.length === 0)
+            return { head, firmware: manual ? 'manual' : 'attached' }
+        const sha = await api.commit(
+            link.repo,
+            link.branch,
+            head,
+            upgrades,
+            'Attach the firmware to GitHub Releases',
+        )
+        await save(localId, { lastSyncedSha: sha, etag: undefined })
+        return { head: sha, firmware: manual ? 'manual' : 'attached' }
+    }
+
     const run = async (
         localId: string,
         task: (api: RepoApi) => Promise<void>,
@@ -536,5 +592,64 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
                     })
                 await pushWith(api, localId, { head: true, overwrite: true })
             }),
+        releaseDraft: async (localId: string, docVersion?: string) => {
+            const api = await requireApi()
+            const { link } = linkOf(localId)
+            const releases = await api.listReleases(link.repo)
+            const tags = releases.map((r) => r.tag)
+            const latest = latestVersion(tags)
+            // The synced commit, else the branch (both name a commit there).
+            const head: string = link.lastSyncedSha ?? link.branch
+            const subjects = await api.commitSubjects(
+                link.repo,
+                latest ? tagOf(latest) : null,
+                head,
+            )
+            return {
+                version: nextVersion(docVersion, tags),
+                notes: draftNotes(subjects),
+                releases,
+            }
+        },
+        release: async (localId: string, version: string, notes: string) => {
+            let made: GitRelease | null = null
+            await run(localId, async (api) => {
+                await pushWith(api, localId, { head: true })
+                const { e, link } = linkOf(localId)
+                if (link.state === 'conflict')
+                    throw new Error(
+                        'This changed here and on GitHub: settle that first.',
+                    )
+                if (link.state === 'hand_edited')
+                    throw new Error(
+                        'Files Remappr makes were edited on GitHub: choose what happens to them first.',
+                    )
+                if (link.state !== 'synced' || !link.lastSyncedSha)
+                    throw new Error(
+                        'Sync first: the release is made from what is on GitHub.',
+                    )
+                const prepared = await prepareWorkflows(
+                    api,
+                    localId,
+                    link.lastSyncedSha,
+                )
+                const tag = tagOf(version)
+                const info = await api.createRelease(link.repo, {
+                    tag,
+                    target: prepared.head,
+                    name: `${e.name} ${tag}`,
+                    body: notes,
+                })
+                made = {
+                    tag,
+                    url: info.url,
+                    at: deps.now(),
+                    firmware: prepared.firmware,
+                }
+                await save(localId, { lastRelease: made })
+            })
+            if (!made) throw new Error('The release was not made.')
+            return made
+        },
     }
 }

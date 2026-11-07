@@ -78,6 +78,18 @@ export interface GitLink {
     handEdited?: string[]
     /** Generated files the user keeps as edited: never written again. */
     keepTheirs?: string[]
+    /** The last "Release to GitHub" made from this device. */
+    lastRelease?: GitRelease
+}
+
+export interface GitRelease {
+    tag: string
+    url: string
+    at: number
+    /** attached: the repo's workflow builds the tag and attaches the
+     *  firmware; manual: a workflow edited by hand has no release step;
+     *  none: no firmware workflow (the Remappr file only). */
+    firmware: 'attached' | 'manual' | 'none'
 }
 
 /** List facts shown without parsing `source`. */

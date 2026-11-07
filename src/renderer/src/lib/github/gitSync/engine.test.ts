@@ -10,6 +10,16 @@ interface FakeCommit {
     files: Map<string, string>
     message: string
     author: string
+    parent?: string
+}
+
+interface FakeRelease {
+    tag: string
+    name: string
+    url: string
+    createdAt: string
+    target: string
+    body: string
 }
 
 interface FakeGithub {
@@ -19,6 +29,7 @@ interface FakeGithub {
     file(path: string): string | undefined
     message(): string
     edit(path: string, content: string, message?: string): void
+    releases: FakeRelease[]
     /** No commits at all, like a repo created without a README. */
     wipe(): void
 }
@@ -37,6 +48,7 @@ function fakeGithub(
         author: 'octo',
     })
     const calls = { headReads: 0, notModified: 0, commits: 0 }
+    const releases: FakeRelease[] = []
 
     const api: RepoApi = {
         listRepos: async () => [],
@@ -68,6 +80,39 @@ function fakeGithub(
             author: commits.get(sha)!.author,
             date: '',
         }),
+        listReleases: async () => releases.map((r) => ({ ...r, assets: [] })),
+        async createRelease(_full, r) {
+            if (releases.some((x) => x.tag === r.tag))
+                throw new GithubApiError(
+                    422,
+                    `${r.tag} is already released on GitHub.`,
+                )
+            const made = {
+                tag: r.tag,
+                name: r.name,
+                url: `https://github.com/o/r/releases/tag/${r.tag}`,
+                createdAt: '',
+                target: r.target,
+                body: r.body,
+            }
+            releases.unshift(made)
+            return { ...made, assets: [] }
+        },
+        async commitSubjects(_full, base, headSha) {
+            // Walk back from the head until the base tag's commit.
+            const stop = base
+                ? releases.find((r) => r.tag === base)?.target
+                : undefined
+            const out: string[] = []
+            let sha: string | undefined = headSha
+            while (sha && sha !== stop) {
+                const c = commits.get(sha)
+                if (!c) break
+                out.push(c.message.split('\n')[0])
+                sha = c.parent
+            }
+            return out.reverse()
+        },
         async initEmpty(_full, _branch, file, message) {
             if (head) throw new GithubApiError(422, 'not empty')
             head = nextSha()
@@ -84,7 +129,12 @@ function fakeGithub(
             const next = new Map(commits.get(head)!.files)
             for (const f of files) next.set(f.path, f.content)
             head = nextSha()
-            commits.set(head, { files: next, message, author: 'remappr' })
+            commits.set(head, {
+                files: next,
+                message,
+                author: 'remappr',
+                parent,
+            })
             return head
         },
     }
@@ -94,6 +144,7 @@ function fakeGithub(
         head: () => head,
         file: (path: string) => commits.get(head)!.files.get(path),
         message: () => commits.get(head)!.message,
+        releases,
         wipe() {
             head = ''
         },
@@ -101,8 +152,9 @@ function fakeGithub(
         edit(path: string, content: string, message = 'edit on github') {
             const next = new Map(commits.get(head)!.files)
             next.set(path, content)
+            const parent = head
             head = nextSha()
-            commits.set(head, { files: next, message, author: 'octo' })
+            commits.set(head, { files: next, message, author: 'octo', parent })
         },
     }
 }
@@ -461,5 +513,90 @@ describe('git sync: generated files edited on GitHub', () => {
         expect(h.get().git?.keepTheirs).toEqual(['config/corne.keymap'])
         expect(h.get().git?.state).toBe('synced')
         expect(h.gh.file('config/corne.keymap')).toBe('hand edited\n')
+    })
+})
+
+describe('git sync: releases', () => {
+    const zmkV1 = [
+        'name: Build ZMK firmware',
+        'on: [push, pull_request, workflow_dispatch]',
+        'jobs:',
+        '  build:',
+        '    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3',
+        '',
+    ].join('\n')
+    const WF = '.github/workflows/build.yml'
+
+    it('releases the synced commit, with no firmware workflow', async () => {
+        const h = harness()
+        await h.link()
+        const made = await h.sync.release('e1', '0.1.0', '- first')
+        expect(made).toMatchObject({ tag: 'v0.1.0', firmware: 'none' })
+        expect(h.gh.releases[0]).toMatchObject({
+            tag: 'v0.1.0',
+            target: h.gh.head(),
+            name: 'Corne v0.1.0',
+            body: '- first',
+        })
+        expect(h.get().git?.lastRelease?.tag).toBe('v0.1.0')
+    })
+
+    it('upgrades a workflow Remappr wrote before releases, then tags that', async () => {
+        const h = harness(fakeGithub({ [WF]: zmkV1 }))
+        await h.link()
+        const made = await h.sync.release('e1', '1.0.0', '')
+        expect(made.firmware).toBe('attached')
+        expect(h.gh.message()).toBe('Attach the firmware to GitHub Releases')
+        expect(h.gh.file(WF)).toContain('remappr:release')
+        expect(h.gh.releases[0].target).toBe(h.gh.head())
+        expect(h.get().git?.lastSyncedSha).toBe(h.gh.head())
+    })
+
+    it('leaves a hand-edited workflow alone and says so', async () => {
+        const h = harness(fakeGithub({ [WF]: `${zmkV1}# mine\n` }))
+        await h.link()
+        const before = h.gh.calls.commits
+        const made = await h.sync.release('e1', '1.0.0', '')
+        expect(made.firmware).toBe('manual')
+        // Only the sync's own commit, no workflow change.
+        expect(h.gh.calls.commits).toBe(before + 1)
+        expect(h.gh.file(WF)).toBe(`${zmkV1}# mine\n`)
+    })
+
+    it('drafts the next version and the changes since the last release', async () => {
+        const h = harness()
+        await h.link()
+        expect((await h.sync.releaseDraft('e1')).version).toBe('0.1.0')
+        await h.sync.release('e1', '0.1.0', '')
+        h.edit(doc(2))
+        h.checkpoint('Add a thumb layer')
+        await h.sync.push('e1')
+        const draft = await h.sync.releaseDraft('e1')
+        expect(draft.version).toBe('0.1.1')
+        expect(draft.notes).toBe('- Add a thumb layer')
+        expect(draft.releases.map((r) => r.tag)).toEqual(['v0.1.0'])
+        // The document's own newer version wins.
+        expect((await h.sync.releaseDraft('e1', '2.0.0')).version).toBe('2.0.0')
+    })
+
+    it('refuses while the entry conflicts with GitHub', async () => {
+        const h = harness()
+        await h.link()
+        await h.sync.push('e1', { head: true })
+        h.gh.edit('remappr/corne.remappr.json', sourceText(doc(9)))
+        h.edit(doc(5))
+        await expect(h.sync.release('e1', '0.1.0', '')).rejects.toThrow(
+            /settle that first/,
+        )
+        expect(h.gh.releases).toEqual([])
+    })
+
+    it('refuses a version already released', async () => {
+        const h = harness()
+        await h.link()
+        await h.sync.release('e1', '0.1.0', '')
+        await expect(h.sync.release('e1', '0.1.0', '')).rejects.toThrow(
+            /already released/,
+        )
     })
 })

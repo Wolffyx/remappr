@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ExternalLink, RefreshCw, Unlink } from 'lucide-react'
 import { GitHubIcon as Github } from '@/components/GitHubIcon'
+import { GitReleases } from './GitReleases'
 import { toast } from 'sonner'
 import {
     parseKeymap,
@@ -416,6 +417,7 @@ function Linked({
                     }
                 />
             </div>
+            <GitReleases entry={entry} link={link} />
         </div>
     )
 }
