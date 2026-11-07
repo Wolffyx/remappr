@@ -16,6 +16,14 @@ pnpm db:types     # regenerate src/renderer/src/lib/cloud/database.types.ts
 pnpm db:stop
 ```
 
+`db:start` runs the stack from a copy of `supabase/` in
+`~/Projects/Databases/remappr` (override with `REMAPPR_STACK_DIR`), not from the
+repo. The containers come back with Docker at boot and bind-mount files from
+that folder; pointed at a repo on a drive that mounts later, Docker would
+create the missing paths itself and the drive would mount elsewhere. The data
+stays in Docker volumes. After editing functions, `pnpm db:sync` copies them
+over; after editing `config.toml` or templates, `pnpm db:stop && pnpm db:start`.
+
 `pnpm db:new <name>` creates a migration. Migrations are forward-only.
 
 ## Run the app against it
