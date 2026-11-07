@@ -11,7 +11,7 @@ import { createLogger } from '@shared/logger'
 import { getCloudClient } from '@/lib/cloud/client'
 import { cloudErrorMessage } from '@/lib/cloud/errors'
 import { createCloudLibrary } from '@/lib/library/cloudLibrary'
-import { checkpointSource } from '@/lib/library/history'
+import { checkpointSource, type CheckpointSource } from '@/lib/library/history'
 import useHistoryStore, { historyRepository } from '@/stores/historyStore'
 import {
     createSyncEngine,
@@ -109,10 +109,23 @@ async function engineFor(account: string): Promise<SyncEngine | null> {
             libraryRepository,
             createCloudLibrary(client),
             account,
-            checkpointSource(historyRepository),
+            refreshingHistory(checkpointSource(historyRepository)),
         ),
     }
     return engine.engine
+}
+
+/** The checkpoint source, refreshing an open History once a version is
+ *  marked as sent (else it lists the version again as "only in the cloud"). */
+function refreshingHistory(source: CheckpointSource): CheckpointSource {
+    return {
+        ...source,
+        mark: async (localId, n, cloudVersion) => {
+            await source.mark(localId, n, cloudVersion)
+            if (useHistoryStore.getState().versions[localId])
+                await useHistoryStore.getState().load(localId)
+        },
+    }
 }
 
 const useSyncStore = create<SyncState>()((set, get) => {
