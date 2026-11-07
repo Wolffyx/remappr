@@ -24,6 +24,7 @@ import {
     isEmptyRepo,
     type BranchHead,
     type ReleaseInfo,
+    type TagBuild,
     type RepoApi,
 } from '../repoApi'
 import {
@@ -156,6 +157,8 @@ export interface ReleaseDraft {
     version: string
     notes: string
     releases: ReleaseInfo[]
+    /** The Actions build of the latest release's tag. */
+    build: TagBuild
 }
 
 export function createGitSync(deps: GitSyncDeps): GitSync {
@@ -605,10 +608,17 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
                 latest ? tagOf(latest) : null,
                 head,
             )
+            const build: TagBuild = releases[0]
+                ? await api
+                      .tagBuild(link.repo, releases[0].tag)
+                      // No Actions access: the release still shows.
+                      .catch((): TagBuild => ({ state: 'none', url: null }))
+                : { state: 'none', url: null }
             return {
                 version: nextVersion(docVersion, tags),
                 notes: draftNotes(subjects),
                 releases,
+                build,
             }
         },
         release: async (localId: string, version: string, notes: string) => {

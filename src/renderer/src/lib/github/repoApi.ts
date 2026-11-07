@@ -58,6 +58,12 @@ export interface NewRelease {
     body: string
 }
 
+/** The Actions build of a tag: not started, running, or how it ended. */
+export interface TagBuild {
+    state: 'none' | 'running' | 'success' | 'failure'
+    url: string | null
+}
+
 export interface CommitInfo {
     message: string
     author: string
@@ -106,6 +112,8 @@ export interface RepoApi {
         base: string | null,
         head: string,
     ): Promise<string[]>
+    /** The latest workflow run for a tag push. */
+    tagBuild(full: string, tag: string): Promise<TagBuild>
     /** The first commit of an empty repo (one file, on `branch`); its sha.
      *  The Git Data API cannot write to a repo with no commits. */
     initEmpty(
@@ -324,6 +332,23 @@ export function createRepoApi(
                 commits: { commit: { message: string } }[]
             }>(`${repoPath(full)}/compare/${seg(base)}...${seg(head)}`)
             return cmp.commits.map(subjectOf)
+        },
+        async tagBuild(full, tag) {
+            const { workflow_runs: runs } = await json<{
+                workflow_runs: {
+                    status: string
+                    conclusion: string | null
+                    html_url: string
+                }[]
+            }>(`${repoPath(full)}/actions/runs?branch=${seg(tag)}&per_page=1`)
+            const run = runs[0]
+            if (!run) return { state: 'none', url: null }
+            if (run.status !== 'completed')
+                return { state: 'running', url: run.html_url }
+            return {
+                state: run.conclusion === 'success' ? 'success' : 'failure',
+                url: run.html_url,
+            }
         },
         async initEmpty(full, branch, file, message) {
             const res = await fetchImpl(

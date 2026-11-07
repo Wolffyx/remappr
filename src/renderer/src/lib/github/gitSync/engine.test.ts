@@ -98,6 +98,7 @@ function fakeGithub(
             releases.unshift(made)
             return { ...made, assets: [] }
         },
+        tagBuild: async () => ({ state: 'none', url: null }),
         async commitSubjects(_full, base, headSha) {
             // Walk back from the head until the base tag's commit.
             const stop = base

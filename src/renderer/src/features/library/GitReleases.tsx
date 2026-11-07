@@ -154,12 +154,24 @@ export function GitReleases({
 
     const latest = draft?.releases[0]
     const mine = link.lastRelease
-    const building =
-        !!latest &&
-        latest.assets.length === 0 &&
+    const noFiles = !!latest && latest.assets.length === 0
+    const build = draft?.build
+    // Just released here, and Actions has not picked the tag up yet.
+    const starting =
+        noFiles &&
+        build?.state === 'none' &&
         mine?.tag === latest.tag &&
         mine.firmware === 'attached' &&
         checkedAt - mine.at < BUILDING_FOR_MS
+    const buildNote = !noFiles
+        ? null
+        : build?.state === 'running' || starting
+          ? `GitHub is building the firmware for ${latest.tag}; check again in a few minutes.`
+          : build?.state === 'failure'
+            ? `The firmware build for ${latest.tag} failed, so nothing is attached.`
+            : build?.state === 'success'
+              ? `${latest.tag} built, but no firmware was attached: the workflow has no release step.`
+              : null
 
     return (
         <div className="space-y-2 rounded-lg border px-3 py-2">
@@ -224,10 +236,24 @@ export function GitReleases({
                     ))}
                 </ul>
             )}
-            {building && (
-                <p className="text-xs text-muted-foreground">
-                    GitHub is building the firmware for {latest.tag}; check
-                    again in a few minutes.
+            {buildNote && (
+                <p
+                    className={`flex items-center gap-2 text-xs ${
+                        build?.state === 'failure'
+                            ? 'text-danger'
+                            : 'text-muted-foreground'
+                    }`}
+                >
+                    <span className="flex-1">{buildNote}</span>
+                    {build?.url && (
+                        <button
+                            type="button"
+                            className="inline-flex items-center gap-1 underline"
+                            onClick={() => open(build.url!)}
+                        >
+                            View the build <ExternalLink className="size-3" />
+                        </button>
+                    )}
                 </p>
             )}
             {writing && draft && (
