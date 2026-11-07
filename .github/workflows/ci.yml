@@ -94,6 +94,10 @@ jobs:
               uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
               with:
                   node-version-file: '.nvmrc'
+                  # Nothing is installed here, so there is no pnpm store to
+                  # cache: v5 caches by itself (packageManager is set) and
+                  # its post step then fails on the missing store path.
+                  package-manager-cache: false
 
             - name: Audit production dependencies
               # Reads the lockfile only; fails on a high or critical advisory.
