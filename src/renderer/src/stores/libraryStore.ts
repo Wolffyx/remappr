@@ -35,6 +35,9 @@ export interface LibraryState {
     save: (entry: NewLibraryEntry) => Promise<LibraryEntry>
     update: (localId: string, changes: Changes) => Promise<LibraryEntry | null>
     remove: (localId: string) => Promise<void>
+    /** Set or clear the entry's GitHub link. Not an edit: the entry keeps
+     *  its time and cloud sync state. */
+    setGit: (localId: string, git: LibraryEntry['git'] | null) => Promise<void>
 }
 
 function message(e: unknown): string {
@@ -115,6 +118,18 @@ export function createLibraryStore(
         remove: async (localId) => {
             await repo.remove(localId)
             set({ entries: get().entries.filter((e) => e.localId !== localId) })
+        },
+        setGit: async (localId, git) => {
+            const current = get().entries.find((e) => e.localId === localId)
+            if (!current) return
+            const entry: LibraryEntry = { ...current, git: git ?? undefined }
+            if (!git) delete entry.git
+            await repo.put(entry)
+            set({
+                entries: get().entries.map((e) =>
+                    e.localId === localId ? entry : e,
+                ),
+            })
         },
     }))
 }

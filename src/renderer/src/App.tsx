@@ -30,6 +30,7 @@ import { isElectron as isElectronEnv } from '@/transport'
 import { isCloudConfigured } from '@/lib/cloud/env'
 import useAuthStore from '@/stores/authStore'
 import useSyncStore from '@/stores/syncStore'
+import useGitSyncStore from '@/stores/gitSyncStore'
 import useHistoryStore from '@/stores/historyStore'
 import useLicenseStore from '@/stores/licenseStore'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
@@ -97,6 +98,8 @@ function App(): JSX.Element {
     // Version history of library entries: local, no account needed.
     useEffect(() => {
         useHistoryStore.getState().start()
+        // GitHub sync of linked entries: no account needed either.
+        useGitSyncStore.getState().start()
     }, [])
 
     // Restore a signed-in session (and pick up a desktop sign-in deep link that

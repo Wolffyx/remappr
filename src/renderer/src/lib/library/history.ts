@@ -93,8 +93,9 @@ export interface CheckpointSource {
     mark(localId: string, n: number, cloudVersion: number): Promise<void>
 }
 
+// Kept versions reach the cloud: checkpoints and ones pulled from GitHub.
 const unsent = (v: LocalVersion): boolean =>
-    v.kind === 'checkpoint' && v.cloudVersion === undefined
+    v.kind !== 'autosave' && v.cloudVersion === undefined
 
 // Pattern check: Adapter (Tier 1) — applied — the VersionRepository behind the
 // sync engine's narrow CheckpointSource.

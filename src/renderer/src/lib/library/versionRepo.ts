@@ -22,6 +22,8 @@ export interface LocalVersion {
      *  when it predates the cloud item and stays on this machine. Unset:
      *  not sent yet. */
     cloudVersion?: number
+    /** The GitHub commit this version was pushed as or pulled from. */
+    gitSha?: string
 }
 
 export interface VersionRepository {

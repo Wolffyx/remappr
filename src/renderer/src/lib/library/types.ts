@@ -35,6 +35,51 @@ export interface LibrarySync {
     localOnly?: boolean
 }
 
+/** Where a linked entry stands against its GitHub branch. */
+export type GitSyncState =
+    | 'synced'
+    | 'ahead'
+    | 'pushing'
+    | 'offline'
+    | 'conflict'
+    | 'hand_edited'
+    | 'error'
+
+/** An entry's GitHub remote (plan §6c A2). Kept on the entry, so it works
+ *  with no account; a synced entry mirrors it in `item_git_links`. */
+export interface GitLink {
+    /** owner/name */
+    repo: string
+    branch: string
+    /** Folder for `<slug>.remappr.json`; generated files go where their
+     *  firmware expects them. */
+    folder: string
+    /** Compiler target generated beside the source; null: the source only. */
+    target: string | null
+    /** Push each saved version on its own. */
+    autoPush: boolean
+    /** The file name, fixed at link time so a rename does not move it. */
+    slug: string
+    /** Versions up to this one predate the link and are never pushed. */
+    linkedAt: number
+    lastSyncedSha?: string
+    lastSyncedAt?: number
+    /** Git blob sha of the source as of lastSyncedSha. */
+    syncedBlob?: string
+    /** The local version the last push or pull matched. */
+    syncedN?: number
+    /** ETag of the last branch read (unchanged branch: a free 304). */
+    etag?: string
+    state?: GitSyncState
+    error?: string
+    /** The branch head whose document conflicts with local edits. */
+    conflictSha?: string
+    /** Generated files edited on GitHub since Remappr wrote them. */
+    handEdited?: string[]
+    /** Generated files the user keeps as edited: never written again. */
+    keepTheirs?: string[]
+}
+
 /** List facts shown without parsing `source`. */
 export interface LibrarySummary {
     keys?: number
@@ -60,12 +105,13 @@ export interface LibraryEntry {
     createdAt: number
     updatedAt: number
     sync: LibrarySync
+    git?: GitLink
 }
 
 /** What a caller supplies to save a new entry; ids, times and sync are filled. */
 export type NewLibraryEntry = Omit<
     LibraryEntry,
-    'localId' | 'createdAt' | 'updatedAt' | 'sync'
+    'localId' | 'createdAt' | 'updatedAt' | 'sync' | 'git'
 > & { localId?: string }
 
 export const LOCAL_SYNC: LibrarySync = { dirty: false, state: 'local' }

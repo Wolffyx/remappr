@@ -163,7 +163,8 @@ export function createSyncEngine(
         for (const v of (await checkpoints?.pending(localId)) ?? []) {
             head = await cloud.save(itemId, head, {
                 document: JSON.parse(v.source) as unknown,
-                kind: 'checkpoint',
+                // A version pulled from GitHub stays a 'github' one.
+                kind: v.kind === 'github' ? 'github' : 'checkpoint',
                 message: v.message,
             })
             await checkpoints?.mark(localId, v.n, head)
@@ -184,7 +185,7 @@ export function createSyncEngine(
             }
             const head = await cloud.save(itemId, 1, {
                 document: documentOf(entry),
-                kind: 'checkpoint',
+                kind: v.kind === 'github' ? 'github' : 'checkpoint',
                 message: v.message,
             })
             await checkpoints?.mark(entry.localId, v.n, head)
@@ -322,6 +323,8 @@ export function createSyncEngine(
                         crypto.randomUUID(),
                     createdAt: existing?.createdAt ?? now,
                     updatedAt: now,
+                    // The GitHub link is this device's; a cloud copy keeps it.
+                    ...(existing?.git ? { git: existing.git } : {}),
                     sync: {
                         accountId,
                         itemId: row.id,

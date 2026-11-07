@@ -158,6 +158,57 @@ export type Database = {
                     },
                 ]
             }
+            item_git_links: {
+                Row: {
+                    auto_push: boolean
+                    branch: string
+                    folder: string
+                    item_id: string
+                    last_synced_at: string | null
+                    last_synced_sha: string | null
+                    provider: string
+                    repo: string
+                    slug: string
+                    target: string | null
+                    updated_at: string
+                }
+                ComputedFields: never
+                Insert: {
+                    auto_push?: boolean
+                    branch?: string
+                    folder?: string
+                    item_id: string
+                    last_synced_at?: string | null
+                    last_synced_sha?: string | null
+                    provider?: string
+                    repo: string
+                    slug: string
+                    target?: string | null
+                    updated_at?: string
+                }
+                Update: {
+                    auto_push?: boolean
+                    branch?: string
+                    folder?: string
+                    item_id?: string
+                    last_synced_at?: string | null
+                    last_synced_sha?: string | null
+                    provider?: string
+                    repo?: string
+                    slug?: string
+                    target?: string | null
+                    updated_at?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: 'item_git_links_item_id_fkey'
+                        columns: ['item_id']
+                        isOneToOne: true
+                        referencedRelation: 'library_items'
+                        referencedColumns: ['id']
+                    },
+                ]
+            }
             item_stars: {
                 Row: {
                     created_at: string
@@ -625,6 +676,10 @@ export type Database = {
                 Args: { p_entry: Json }
                 Returns: undefined
             }
+            mark_git_synced: {
+                Args: { p_item: string; p_sha: string; p_version?: number }
+                Returns: undefined
+            }
             match_devices: {
                 Args: { p_identifiers: Json }
                 Returns: {
@@ -703,6 +758,10 @@ export type Database = {
                     target: string
                     type: string
                 }[]
+            }
+            set_git_link: {
+                Args: { p_item: string; p_link: Json }
+                Returns: undefined
             }
             sync_pull: {
                 Args: { p_since: string }

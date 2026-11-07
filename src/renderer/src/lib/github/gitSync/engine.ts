@@ -1,0 +1,479 @@
+// Pattern check: no GoF pattern (-) — rejected — pull/push/resolve over
+// injected deps (DI for tests); the link's `state` is plain data the UI reads,
+// set by guard-claused steps, not a State-object hierarchy.
+//
+// Two-way sync of one library entry with a GitHub branch (plan §6c A2).
+// - Pull: the branch head (ETag: a free 304 while nothing changed). When the
+//   source file changed there, it becomes a 'github' version, unless the
+//   entry also changed here: then a conflict for the user to settle.
+// - Push: every saved version not on GitHub yet, oldest first, one commit
+//   each (source + generated files + manifest, trailer Remappr-Version). That
+//   list, read from local history, is the offline outbox: nothing is queued
+//   twice and a version saved offline goes out on the next sync.
+import type { BundleFile } from '@/lib/githubBuild'
+import { RemoteMovedError } from '@/lib/githubBuild'
+import type { GitLink, LibraryEntry } from '@/lib/library/types'
+import type { LocalVersion } from '@/lib/library/versionRepo'
+import { GithubApiError, type RepoApi } from '../repoApi'
+import {
+    commitMessage,
+    commitSubject,
+    generatedFiles,
+    gitBlobSha,
+    handEditedFiles,
+    MANIFEST_PATH,
+    manifestText,
+    parseManifest,
+    sourcePath,
+    sourceText,
+    withItem,
+    type Manifest,
+} from './layout'
+
+export interface GitSyncDeps {
+    /** The GitHub client; null when GitHub is not connected. */
+    api(): Promise<RepoApi | null>
+    entry(localId: string): LibraryEntry | undefined
+    saveLink(localId: string, link: GitLink): Promise<void>
+    versions(localId: string): Promise<LocalVersion[]>
+    putVersion(v: LocalVersion): Promise<void>
+    /** Make a pulled document the entry's (a 'github' version); its number. */
+    applyGithub(
+        localId: string,
+        source: string,
+        message: string,
+        sha: string,
+    ): Promise<number | null>
+    /** Save a pulled document as a separate entry ("keep both"). */
+    saveCopy(localId: string, source: string): Promise<void>
+    /** Tell the cloud a commit was made or pulled (signed-in, synced entry). */
+    markCloud(
+        entry: LibraryEntry,
+        version: number | null,
+        sha: string,
+    ): Promise<void>
+    generator: string
+    now(): number
+}
+
+export type PullResult =
+    | 'unchanged'
+    | 'advanced'
+    | 'applied'
+    | 'conflict'
+    | 'removed'
+    | 'failed'
+
+export type ConflictChoice = 'mine' | 'theirs' | 'both'
+export type HandEditChoice = 'overwrite' | 'keep'
+
+/** Plain words for a failed GitHub call. */
+export function syncErrorText(e: unknown): string {
+    if (e instanceof RemoteMovedError)
+        return 'The branch changed on GitHub meanwhile; sync again.'
+    if (e instanceof GithubApiError) {
+        if (e.status === 401)
+            return 'GitHub refused the connection; connect GitHub again in Settings → Integrations.'
+        if (e.status === 403 || e.status === 404)
+            return 'GitHub denies access to this repo or branch. Check that the Remappr app is installed on it.'
+        if (e.status === 409)
+            return 'The repo is empty; add a first commit on GitHub.'
+    }
+    return e instanceof Error ? e.message : String(e)
+}
+
+const isOffline = (e: unknown): boolean =>
+    (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+    (e instanceof TypeError && /fetch|network/i.test(e.message))
+
+interface Remote {
+    head: string
+    tree: Map<string, string>
+    manifest: Manifest | null
+}
+
+export interface GitSync {
+    pull(localId: string): Promise<PullResult>
+    /** Push the outbox; `head` also pushes unsaved edits, `overwrite` writes
+     *  over generated files edited on GitHub. */
+    push(
+        localId: string,
+        opts?: { head?: boolean; overwrite?: boolean },
+    ): Promise<void>
+    /** Settle a conflict: keep this device's document, take GitHub's, or keep
+     *  both (GitHub's as a new entry); then push. */
+    resolveConflict(localId: string, choice: ConflictChoice): Promise<void>
+    /** Generated files edited on GitHub: write over them, or keep them
+     *  (Remappr stops generating those files). */
+    resolveHandEdits(localId: string, choice: HandEditChoice): Promise<void>
+}
+
+export function createGitSync(deps: GitSyncDeps): GitSync {
+    const linkOf = (localId: string): { e: LibraryEntry; link: GitLink } => {
+        const e = deps.entry(localId)
+        if (!e?.git) throw new Error('This entry is not linked to GitHub.')
+        return { e, link: e.git }
+    }
+
+    const save = async (
+        localId: string,
+        changes: Partial<GitLink>,
+    ): Promise<GitLink> => {
+        const { link } = linkOf(localId)
+        const next = { ...link, ...changes }
+        await deps.saveLink(localId, next)
+        return next
+    }
+
+    const requireApi = async (): Promise<RepoApi> => {
+        const api = await deps.api()
+        if (!api)
+            throw new Error('Connect GitHub in Settings → Integrations first.')
+        return api
+    }
+
+    const readRemote = async (
+        api: RepoApi,
+        link: GitLink,
+        head: string,
+    ): Promise<Remote> => {
+        const tree = await api.tree(link.repo, head)
+        const manifest = tree.has(MANIFEST_PATH)
+            ? parseManifest(await api.readFile(link.repo, MANIFEST_PATH, head))
+            : null
+        return { head, tree, manifest }
+    }
+
+    /** Where the entry stands once the branch head is known. */
+    const settle = async (
+        localId: string,
+        remote: Remote,
+        changes: Partial<GitLink>,
+    ): Promise<GitLink> => {
+        const { e, link } = linkOf(localId)
+        const merged = { ...link, ...changes }
+        const handEdited = handEditedFiles(
+            remote.manifest,
+            merged.slug,
+            remote.tree,
+            merged.keepTheirs,
+        )
+        const local = await gitBlobSha(sourceText(e.source))
+        const state =
+            handEdited.length > 0
+                ? 'hand_edited'
+                : local === merged.syncedBlob
+                  ? 'synced'
+                  : 'ahead'
+        return save(localId, {
+            ...changes,
+            handEdited,
+            state,
+            error: undefined,
+            conflictSha: undefined,
+            lastSyncedAt: deps.now(),
+        })
+    }
+
+    /** The source's blob at the last synced commit (a link that came from
+     *  another device has the commit but not the blob). */
+    const baseBlob = async (
+        api: RepoApi,
+        link: GitLink,
+    ): Promise<string | undefined> => {
+        if (link.syncedBlob || !link.lastSyncedSha) return link.syncedBlob
+        return (await api.tree(link.repo, link.lastSyncedSha)).get(
+            sourcePath(link),
+        )
+    }
+
+    const applyCommit = async (
+        api: RepoApi,
+        localId: string,
+        link: GitLink,
+        remote: Remote,
+    ): Promise<GitLink> => {
+        const path = sourcePath(link)
+        const text = await api.readFile(link.repo, path, remote.head)
+        if (text === null) throw new Error(`${path} is not on GitHub.`)
+        const info = await api.commitInfo(link.repo, remote.head)
+        const by = info.author ? ` (GitHub, @${info.author})` : ' (GitHub)'
+        const message = `${commitSubject(info.message) || 'Edited on GitHub'}${by}`
+        let n: number | null
+        try {
+            n = await deps.applyGithub(localId, text, message, remote.head)
+        } catch {
+            throw new Error(
+                `${path} on GitHub is not a valid Remappr document.`,
+            )
+        }
+        const { e } = linkOf(localId)
+        await deps.markCloud(e, null, remote.head).catch(() => undefined)
+        return settle(localId, remote, {
+            lastSyncedSha: remote.head,
+            syncedBlob: remote.tree.get(path),
+            syncedN: n ?? link.syncedN,
+        })
+    }
+
+    const pullWith = async (
+        api: RepoApi,
+        localId: string,
+    ): Promise<PullResult> => {
+        const { e, link } = linkOf(localId)
+        const head = await api.branchHead(
+            link.repo,
+            link.branch,
+            link.lastSyncedSha ? link.etag : undefined,
+        )
+        if (!head.changed) return 'unchanged'
+        const etag = head.etag ?? undefined
+        const remote = await readRemote(api, link, head.sha)
+        const path = sourcePath(link)
+        const theirs = remote.tree.get(path)
+        const mine = await gitBlobSha(sourceText(e.source))
+        const base = await baseBlob(api, link)
+
+        // Not on the branch (new link, or deleted there): the next push writes it.
+        if (!theirs) {
+            await save(localId, {
+                etag,
+                lastSyncedSha: head.sha,
+                syncedBlob: undefined,
+                state: 'ahead',
+                error: undefined,
+            })
+            return link.lastSyncedSha && base ? 'removed' : 'advanced'
+        }
+        if (theirs === mine || theirs === base) {
+            await settle(localId, remote, {
+                etag,
+                lastSyncedSha: head.sha,
+                syncedBlob: theirs,
+            })
+            return 'advanced'
+        }
+        // The document changed on GitHub. Edited here too: the user decides.
+        const dirty = base === undefined || mine !== base
+        if (dirty) {
+            await save(localId, {
+                etag,
+                state: 'conflict',
+                conflictSha: head.sha,
+                error: undefined,
+            })
+            return 'conflict'
+        }
+        await applyCommit(api, localId, { ...link, etag }, remote)
+        await save(localId, { etag })
+        return 'applied'
+    }
+
+    const fail = async (localId: string, e: unknown): Promise<void> => {
+        if (!deps.entry(localId)?.git) return
+        await save(
+            localId,
+            isOffline(e)
+                ? { state: 'offline', error: undefined }
+                : { state: 'error', error: syncErrorText(e) },
+        )
+    }
+
+    /** Versions saved since the last push and not on GitHub, oldest first. */
+    const outbox = async (
+        localId: string,
+        link: GitLink,
+    ): Promise<LocalVersion[]> => {
+        const after = Math.max(link.syncedN ?? 0, link.linkedAt)
+        return (await deps.versions(localId)).filter(
+            (v) => v.kind === 'checkpoint' && !v.gitSha && v.n > after,
+        )
+    }
+
+    const filesFor = async (
+        entry: LibraryEntry,
+        link: GitLink,
+        source: string,
+        remote: Remote,
+        version: number,
+    ): Promise<{ files: BundleFile[]; manifest: Manifest }> => {
+        const generated = generatedFiles(
+            { kind: entry.kind, source },
+            link,
+            new Set(remote.tree.keys()),
+        )
+        const blobs = await Promise.all(
+            generated.map((f) => gitBlobSha(f.content)),
+        )
+        const manifest = withItem(
+            remote.manifest,
+            {
+                slug: link.slug,
+                version,
+                source: sourcePath(link),
+                target: link.target,
+                generated: generated.map((f, i) => ({
+                    path: f.path,
+                    blob: blobs[i],
+                })),
+            },
+            deps.generator,
+        )
+        return {
+            files: [
+                { path: sourcePath(link), content: sourceText(source) },
+                ...generated,
+                { path: MANIFEST_PATH, content: manifestText(manifest) },
+            ],
+            manifest,
+        }
+    }
+
+    /** One commit of `source` on top of the branch head; the new remote. */
+    const commitOne = async (
+        api: RepoApi,
+        localId: string,
+        remote: Remote,
+        source: string,
+        subject: { message: string; version: number; n?: number },
+    ): Promise<Remote> => {
+        const { e, link } = linkOf(localId)
+        const { files, manifest } = await filesFor(
+            e,
+            link,
+            source,
+            remote,
+            subject.version,
+        )
+        const sha = await api.commit(
+            link.repo,
+            link.branch,
+            remote.head,
+            files,
+            commitMessage(subject.message, e.name, subject.version),
+        )
+        const tree = new Map(remote.tree)
+        for (const f of files) tree.set(f.path, await gitBlobSha(f.content))
+        await save(localId, {
+            lastSyncedSha: sha,
+            syncedBlob: tree.get(sourcePath(link)),
+            ...(subject.n !== undefined ? { syncedN: subject.n } : {}),
+            etag: undefined,
+            lastSyncedAt: deps.now(),
+        })
+        return { head: sha, tree, manifest }
+    }
+
+    const pushWith = async (
+        api: RepoApi,
+        localId: string,
+        opts: { head?: boolean; overwrite?: boolean },
+    ): Promise<void> => {
+        await pullWith(api, localId)
+        const { link } = linkOf(localId)
+        // A conflict (found now or earlier) waits for the user.
+        if (link.state === 'conflict') return
+        if (link.state === 'hand_edited' && !opts.overwrite) return
+        if (!link.lastSyncedSha) throw new Error('The branch head is unknown.')
+        let remote = await readRemote(api, link, link.lastSyncedSha)
+        await save(localId, { state: 'pushing', error: undefined })
+        for (const v of await outbox(localId, link)) {
+            const version = v.cloudVersion || v.n
+            remote = await commitOne(api, localId, remote, v.source, {
+                message: v.message,
+                version,
+                n: v.n,
+            })
+            await deps.putVersion({ ...v, gitSha: remote.head })
+            const { e } = linkOf(localId)
+            await deps
+                .markCloud(e, v.cloudVersion || null, remote.head)
+                .catch(() => undefined)
+        }
+        // "Sync now" with edits that are no saved version yet: push them as
+        // is. Overwriting hand-edited files always makes a commit.
+        const { e } = linkOf(localId)
+        const mine = await gitBlobSha(sourceText(e.source))
+        const ahead = mine !== linkOf(localId).link.syncedBlob
+        if ((opts.head && ahead) || opts.overwrite) {
+            const last = (await deps.versions(localId)).at(-1)
+            remote = await commitOne(api, localId, remote, e.source, {
+                message: '',
+                version: last?.cloudVersion || last?.n || 0,
+            })
+            await deps.markCloud(e, null, remote.head).catch(() => undefined)
+        }
+        await settle(localId, remote, {})
+    }
+
+    const run = async (
+        localId: string,
+        task: (api: RepoApi) => Promise<void>,
+    ): Promise<void> => {
+        try {
+            await task(await requireApi())
+        } catch (e) {
+            await fail(localId, e)
+            throw e
+        }
+    }
+
+    return {
+        pull: async (localId: string): Promise<PullResult> => {
+            let result: PullResult = 'failed'
+            await run(localId, async (api) => {
+                result = await pullWith(api, localId)
+            })
+            return result
+        },
+        /** Push the outbox; `head` also pushes unsaved edits, `overwrite`
+         *  writes over generated files edited on GitHub. */
+        push: (
+            localId: string,
+            opts: { head?: boolean; overwrite?: boolean } = {},
+        ) => run(localId, (api) => pushWith(api, localId, opts)),
+        /** Settle a conflict: keep this device's document, take GitHub's, or
+         *  keep both (GitHub's as a new entry); then push. */
+        resolveConflict: (localId: string, choice: ConflictChoice) =>
+            run(localId, async (api) => {
+                const { link } = linkOf(localId)
+                if (!link.conflictSha) return
+                const remote = await readRemote(api, link, link.conflictSha)
+                if (choice === 'theirs') {
+                    await applyCommit(api, localId, link, remote)
+                    return
+                }
+                if (choice === 'both') {
+                    const text = await api.readFile(
+                        link.repo,
+                        sourcePath(link),
+                        remote.head,
+                    )
+                    if (text !== null) await deps.saveCopy(localId, text)
+                }
+                await save(localId, {
+                    lastSyncedSha: remote.head,
+                    syncedBlob: remote.tree.get(sourcePath(link)),
+                    conflictSha: undefined,
+                    state: 'ahead',
+                })
+                await pushWith(api, localId, { head: true })
+            }),
+        /** Generated files edited on GitHub: write over them, or keep them
+         *  (Remappr stops generating those files). */
+        resolveHandEdits: (localId: string, choice: HandEditChoice) =>
+            run(localId, async (api) => {
+                const { link } = linkOf(localId)
+                const edited = link.handEdited ?? []
+                if (choice === 'keep')
+                    await save(localId, {
+                        keepTheirs: [
+                            ...new Set([...(link.keepTheirs ?? []), ...edited]),
+                        ],
+                        handEdited: [],
+                        state: 'ahead',
+                    })
+                await pushWith(api, localId, { head: true, overwrite: true })
+            }),
+    }
+}

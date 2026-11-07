@@ -7,6 +7,7 @@
 // version, never a rewrite) or copy it to a new entry.
 import { useEffect, useMemo, useState } from 'react'
 import { Cloud, History } from 'lucide-react'
+import { GitHubIcon as Github } from '@/components/GitHubIcon'
 import { toast } from 'sonner'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
@@ -19,6 +20,7 @@ import useHistoryStore from '@/stores/historyStore'
 import useLibraryStore from '@/stores/libraryStore'
 import useAuthStore from '@/stores/authStore'
 import { CloudVersionDetail, CloudVersionRow } from './CloudVersions'
+import { GitPanel } from './GitPanel'
 import { useCloudVersions } from './useCloudVersions'
 import { VersionDiff } from './VersionDiff'
 
@@ -106,6 +108,12 @@ function VersionRow({
                         <Cloud
                             className="size-3 text-muted-foreground"
                             aria-label="Also in the cloud"
+                        />
+                    )}
+                    {version.gitSha && (
+                        <Github
+                            className="size-3 text-muted-foreground"
+                            aria-label={`On GitHub as ${version.gitSha.slice(0, 7)}`}
                         />
                     )}
                     <span className="ml-auto text-muted-foreground">
@@ -298,6 +306,7 @@ export function HistoryDialog({
             {entry && (
                 <div className="space-y-4">
                     <SaveVersionForm localId={entry.localId} />
+                    <GitPanel entry={entry} />
                     {empty ? (
                         <p className="text-sm text-muted-foreground">
                             No versions yet. Edits are saved as versions a

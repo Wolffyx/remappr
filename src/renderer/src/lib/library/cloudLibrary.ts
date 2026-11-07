@@ -40,7 +40,7 @@ export interface CloudChanges {
     document?: unknown
     /** The version's kind (default autosave); a checkpoint of the head's own
      *  document labels the head instead of adding a version. */
-    kind?: 'autosave' | 'checkpoint'
+    kind?: 'autosave' | 'checkpoint' | 'github'
     message?: string
     name?: string
     meta?: Record<string, unknown>

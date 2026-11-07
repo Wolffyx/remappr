@@ -40,6 +40,15 @@ export interface HistoryState {
         past: PastDocument,
         message: string,
     ) => Promise<void>
+    /** A document pulled from GitHub becomes the entry's document, recorded
+     *  as a 'github' version of that commit. Throws when it does not parse.
+     *  Returns the version's number. */
+    applyGithub: (
+        localId: string,
+        past: PastDocument,
+        message: string,
+        sha: string,
+    ) => Promise<number | null>
     /** Save a past document as a new library entry with this name. */
     copyDocument: (
         localId: string,
@@ -106,20 +115,24 @@ export function createHistoryStore(
             localId: string,
             kind: VersionKind,
             message = '',
-        ): Promise<void> => {
+        ): Promise<LocalVersion | null> => {
             const p = pending.get(localId)
             if (p?.timer) clearTimeout(p.timer)
             pending.delete(localId)
             const entry = find(localId)
-            if (!entry) return
+            if (!entry) return null
             const empty = (await repo.list(localId)).length === 0
             if (empty && p?.before)
                 await recordVersion(repo, p.before, {
                     kind: 'autosave',
                     message: 'Before history',
                 })
-            await recordVersion(repo, snapshotOf(entry), { kind, message })
+            const version = await recordVersion(repo, snapshotOf(entry), {
+                kind,
+                message,
+            })
             await refresh(localId)
+            return version
         }
 
         const autosave = (localId: string): void => {
@@ -168,13 +181,24 @@ export function createHistoryStore(
         return {
             versions: {},
             load: refresh,
-            checkpoint: (localId, message) =>
-                record(localId, 'checkpoint', message.trim()),
+            checkpoint: async (localId, message) => {
+                await record(localId, 'checkpoint', message.trim())
+            },
             restoreDocument: async (localId, past, message) => {
                 const entry = find(localId)
                 if (!entry) return
                 await library.getState().update(localId, rebuild(entry, past))
                 await record(localId, 'checkpoint', message)
+            },
+            applyGithub: async (localId, past, message, sha) => {
+                const entry = find(localId)
+                if (!entry) return null
+                await library.getState().update(localId, rebuild(entry, past))
+                const v = await record(localId, 'github', message)
+                if (!v) return null
+                await repo.put({ ...v, kind: 'github', message, gitSha: sha })
+                await refresh(localId)
+                return v.n
             },
             copyDocument: async (localId, past, name) => {
                 const entry = find(localId)
