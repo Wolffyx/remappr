@@ -19,6 +19,7 @@ import { SignInPanel } from './SignInPanel'
 import { SyncSettings } from './SyncSettings'
 import { SignInMethods } from './SignInMethods'
 import { ModerationQueue } from './ModerationQueue'
+import { BillingSection } from './BillingSection'
 import { BuilderDevices } from './BuilderDevices'
 import { AccountData } from './AccountData'
 
@@ -114,6 +115,7 @@ function ProfileForm(): JSX.Element {
 
             <SignInMethods />
             <SyncSettings />
+            <BillingSection />
             <BuilderDevices />
             <ModerationQueue />
 
