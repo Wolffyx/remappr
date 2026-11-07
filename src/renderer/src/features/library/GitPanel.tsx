@@ -23,7 +23,7 @@ import { AppSelect } from '@/ui/app-select'
 import { SwitchRow } from '@/ui/switch-row'
 import { githubAppConfig, installUrl } from '@/lib/github/appAuth'
 import { getGithubToken } from '@/lib/github/connection'
-import { sourcePath } from '@/lib/github/gitSync/layout'
+import { slugOf, sourcePath } from '@/lib/github/gitSync/layout'
 import { createRepoApi, type RepoInfo } from '@/lib/github/repoApi'
 import type { GitLink, GitSyncState, LibraryEntry } from '@/lib/library/types'
 import useGithubStore from '@/stores/githubStore'
@@ -115,6 +115,10 @@ function LinkForm({
     const [autoPush, setAutoPush] = useState(true)
     const app = githubAppConfig()
 
+    const [reads, setReads] = useState(0)
+
+    // The repos this connection reaches; read again after the user made or
+    // granted one on GitHub.
     useEffect(() => {
         let live = true
         void getGithubToken()
@@ -129,7 +133,15 @@ function LinkForm({
         return () => {
             live = false
         }
-    }, [])
+    }, [reads])
+
+    // GitHub's new-repo page, named after the entry. An empty repo is fine:
+    // the first sync starts it.
+    const newRepoUrl = `https://github.com/new?${new URLSearchParams({
+        name: `${slugOf(entry.name)}-config`,
+        description: `${entry.name}, kept by Remappr`,
+        visibility: 'private',
+    })}`
 
     const picked = repos?.find((r) => r.fullName === repo)
     const pick = (name: string): void => {
@@ -219,19 +231,42 @@ function LinkForm({
                     the Remappr app on one, or type owner/name.
                 </p>
             )}
-            <p className="text-xs text-muted-foreground">
-                Repo not listed?{' '}
+            <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+                <span>No repo for it yet?</span>
+                <button
+                    type="button"
+                    className="underline"
+                    onClick={() => window.open(newRepoUrl, '_blank')}
+                >
+                    Create one on GitHub
+                </button>
                 {app ? (
-                    <button
-                        type="button"
-                        className="underline"
-                        onClick={() => window.open(installUrl(app), '_blank')}
-                    >
-                        Give the Remappr app access to more repositories
-                    </button>
+                    <>
+                        <span>· Not listed?</span>
+                        <button
+                            type="button"
+                            className="underline"
+                            onClick={() =>
+                                window.open(installUrl(app), '_blank')
+                            }
+                        >
+                            Give the Remappr app access to it
+                        </button>
+                    </>
                 ) : (
-                    'Check the token can reach it.'
+                    <span>· Not listed? Check the token can reach it.</span>
                 )}
+                <span>·</span>
+                <button
+                    type="button"
+                    className="underline"
+                    onClick={() => {
+                        setRepos(null)
+                        setReads((n) => n + 1)
+                    }}
+                >
+                    Refresh the list
+                </button>
             </p>
             <div className="flex justify-end gap-2">
                 <Button type="button" variant="ghost" onClick={onCancel}>
