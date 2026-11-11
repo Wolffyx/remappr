@@ -547,6 +547,18 @@ describe('git sync: generated files edited on GitHub', () => {
         expect(h.get().git?.keepTheirs).toEqual(['config/corne.keymap'])
         expect(h.get().git?.state).toBe('synced')
         expect(h.gh.file('config/corne.keymap')).toBe('hand edited\n')
+        expect(h.gh.message()).toMatch(
+            /^Keep the generated files edited on GitHub\n/,
+        )
+    })
+
+    it('make them again: says so in the commit, not as an update', async () => {
+        const h = harness(await seeded())
+        await h.link()
+        await h.sync.pull('e1')
+        await h.sync.resolveHandEdits('e1', 'overwrite')
+        expect(h.get().git?.state).toBe('synced')
+        expect(h.gh.message()).toMatch(/^Make the generated files again\n/)
     })
 })
 

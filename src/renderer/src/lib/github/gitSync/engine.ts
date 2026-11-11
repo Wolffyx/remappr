@@ -46,6 +46,7 @@ import {
 } from './layout'
 import {
     draftNotes,
+    HAND_EDIT_SUBJECT,
     isPlainTag,
     itemReleases,
     latestVersion,
@@ -473,7 +474,7 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
     const pushWith = async (
         api: RepoApi,
         localId: string,
-        opts: { head?: boolean; overwrite?: boolean },
+        opts: { head?: boolean; overwrite?: boolean; subject?: string },
     ): Promise<void> => {
         await pullWith(api, localId)
         const { link } = linkOf(localId)
@@ -504,7 +505,8 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
         if ((opts.head && ahead) || opts.overwrite) {
             const last = (await deps.versions(localId)).at(-1)
             remote = await commitOne(api, localId, remote, e.source, {
-                message: '',
+                // Only the generated files change: say how, not "Update …".
+                message: ahead ? '' : (opts.subject ?? ''),
                 version: last?.cloudVersion || last?.n || 0,
             })
             await deps.markCloud(e, null, remote.head).catch(() => undefined)
@@ -664,7 +666,11 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
                         handEdited: [],
                         state: 'ahead',
                     })
-                await pushWith(api, localId, { head: true, overwrite: true })
+                await pushWith(api, localId, {
+                    head: true,
+                    overwrite: true,
+                    subject: HAND_EDIT_SUBJECT[choice],
+                })
             }),
         releaseDraft: async (localId: string, docVersion?: string) => {
             const api = await requireApi()

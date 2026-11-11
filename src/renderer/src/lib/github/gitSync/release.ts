@@ -11,10 +11,17 @@
 
 const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/
 
+/** The commit that settles generated files edited on GitHub, by choice. */
+export const HAND_EDIT_SUBJECT = {
+    overwrite: 'Make the generated files again',
+    keep: 'Keep the generated files edited on GitHub',
+} as const
+
 /** Commits Remappr makes that say nothing about the keymap. */
-const PLUMBING = [
+const PLUMBING: readonly string[] = [
     'Start syncing with Remappr',
     'Attach the firmware to GitHub Releases',
+    ...Object.values(HAND_EDIT_SUBJECT),
 ]
 
 export const isVersion = (v: string): boolean => SEMVER.test(v.trim())
