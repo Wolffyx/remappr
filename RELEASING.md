@@ -59,6 +59,9 @@ The app is built with three repos linked in as source
 private `remapprBuilder`. A release takes each one's **default branch** as it
 is at release time, so they follow the same flow: branch from `main`, PR into
 `dev`, and PR their `dev` into `main` before the app's `dev` → `main`.
+CI on the app's `dev` → `main` PR (`ci.yml`, `pr-preview.yml`) links the
+siblings' `main`, so it fails when the app needs a sibling change that is
+still waiting on that sibling's `dev`.
 
 The notes list their `feat` / `fix` / `perf` commits since the previous release
 under the same headings as the app's, scoped by repo (`firmware/vial: …`),

@@ -46,11 +46,14 @@ jobs:
               # (else it falls back to a stub). Fork PRs without the secret -> stub.
               run: node scripts/link-remappr.cjs
               env:
-                  # Siblings on the PR's own branch name if they have it (a
-                  # feature spanning repos), else the branch matching the PR's
-                  # target (dev → their dev); a push builds against the
+                  # A PR into main (the release, dev → main) builds against the
+                  # siblings' main: that is what the release ships, so CI fails
+                  # when the app needs a sibling change still on that sibling's dev.
+                  # Any other PR: siblings on the PR's own branch name if they
+                  # have it (a feature spanning repos), else the branch matching
+                  # the PR's target (dev → their dev); a push builds against the
                   # siblings' same branch. Default branch as the last resort.
-                  REMAPPR_REF: ${{ github.head_ref && format('{0},{1}', github.head_ref, github.base_ref) || github.ref_name }}
+                  REMAPPR_REF: ${{ github.base_ref == 'main' && 'main' || (github.head_ref && format('{0},{1}', github.head_ref, github.base_ref) || github.ref_name) }}
                   # URLs are configurable via GitHub repo/org Variables; empty -> script defaults.
                   REMAPPR_FIRMWARE_URL: ${{ vars.REMAPPR_FIRMWARE_URL }}
                   REMAPPR_UI_URL: ${{ vars.REMAPPR_UI_URL }}
