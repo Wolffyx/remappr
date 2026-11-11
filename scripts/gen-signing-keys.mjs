@@ -69,6 +69,9 @@ if (/\bLICENSE_SIGNING_KEY\b/.test(existing) && !replace) {
 const licKid = `lic-${env}-1`
 const pkgKid = `pkg-${env}-1`
 
+/** `text` matched literally inside a RegExp. */
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 /** Where a production public key goes; checked before the project is
  *  touched, so a failure here leaves nothing half done. */
 function pinTarget(file, map, kid) {
@@ -78,7 +81,9 @@ function pinTarget(file, map, kid) {
     let text = readFileSync(path, 'utf8').replace(`${decl}}`, `${decl}\n}`)
     const head = `${decl}\n`
     if (!text.includes(head)) throw new Error(`${map} not found in ${file}`)
-    const entry = new RegExp(`    '${kid}':\\n        '[0-9a-f]{64}',\\n`)
+    const entry = new RegExp(
+        `    '${escapeRegExp(kid)}':\\n        '[0-9a-f]{64}',\\n`,
+    )
     if (entry.test(text)) {
         if (!replace) throw new Error(`${kid} is already pinned in ${file}`)
         text = text.replace(entry, '')
