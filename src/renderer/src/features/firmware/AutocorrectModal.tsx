@@ -86,13 +86,17 @@ export function AutocorrectModal({ opened, onClose }: Props): JSX.Element {
         }
         configEditing.setAutocorrect(staged)
         setSaving(true)
-        const r = await saveWithToast(
-            () => service.commit(),
+        // commit() resolves to nothing, so success is a flag, not the result.
+        const saved = await saveWithToast(
+            async () => {
+                await service.commit()
+                return true
+            },
             'Autocorrect dictionary saved',
             'Failed to save autocorrect dictionary',
         )
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
     return (

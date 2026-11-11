@@ -1,5 +1,6 @@
 // pattern-check: skip — store-reading hook + dispatch table for capability lookup
 import type { KeyboardService } from '@firmware'
+import { supportsConfigEditing } from '@firmware/configEditing'
 import useConnectionStore from '@/stores/connectionStore'
 
 type ServiceProbe = (s: KeyboardService) => unknown
@@ -20,6 +21,9 @@ export const FEATURE_PROBES = {
     unicode: (s) => s.unicode,
     // remappr-only: GET_LIMITS answered → config-blob timing/defaults editable.
     limits: (s) => s.limits,
+    // A keyboard with a battery whose config blob carries its power timeouts
+    // (node.power). Mice and joysticks show theirs in Device settings.
+    power: (s) => s.capabilities.power?.battery && supportsConfigEditing(s),
     lock: (s) => s.capabilities.lock !== 'none',
     rename: (s) => s.capabilities.rename,
     reorderLayers: (s) => s.capabilities.reorderLayers,

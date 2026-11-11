@@ -101,13 +101,17 @@ export function ConditionalLayersModal({
         }
         configEditing.setConditionalLayers(patch)
         setSaving(true)
-        const r = await saveWithToast(
-            () => service.commit(),
+        // commit() resolves to nothing, so success is a flag, not the result.
+        const saved = await saveWithToast(
+            async () => {
+                await service.commit()
+                return true
+            },
             'Conditional layers saved',
             'Failed to save conditional layers',
         )
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
     return (

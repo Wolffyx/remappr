@@ -37,6 +37,14 @@ export const TOOLBAR_MODALS: readonly ToolbarModalSpec[] = [
         ),
     },
     {
+        id: 'power',
+        Modal: lazyModal(() =>
+            import('@/features/firmware/PowerSettingsModal').then(
+                (m) => m.PowerSettingsModal,
+            ),
+        ),
+    },
+    {
         id: 'cluster',
         Modal: lazyModal(() =>
             import('@/features/firmware/ClusterModal').then(
