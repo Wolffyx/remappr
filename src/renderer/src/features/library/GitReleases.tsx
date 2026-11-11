@@ -2,8 +2,9 @@
 // (latest release, its firmware, the release form) bound to gitSyncStore.
 //
 // "Release to GitHub" for a linked entry (plan §6c A2, P10g): tag the synced
-// commit v<semver> with notes; the repo's workflow builds the firmware for
-// the tag and attaches it to the Release, shown here once it is there.
+// commit <slug>-v<semver> with notes; the repo's workflow builds the firmware
+// for the tag and attaches it to the Release, shown here once it is there.
+// Only this entry's releases show: other entries in the repo have their own.
 import { useCallback, useEffect, useState } from 'react'
 import { Download, ExternalLink, RefreshCw, Tag } from 'lucide-react'
 import { toast } from 'sonner'
@@ -11,7 +12,7 @@ import { createLogger } from '@shared/logger'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
 import type { ReleaseDraft } from '@/lib/github/gitSync/engine'
-import { isVersion, tagOf } from '@/lib/github/gitSync/release'
+import { isVersion, tagOf, versionOfTag } from '@/lib/github/gitSync/release'
 import type { GitLink, LibraryEntry } from '@/lib/library/types'
 import useGitSyncStore, { syncErrorText } from '@/stores/gitSyncStore'
 
@@ -20,7 +21,7 @@ const log = createLogger('GitReleases')
 const BUILDING_FOR_MS = 60 * 60_000
 
 const FIRMWARE_NOTE: Record<'manual' | 'none', string> = {
-    manual: 'The repo’s workflow was edited by hand, so Remappr left it alone: add a step that attaches the firmware to releases, or the release has the Remappr file only.',
+    manual: 'The repo’s workflow was edited by hand, so Remappr left it alone: make it attach the firmware when a release is tagged, or the release has the Remappr file only.',
     none: 'This repo has no firmware workflow (choose firmware files above), so the release has the Remappr file only.',
 }
 
@@ -30,10 +31,12 @@ const open = (url: string): void => {
 
 function ReleaseForm({
     entry,
+    link,
     draft,
     onDone,
 }: {
     entry: LibraryEntry
+    link: GitLink
     draft: ReleaseDraft
     onDone: () => void
 }): JSX.Element {
@@ -41,7 +44,9 @@ function ReleaseForm({
     const busy = useGitSyncStore((s) => !!s.busy[entry.localId])
     const [version, setVersion] = useState(draft.version)
     const [notes, setNotes] = useState(draft.notes)
-    const taken = draft.releases.some((r) => r.tag === tagOf(version))
+    const taken = draft.releases.some(
+        (r) => versionOfTag(r.tag, link.slug) === version.trim(),
+    )
     const valid = isVersion(version) && !taken
 
     const submit = (e: React.FormEvent): void => {
@@ -81,9 +86,9 @@ function ReleaseForm({
                 </div>
                 <p className="flex-1 pt-6 text-xs text-muted-foreground">
                     {taken
-                        ? `${tagOf(version)} is already released.`
+                        ? `v${version.trim()} is already released.`
                         : isVersion(version)
-                          ? `Tags the synced commit ${tagOf(version)}.`
+                          ? `Tags the synced commit ${tagOf(link.slug, version)}.`
                           : 'A version like 1.2.0.'}
                 </p>
             </div>
@@ -109,7 +114,7 @@ function ReleaseForm({
                 </Button>
                 <Button type="submit" size="sm" disabled={busy || !valid}>
                     <Tag className="size-3.5" /> Release{' '}
-                    {isVersion(version) ? tagOf(version) : ''}
+                    {isVersion(version) ? `v${version.trim()}` : ''}
                 </Button>
             </div>
         </form>
@@ -266,6 +271,7 @@ export function GitReleases({
                 <ReleaseForm
                     key={checkedAt}
                     entry={entry}
+                    link={link}
                     draft={draft}
                     onDone={() => {
                         setWriting(false)

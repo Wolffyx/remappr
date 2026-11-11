@@ -13,6 +13,7 @@
 import type { BundleFile } from '@/lib/githubBuild'
 import { RemoteMovedError } from '@/lib/githubBuild'
 import {
+    RELEASE_CONDITION,
     RELEASE_MARKER,
     upgradedWorkflow,
     WORKFLOW_PATHS,
@@ -43,7 +44,15 @@ import {
     withRewrittenBlobs,
     type Manifest,
 } from './layout'
-import { draftNotes, latestVersion, nextVersion, tagOf } from './release'
+import {
+    draftNotes,
+    isPlainTag,
+    itemReleases,
+    latestVersion,
+    nextVersion,
+    tagOf,
+    versionOfTag,
+} from './release'
 
 export interface GitSyncDeps {
     /** The GitHub client; null when GitHub is not connected. */
@@ -118,6 +127,10 @@ export function firstProblem(err: unknown): string {
     return err instanceof Error ? err.message : String(err)
 }
 
+/** A workflow with Remappr's release job that runs on per-item tags. */
+const releasesTags = (text: string): boolean =>
+    text.includes(RELEASE_MARKER) && text.includes(RELEASE_CONDITION)
+
 const isOffline = (e: unknown): boolean =>
     (typeof navigator !== 'undefined' && navigator.onLine === false) ||
     (e instanceof TypeError && /fetch|network/i.test(e.message))
@@ -142,8 +155,8 @@ export interface GitSync {
     /** Generated files edited on GitHub: write over them, or keep them
      *  (Remappr stops generating those files). */
     resolveHandEdits(localId: string, choice: HandEditChoice): Promise<void>
-    /** What to offer for the next release: version, notes and the releases
-     *  already made. */
+    /** What to offer for the next release: version, notes and the item's
+     *  releases already made (other items of the repo have their own). */
     releaseDraft(localId: string, docVersion?: string): Promise<ReleaseDraft>
     /** Sync, then tag the synced commit and publish a GitHub Release. A
      *  workflow Remappr wrote before releases is upgraded first, so the
@@ -158,6 +171,7 @@ export interface GitSync {
 export interface ReleaseDraft {
     version: string
     notes: string
+    /** This item's releases, newest first. */
     releases: ReleaseInfo[]
     /** The Actions build of the latest release's tag. */
     build: TagBuild
@@ -498,6 +512,24 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
         await settle(localId, remote, {})
     }
 
+    /** The item's releases, newest first: its own tags, and plain tags
+     *  (before per-item tags) made on its branch. */
+    const releasesOf = async (
+        api: RepoApi,
+        link: GitLink,
+    ): Promise<ReleaseInfo[]> => {
+        const all = await api.listReleases(link.repo)
+        // Only plain tags need the branch's commits to tell whose they are.
+        const commits = all.some((r) => isPlainTag(r.tag))
+            ? new Set(await api.commitShas(link.repo, link.branch))
+            : new Set<string>()
+        return itemReleases(
+            all,
+            link.slug,
+            (target) => target === link.branch || commits.has(target),
+        )
+    }
+
     /** Make the workflows attach firmware to releases; how it stands. */
     const prepareWorkflows = async (
         api: RepoApi,
@@ -516,7 +548,9 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
             // release job (an earlier one could not build).
             const next = upgradedWorkflow(path, text)
             if (next) upgrades.push({ path, content: next })
-            else if (!text.includes(RELEASE_MARKER)) manual = true
+            // Remappr's release job, but not one that runs on per-item tags
+            // (edited by hand) attaches nothing either.
+            else if (!releasesTags(text)) manual = true
         }
         if (upgrades.length === 0)
             return { head, firmware: manual ? 'manual' : 'attached' }
@@ -635,16 +669,20 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
         releaseDraft: async (localId: string, docVersion?: string) => {
             const api = await requireApi()
             const { link } = linkOf(localId)
-            const releases = await api.listReleases(link.repo)
-            const tags = releases.map((r) => r.tag)
-            const latest = latestVersion(tags)
+            const releases = await releasesOf(api, link)
+            const versionOf = (r: ReleaseInfo): string =>
+                versionOfTag(r.tag, link.slug) ?? ''
+            const versions = releases.map(versionOf)
+            const latest = latestVersion(versions)
+            const latestTag =
+                releases.find((r) => versionOf(r) === latest)?.tag ?? null
             // The synced commit, else the branch (both name a commit there).
             const head: string = link.lastSyncedSha ?? link.branch
-            // The latest tag can be on history this branch does not share
-            // (another item's branch): GitHub has no compare, so the notes
-            // come from the branch's own latest commits.
+            // A plain tag's commit can be gone from the branch (history
+            // rewritten): GitHub has no compare, so the notes come from the
+            // branch's own latest commits.
             const subjects = await api
-                .commitSubjects(link.repo, latest ? tagOf(latest) : null, head)
+                .commitSubjects(link.repo, latestTag, head)
                 .catch((e: unknown) => {
                     if (!(e instanceof GithubApiError) || e.status !== 404)
                         throw e
@@ -657,7 +695,7 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
                       .catch((): TagBuild => ({ state: 'none', url: null }))
                 : { state: 'none', url: null }
             return {
-                version: nextVersion(docVersion, tags),
+                version: nextVersion(docVersion, versions),
                 notes: draftNotes(subjects),
                 releases,
                 build,
@@ -666,6 +704,14 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
         release: async (localId: string, version: string, notes: string) => {
             let made: GitRelease | null = null
             await run(localId, async (api) => {
+                const { link: before } = linkOf(localId)
+                const released = (await releasesOf(api, before)).find(
+                    (r) => versionOfTag(r.tag, before.slug) === version.trim(),
+                )
+                if (released)
+                    throw new Error(
+                        `${released.tag} is already released on GitHub.`,
+                    )
                 await pushWith(api, localId, { head: true })
                 const { e, link } = linkOf(localId)
                 if (link.state === 'conflict')
@@ -685,11 +731,11 @@ export function createGitSync(deps: GitSyncDeps): GitSync {
                     localId,
                     link.lastSyncedSha,
                 )
-                const tag = tagOf(version)
+                const tag = tagOf(link.slug, version)
                 const info = await api.createRelease(link.repo, {
                     tag,
                     target: prepared.head,
-                    name: `${e.name} ${tag}`,
+                    name: `${e.name} v${version.trim()}`,
                     body: notes,
                 })
                 made = {

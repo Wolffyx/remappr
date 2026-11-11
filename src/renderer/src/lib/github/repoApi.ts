@@ -45,6 +45,8 @@ export interface ReleaseAsset {
 export interface ReleaseInfo {
     tag: string
     name: string
+    /** What the tag was made at: a commit sha, or a branch name. */
+    target: string
     url: string
     createdAt: string
     assets: ReleaseAsset[]
@@ -103,6 +105,9 @@ export interface RepoApi {
     ): Promise<string>
     /** Releases, newest first (drafts left out). */
     listReleases(full: string): Promise<ReleaseInfo[]>
+    /** The shas of the latest commits on `head` (a branch or sha), newest
+     *  first. */
+    commitShas(full: string, head: string): Promise<string[]>
     /** A published Release; GitHub makes its tag at `target`. */
     createRelease(full: string, release: NewRelease): Promise<ReleaseInfo>
     /** Commit subjects after `base` (a tag or sha) up to `head`, oldest
@@ -137,6 +142,7 @@ const base64 = (text: string): string => {
 interface RawRelease {
     tag_name: string
     name: string | null
+    target_commitish: string
     html_url: string
     created_at: string
     draft: boolean
@@ -146,6 +152,7 @@ interface RawRelease {
 const releaseInfo = (r: RawRelease): ReleaseInfo => ({
     tag: r.tag_name,
     name: r.name || r.tag_name,
+    target: r.target_commitish,
     url: r.html_url,
     createdAt: r.created_at,
     assets: r.assets.map((a) => ({
@@ -295,9 +302,15 @@ export function createRepoApi(
         },
         async listReleases(full) {
             const list = await json<RawRelease[]>(
-                `${repoPath(full)}/releases?per_page=20`,
+                `${repoPath(full)}/releases?per_page=100`,
             )
             return list.filter((r) => !r.draft).map(releaseInfo)
+        },
+        async commitShas(full, head) {
+            const list = await json<{ sha: string }[]>(
+                `${repoPath(full)}/commits?sha=${seg(head)}&per_page=100`,
+            )
+            return list.map((c) => c.sha)
         },
         async createRelease(full, release) {
             const res = await fetchImpl(`${API}${repoPath(full)}/releases`, {

@@ -4,7 +4,11 @@ import type { GitLink, LibraryEntry } from '@/lib/library/types'
 import type { LocalVersion } from '@/lib/library/versionRepo'
 import { GithubApiError, type RepoApi } from '../repoApi'
 import { createGitSync, firstProblem } from './engine'
-import { buildProjectBundle, parseKeymap } from '@firmware/config'
+import {
+    buildProjectBundle,
+    parseKeymap,
+    RELEASE_CONDITION,
+} from '@firmware/config'
 import { gitBlobSha, MANIFEST_PATH, sourceText } from './layout'
 
 interface FakeCommit {
@@ -82,6 +86,14 @@ function fakeGithub(
             date: '',
         }),
         listReleases: async () => releases.map((r) => ({ ...r, assets: [] })),
+        async commitShas() {
+            const out: string[] = []
+            for (let sha: string | undefined = head; sha; ) {
+                out.push(sha)
+                sha = commits.get(sha)?.parent
+            }
+            return out
+        },
         async createRelease(_full, r) {
             if (releases.some((x) => x.tag === r.tag))
                 throw new GithubApiError(
@@ -560,14 +572,14 @@ describe('git sync: releases', () => {
         const h = harness()
         await h.link()
         const made = await h.sync.release('e1', '0.1.0', '- first')
-        expect(made).toMatchObject({ tag: 'v0.1.0', firmware: 'none' })
+        expect(made).toMatchObject({ tag: 'corne-v0.1.0', firmware: 'none' })
         expect(h.gh.releases[0]).toMatchObject({
-            tag: 'v0.1.0',
+            tag: 'corne-v0.1.0',
             target: h.gh.head(),
             name: 'Corne v0.1.0',
             body: '- first',
         })
-        expect(h.get().git?.lastRelease?.tag).toBe('v0.1.0')
+        expect(h.get().git?.lastRelease?.tag).toBe('corne-v0.1.0')
     })
 
     it('upgrades a workflow Remappr wrote before releases, then tags that', async () => {
@@ -587,8 +599,9 @@ describe('git sync: releases', () => {
             parseKeymap(QMK_KEYMAP),
             'qmk',
         ).files.find((f) => f.filename === QMK)!.content as string
-        // The P10g text: release job, but a path qmk/.github does not have.
-        const old = current
+        // The P10g text: release job (plain v* tags only), but a path
+        // qmk/.github does not have.
+        const old = plainTagsOnly(current)
             .replace('qmk/.github/.github/workflows/', 'qmk/.github/workflows/')
             .replace(
                 '    permissions:\n      contents: write\n    with:',
@@ -647,7 +660,7 @@ describe('git sync: releases', () => {
         const draft = await h.sync.releaseDraft('e1')
         expect(draft.version).toBe('0.1.1')
         expect(draft.notes).toBe('- Add a thumb layer')
-        expect(draft.releases.map((r) => r.tag)).toEqual(['v0.1.0'])
+        expect(draft.releases.map((r) => r.tag)).toEqual(['corne-v0.1.0'])
         // The document's own newer version wins.
         expect((await h.sync.releaseDraft('e1', '2.0.0')).version).toBe('2.0.0')
     })
@@ -667,7 +680,7 @@ describe('git sync: releases', () => {
         }
         const draft = await h.sync.releaseDraft('e1')
         expect(draft.notes).toContain('- Add a thumb layer')
-        expect(draft.releases.map((r) => r.tag)).toEqual(['v0.1.0'])
+        expect(draft.releases.map((r) => r.tag)).toEqual(['corne-v0.1.0'])
     })
 
     it('refuses while the entry conflicts with GitHub', async () => {
@@ -690,4 +703,103 @@ describe('git sync: releases', () => {
             /already released/,
         )
     })
+
+    /** A release another item of the repo made, on its own branch. */
+    const otherRelease = (tag: string): FakeRelease => ({
+        tag,
+        name: `Other ${tag}`,
+        url: '',
+        createdAt: '',
+        target: 'f'.repeat(40),
+        body: '',
+    })
+
+    it('drafts from this item’s releases only, in a repo other items share', async () => {
+        const h = harness()
+        await h.link()
+        await h.sync.release('e1', '0.3.0', '')
+        h.gh.releases.unshift(
+            otherRelease('v1.0.2'),
+            otherRelease('other-board-v2.0.0'),
+        )
+        h.edit(doc(2))
+        h.checkpoint('Add a thumb layer')
+        await h.sync.push('e1')
+        const draft = await h.sync.releaseDraft('e1')
+        expect(draft.version).toBe('0.3.1')
+        expect(draft.notes).toBe('- Add a thumb layer')
+        expect(draft.releases.map((r) => r.tag)).toEqual(['corne-v0.3.0'])
+    })
+
+    it('releases a version another item of the repo already released', async () => {
+        const h = harness()
+        await h.link()
+        h.gh.releases.unshift(
+            otherRelease('v0.4.0'),
+            otherRelease('other-board-v0.4.0'),
+        )
+        const made = await h.sync.release('e1', '0.4.0', '')
+        expect(made.tag).toBe('corne-v0.4.0')
+        expect(h.gh.releases[0]).toMatchObject({
+            tag: 'corne-v0.4.0',
+            name: 'Corne v0.4.0',
+        })
+    })
+
+    it('counts plain v* tags made on this item’s branch', async () => {
+        const h = harness()
+        await h.link()
+        await h.sync.push('e1', { head: true })
+        // Released before per-item tags, at a commit of this branch.
+        h.gh.releases.unshift({
+            ...otherRelease('v0.3.0'),
+            target: h.gh.head(),
+        })
+        h.edit(doc(2))
+        h.checkpoint('Add a thumb layer')
+        await h.sync.push('e1')
+        const draft = await h.sync.releaseDraft('e1')
+        expect(draft.version).toBe('0.3.1')
+        expect(draft.notes).toBe('- Add a thumb layer')
+        expect(draft.releases.map((r) => r.tag)).toEqual(['v0.3.0'])
+        await expect(h.sync.release('e1', '0.3.0', '')).rejects.toThrow(
+            /v0\.3\.0 is already released/,
+        )
+        expect(h.gh.releases).toHaveLength(1)
+    })
+
+    it('upgrades a workflow whose release job ran on plain v* tags only', async () => {
+        const current = buildProjectBundle(
+            parseKeymap(QMK_KEYMAP),
+            'zmk',
+        ).files.find((f) => f.filename === WF)!.content as string
+        const h = harness(fakeGithub({ [WF]: plainTagsOnly(current) }))
+        await h.link()
+        const made = await h.sync.release('e1', '1.0.0', '')
+        expect(made.firmware).toBe('attached')
+        expect(h.gh.file(WF)).toBe(current)
+        expect(h.gh.releases[0].target).toBe(h.gh.head())
+    })
+
+    it('says so when a hand-edited release job misses per-item tags', async () => {
+        const current = buildProjectBundle(
+            parseKeymap(QMK_KEYMAP),
+            'zmk',
+        ).files.find((f) => f.filename === WF)!.content as string
+        const mine = `${plainTagsOnly(current)}# mine\n`
+        const h = harness(fakeGithub({ [WF]: mine }))
+        await h.link()
+        const made = await h.sync.release('e1', '1.0.0', '')
+        expect(made.firmware).toBe('manual')
+        expect(h.gh.file(WF)).toBe(mine)
+    })
 })
+
+/** A current workflow as it was when releases ran on plain v* tags only. */
+const plainTagsOnly = (text: string): string =>
+    text
+        .replace('Release of a release tag.', 'Release of a v* tag.')
+        .replace(
+            `    if: ${RELEASE_CONDITION}\n`,
+            "    if: startsWith(github.ref, 'refs/tags/v')\n",
+        )

@@ -3,12 +3,15 @@ import {
     draftNotes,
     isVersion,
     latestVersion,
+    isPlainTag,
+    itemReleases,
     nextVersion,
     tagOf,
+    versionOfTag,
 } from './release'
 
 describe('release helpers', () => {
-    it('reads the newest version tag, ignoring others', () => {
+    it('reads the newest version, ignoring what is not one', () => {
         expect(latestVersion(['v0.2.0', 'v0.10.1', 'v0.9.9', 'nightly'])).toBe(
             '0.10.1',
         )
@@ -26,9 +29,36 @@ describe('release helpers', () => {
     })
 
     it('makes tags and checks versions', () => {
-        expect(tagOf(' 1.0.0 ')).toBe('v1.0.0')
+        expect(tagOf('corne', ' 1.0.0 ')).toBe('corne-v1.0.0')
         expect(isVersion('1.0.0')).toBe(true)
         expect(isVersion('v1.0')).toBe(false)
+    })
+
+    it('reads an item’s version from its own tag or a plain one', () => {
+        expect(versionOfTag('corne-v1.2.3', 'corne')).toBe('1.2.3')
+        expect(versionOfTag('v1.2.3', 'corne')).toBe('1.2.3')
+        expect(versionOfTag('other-v1.2.3', 'corne')).toBeNull()
+        // A slug that extends another is not that one's.
+        expect(versionOfTag('corne-v2-v0.1.0', 'corne')).toBeNull()
+        expect(versionOfTag('corne-v2-v0.1.0', 'corne-v2')).toBe('0.1.0')
+        expect(versionOfTag('nightly', 'corne')).toBeNull()
+        expect(isPlainTag('v1.0.0')).toBe(true)
+        expect(isPlainTag('corne-v1.0.0')).toBe(false)
+    })
+
+    it('keeps an item’s releases: its own tags and plain ones on its branch', () => {
+        const releases = [
+            { tag: 'corne-v0.2.0', target: 'x' },
+            { tag: 'other-v0.2.0', target: 'mine' },
+            { tag: 'v0.1.0', target: 'mine' },
+            { tag: 'v1.0.0', target: 'theirs' },
+            { tag: 'nightly', target: 'mine' },
+        ]
+        expect(
+            itemReleases(releases, 'corne', (t) => t === 'mine').map(
+                (r) => r.tag,
+            ),
+        ).toEqual(['corne-v0.2.0', 'v0.1.0'])
     })
 
     it('drafts notes without plumbing commits or repeats', () => {
