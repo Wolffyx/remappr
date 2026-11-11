@@ -100,6 +100,9 @@ The builder ships on its own (plan §6c B). It is released from the
 `remapprBuilder` repo, not with the app. Its `release.yml` publishes each
 release to both Supabase projects through `publish-package` (stable from
 `main`, beta from a manual run on `dev`), then sends `builder-released` here.
+It follows the same flow as the app: `dev` → `main` is the release, with its
+own `main-guard.yml` and `sync-dev` job. Its release-please PR is not
+auto-merged: merge it to publish.
 `main.yml` then redeploys remappr.com (stable only), and `dev-deploy.yml`
 redeploys dev.remappr.com, so each site's builder seed is the new package.
 Apps that are already open fetch it in the background, then announce it with
