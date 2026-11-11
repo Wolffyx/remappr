@@ -5,17 +5,18 @@ remappr.com and the release notes all come from the same commits.
 
 ## The flow
 
-Every change, feature or quick fix, travels on its own branch:
+Every change, feature or quick fix, travels on its own branch, and only `dev`
+ever merges into `main`:
 
-1. **Branch from `main`.** Never from `dev`: a branch cut from `dev` carries
-   whatever else is waiting there, and merging it into `main` would release
-   that too.
-2. **PR into `dev` first.** Every push to `dev` redeploys staging at
+1. **Branch from `main`**, so a branch starts from what is released and
+   carries nothing else that is waiting on `dev`.
+2. **PR it into `dev`.** Every push to `dev` redeploys staging at
    **dev.remappr.com** (`dev-deploy.yml`); nothing is released. Test it there.
-3. **When it's good, PR the same branch into `main`.** Promote the sibling
-   repos first if the branch needs their changes (below). Several branches can
-   go into `main` one after another and ship as one release; each merge that
-   carries a `feat` or `fix` cuts one.
+   Branches pile up on `dev` until the batch is ready.
+3. **Release: PR `dev` into `main`.** Promote the sibling repos the same way
+   first (below). `main-guard.yml` fails any PR into `main` that does not come
+   from `dev` (release-please's own PR aside), so a branch never ships by
+   itself. A quick fix goes the same way: into `dev`, then `dev` → `main`.
 4. **Merge with "Create a merge commit"**, never squash. release-please reads
    the individual conventional commits to pick the version and write the notes;
    a squash hands it a single commit (the PR title) instead.
@@ -28,11 +29,10 @@ Every change, feature or quick fix, travels on its own branch:
         - `build-release.yml`: Windows / macOS / Linux installers,
         - `main.yml`: remappr.com,
         - `docs.yml`: the docs' What's new page,
-        - `discord-release.yml`: the announcement, with an `@everyone` ping.
-
-`dev` never merges into `main`, and nothing merges `main` into `dev` by hand:
-each new branch starts from `main`, so the release commit (version bump,
-CHANGELOG) reaches `dev` with the next branch merged into it.
+        - `discord-release.yml`: the announcement, with an `@everyone` ping,
+    - brings `dev` level with `main` (job `sync-dev`): a PR `main` → `dev`
+      holding the release commit (version bump, CHANGELOG), merged at once. If
+      it conflicts, the PR stays open: merge it by hand.
 
 A docs-only change follows the same path: `docs.yml` deploys it, and with no
 `feat` / `fix` in it, no release is cut.
@@ -57,8 +57,8 @@ next release uses that number.
 The app is built with three repos linked in as source
 (`scripts/link-remappr.cjs`): `remapprClientFirmware`, `remapprUI` and the
 private `remapprBuilder`. A release takes each one's **default branch** as it
-is at release time, so merge a branch's sibling-repo counterparts into their
-`main` before the app's.
+is at release time, so they follow the same flow: branch from `main`, PR into
+`dev`, and PR their `dev` into `main` before the app's `dev` → `main`.
 
 The notes list their `feat` / `fix` / `perf` commits since the previous release
 under the same headings as the app's, scoped by repo (`firmware/vial: …`),
@@ -85,6 +85,11 @@ release's notes.
 
 ## One-time setup
 
+- Branch protection on `main` and `dev` in all four repos (`remappr`,
+  `remapprClientFirmware`, `remapprBuilder`, `remapprUI`): a PR is required
+  (no approvals), no force pushes, no deletions. Admins are not held to it,
+  so the release workflow's `RELEASE_PAT` can still push the `Release-As`
+  commit.
 - The `github-pages` environment must allow **`v*` tags** as well as `main`:
   the site deploys from the release tag.
 - `DISCORD_WEBHOOK_URL` in the `remappr` environment; the webhook needs
