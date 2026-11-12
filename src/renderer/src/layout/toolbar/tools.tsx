@@ -19,6 +19,7 @@ import {
     Layers,
     Library,
     Lightbulb,
+    MonitorSmartphone,
     Network,
     ScanLine,
     Sliders,
@@ -206,6 +207,15 @@ export const TOOLS: readonly ToolDef[] = [
         description: 'When it dims, sleeps and powers off on battery',
         icon: BatteryMedium,
         feature: 'power',
+        action: 'dialog',
+    },
+    {
+        id: 'displays',
+        group: 'device',
+        label: 'Displays',
+        description: 'What the screens show: text, values, clock, pictures',
+        icon: MonitorSmartphone,
+        feature: 'displays',
         action: 'dialog',
     },
     {

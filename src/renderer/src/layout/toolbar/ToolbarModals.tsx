@@ -45,6 +45,14 @@ export const TOOLBAR_MODALS: readonly ToolbarModalSpec[] = [
         ),
     },
     {
+        id: 'displays',
+        Modal: lazyModal(() =>
+            import('@/features/firmware/DisplaysModal').then(
+                (m) => m.DisplaysModal,
+            ),
+        ),
+    },
+    {
         id: 'cluster',
         Modal: lazyModal(() =>
             import('@/features/firmware/ClusterModal').then(

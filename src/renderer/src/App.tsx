@@ -34,6 +34,7 @@ import useGitSyncStore from '@/stores/gitSyncStore'
 import useHistoryStore from '@/stores/historyStore'
 import useLicenseStore from '@/stores/licenseStore'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
+import { useHostFeed } from '@/features/display/useHostFeed'
 import { connectDemo } from '@/features/connection/demo/connectDemo'
 import { connectTransport } from '@/features/connection/connectTransport'
 import { categoryForFirmware } from '@/lib/adapterCategories'
@@ -57,6 +58,8 @@ function App(): JSX.Element {
     // Raise visual-editor edits back into the config (source of truth) so the
     // download modal compiles what the user sees. Mock/demo only.
     useConfigRuntimeSync()
+    // Time, CPU, media, texts... for the connected device's screens.
+    useHostFeed()
 
     const updateLockState = useCallback(async (): Promise<void> => {
         if (!service) return

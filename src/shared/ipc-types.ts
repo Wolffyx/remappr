@@ -123,7 +123,22 @@ export const IpcChannels = {
 
     // One-time hand-over of the old file:// storage after the move to app://.
     STORAGE_MIGRATION_TAKE: 'storage:migration-take',
+
+    // What this computer is doing, for the device's screens: the values of
+    // the asked HostStatKeys it has (CPU / RAM %, media, volume).
+    HOST_STATS_READ: 'host:stats-read',
 } as const
+
+/** Host values main reads for the device's screens (the screen registry's
+ *  host keys main can answer; time and the user texts live in the renderer). */
+export const HOST_STAT_KEYS = [
+    'cpu',
+    'ram',
+    'mediaTitle',
+    'mediaArtist',
+    'volume',
+] as const
+export type HostStatKey = (typeof HOST_STAT_KEYS)[number]
 
 /** Event channels (main pushes to renderer) */
 export const IpcEvents = {

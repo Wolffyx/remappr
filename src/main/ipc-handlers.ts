@@ -38,6 +38,7 @@ import {
 import { registerSecretHandlers } from './secret-store'
 import { registerMachineIdHandler } from './machine-id'
 import { registerGithubArtifactHandler } from './github-artifact'
+import { registerHostStatsHandler } from './host-stats'
 
 const log = createLogger('ipc')
 
@@ -164,6 +165,7 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
     registerMachineIdHandler()
     // --- GitHub artifact download proxy (dodges renderer CORS) ---
     registerGithubArtifactHandler()
+    registerHostStatsHandler()
 
     // --- Serial Device Handlers ---
 
