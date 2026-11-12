@@ -38,7 +38,7 @@ import {
 import { registerSecretHandlers } from './secret-store'
 import { registerMachineIdHandler } from './machine-id'
 import { registerGithubArtifactHandler } from './github-artifact'
-import { registerHostStatsHandler } from './host-stats'
+import { readAskedStats } from './host-stats'
 
 const log = createLogger('ipc')
 
@@ -165,7 +165,10 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
     registerMachineIdHandler()
     // --- GitHub artifact download proxy (dodges renderer CORS) ---
     registerGithubArtifactHandler()
-    registerHostStatsHandler()
+    // --- Host values for the device's screens (CPU, RAM, media, volume) ---
+    ipcMain.handle(IpcChannels.HOST_STATS_READ, (_e, keys: unknown) =>
+        readAskedStats(keys),
+    )
 
     // --- Serial Device Handlers ---
 

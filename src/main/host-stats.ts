@@ -15,13 +15,8 @@ import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import os from 'node:os'
 import { promisify } from 'node:util'
-import { ipcMain } from 'electron'
 import type dbus from 'dbus-next'
-import {
-    IpcChannels,
-    type HostStatKey,
-    HOST_STAT_KEYS,
-} from '../shared/ipc-types'
+import { type HostStatKey, HOST_STAT_KEYS } from '../shared/ipc-types'
 import { createLogger } from '../shared/logger'
 
 const log = createLogger('host-stats')
@@ -271,9 +266,8 @@ export async function readHostStats(
 const isStatKey = (k: unknown): k is HostStatKey =>
     typeof k === 'string' && (HOST_STAT_KEYS as readonly string[]).includes(k)
 
-export function registerHostStatsHandler(): void {
-    ipcMain.handle(IpcChannels.HOST_STATS_READ, (_e, keys: unknown) => {
-        if (!Array.isArray(keys)) return {}
-        return readHostStats(keys.filter(isStatKey))
-    })
+/** The IPC ask (any value) -> the stats of the known keys in it. Kept free
+ *  of Electron so the readers run (and are tested) in plain Node. */
+export function readAskedStats(keys: unknown): Promise<HostStats> {
+    return readHostStats(Array.isArray(keys) ? keys.filter(isStatKey) : [])
 }

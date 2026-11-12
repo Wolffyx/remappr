@@ -1,13 +1,12 @@
 // pattern-check: skip — unit tests for the host-stats parsers
-import { describe, expect, it, vi } from 'vitest'
-
-vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }))
+import { describe, expect, it } from 'vitest'
 
 import {
     cpuPercent,
     memPercent,
     parseVolume,
     pickMedia,
+    readAskedStats,
     readHostStats,
 } from './host-stats'
 
@@ -75,8 +74,12 @@ describe('host stats', () => {
         expect(pickMedia([])).toEqual({})
     })
 
-    it('answers only the keys asked', async () => {
+    it('answers only the keys asked, ignores what is not a key', async () => {
         const out = await readHostStats(['ram'])
         expect(Object.keys(out)).toEqual(['ram'])
+        expect(Object.keys(await readAskedStats(['ram', 'nope', 3]))).toEqual([
+            'ram',
+        ])
+        expect(await readAskedStats('ram')).toEqual({})
     })
 })
