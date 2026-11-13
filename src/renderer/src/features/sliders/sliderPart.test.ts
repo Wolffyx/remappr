@@ -1,7 +1,7 @@
 // pattern-check: skip unit test
 import { describe, expect, it } from 'vitest'
 import type { SensorInfo } from '@firmware/devices/types'
-import { sliderPartOf } from './model'
+import { clampSteps, sliderPartOf } from './model'
 
 const part = (index: number, cls: string): SensorInfo =>
     ({ index, cls }) as unknown as SensorInfo
@@ -18,5 +18,16 @@ describe('sliderPartOf', () => {
         expect(sliderPartOf(parts, 1)?.index).toBe(3)
         expect(sliderPartOf(parts, 2)).toBeNull()
         expect(sliderPartOf([], 0)).toBeNull()
+    })
+})
+
+describe('clampSteps', () => {
+    it('keeps a typed step count a whole number the firmware takes', () => {
+        expect(clampSteps(20, 100)).toBe(20)
+        expect(clampSteps(0, 100)).toBe(1)
+        expect(clampSteps(-5, 100)).toBe(1)
+        expect(clampSteps(250, 100)).toBe(100)
+        expect(clampSteps(12.6, 100)).toBe(13)
+        expect(clampSteps(Number.NaN, 100)).toBe(1)
     })
 })

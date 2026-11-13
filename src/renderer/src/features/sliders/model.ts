@@ -172,3 +172,9 @@ export function sliderPartOf(
 ): SensorInfo | null {
     return parts.filter((p) => p.cls === 'slider')[slot] ?? null
 }
+
+/** A typed step count as the firmware takes it: a whole number 1..max. */
+export function clampSteps(value: number, max: number): number {
+    if (!Number.isFinite(value)) return 1
+    return Math.min(max, Math.max(1, Math.round(value)))
+}

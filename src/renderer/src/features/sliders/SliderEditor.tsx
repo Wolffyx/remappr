@@ -16,6 +16,7 @@ import type { KeyboardService } from '@firmware/service'
 import {
     SLIDER_MAP_INFO,
     SLIDER_STEPS_DEFAULT,
+    SLIDER_STEPS_MAX,
     sliderMapInfo,
     type SliderMap,
 } from '@firmware/config'
@@ -28,7 +29,7 @@ import { knobSide } from '@/features/encoders/knobLegend'
 import { AppSelect } from '@/ui/app-select'
 import { Button } from '@/ui/button'
 import { NumberInput } from '@/ui/number-input'
-import { SLIDER_DIRS, useSliderDirStore } from './model'
+import { clampSteps, SLIDER_DIRS, useSliderDirStore } from './model'
 import { SliderCalibration } from './SliderCalibration'
 import { useSliderEditor } from './useSliderEditor'
 
@@ -38,7 +39,9 @@ const FOLLOWS: Record<string, string> = {
     app: 'a value from the app',
 }
 
-const STEP_CHOICES = [8, 16, 32, 50, 100]
+/** Common step counts: a computer's presses from empty to full (16, 20 = 5 %
+ *  each, 50 = 2 %) and one per percent. Any 1..max can be typed. */
+const STEP_PICKS = [16, 20, 50, 100]
 
 interface SliderEditorProps {
     service: KeyboardService | undefined
@@ -177,24 +180,39 @@ export function SliderEditor({
         </div>
     )
 
+    const steps = current?.steps ?? SLIDER_STEPS_DEFAULT
+    const setSteps = (n: number): void => {
+        if (current)
+            write({ ...current, steps: clampSteps(n, SLIDER_STEPS_MAX) })
+    }
     const stepsField = (
-        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             Steps
-            <AppSelect
-                value={String(current?.steps ?? SLIDER_STEPS_DEFAULT)}
-                onChange={(e) =>
-                    current &&
-                    write({ ...current, steps: Number(e.target.value) })
-                }
-                className="h-8 w-24"
-            >
-                {STEP_CHOICES.map((n) => (
-                    <option key={n} value={String(n)}>
-                        {n}
-                    </option>
-                ))}
-            </AppSelect>
-        </label>
+            <NumberInput
+                aria-label="Steps"
+                className="w-20"
+                min={1}
+                max={SLIDER_STEPS_MAX}
+                value={steps}
+                onChange={(e) => {
+                    // Cleared while typing: keep the last count until a number.
+                    if (e.target.value !== '') setSteps(Number(e.target.value))
+                }}
+            />
+            {STEP_PICKS.map((n) => (
+                <Button
+                    key={n}
+                    type="button"
+                    size="sm"
+                    variant={n === steps ? 'secondary' : 'ghost'}
+                    aria-pressed={n === steps}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setSteps(n)}
+                >
+                    {n}
+                </Button>
+            ))}
+        </span>
     )
 
     return (
@@ -260,7 +278,7 @@ export function SliderEditor({
             {info?.kind === 'level' && (
                 <p className="text-xs text-muted-foreground">
                     {info.owner === 'computer'
-                        ? 'Sent as up / down steps. The computer doesn’t tell the keyboard where it is, so the two can drift apart until you reach the top or bottom.'
+                        ? 'Sent as up / down steps. The computer doesn’t tell the keyboard where it is, so the two can drift apart until you reach the top or bottom. Set Steps to the presses your computer takes from empty to full (often 16, 20 or 50) and the ends line up.'
                         : 'The keyboard’s own level, so the slider and the light always match.'}
                 </p>
             )}
