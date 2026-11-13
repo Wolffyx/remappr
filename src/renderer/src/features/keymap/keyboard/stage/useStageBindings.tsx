@@ -15,7 +15,12 @@ import {
 import { HidUsageLabel } from '../HidUsageLabel'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
 import { knobLegend, knobSide } from '@/features/encoders/knobLegend'
-import { sliderLegend } from '@/features/sliders/model'
+import {
+    effectiveSlider,
+    freeSliderSlots,
+    sliderLegend,
+    sliderSlotAt,
+} from '@/features/sliders/model'
 import type { KeypressDetectionConfig } from '@/lib/keypress/keypressDetector'
 import { ParamLegend } from '../ParamLegend'
 import { LegendParts } from '../LegendParts'
@@ -64,7 +69,11 @@ export function useStageBindings({
             ...(layout.keys[i]?.element === 'slider'
                 ? {
                       slider: sliderLegend(
-                          keymap.layers[displayLayerIndex]?.sliders?.[i],
+                          effectiveSlider(
+                              keymap.layers,
+                              displayLayerIndex,
+                              sliderSlotAt(layout, i),
+                          ),
                           layout.keys[i]!.motor,
                       ),
                   }
@@ -138,6 +147,26 @@ export function useStageBindings({
                 <HidUsageLabel hid_usage={p.bindingParam1!} hideMods />
             ),
         }))
+
+        // Sliders with no key of their own (a device's fader) follow the keys,
+        // so position keys.length + j is the j-th of them (sliderSlotAt).
+        keyPositions.push(
+            ...freeSliderSlots(layout).map((slot): KeyPosition => {
+                const at = layout.sliders![slot]!
+                return {
+                    id: `sld-${slot}`,
+                    header: 'Slider',
+                    x: at.x / 100,
+                    y: at.y / 100,
+                    width: (at.w ?? 100) / 100,
+                    height: (at.h ?? 100) / 100,
+                    ...(at.r ? { r: at.r / 100 } : {}),
+                    slider: sliderLegend(
+                        effectiveSlider(keymap.layers, displayLayerIndex, slot),
+                    ),
+                }
+            }),
+        )
 
         const encoderActions = keymap.layers[displayLayerIndex]?.encoders
         const encoderSlots = layout.encoders ?? []

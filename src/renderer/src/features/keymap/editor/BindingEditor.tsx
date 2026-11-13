@@ -31,6 +31,7 @@ import {
 } from '@/features/encoders/model'
 import { useEncoderEditor } from '@/features/encoders/useEncoderEditor'
 import { SliderEditor } from '@/features/sliders/SliderEditor'
+import { sliderSlotAt } from '@/features/sliders/model'
 import { toast } from 'sonner'
 
 const TAP_DANCE_KINDS: ReadonlySet<string> = new Set(['vial:tap-dance'])
@@ -276,14 +277,12 @@ export function BindingEditor({
             />
         ) : undefined
 
-    // A slider position gets its own editor (what it does, its two directions).
-    const sliderKey =
-        selectedKeyPosition !== undefined &&
-        keymap?.layouts.find((l) => l.id === keymap.activeLayoutId)?.keys[
-            selectedKeyPosition
-        ]?.element === 'slider'
-            ? selectedKeyPosition
-            : undefined
+    // A slider (a slider key, or a device's own fader drawn after the keys)
+    // gets its own editor (what it does, its two directions).
+    const sliderSlot = sliderSlotAt(
+        keymap?.layouts.find((l) => l.id === keymap.activeLayoutId),
+        selectedKeyPosition,
+    )
 
     const editorBody = (
         <>
@@ -293,13 +292,13 @@ export function BindingEditor({
                     Encoder {selectedEncoder.slot + 1}
                 </div>
             )}
-            {sliderKey !== undefined && keymap && !readOnly ? (
+            {sliderSlot >= 0 && keymap && !readOnly ? (
                 <SliderEditor
                     service={service ?? undefined}
                     keymap={keymap}
                     setKeymap={setKeymap}
                     layerIndex={effectiveLayerIndex}
-                    keyIndex={sliderKey}
+                    slot={sliderSlot}
                     actionTypes={actionTypes}
                     layers={layerList}
                 />

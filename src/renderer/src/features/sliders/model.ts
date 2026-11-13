@@ -5,7 +5,12 @@
 // for a layer's binding. Map ids and labels come from the config's own
 // SLIDER_MAP_INFO, so the cap, the editor and the builder say the same thing.
 import { create } from 'zustand'
-import type { PhysicalLayoutKey, SliderAction } from '@firmware/types'
+import type {
+    Layer,
+    PhysicalLayout,
+    PhysicalLayoutKey,
+    SliderAction,
+} from '@firmware/types'
 import { sliderMapInfo, type SliderMap } from '@firmware/config'
 import { knobSide, type KnobSide } from '@/features/encoders/knobLegend'
 import type { KeyCategory } from '@/lib/keymap/keyCategory'
@@ -100,4 +105,41 @@ export function sliderLegend(
         down: action?.down ? knobSide(action.down.label) : undefined,
         follow: motor?.follow,
     })
+}
+
+/** The slots of sliders with no key of their own (a device's fader), in slot
+ *  order: the stage draws them after the keys, so position keys.length + j is
+ *  the j-th of them. */
+export function freeSliderSlots(layout: PhysicalLayout | undefined): number[] {
+    const keyCount = layout?.keys.length ?? 0
+    return (layout?.sliders ?? []).flatMap((s, i) =>
+        s.key === undefined || s.key >= keyCount ? [i] : [],
+    )
+}
+
+/** The slider slot at a stage position: a slider key's slot, or a free
+ *  slider drawn after the keys; -1 when the position is not a slider. */
+export function sliderSlotAt(
+    layout: PhysicalLayout | undefined,
+    position: number | undefined,
+): number {
+    if (!layout || position === undefined) return -1
+    const keyCount = layout.keys.length
+    if (position >= keyCount)
+        return freeSliderSlots(layout)[position - keyCount] ?? -1
+    return (layout.sliders ?? []).findIndex((s) => s.key === position)
+}
+
+/** What slider `slot` does on layer `layerIndex`: its own binding, else (on
+ *  any layer but the base) the base layer's, which it follows. */
+export function effectiveSlider(
+    layers: readonly Layer[],
+    layerIndex: number,
+    slot: number,
+): SliderAction | undefined {
+    return (
+        layers[layerIndex]?.sliders?.[slot] ??
+        layers[0]?.sliders?.[slot] ??
+        undefined
+    )
 }

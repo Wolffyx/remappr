@@ -43,7 +43,8 @@ interface SliderEditorProps {
     keymap: Keymap
     setKeymap: (fn: (prev: Keymap | undefined) => Keymap | undefined) => void
     layerIndex: number
-    keyIndex: number
+    /** The slider's slot (the layout's `sliders` index). */
+    slot: number
     actionTypes: ActionType[]
     layers: { id: number; name: string }[]
 }
@@ -53,7 +54,7 @@ export function SliderEditor({
     keymap,
     setKeymap,
     layerIndex,
-    keyIndex,
+    slot,
     actionTypes,
     layers,
 }: SliderEditorProps): JSX.Element {
@@ -61,24 +62,30 @@ export function SliderEditor({
     const dir = useSliderDirStore((s) => s.dir)
     const setDir = useSliderDirStore((s) => s.setDir)
     const layer = keymap.layers[layerIndex]
-    const current = layer?.sliders?.[keyIndex]
+    const current = layer?.sliders?.[slot] ?? undefined
     const layout = keymap.layouts.find((l) => l.id === keymap.activeLayoutId)
-    const motor = layout?.keys[keyIndex]?.motor
-    const number =
-        (layout?.keys.slice(0, keyIndex).filter((k) => k.element === 'slider')
-            .length ?? 0) + 1
+    const keyIndex = layout?.sliders?.[slot]?.key
+    const motor =
+        keyIndex === undefined ? undefined : layout?.keys[keyIndex]?.motor
     const info = current ? sliderMapInfo(current.map as SliderMap) : undefined
+    // What this firmware can make a slider do (all, when it does not say).
+    const runs = service?.sliders?.maps
+    const maps = SLIDER_MAP_INFO.filter(
+        (m) =>
+            (!runs || runs.includes(m.id) || current?.map === m.id) &&
+            (m.id !== 'custom' || current?.map === 'custom'),
+    )
 
     // An unbound direction shows the layer's pass-through, from the firmware's
     // own action types (never a firmware-specific id).
     const placeholder = useMemo((): KeyAction | undefined => {
         if (!service) return undefined
         const t = actionTypes.find((a) => /trans/i.test(a.id))
-        return t ? service.buildKeyAction(t.id, []) : layer?.keys[keyIndex]
+        if (t) return service.buildKeyAction(t.id, [])
+        return keyIndex === undefined ? undefined : layer?.keys[keyIndex]
     }, [service, actionTypes, layer, keyIndex])
 
-    const write = (next: SliderAction | null): void =>
-        editor.set(keyIndex, next)
+    const write = (next: SliderAction | null): void => editor.set(slot, next)
 
     const pickMap = (map: string): void => {
         if (map === '') return write(null)
@@ -192,7 +199,7 @@ export function SliderEditor({
         <div className="flex flex-col gap-3">
             <div className="flex flex-row flex-wrap items-center gap-3">
                 <span className="text-xs text-muted-foreground">
-                    Slider {number}
+                    Slider {slot + 1}
                 </span>
                 <AppSelect
                     value={current?.map ?? ''}
@@ -200,10 +207,12 @@ export function SliderEditor({
                     disabled={!editor.canEdit}
                     className="h-8 w-56"
                 >
-                    <option value="">Does nothing</option>
-                    {SLIDER_MAP_INFO.filter(
-                        (m) => m.id !== 'custom' || current?.map === 'custom',
-                    ).map((m) => (
+                    <option value="">
+                        {layerIndex > 0
+                            ? 'Same as the base layer'
+                            : 'Does nothing'}
+                    </option>
+                    {maps.map((m) => (
                         <option key={m.id} value={m.id}>
                             {m.label}
                         </option>

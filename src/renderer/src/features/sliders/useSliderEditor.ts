@@ -1,8 +1,8 @@
 // Pattern check: Command (Tier 2) — extended — the do-then-return-undo closure undoRedoStore.doIt runs for key and encoder edits, for one slider binding.
 //
-// Slider edits for the binding editor: replace one layer's binding for the
-// slider at a keymap position. The keymap updates before the device answers;
-// a failed write puts it back and records no undo step.
+// Slider edits for the binding editor: replace one layer's binding for one
+// slider slot (null = as on the base layer). The keymap updates before the
+// device answers; a failed write puts it back and records no undo step.
 import { useCallback } from 'react'
 import { produce } from 'immer'
 import { toast } from 'sonner'
@@ -20,7 +20,7 @@ interface Inputs {
 export interface SliderEditor {
     /** False when the service can't write sliders (none, or read-only). */
     canEdit: boolean
-    set: (keyIndex: number, next: SliderAction | null) => void
+    set: (slot: number, next: SliderAction | null) => void
 }
 
 export function useSliderEditor({
@@ -33,19 +33,19 @@ export function useSliderEditor({
     const api = service?.capabilities.readOnly ? undefined : service?.sliders
 
     const set = useCallback(
-        (keyIndex: number, next: SliderAction | null): void => {
+        (slot: number, next: SliderAction | null): void => {
             const layer = keymap?.layers[layerIndex]
             if (!api || !layer) return
-            const before = layer.sliders?.[keyIndex] ?? null
+            const before = layer.sliders?.[slot] ?? null
             const apply = (s: SliderAction | null): void =>
                 setKeymap((prev) =>
                     prev
                         ? produce(prev, (d) => {
                               const l = d.layers[layerIndex]
                               if (!l) return
-                              const sliders = { ...l.sliders }
-                              if (s) sliders[keyIndex] = s
-                              else delete sliders[keyIndex]
+                              const sliders = [...(l.sliders ?? [])]
+                              while (sliders.length <= slot) sliders.push(null)
+                              sliders[slot] = s
                               l.sliders = sliders
                           })
                         : prev,
@@ -53,7 +53,7 @@ export function useSliderEditor({
             doIt(async () => {
                 apply(next)
                 try {
-                    await api.setSlider(layer.id, keyIndex, next)
+                    await api.setSlider(layer.id, slot, next)
                 } catch (e) {
                     apply(before)
                     toast.error('Failed to set the slider')
@@ -62,7 +62,7 @@ export function useSliderEditor({
                 }
                 return async (): Promise<void> => {
                     apply(before)
-                    await api.setSlider(layer.id, keyIndex, before)
+                    await api.setSlider(layer.id, slot, before)
                 }
             })
         },
