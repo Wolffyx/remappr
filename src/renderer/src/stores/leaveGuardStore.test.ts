@@ -178,6 +178,17 @@ describe('confirmLeave', () => {
         expect(await leave).toBe(true)
         expect(toast.warning).toHaveBeenCalled()
     })
+
+    it('drops the edit history of the discarded edits', async () => {
+        const { service } = makeDevice('Mouse', { pending: true })
+        await useUndoRedoStore.getState().doIt(async () => async () => {})
+        expect(useUndoRedoStore.getState().canUndo()).toBe(true)
+        const leave = confirmLeave(withSaveMode(service, false))
+        await promptOpen()
+        choose('discard')
+        expect(await leave).toBe(true)
+        expect(useUndoRedoStore.getState().canUndo()).toBe(false)
+    })
 })
 
 describe('disconnect', () => {

@@ -4,6 +4,8 @@ import useConnectionStore from './connectionStore'
 import useConfigStore from './configStore'
 import useLayerSelectionStore from './layerSelectionStore'
 import type { KeyboardService, NodeView } from '@firmware/service'
+import type { Keymap, Layer } from '@firmware/types'
+import useKeymapStore from './keymapStore'
 import { isSaveModeManaged, unwrapSaveMode } from '@/lib/saveMode'
 
 /* A behind-dongle node view: read-only, shares the dongle RPC, so its own
@@ -456,5 +458,95 @@ describe('publishService', () => {
         )
         expect(useConnectionStore.getState().lockState).toBe('locked')
         expect(useConnectionStore.getState().service).not.toBeNull()
+    })
+})
+
+describe('reloadFromDevice', () => {
+    beforeEach(() => {
+        useConnectionStore.getState().resetConnection()
+        useKeymapStore.getState().resetKeymap()
+        useLayerSelectionStore.getState().setSelectedLayerIndex(0)
+    })
+
+    function layer(id: number, key: string): Layer {
+        return {
+            id,
+            name: `L${id}`,
+            keys: [{ kind: key, params: [] }],
+        } as unknown as Layer
+    }
+
+    function keymapOf(...layers: Layer[]): Keymap {
+        return {
+            layers,
+            availableLayers: 4,
+            activeLayoutId: 0,
+            layouts: [],
+        }
+    }
+
+    /** A device whose keymap read returns what it holds now. */
+    function board(initial: Keymap): {
+        service: KeyboardService
+        hold: (km: Keymap) => void
+    } {
+        let held = initial
+        const service = {
+            deviceInfo: { name: 'Board', firmware: 'remappr' },
+            capabilities: { lock: 'none', exportFormats: [] },
+            listActionTypes: async () => [],
+            getKeymap: async () => held,
+        } as unknown as KeyboardService
+        return { service, hold: (km) => (held = km) }
+    }
+
+    it('shows the keymap the same device holds after a discard', async () => {
+        const device = keymapOf(layer(0, 'Q'))
+        const b = board(device)
+        useConnectionStore.getState().setService(b.service)
+        // The editor shows staged edits: Q→Z plus an added layer, selected.
+        useKeymapStore
+            .getState()
+            .setKeymap(keymapOf(layer(0, 'Z'), layer(1, 'A')))
+        useLayerSelectionStore.getState().setSelectedLayerIndex(1)
+        const before = useConnectionStore.getState().deviceRevision
+
+        await useConnectionStore.getState().reloadFromDevice()
+
+        expect(useKeymapStore.getState().keymap).toBe(device)
+        expect(useLayerSelectionStore.getState().selectedLayerIndex).toBe(0)
+        expect(useConnectionStore.getState().deviceRevision).toBe(before + 1)
+        // Same service: no reconnect.
+        expect(useConnectionStore.getState().service).toBe(b.service)
+    })
+
+    it('drops a read that resolves after the device changed', async () => {
+        const a = board(keymapOf(layer(0, 'Q')))
+        const other = board(keymapOf(layer(0, 'X')))
+        let release!: () => void
+        const gate = new Promise<void>((r) => (release = r))
+        const slow = a.service.getKeymap
+        Object.assign(a.service, {
+            getKeymap: async () => {
+                await gate
+                return slow()
+            },
+        })
+        useConnectionStore.getState().setService(a.service)
+
+        const reload = useConnectionStore.getState().reloadFromDevice()
+        useConnectionStore.getState().setService(other.service)
+        useKeymapStore.getState().setKeymap(keymapOf(layer(0, 'X')))
+        release()
+        await reload
+
+        expect(useKeymapStore.getState().keymap?.layers[0].keys[0].kind).toBe(
+            'X',
+        )
+    })
+
+    it('is a no-op with no device', async () => {
+        await useConnectionStore.getState().reloadFromDevice()
+        expect(useKeymapStore.getState().keymap).toBeUndefined()
     })
 })

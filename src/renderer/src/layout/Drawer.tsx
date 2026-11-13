@@ -122,6 +122,19 @@ export function Drawer(): JSX.Element {
         })()
     }, [service, layouts, selectedPhysicalLayoutIndex, setKeymap])
 
+    // A reload of the same device (Discard) can move its active layout back.
+    // Follow it without sending it again: mark it applied, then select it.
+    const deviceRevision = useConnectionStore((s) => s.deviceRevision)
+    const seenRevisionRef = useRef(deviceRevision)
+    useEffect(() => {
+        if (seenRevisionRef.current === deviceRevision) return
+        seenRevisionRef.current = deviceRevision
+        const km = useKeymapStore.getState().keymap
+        if (!service || !km) return
+        appliedLayoutRef.current = { svc: service, idx: km.activeLayoutId }
+        setSelectedPhysicalLayoutIndex(km.activeLayoutId)
+    }, [deviceRevision, service, setSelectedPhysicalLayoutIndex])
+
     const layoutPicker = useUserSettingsStore((s) => s.layoutPicker)
     const scrollLayers = useUserSettingsStore((s) => s.layerList === 'scroll')
     const selectedLayerIndex = useLayerSelectionStore(

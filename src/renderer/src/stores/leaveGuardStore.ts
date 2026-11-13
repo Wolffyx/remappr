@@ -4,6 +4,7 @@ import { devtools } from 'zustand/middleware'
 import { toast } from 'sonner'
 import type { KeyboardService } from '@firmware/service'
 import { isSaveModeManaged } from '@/lib/saveMode'
+import useUndoRedoStore from '@/stores/undoRedoStore'
 
 /**
  * The unsaved-changes guard. Leaving a device (disconnect, back to the dongle,
@@ -82,6 +83,9 @@ async function discard(p: Pending): Promise<void> {
             description: errorText(e, 'The device did not answer.'),
         })
     }
+    // The edits are gone, so their history is too: should the leave then
+    // fail, undo must not replay them on the device the user stays on.
+    useUndoRedoStore.getState().reset()
     finish(p, true)
 }
 

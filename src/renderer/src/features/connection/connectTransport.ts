@@ -183,7 +183,15 @@ async function closeThenOpen(target: DeviceWithTransport): Promise<boolean> {
  *  left, so a failed open leaves the user where they were. */
 async function openThenClose(target: DeviceWithTransport): Promise<boolean> {
     const opened = await openTarget(target)
-    if (!opened) return false
+    if (!opened) {
+        // The user stays on the device they tried to leave, whose edits the
+        // leave prompt may just have discarded.
+        useConnectionStore
+            .getState()
+            .reloadFromDevice()
+            .catch((e) => console.warn('Reload after a failed switch', e))
+        return false
+    }
     const left = openDevices()
     await showTarget(target, opened)
     await useConnectionStore.getState().closeDevices(left)

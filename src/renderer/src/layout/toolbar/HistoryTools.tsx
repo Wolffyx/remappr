@@ -18,8 +18,7 @@ import { ToolbarButton } from './ToolbarButton'
 
 export function HistoryTools(): JSX.Element {
     const service = useConnectionStore((s) => s.service)
-    const setService = useConnectionStore((s) => s.setService)
-    const communication = useConnectionStore((s) => s.communication)
+    const reloadFromDevice = useConnectionStore((s) => s.reloadFromDevice)
     const undo = undoRedoStore((s) => s.undo)
     const redo = undoRedoStore((s) => s.redo)
     const reset = undoRedoStore((s) => s.reset)
@@ -112,8 +111,15 @@ export function HistoryTools(): JSX.Element {
         }
 
         reset()
-        setService(service, communication ?? undefined)
-    }, [service, communication, reset, setService])
+        // Same service object, so nothing keyed on its identity reloads:
+        // re-read the keymap the device holds now.
+        try {
+            await reloadFromDevice()
+        } catch (e) {
+            console.error('Failed to reload the keymap after discard', e)
+            toast.error('Failed to reload the keymap from the device')
+        }
+    }, [service, reset, reloadFromDevice])
 
     // Sync the live service's save-mode flag with the setting. No service
     // swap, no reconnect work — the controller flips in place. Turning auto ON

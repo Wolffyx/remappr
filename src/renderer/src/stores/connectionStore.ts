@@ -129,6 +129,16 @@ interface ConnectionState {
     closeDevices: (open: OpenDevices) => Promise<void>
     setConnectionAbort: (abort: AbortController) => void
     resetConnection: () => void
+    /** Bumped each time `reloadFromDevice` re-reads the open device, so views
+     *  that derive state from the device's keymap (the selected physical
+     *  layout) can follow a reload that keeps the same service. */
+    deviceRevision: number
+    /** Re-read the open device's keymap (layers, keys, encoders, sliders) and
+     *  config into the editor without a reconnect. Run after its edits are
+     *  dropped (Discard, or a leave that discarded and then failed): the
+     *  service stays the same object, so nothing keyed on its identity
+     *  reloads by itself. Rejects when the keymap read fails. */
+    reloadFromDevice: () => Promise<void>
     /** Re-seed configStore from the device if a save landed since the last seed
      *  (configStore.stale). Called by freshness-sensitive consumers (Download
      *  modal, Builder) right before they read — keeps the post-save hot path free
@@ -158,6 +168,7 @@ const useConnectionStore = create<ConnectionState>()(
             keyCatalog: null,
             connectionAbort: new AbortController(),
             lastConnectedDevice: null,
+            deviceRevision: 0,
             setService: (service, communication) => {
                 // Leaving every device (service → null, e.g. an onClosed from a
                 // dropped dongle transport) also drops any node-view back-pointer,
@@ -300,6 +311,21 @@ const useConnectionStore = create<ConnectionState>()(
                     useConfigStore.getState().reset()
                 }
             },
+            reloadFromDevice: async () => {
+                const { service } = get()
+                if (!service) return
+                const isCurrent = (): boolean => get().service === service
+                const keymap = await service.getKeymap()
+                if (!isCurrent()) return
+                useKeymapStore.getState().setKeymap(keymap)
+                // A dropped added layer may have been the selected one.
+                const layers = useLayerSelectionStore.getState()
+                const last = Math.max(0, keymap.layers.length - 1)
+                if (layers.selectedLayerIndex > last)
+                    layers.setSelectedLayerIndex(last)
+                set((s) => ({ deviceRevision: s.deviceRevision + 1 }))
+                seedConfigFromService(service, isCurrent)
+            },
             reseedConfigIfStale: () => {
                 const { service } = get()
                 if (!service?.getConfigSource) return
@@ -366,8 +392,21 @@ const useConnectionStore = create<ConnectionState>()(
                 // An editable node (a mouse or a joystick) saves like a device on
                 // its own transport, so it gets the same save-mode controller; a
                 // read-only one passes through unwrapped.
+                let opened: KeyboardService
+                try {
+                    opened = await dongle.nodes.open(id)
+                } catch (e) {
+                    // The user stays on the device they tried to leave, whose
+                    // edits the leave prompt may just have discarded.
+                    get()
+                        .reloadFromDevice()
+                        .catch((err) =>
+                            console.warn('Reload after a failed open', err),
+                        )
+                    throw e
+                }
                 const view = withSaveMode(
-                    await dongle.nodes.open(id),
+                    opened,
                     useUserSettingsStore.getState().autosave,
                 )
                 // The edit history drives the device being left; undoing it
