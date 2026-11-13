@@ -15,6 +15,7 @@ import type {
 import type { KeyboardService } from '@firmware/service'
 import {
     SLIDER_MAP_INFO,
+    SLIDER_STEPS_DEFAULT,
     sliderMapInfo,
     type SliderMap,
 } from '@firmware/config'
@@ -97,12 +98,12 @@ export function SliderEditor({
                       map,
                       min: current?.min ?? 0,
                       max: current?.max ?? 100,
-                      steps: current?.steps ?? 50,
+                      steps: current?.steps ?? SLIDER_STEPS_DEFAULT,
                   }
                 : map === 'keys'
                   ? {
                         map,
-                        steps: current?.steps ?? 16,
+                        steps: current?.steps ?? SLIDER_STEPS_DEFAULT,
                         up: current?.up,
                         down: current?.down,
                     }
@@ -180,7 +181,7 @@ export function SliderEditor({
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
             Steps
             <AppSelect
-                value={String(current?.steps ?? 16)}
+                value={String(current?.steps ?? SLIDER_STEPS_DEFAULT)}
                 onChange={(e) =>
                     current &&
                     write({ ...current, steps: Number(e.target.value) })
