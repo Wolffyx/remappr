@@ -9,10 +9,12 @@
 // firmware. At GA, access falls back to the premium entitlement and this toasts
 // the locked state instead. Opening flips builderStore.open; App swaps the start
 // page for the full-screen <Builder/>.
+import { Badge } from '@/ui/badge'
 import { ArrowRight, Lock, Ruler, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { useBuilderAccess, useBuilderStage } from '@/hooks/use-premium'
 import useBuilderStore from '@/stores/builderStore'
+import { explainBuilderLock } from '@/features/builder-gate/lock'
 
 export function BuilderCard(): JSX.Element {
     const access = useBuilderAccess()
@@ -22,10 +24,7 @@ export function BuilderCard(): JSX.Element {
 
     const onOpen = (): void => {
         if (!access) {
-            toast.info('The keyboard builder is a premium feature', {
-                description:
-                    'Sign in to an account to unlock it once monetization is live.',
-            })
+            explainBuilderLock()
             return
         }
         if (free) {
@@ -44,16 +43,16 @@ export function BuilderCard(): JSX.Element {
             className="group mt-4 flex w-full items-center gap-4 rounded-2xl border px-[18px] py-4 text-left text-foreground transition-all hover:-translate-y-0.5"
             style={{
                 background:
-                    'linear-gradient(100deg, color-mix(in oklch, var(--primary) 16%, var(--card)), var(--card) 70%)',
+                    'linear-gradient(100deg, color-mix(in oklab, var(--primary) 16%, var(--card)), var(--card) 70%)',
                 borderColor:
-                    'color-mix(in oklch, var(--primary) 38%, var(--border))',
+                    'color-mix(in oklab, var(--primary) 38%, var(--border))',
             }}
         >
             <span
-                className="grid size-[46px] shrink-0 place-items-center rounded-xl text-white"
+                className="grid size-[46px] shrink-0 place-items-center rounded-xl text-primary-foreground"
                 style={{
                     background:
-                        'linear-gradient(150deg, var(--primary), color-mix(in oklch, var(--primary) 65%, #000))',
+                        'linear-gradient(150deg, var(--primary), color-mix(in oklab, var(--primary) 65%, #000))',
                 }}
             >
                 <Ruler size={22} />
@@ -64,27 +63,25 @@ export function BuilderCard(): JSX.Element {
                         Create a keyboard
                     </span>
                     <span
-                        className="rounded-full px-[7px] py-0.5 text-[10px] font-bold text-primary"
+                        className="rounded-full px-[7px] py-0.5 text-meta font-bold text-primary"
                         style={{
                             background:
-                                'color-mix(in oklch, var(--primary) 16%, transparent)',
+                                'color-mix(in oklab, var(--primary) 16%, transparent)',
                         }}
                     >
                         BUILDER
                     </span>
                     {free && (
-                        <span
-                            className="inline-flex items-center gap-1 rounded-full px-[7px] py-0.5 text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400"
-                            style={{
-                                background:
-                                    'color-mix(in oklch, var(--primary) 10%, transparent)',
-                            }}
+                        <Badge
+                            size="sm"
+                            tone="success"
+                            className="rounded-full"
                         >
-                            <Sparkles size={10} /> {stage} · FREE
-                        </span>
+                            <Sparkles /> {stage} · Free
+                        </Badge>
                     )}
                 </div>
-                <div className="mt-1 text-[13px] text-muted-foreground">
+                <div className="mt-1 text-panel-title text-muted-foreground">
                     Design a board from scratch — layout, matrix &amp; firmware.
                     Import KLE, start from a preset, then export a build-ready
                     config.
@@ -100,7 +97,7 @@ export function BuilderCard(): JSX.Element {
                     ) : null}
                 </div>
             </div>
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground">
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-panel-title font-semibold text-primary-foreground">
                 {access ? (
                     <>
                         Open builder <ArrowRight size={15} />

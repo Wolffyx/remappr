@@ -16,11 +16,11 @@ everything back the way it was when you opened it.
   **Default**, **Claude**, **Supabase**, **T3 Chat**, **Vercel**, **Twitter**,
   **Bubblegum**, **Catppuccin**. Themes recolour the whole app, keycaps
   included.
-- **Dark Mode** — **Light**, **Dark** or **System** (_"follow the system"_).
+- **Dark mode** — **Light**, **Dark** or **System** (_"follow the system"_).
 
-**Keymap Display**
+**Keymap display**
 
-- **Key Header** — the small line at the top of each cap: **Action name**
+- **Key header** — the small line at the top of each cap: **Action name**
   (_Key Press_, _Mod-Tap_), **Binding code** (`&kp`, `&mt`) or **Hidden**. Kept
   per firmware family.
 - **Colour-coding** — _"Tint keys by their function group"_: **Off** (every cap
@@ -101,6 +101,21 @@ registry on connect, instead of uploading a definition by hand with the
 toolbar's load button. Families with nothing of their own say so (_"No ZMK-specific
 settings yet."_).
 
+## Integrations
+
+**GitHub**: keep library items in your own GitHub repositories and build
+firmware there. No Remappr account is needed.
+
+- **Connect GitHub** opens GitHub in your browser to authorize the Remappr
+  GitHub App. On the desktop app, the browser hands the answer back to
+  Remappr. If it can't (AppImage), copy the code it shows and paste it under
+  **Waiting for GitHub**.
+- **Choose repositories** picks which repositories the app may use.
+- **Disconnect** forgets the connection here and revokes it on GitHub.
+- **Advanced: personal access token**: for setups the app can't reach. It
+  needs the `repo` and `workflow` scopes (or, fine-grained, Contents and
+  Workflows read/write and Actions read). It stays on this device.
+
 ## About
 
 ![Settings → About: version, download and What's new](/images/app/settings-about.webp)
@@ -108,8 +123,13 @@ settings yet."_).
 - The running version (**Remappr v0.0.16**).
 - **Download** — the desktop app for your OS (latest release).
 - **What’s new** — the release notes of the version you are running.
-- **Check for updates** — desktop app only; when a newer release exists, a
-  notification offers the download and a summary of what changed.
+- **Check for updates** — desktop app only. The AppImage, the Windows
+  installer and signed macOS builds download the update themselves and offer
+  **Restart** (otherwise it installs the next time you quit). Other installs
+  show a notification with the download and a summary of what changed.
+- **Beta builder updates** — when the builder is downloaded rather than built
+  in, get new builder versions before everyone else. A newer builder arrives
+  in the background and a notification says it is ready, with what's new.
 
 After an update, the desktop and web apps open **What's new** on their own the
 first time a new version starts — when the release brings new features.

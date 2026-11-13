@@ -1,8 +1,54 @@
 // pattern-check: skip — presentational stage overlays extracted from KeyboardView
+import { Badge } from '@/ui/badge'
 import { Eraser, Eye, SquarePen, Wand2, X } from 'lucide-react'
 import { CATEGORY_META, layerAccent } from '@/lib/keymap/keyCategory'
 import { KeyCapPreview } from '../KeyCapPreview'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
+
+/** The pulsing green LIVE chip shown while live view is on. */
+export function LivePill(): JSX.Element {
+    return (
+        <Badge
+            size="sm"
+            tone="success"
+            className="gap-1.5 rounded-full border-success/40 px-2.5 py-1 text-caption"
+        >
+            <span className="relative flex size-[7px]">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex size-[7px] rounded-full bg-success" />
+            </span>
+            Live
+        </Badge>
+    )
+}
+
+/** A name pill with a glowing accent square: "Base layer", "Gaming profile". */
+export function AccentPill({
+    accent,
+    name,
+    suffix,
+}: {
+    accent: string
+    name: string
+    suffix: string
+}): JSX.Element {
+    return (
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-panel-title font-bold shadow-sm">
+            <span
+                aria-hidden
+                className="size-[9px] rounded-[3px]"
+                style={{
+                    background: accent,
+                    boxShadow: `0 0 8px ${accent}`,
+                }}
+            />
+            {name}
+            <span className="text-xs font-medium text-muted-foreground">
+                {suffix}
+            </span>
+        </span>
+    )
+}
 
 /** Top-left cluster: current-layer pill (accent dot + glow) + pulsing LIVE chip. */
 export function LayerPill({
@@ -14,32 +60,14 @@ export function LayerPill({
     layerName: string
     liveView: boolean
 }): JSX.Element {
-    const accent = layerAccent(displayLayerIndex)
     return (
         <div className="absolute top-3.5 left-4 z-10 flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[13px] font-bold shadow-sm">
-                <span
-                    aria-hidden
-                    className="size-[9px] rounded-[3px]"
-                    style={{
-                        background: accent,
-                        boxShadow: `0 0 8px ${accent}`,
-                    }}
-                />
-                {layerName}
-                <span className="text-xs font-medium text-muted-foreground">
-                    layer
-                </span>
-            </span>
-            {liveView && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/40 bg-green-500/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.04em] text-green-600 dark:text-green-400">
-                    <span className="relative flex size-[7px]">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
-                        <span className="relative inline-flex size-[7px] rounded-full bg-green-500" />
-                    </span>
-                    LIVE
-                </span>
-            )}
+            <AccentPill
+                accent={layerAccent(displayLayerIndex)}
+                name={layerName}
+                suffix="layer"
+            />
+            {liveView && <LivePill />}
         </div>
     )
 }
@@ -55,9 +83,9 @@ export function PeekBanner({
     const accent = layerAccent(displayLayerIndex)
     return (
         <div
-            className="absolute top-3.5 left-1/2 z-[16] inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold text-foreground"
+            className="absolute top-[calc(var(--toolbar-h,0px)+0.875rem)] left-1/2 z-[16] inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold text-foreground"
             style={{
-                background: `color-mix(in oklch, ${accent} 20%, var(--card))`,
+                background: `color-mix(in oklab, ${accent} 20%, var(--card))`,
                 borderColor: accent,
             }}
         >

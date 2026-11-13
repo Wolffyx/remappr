@@ -15,7 +15,6 @@ interface Inputs {
 }
 
 interface Mutations {
-    dispatchSetKey: (position: number, action: KeyAction) => void
     dispatchSetKeys: (positions: number[], action: KeyAction) => void
     handleCopy: (position: number) => void
     handlePaste: (position: number) => void
@@ -171,7 +170,6 @@ export function useKeymapMutations({
     )
 
     return {
-        dispatchSetKey,
         dispatchSetKeys,
         handleCopy,
         handlePaste,

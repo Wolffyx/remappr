@@ -348,6 +348,7 @@ export default function KeyboardView({
                 class (incl. its masked ::before dot grid), ported from the design. */}
             <PhysicalLayoutCanvas
                 positions={positions}
+                parts={layouts?.[selectedPhysicalLayoutIndex]?.parts}
                 oneU={48}
                 hoverZoom={true}
                 zoom="auto"

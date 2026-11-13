@@ -14,14 +14,12 @@ import { devtools } from 'zustand/middleware'
  */
 interface LiveViewState {
     enabled: boolean
-    setEnabled: (enabled: boolean) => void
     toggle: () => void
 }
 
 const useLiveViewStore = create<LiveViewState>()(
     devtools((set) => ({
         enabled: false,
-        setEnabled: (enabled) => set({ enabled }),
         toggle: () => set((s) => ({ enabled: !s.enabled })),
     })),
 )

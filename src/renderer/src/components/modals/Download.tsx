@@ -4,6 +4,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import {
     AlertTriangle,
+    BookmarkPlus,
     Copy,
     Download as DownloadIcon,
     FileText,
@@ -17,8 +18,10 @@ import useConnectionStore from '@/stores/connectionStore'
 import useConfigStore from '@/stores/configStore'
 import { downloadExports, exportedContentToString } from '@/lib/blob'
 import { type Target, resolveAllowedTargets } from '@firmware/config'
-import { connectMockWithConfig } from '@firmware'
 import { createLogger } from '@shared/logger'
+import { openConfigSource } from '@/features/library/openConfig'
+import { keymapEntry } from '@/lib/library/entries'
+import useLibraryStore from '@/stores/libraryStore'
 // The compile/preview/download body drags in the per-firmware compilers —
 // lazy-load it; Radix only mounts modal content while open, so the chunk is
 // fetched on first open.
@@ -42,7 +45,6 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
     const source = useConfigStore((s) => s.source)
     const error = useConfigStore((s) => s.error)
     const stale = useConfigStore((s) => s.stale)
-    const loadFromSource = useConfigStore((s) => s.loadFromSource)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     // Saves only mark the config stale (the eager per-save device read stalled
@@ -111,26 +113,25 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
             toast.error(`Failed to read ${file.name}`)
             return
         }
-        if (!loadFromSource(text)) {
+        const wasDemo =
+            !!useConnectionStore.getState().service?.capabilities.demo
+        if (!(await openConfigSource(text))) {
             toast.error('Invalid config — see error below')
             return
         }
         toast.success(`Imported ${file.name}`)
-        // In demo mode the displayed keyboard comes from the mock service, not
-        // configStore — so a bare import wouldn't change what's on screen. Rebuild
-        // the mock from the imported config (mirrors the demo-connect lifecycle)
-        // so the user sees the board they just loaded, no disconnect needed.
-        const conn = useConnectionStore.getState()
-        const cfg = useConfigStore.getState().config
-        if (cfg && conn.service?.capabilities.demo) {
-            const next = connectMockWithConfig(cfg)
-            next.onClosed((): void => {
-                useConnectionStore.getState().setDeviceName(null)
-                useConnectionStore.getState().setService(null)
-            })
-            conn.setDeviceName(next.deviceInfo.name)
-            await conn.publishService(next)
-            onClose?.()
+        // Demo mode rebuilt the board on screen from the import — show it.
+        if (wasDemo) onClose?.()
+    }
+
+    const handleSaveToLibrary = async (): Promise<void> => {
+        if (!config) return
+        try {
+            await useLibraryStore.getState().save(keymapEntry(config, 'config'))
+            toast.success(`Saved "${config.meta.name}" to your library`)
+        } catch (err) {
+            log.error('library save failed', err)
+            toast.error('Could not save to the library')
         }
     }
 
@@ -143,10 +144,10 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
         <div className="flex items-center gap-3 rounded-xl border bg-background p-4">
             <span
                 data-ready={!!config || !!service}
-                className="size-2 shrink-0 rounded-full bg-muted-foreground data-[ready=true]:bg-emerald-500 data-[ready=true]:shadow-[0_0_8px] data-[ready=true]:shadow-emerald-500/60"
+                className="size-2 shrink-0 rounded-full bg-muted-foreground data-[ready=true]:bg-success data-[ready=true]:shadow-[0_0_8px] data-[ready=true]:shadow-success/60"
             />
             <div className="flex-1">
-                <div className="text-[13px] font-semibold">
+                <div className="text-panel-title font-semibold">
                     {config
                         ? config.meta.name
                         : service
@@ -157,14 +158,14 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                     {config
                         ? `${config.layers.length} layer${
                               config.layers.length === 1 ? '' : 's'
-                          } · source of truth`
+                          } · every format is built from this`
                         : service
                           ? `${firmwareLabel} device · native export`
                           : 'Connect a keyboard or import a .json config'}
                 </div>
             </div>
             {(config || service) && (
-                <FileText className="size-4 text-emerald-500" />
+                <FileText className="size-4 text-success" />
             )}
         </div>
     )
@@ -192,16 +193,16 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
 
     return (
         <Modal
+            size="md"
+            kind="readonly"
             opened={opened}
             onClose={onClose}
-            title="Configuration Export"
+            title="Export and build"
             subtitle="Compile your keymap to firmware config"
             headerIcon={<DownloadIcon />}
-            customModalBoxClass="w-11/14 max-w-3xl"
             type="icon"
             icon={<DownloadIcon />}
             variant="ghost"
-            showFooter={false}
         >
             <div className="min-w-0 space-y-6">
                 {config ? (
@@ -211,7 +212,21 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                             source={source}
                             targets={allowed}
                             header={statusBlock}
-                            topActions={importButton}
+                            topActions={
+                                <>
+                                    <Button
+                                        onClick={() =>
+                                            void handleSaveToLibrary()
+                                        }
+                                        variant="outline"
+                                        className="flex items-center gap-2"
+                                    >
+                                        <BookmarkPlus className="h-4 w-4" />
+                                        Save to library
+                                    </Button>
+                                    {importButton}
+                                </>
+                            }
                         />
                     </Suspense>
                 ) : (
@@ -220,9 +235,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
 
                         {service && (
                             <div>
-                                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                    Export
-                                </p>
+                                <p className="eyebrow mb-2">Export</p>
                                 <div className="flex flex-wrap gap-2">
                                     <Button
                                         onClick={handleNativeExport}
@@ -244,17 +257,15 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                         )}
 
                         <div>
-                            <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Import
-                            </p>
+                            <p className="eyebrow mb-2">Import</p>
                             {importButton}
                         </div>
                     </div>
                 )}
 
                 {error && (
-                    <div className="flex gap-2 rounded-lg border border-red-500/40 bg-red-500/5 p-2 text-xs">
-                        <AlertTriangle className="size-3.5 shrink-0 text-red-500" />
+                    <div className="flex gap-2 rounded-lg border border-danger/40 bg-danger/5 p-2 text-xs">
+                        <AlertTriangle className="size-3.5 shrink-0 text-danger" />
                         <span>
                             <span className="font-semibold">Import:</span>{' '}
                             {error}
@@ -266,9 +277,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
 
                 {/* instructions */}
                 <div>
-                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Flash to your keyboard
-                    </p>
+                    <p className="eyebrow mb-2">Flash to your keyboard</p>
                     <ol className="space-y-2.5 text-sm text-muted-foreground">
                         {[
                             'Download a firmware tab\'s "project (.zip)" for a ready-to-build repo (config + GitHub Actions workflow + README).',
@@ -277,7 +286,7 @@ export function Download({ opened, onClose }: DownloadProps): JSX.Element {
                             'Download the firmware artifact and flash it to your keyboard.',
                         ].map((step, i) => (
                             <li key={i} className="flex gap-3">
-                                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-secondary font-mono text-[11px] font-bold text-foreground">
+                                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-secondary font-mono text-caption font-bold text-foreground">
                                     {i + 1}
                                 </span>
                                 <span className="pt-0.5">{step}</span>

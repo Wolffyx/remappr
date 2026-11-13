@@ -39,9 +39,27 @@ const foreignPrebuilds = [
 ]
 
 /** @type {import('electron-builder').Configuration} */
+// Real code signing turns on when its credentials are in the environment
+// (release CI secrets); without them builds stay ad-hoc / unsigned as before.
+// macOS: CSC_LINK + CSC_KEY_PASSWORD (Developer ID Application cert) and, to
+// notarize, APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID.
+// Windows: AZURE_* (Azure Trusted Signing; see winSigning below) or CSC_LINK.
+const macDeveloperId = !!process.env.CSC_LINK && !!process.env.APPLE_TEAM_ID
+const winAzure = process.env.AZURE_TRUSTED_SIGNING_ENDPOINT
+    ? {
+          publisherName: process.env.AZURE_PUBLISHER_NAME,
+          endpoint: process.env.AZURE_TRUSTED_SIGNING_ENDPOINT,
+          certificateProfileName: process.env.AZURE_CERT_PROFILE_NAME,
+          codeSigningAccountName: process.env.AZURE_CODE_SIGNING_NAME,
+      }
+    : null
+
 module.exports = {
     appId: 'dev.remappr.app',
     productName: 'Remappr',
+    // remappr:// carries the sign-in code back from the browser (main/deep-link.ts).
+    // AppImage / tar.gz never register it; the bounce page shows a code to paste.
+    protocols: [{ name: 'Remappr', schemes: ['remappr'] }],
     compression: 'maximum',
     electronLanguages: languages,
     removePackageScripts: true,
@@ -96,6 +114,7 @@ module.exports = {
     asarUnpack: ['resources/**'],
     win: {
         executableName: 'app',
+        ...(winAzure ? { azureSignOptions: winAzure } : {}),
     },
     nsis: {
         artifactName: '${name}-electron-${version}-setup.${ext}',
@@ -113,10 +132,13 @@ module.exports = {
         // Intel and Apple Silicon Macs. Release CI runs on one `macos-latest`
         // (Apple Silicon) runner, so without an explicit arch electron-builder
         // defaults to an arm64-only app that Intel Macs reject with
-        // "not supported on this Mac". dmg only — there is no Squirrel.Mac /
-        // electron-updater in the app (updates are a GitHub releases check +
-        // notification), so a zip artifact would never be consumed.
-        target: [{ target: 'dmg', arch: ['universal'] }],
+        // "not supported on this Mac". A Developer ID build also ships a zip:
+        // Squirrel.Mac (electron-updater, src/main/updates.ts) installs from
+        // it. Ad-hoc builds only notify, so they ship the dmg alone.
+        target: [
+            { target: 'dmg', arch: ['universal'] },
+            ...(macDeveloperId ? [{ target: 'zip', arch: ['universal'] }] : []),
+        ],
         // node-hid bundles prebuilt single-arch darwin binaries
         // (prebuilds/HID-darwin-{x64,arm64}/*.node) that are byte-identical in
         // the x64 and arm64 single-arch builds. @electron/universal refuses to
@@ -138,19 +160,21 @@ module.exports = {
         // Gatekeeper on download (users still right-click → Open once, or run
         // `xattr -dr com.apple.quarantine`), which only Developer ID +
         // notarization removes.
-        identity: '-',
+        // With a Developer ID in the environment, sign for real (identity
+        // picked from CSC_LINK), under the hardened runtime, and notarize.
+        identity: macDeveloperId ? undefined : '-',
         // hardenedRuntime is only needed for notarization (which requires a
         // Developer ID we don't have). With ad-hoc signing it forces library
         // validation, which would reject our own non-Apple-signed native modules
         // and fail launch unless further entitlements are added — so keep it off.
-        hardenedRuntime: false,
+        hardenedRuntime: macDeveloperId,
         entitlements: 'build/entitlements.mac.plist',
         entitlementsInherit: 'build/entitlements.mac.plist',
         extendInfo: {
             NSBluetoothAlwaysUsageDescription:
                 'Remappr uses Bluetooth to connect to keyboards over BLE.',
         },
-        notarize: false,
+        notarize: macDeveloperId && !!process.env.APPLE_ID,
     },
     dmg: {
         artifactName: '${name}-electron-${version}.${ext}',
@@ -194,10 +218,24 @@ module.exports = {
     pacman: {
         artifactName: '${name}-electron-${version}.${ext}',
     },
+    // Electron fuses: no running the binary as plain Node, no NODE_OPTIONS or
+    // --inspect, the app only loads from its (integrity-checked) ASAR, cookies
+    // are encrypted, and file:// pages get no extra privileges (the packaged
+    // renderer is served over app://, see src/main/app-scheme.ts).
+    electronFuses: {
+        runAsNode: false,
+        enableCookieEncryption: true,
+        enableNodeOptionsEnvironmentVariable: false,
+        enableNodeCliInspectArguments: false,
+        enableEmbeddedAsarIntegrityValidation: true,
+        onlyLoadAppFromAsar: true,
+        grantFileProtocolExtraPrivileges: false,
+    },
     npmRebuild: true,
     afterPack: path.join(__dirname, 'build', 'afterPack.cjs'),
-    // No `publish` config on purpose: the app has no electron-updater /
-    // Squirrel — update-checker.ts polls GitHub releases and links the user
-    // there. A publish block would only emit dead latest*.yml metadata.
-    publish: null,
+    // Where electron-updater looks (src/main/updates.ts): this repo's GitHub
+    // releases. It makes electron-builder write app-update.yml into the app
+    // and latest*.yml (+ .blockmap) beside the installers; build-release.yml
+    // uploads them (`--publish never`: CI uploads, not electron-builder).
+    publish: [{ provider: 'github', owner: 'Wolffyx', repo: 'remappr' }],
 }

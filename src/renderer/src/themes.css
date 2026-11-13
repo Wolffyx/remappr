@@ -1,6 +1,7 @@
 /* Generated from tweakcn — do not edit by hand. */
 
-:root[data-theme='claude'] {
+:root[data-theme='claude'],
+[data-palette='claude'] {
     --background: oklch(0.9818 0.0054 95.0986);
     --foreground: oklch(0.3438 0.0269 95.7226);
     --card: oklch(0.9818 0.0054 95.0986);
@@ -36,7 +37,8 @@
     --sidebar-ring: oklch(0.7731 0 0);
 }
 
-.dark[data-theme='claude'] {
+.dark[data-theme='claude'],
+.dark [data-palette='claude'] {
     --background: oklch(0.2679 0.0036 106.6427);
     --foreground: oklch(0.8074 0.0142 93.0137);
     --card: oklch(0.2679 0.0036 106.6427);
@@ -72,7 +74,8 @@
     --sidebar-ring: oklch(0.7731 0 0);
 }
 
-:root[data-theme='supabase'] {
+:root[data-theme='supabase'],
+[data-palette='supabase'] {
     --background: oklch(0.9911 0 0);
     --foreground: oklch(0.2046 0 0);
     --card: oklch(0.9911 0 0);
@@ -108,7 +111,8 @@
     --sidebar-ring: oklch(0.8348 0.1302 160.908);
 }
 
-.dark[data-theme='supabase'] {
+.dark[data-theme='supabase'],
+.dark [data-palette='supabase'] {
     --background: oklch(0.1822 0 0);
     --foreground: oklch(0.9288 0.0126 255.5078);
     --card: oklch(0.2046 0 0);
@@ -144,7 +148,8 @@
     --sidebar-ring: oklch(0.8003 0.1821 151.711);
 }
 
-:root[data-theme='t3-chat'] {
+:root[data-theme='t3-chat'],
+[data-palette='t3-chat'] {
     --background: oklch(0.9754 0.0084 325.6414);
     --foreground: oklch(0.3257 0.1161 325.0372);
     --card: oklch(0.9754 0.0084 325.6414);
@@ -180,7 +185,8 @@
     --sidebar-ring: oklch(0.5916 0.218 0.5844);
 }
 
-.dark[data-theme='t3-chat'] {
+.dark[data-theme='t3-chat'],
+.dark [data-palette='t3-chat'] {
     --background: oklch(0.2409 0.0201 307.5346);
     --foreground: oklch(0.8398 0.0387 309.5391);
     --card: oklch(0.2803 0.0232 307.5413);
@@ -216,7 +222,8 @@
     --sidebar-ring: oklch(0.5916 0.218 0.5844);
 }
 
-:root[data-theme='vercel'] {
+:root[data-theme='vercel'],
+[data-palette='vercel'] {
     --background: oklch(0.99 0 0);
     --foreground: oklch(0 0 0);
     --card: oklch(1 0 0);
@@ -252,7 +259,8 @@
     --sidebar-ring: oklch(0 0 0);
 }
 
-.dark[data-theme='vercel'] {
+.dark[data-theme='vercel'],
+.dark [data-palette='vercel'] {
     --background: oklch(0 0 0);
     --foreground: oklch(1 0 0);
     --card: oklch(0.14 0 0);
@@ -288,7 +296,8 @@
     --sidebar-ring: oklch(0.72 0 0);
 }
 
-:root[data-theme='twitter'] {
+:root[data-theme='twitter'],
+[data-palette='twitter'] {
     --background: oklch(1 0 0);
     --foreground: oklch(0.1884 0.0128 248.5103);
     --card: oklch(0.9784 0.0011 197.1387);
@@ -324,7 +333,8 @@
     --sidebar-ring: oklch(0.6818 0.1584 243.354);
 }
 
-.dark[data-theme='twitter'] {
+.dark[data-theme='twitter'],
+.dark [data-palette='twitter'] {
     --background: oklch(0 0 0);
     --foreground: oklch(0.9328 0.0025 228.7857);
     --card: oklch(0.2097 0.008 274.5332);
@@ -360,7 +370,8 @@
     --sidebar-ring: oklch(0.6818 0.1584 243.354);
 }
 
-:root[data-theme='bubblegum'] {
+:root[data-theme='bubblegum'],
+[data-palette='bubblegum'] {
     --background: oklch(0.9399 0.0203 345.6985);
     --foreground: oklch(0.4712 0 0);
     --card: oklch(0.9498 0.05 86.8891);
@@ -396,7 +407,8 @@
     --sidebar-ring: oklch(0.6559 0.2118 354.3084);
 }
 
-.dark[data-theme='bubblegum'] {
+.dark[data-theme='bubblegum'],
+.dark [data-palette='bubblegum'] {
     --background: oklch(0.2497 0.0305 234.1628);
     --foreground: oklch(0.9306 0.0197 349.0785);
     --card: oklch(0.2902 0.0299 233.5352);
@@ -432,7 +444,8 @@
     --sidebar-ring: oklch(0.6559 0.2118 354.3084);
 }
 
-:root[data-theme='catppuccin'] {
+:root[data-theme='catppuccin'],
+[data-palette='catppuccin'] {
     --background: oklch(0.9578 0.0058 264.5321);
     --foreground: oklch(0.4355 0.043 279.325);
     --card: oklch(1 0 0);
@@ -468,7 +481,8 @@
     --sidebar-ring: oklch(0.5547 0.2503 297.0156);
 }
 
-.dark[data-theme='catppuccin'] {
+.dark[data-theme='catppuccin'],
+.dark [data-palette='catppuccin'] {
     --background: oklch(0.2155 0.0254 284.0647);
     --foreground: oklch(0.8787 0.0426 272.2767);
     --card: oklch(0.2429 0.0304 283.911);

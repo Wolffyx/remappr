@@ -19,8 +19,6 @@ interface PerKeyPaintState {
     setBrush: (c: HsvColor) => void
     /** Apply the current brush to a key. */
     paint: (idx: number) => void
-    /** Load a key's colour into the brush. */
-    eyedrop: (idx: number) => void
     /** Paint the brush onto every given key index. */
     fillAll: (idxs: number[]) => void
     /** Seed from device-read colours (canvas-idx keyed). */
@@ -31,7 +29,7 @@ interface PerKeyPaintState {
 const DEFAULT_BRUSH: HsvColor = { h: 0, s: 255, v: 255 }
 
 const usePerKeyPaintStore = create<PerKeyPaintState>()(
-    devtools((set, get) => ({
+    devtools((set) => ({
         active: false,
         brush: DEFAULT_BRUSH,
         colors: {},
@@ -39,10 +37,6 @@ const usePerKeyPaintStore = create<PerKeyPaintState>()(
         setBrush: (brush) => set({ brush }),
         paint: (idx) =>
             set((s) => ({ colors: { ...s.colors, [idx]: { ...s.brush } } })),
-        eyedrop: (idx) => {
-            const c = get().colors[idx]
-            if (c) set({ brush: { ...c } })
-        },
         fillAll: (idxs) =>
             set((s) => {
                 const next = { ...s.colors }

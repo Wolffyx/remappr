@@ -1,5 +1,5 @@
 // pattern-check: skip — defensive Electron lifecycle hooks, no new abstraction
-import { app, BrowserWindow, dialog, shell } from 'electron'
+import { app, BrowserWindow, dialog, protocol, shell } from 'electron'
 import { join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -8,8 +8,45 @@ import { registerBleIpcHandlers, setupBleDeviceSelection } from './ble-manager'
 import { setupSerialDeviceSelection } from './serial-picker'
 import { startSerialDevicePolling } from './serial'
 import { silenceConsoleInProduction } from '../shared/logger'
-import { checkForUpdates, registerUpdateIpc } from './update-checker'
-import { registerWindowControlsIpc } from './window-controls'
+import { checkForAppUpdates, registerUpdateIpc } from './updates'
+import { guardWindowLeave, registerWindowControlsIpc } from './window-controls'
+import { setupDeepLinks } from './deep-link'
+import {
+    PACKAGE_SCHEME_PRIVILEGES,
+    registerPackageHandlers,
+} from './builder-packages'
+import {
+    APP_ORIGIN,
+    APP_SCHEME_PRIVILEGES,
+    registerAppProtocol,
+} from './app-scheme'
+import {
+    prepareStorageMigration,
+    registerStorageMigrationHandler,
+} from './storage-migration'
+
+// A packaged app never runs with a debugger attached: Chromium's remote
+// debugging would let anyone script the renderer (and its builder gate). The
+// Node --inspect switches are already off through the EnableNodeCliInspect
+// fuse; these are Chromium's.
+const DEBUG_SWITCHES = [
+    'remote-debugging-port',
+    'remote-debugging-pipe',
+    'remote-debugging-address',
+    'remote-allow-origins',
+    'auto-open-devtools-for-tabs',
+]
+if (app.isPackaged && DEBUG_SWITCHES.some((s) => app.commandLine.hasSwitch(s)))
+    app.exit(1)
+
+// One instance only: a second launch (e.g. the OS opening a remappr:// sign-in
+// link) hands its argv to this one through 'second-instance' and quits.
+const hasInstanceLock = app.requestSingleInstanceLock()
+if (!hasInstanceLock) app.quit()
+
+// True until the first main window exists. The storage migration's hidden
+// window closes before then, and that must not count as "all windows closed".
+let starting = true
 
 // Origin allowlist: file:// (packaged app) and the dev-server URL (HMR).
 // Used by permission/device handlers and `will-navigate` lockdown so an
@@ -18,11 +55,47 @@ import { registerWindowControlsIpc } from './window-controls'
 function isAllowedOrigin(origin: string): boolean {
     const devUrl = process.env['ELECTRON_RENDERER_URL']
     return (
-        origin.startsWith('file://') || (!!devUrl && origin.startsWith(devUrl))
+        origin === APP_ORIGIN ||
+        origin.startsWith(`${APP_ORIGIN}/`) ||
+        (!!devUrl && origin.startsWith(devUrl))
     )
 }
 
+// The packaged renderer's CSP (sent with every app:// response and on any
+// other response the session sees). Skipped in dev: Vite's HMR client and the
+// React refresh preamble need inline scripts and ws:// to localhost.
+// style-src 'unsafe-inline' is required for Radix / Tailwind runtime style
+// injection. img-src data: covers icon/svg inlining. connect-src
+// https://api.github.com matches update-checker and the start-page release
+// news; raw.githubusercontent.com serves news.json and its cover images.
+// *.supabase.co (or api.remappr.com) is the cloud backend; the avatar hosts
+// serve sign-in provider profile pictures; remappr-pkg: serves the delivered
+// builder package.
+const APP_CSP =
+    "default-src 'self'; " +
+    "script-src 'self' 'wasm-unsafe-eval' remappr-pkg:; " +
+    "style-src 'self' 'unsafe-inline' remappr-pkg:; " +
+    "img-src 'self' data: blob: https://raw.githubusercontent.com https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://cdn.discordapp.com https://*.supabase.co; " +
+    "font-src 'self' data:; " +
+    "connect-src 'self' remappr-pkg: https://api.github.com https://raw.githubusercontent.com https://*.supabase.co wss://*.supabase.co https://api.remappr.com wss://api.remappr.com; " +
+    "worker-src 'self' blob:; " +
+    "frame-src 'none'; " +
+    "object-src 'none'; " +
+    "base-uri 'self'; " +
+    "form-action 'none';"
+
 silenceConsoleInProduction()
+
+if (hasInstanceLock) {
+    setupDeepLinks(() => BrowserWindow.getAllWindows()[0] ?? null)
+}
+
+// Before ready, in one call (Electron takes one registration): app:// serves
+// the packaged renderer, remappr-pkg:// the delivered builder package.
+protocol.registerSchemesAsPrivileged([
+    APP_SCHEME_PRIVILEGES,
+    PACKAGE_SCHEME_PRIVILEGES,
+])
 
 // Enable Web Bluetooth (navigator.bluetooth) in Chromium. Must run before
 // app.whenReady(). Without this, Electron exposes no `navigator.bluetooth`
@@ -66,16 +139,15 @@ function createWindow(): void {
             : { frame: false }),
         ...(isLinux ? { icon } : {}),
         webPreferences: {
-            preload: join(__dirname, '../preload/index.mjs'),
-            // sandbox:false — electron-vite emits the preload as ESM (.mjs),
-            // and Chromium's sandboxed preload loader only accepts CommonJS.
-            // contextIsolation:true + nodeIntegration:false still confine the
-            // renderer; flipping the sandbox here would need a build-side
-            // change to emit a CJS preload bundle first.
-            sandbox: false,
+            preload: join(__dirname, '../preload/index.cjs'),
+            // The preload is a bundled CommonJS file (electron.vite.config.ts),
+            // so the renderer can run in Chromium's sandbox.
+            sandbox: true,
             nodeIntegration: false,
             contextIsolation: true,
             webviewTag: false,
+            // No DevTools in a packaged app (see DEBUG_SWITCHES).
+            devTools: !app.isPackaged,
         },
     })
 
@@ -109,32 +181,14 @@ function createWindow(): void {
         )
     })
 
-    // Inject a strict CSP in production so a future XSS sink in the renderer
-    // cannot pull remote code or exfiltrate via arbitrary fetch/connect.
-    // Skipped in dev because Vite's HMR client + @vitejs/plugin-react-swc
-    // preamble inject inline scripts and need ws:// to localhost — the
-    // packaged file:// build has none of that.
-    // style-src 'unsafe-inline' is required for Radix / Tailwind runtime
-    // style injection. img-src data: covers icon/svg inlining. connect-src
-    // https://api.github.com matches update-checker and the start-page release
-    // news; raw.githubusercontent.com serves news.json and its cover images.
+    // The CSP on every response the window's session sees (app:// responses
+    // also carry it themselves).
     if (!is.dev) {
         sess.webRequest.onHeadersReceived((details, cb) => {
             cb({
                 responseHeaders: {
                     ...details.responseHeaders,
-                    'Content-Security-Policy': [
-                        "default-src 'self'; " +
-                            "script-src 'self' 'wasm-unsafe-eval'; " +
-                            "style-src 'self' 'unsafe-inline'; " +
-                            "img-src 'self' data: blob: https://raw.githubusercontent.com; " +
-                            "font-src 'self' data:; " +
-                            "connect-src 'self' https://api.github.com https://raw.githubusercontent.com; " +
-                            "frame-src 'none'; " +
-                            "object-src 'none'; " +
-                            "base-uri 'self'; " +
-                            "form-action 'none';",
-                    ],
+                    'Content-Security-Policy': [APP_CSP],
                 },
             })
         })
@@ -173,6 +227,11 @@ function createWindow(): void {
         cb({ confirmed: false })
     })
 
+    // Closing, quitting or reloading with unsaved device edits waits on the
+    // renderer's Save / Discard / Cancel prompt. The reload keys only reload
+    // in dev (the optimizer blocks them in a packaged build).
+    guardWindowLeave(mainWindow, { reloadKeys: is.dev })
+
     // Safety-net handler for any stray navigator.serial.requestPort() calls.
     setupSerialDeviceSelection(mainWindow)
 
@@ -184,7 +243,7 @@ function createWindow(): void {
     })
 
     mainWindow.webContents.once('did-finish-load', (): void => {
-        void checkForUpdates(mainWindow)
+        void checkForAppUpdates(() => mainWindow)
     })
 
     // Bestow a synthetic user gesture each time the renderer finishes loading
@@ -231,7 +290,7 @@ function createWindow(): void {
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
         mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
     } else {
-        mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+        mainWindow.loadURL(`${APP_ORIGIN}/index.html`)
     }
 }
 
@@ -239,6 +298,7 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then((): void => {
+    if (!hasInstanceLock) return
     // Set app user model id for windows
     electronApp.setAppUserModelId('com.electron')
 
@@ -262,7 +322,7 @@ app.whenReady().then((): void => {
         contents.on('will-navigate', (event, navUrl) => {
             try {
                 const u = new URL(navUrl)
-                if (!isAllowedOrigin(u.origin) && u.protocol !== 'file:') {
+                if (!isAllowedOrigin(u.origin)) {
                     event.preventDefault()
                 }
             } catch {
@@ -277,6 +337,8 @@ app.whenReady().then((): void => {
 
     // Register all IPC handlers
     registerIpcHandlers(() => BrowserWindow.getAllWindows())
+    registerPackageHandlers()
+    registerStorageMigrationHandler()
     registerBleIpcHandlers()
     registerUpdateIpc(() => BrowserWindow.getAllWindows()[0] ?? null)
     registerWindowControlsIpc(() => BrowserWindow.getAllWindows()[0] ?? null)
@@ -284,7 +346,18 @@ app.whenReady().then((): void => {
     // Start USB hotplug polling — pushes SERIAL_DEVICES_CHANGED on changes.
     startSerialDevicePolling(() => BrowserWindow.getAllWindows())
 
-    createWindow()
+    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+        createWindow()
+        starting = false
+    } else {
+        // Packaged: serve the renderer over app://, and carry the old file://
+        // storage across first (see storage-migration.ts).
+        registerAppProtocol(join(__dirname, '../renderer'), APP_CSP)
+        void prepareStorageMigration().finally(() => {
+            createWindow()
+            starting = false
+        })
+    }
 
     app.on('activate', function (): void {
         // On macOS it's common to re-create a window in the app when the
@@ -297,6 +370,7 @@ app.whenReady().then((): void => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', (): void => {
+    if (starting) return
     if (process.platform !== 'darwin') {
         app.quit()
     }

@@ -1,12 +1,12 @@
 // Pattern check: no GoF pattern (-) — rejected — additive zustand store slice for per-index macro/combo label overlays, mirrors existing connectionStore shape, no abstraction.
 //
 // Holds device-derived (auto) and user-defined (override) labels for
-// each macro / combo slot. Picker tabs read this store to enrich the
-// static MC_*/DM_*/COMBO_* tiles with the user's real names ("Open
-// Slack" instead of "M0"). The future macros/combos editor menu
-// writes here after committing changes via service.macros.setMacro /
-// service.dynamic.setCombo, then calls refresh() — picker re-renders
-// automatically through the zustand subscription.
+// each macro slot, plus the firmware's macro / combo behaviors as tiles.
+// Picker tabs read this store to enrich the static MC_*/DM_* tiles with
+// the user's real names ("Open Slack" instead of "M0"). The future macros
+// editor writes here after committing changes via service.macros.setMacro,
+// then calls refresh() — picker re-renders automatically through the
+// zustand subscription.
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { CatalogEntry } from '@firmware/catalog/types'
@@ -18,14 +18,12 @@ interface DynamicLabel {
 }
 
 interface DynamicCatalogState {
-    // Auto-derived from device on connect (Vial macro contents, ZMK
-    // &macro_* / &combo_* behavior names). Wiped on disconnect.
+    // Auto-derived from the device's macro contents (Vial). Wiped on
+    // disconnect.
     macroOverlays: Record<number, DynamicLabel>
-    comboOverlays: Record<number, DynamicLabel>
     // User-defined names — future editor writes here. Take precedence
     // over overlays when present.
     macroLabels: Record<number, string>
-    comboLabels: Record<number, string>
     // ZMK runtime macro / combo behaviors as catalog tiles. Each entry
     // carries `behaviorRef` so the picker emits a complete KeyAction
     // (kind = behavior id, params = []) instead of a codec-encoded
@@ -38,15 +36,12 @@ interface DynamicCatalogState {
     // the picker shows a toast instead of dispatching a binding when
     // clicked (no firmware path exists to assign a combo to a key).
     sideloadedComboEntries: CatalogEntry[]
-    setMacroOverlays: (next: Record<number, DynamicLabel>) => void
-    setComboOverlays: (next: Record<number, DynamicLabel>) => void
     setMacroLabel: (idx: number, label: string) => void
-    setComboLabel: (idx: number, label: string) => void
     setSideloadedComboEntries: (entries: CatalogEntry[]) => void
     refresh: (svc: KeyboardService | null) => Promise<void>
     // Lazy variant of refresh: seeds the overlays/tiles once per service, on
     // first demand (key-action picker open) instead of on connect — the
-    // per-index macro/combo reads are N+M serialized RPCs that would otherwise
+    // per-index macro reads are N serialized RPCs that would otherwise
     // sit on the connect path for tiles the user may never open.
     ensureLoaded: (svc: KeyboardService | null) => Promise<void>
     reset: () => void
@@ -61,18 +56,12 @@ let seedingFor: KeyboardService | null = null
 const useDynamicCatalogStore = create<DynamicCatalogState>()(
     devtools((set, get) => ({
         macroOverlays: {},
-        comboOverlays: {},
         macroLabels: {},
-        comboLabels: {},
         extraMacroEntries: [],
         extraComboEntries: [],
         sideloadedComboEntries: [],
-        setMacroOverlays: (macroOverlays) => set({ macroOverlays }),
-        setComboOverlays: (comboOverlays) => set({ comboOverlays }),
         setMacroLabel: (idx, label) =>
             set((s) => ({ macroLabels: { ...s.macroLabels, [idx]: label } })),
-        setComboLabel: (idx, label) =>
-            set((s) => ({ comboLabels: { ...s.comboLabels, [idx]: label } })),
         setSideloadedComboEntries: (sideloadedComboEntries) =>
             set({ sideloadedComboEntries }),
         refresh: async (svc) => {
@@ -81,20 +70,17 @@ const useDynamicCatalogStore = create<DynamicCatalogState>()(
                 seedingFor = null
                 set({
                     macroOverlays: {},
-                    comboOverlays: {},
                     extraMacroEntries: [],
                     extraComboEntries: [],
                 })
                 return
             }
-            const [macros, combos, behaviorEntries] = await Promise.all([
+            const [macros, behaviorEntries] = await Promise.all([
                 fetchMacroOverlays(svc),
-                fetchComboOverlays(svc),
                 fetchBehaviorEntries(svc),
             ])
             set({
                 macroOverlays: macros,
-                comboOverlays: combos,
                 extraMacroEntries: behaviorEntries.macros,
                 extraComboEntries: behaviorEntries.combos,
             })
@@ -116,9 +102,7 @@ const useDynamicCatalogStore = create<DynamicCatalogState>()(
             seedingFor = null
             set({
                 macroOverlays: {},
-                comboOverlays: {},
                 macroLabels: {},
-                comboLabels: {},
                 extraMacroEntries: [],
                 extraComboEntries: [],
                 sideloadedComboEntries: [],
@@ -126,22 +110,6 @@ const useDynamicCatalogStore = create<DynamicCatalogState>()(
         },
     })),
 )
-
-// Resolve the display label for a macro index — user override beats
-// device-derived overlay beats the static slot's own label.
-export const resolveMacroLabel = (
-    idx: number,
-    state: DynamicCatalogState,
-    fallback: string,
-): string =>
-    state.macroLabels[idx] ?? state.macroOverlays[idx]?.label ?? fallback
-
-export const resolveComboLabel = (
-    idx: number,
-    state: DynamicCatalogState,
-    fallback: string,
-): string =>
-    state.comboLabels[idx] ?? state.comboOverlays[idx]?.label ?? fallback
 
 async function fetchMacroOverlays(
     svc: KeyboardService,
@@ -163,30 +131,6 @@ async function fetchMacroOverlays(
                 if (text) out[i] = { label: text.slice(0, 16) }
             } catch (err) {
                 console.warn(`getMacro(${i}) failed`, err)
-            }
-        }
-    }
-    return out
-}
-
-async function fetchComboOverlays(
-    svc: KeyboardService,
-): Promise<Record<number, DynamicLabel>> {
-    const out: Record<number, DynamicLabel> = {}
-    const counts = svc.dynamic?.getCounts()
-    if (svc.dynamic && counts && counts.combo > 0) {
-        for (let i = 0; i < counts.combo; i++) {
-            try {
-                const entry = await svc.dynamic.getCombo(i)
-                const activeKeys = entry.keys.filter((k) => k !== 0).length
-                if (entry.output !== 0 && activeKeys >= 2) {
-                    out[i] = {
-                        label: `Combo ${i}`,
-                        description: `${activeKeys}-key combo`,
-                    }
-                }
-            } catch (err) {
-                console.warn(`getCombo(${i}) failed`, err)
             }
         }
     }

@@ -4,13 +4,7 @@ import { Modal } from '@/ui/modal'
 export function LicenseNoticeModal(): JSX.Element {
     return (
         <>
-            <Modal
-                customModalBoxClass="w-11/14 max-w-4xl"
-                close={false}
-                success={false}
-                type="text"
-                text=" License"
-            >
+            <Modal size="lg" kind="readonly" type="text" text=" License">
                 <div className="overflow-auto max-h-full">
                     <p className="mr-2">
                         Remappr is released under the open source Apache 2.0

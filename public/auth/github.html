@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="referrer" content="no-referrer" />
+        <title>Connecting GitHub</title>
+        <link rel="stylesheet" href="./desktop.css" />
+    </head>
+    <body>
+        <main>
+            <img src="../remappr.svg" alt="" width="48" height="48" />
+            <h1 id="title">Connecting GitHub…</h1>
+            <p id="lead">Handing GitHub's answer back to Remappr.</p>
+            <div id="code-box" hidden>
+                <p>
+                    If Remappr did not open, copy this code and paste it into
+                    Settings → Integrations in the app:
+                </p>
+                <code id="code"></code>
+                <div class="actions">
+                    <button id="copy" type="button">Copy code</button>
+                    <a id="open" href="#">Open Remappr</a>
+                </div>
+            </div>
+        </main>
+        <script src="./github.js"></script>
+    </body>
+</html>

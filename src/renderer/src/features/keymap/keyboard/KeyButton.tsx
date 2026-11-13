@@ -48,7 +48,7 @@ const MOD_GLYPH: Record<string, string> = {
 // pattern-check: skip — additive optional props on existing KeyButtonProps interface
 // The legend fields (header/tapText/actionLabel/holdTap/mods/shift/category/
 // accentCategory) come from the shared KeyCapLegend contract; KeyButtonProps adds
-// layout (width/oneU…) and interaction (selected/pressed/onClick) on top.
+// layout (width/oneU…) and interaction (selected/pressed) on top.
 interface KeyButtonProps extends KeyCapLegend {
     selected?: boolean
     /** Part of an active multi-selection (distinct accent ring from `selected`). */
@@ -60,9 +60,6 @@ interface KeyButtonProps extends KeyCapLegend {
     height: number
     oneU: number
     hoverZoom?: boolean
-    /** Which edge the TAP legend sits on for a tap-hold; "top" (default) puts the
-     *  tap above the HOLD zone, "bottom" flips them. */
-    tapPos?: 'top' | 'bottom'
     /** Normalised press intensity 0–1 for the heatmap overlay, or null when off. */
     heat?: number | null
     /** Raw lifetime press count, surfaced in the rich tooltip when the heatmap is on. */
@@ -81,7 +78,9 @@ interface KeyButtonProps extends KeyCapLegend {
      *  and enabled, a <KeyLight> underglow layer renders above the face. Skipped
      *  automatically while the heatmap is coloring the cap. */
     light?: KeyLightInput | null
-    onClick?: () => void
+    /** A picture of a cap inside another control (a preview in a button):
+     *  renders a plain element, not a button of its own. */
+    decorative?: boolean
 }
 
 interface KeyDimension {
@@ -132,7 +131,6 @@ const KeyButtonViewImpl = ({
     holdTap,
     mods,
     shift,
-    tapPos = 'top',
     category = 'alpha',
     accentCategory,
     heat = null,
@@ -144,6 +142,7 @@ const KeyButtonViewImpl = ({
     showHeaderTag = true,
     showCategoryDot = true,
     light = null,
+    decorative = false,
     ...props
 }: PropsWithChildren<KeyButtonViewProps>): JSX.Element => {
     const size = makeSize(props, oneU)
@@ -273,14 +272,14 @@ const KeyButtonViewImpl = ({
         ? selectionRing(oneU)
         : multiSelected
           ? {
-                boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in oklch, var(--primary) 70%, transparent)`,
+                boxShadow: `0 0 0 2px var(--background), 0 0 0 3px color-mix(in oklab, var(--primary) 70%, transparent)`,
             }
           : {}
     const pressedStyle: CSSProperties = pressed
         ? {
               background:
                   'linear-gradient(180deg, oklch(0.72 0.18 150), oklch(0.6 0.18 150))',
-              boxShadow: `0 0 ${oneU * 0.6}px color-mix(in oklch, oklch(0.7 0.2 150) 70%, transparent)`,
+              boxShadow: `0 0 ${oneU * 0.6}px color-mix(in oklab, oklch(0.7 0.2 150) 70%, transparent)`,
           }
         : {}
 
@@ -290,7 +289,7 @@ const KeyButtonViewImpl = ({
         seen && !pressed && !selected && !multiSelected
             ? {
                   boxShadow:
-                      'inset 0 0 0 2px color-mix(in oklch, oklch(0.7 0.18 150) 80%, transparent)',
+                      'inset 0 0 0 2px color-mix(in oklab, oklch(0.7 0.18 150) 80%, transparent)',
               }
             : {}
 
@@ -300,11 +299,10 @@ const KeyButtonViewImpl = ({
         : F.heat
           ? 'rgba(255,255,255,.78)'
           : accentLegend
-            ? `color-mix(in oklch, ${accentLegend} 92%, transparent)`
-            : 'color-mix(in oklch, var(--foreground) 44%, transparent)'
+            ? `color-mix(in oklab, ${accentLegend} 92%, transparent)`
+            : 'color-mix(in oklab, var(--foreground) 44%, transparent)'
 
     // pattern-check: skip — render-body restructure (compose chips + tap-hold), no new abstraction
-    const tapTop = tapPos !== 'bottom'
     const tapNode = holdTap ? (
         holdTap.tap
     ) : iconParts ? (
@@ -317,7 +315,7 @@ const KeyButtonViewImpl = ({
     // Modifier chips (chord) — rendered ABOVE the tap legend, joined by "+".
     // Compose WITH a tap-hold (design's "mod-tap + chord": chips + tap + HOLD).
     const chipInk = accentLegend ?? F.legend
-    const chipBg = `color-mix(in oklch, ${accentEdge} 26%, var(--card))`
+    const chipBg = `color-mix(in oklab, ${accentEdge} 26%, var(--card))`
     const labeledChip = !!mods && mods.length === 1
     const chipsRow = hasChips ? (
         <div
@@ -335,7 +333,7 @@ const KeyButtonViewImpl = ({
                         borderRadius: 99,
                         background: chipBg,
                         color: chipInk,
-                        border: `1px solid color-mix(in oklch, ${accentEdge} 45%, transparent)`,
+                        border: `1px solid color-mix(in oklab, ${accentEdge} 45%, transparent)`,
                         lineHeight: 1,
                     }}
                 >
@@ -358,7 +356,7 @@ const KeyButtonViewImpl = ({
             <span
                 style={{
                     fontSize: plusSize,
-                    color: 'color-mix(in oklch, var(--foreground) 55%, transparent)',
+                    color: 'color-mix(in oklab, var(--foreground) 55%, transparent)',
                     fontWeight: 600,
                 }}
             >
@@ -421,8 +419,7 @@ const KeyButtonViewImpl = ({
                 style={{
                     flexShrink: 0,
                     gap: S * 0.05,
-                    paddingTop: tapTop ? S * 0.05 : 0,
-                    paddingBottom: tapTop ? 0 : S * 0.05,
+                    paddingTop: S * 0.05,
                 }}
             >
                 {showEyebrow ? (
@@ -432,7 +429,7 @@ const KeyButtonViewImpl = ({
                             fontSize: eyebrow,
                             fontWeight: 700,
                             letterSpacing: '.12em',
-                            color: `color-mix(in oklch, ${holdTone} 62%, transparent)`,
+                            color: `color-mix(in oklab, ${holdTone} 62%, transparent)`,
                         }}
                     >
                         HOLD
@@ -457,31 +454,27 @@ const KeyButtonViewImpl = ({
                     height: 1,
                     alignSelf: 'stretch',
                     margin: `0 ${S * 0.03}px`,
-                    background: `color-mix(in oklch, ${accentEdge} 38%, transparent)`,
+                    background: `color-mix(in oklab, ${accentEdge} 38%, transparent)`,
                 }}
             />
         )
-        body = tapTop ? (
+        body = (
             <>
                 {tapGroup}
                 {divider}
                 {holdZone}
-            </>
-        ) : (
-            <>
-                {holdZone}
-                {divider}
-                {tapGroup}
             </>
         )
     } else {
         body = tapGroup
     }
 
+    const Cap = decorative ? 'div' : 'button'
     const buttonEl = (
-        <button
-            type="button"
-            aria-pressed={selected}
+        <Cap
+            {...(decorative
+                ? { 'aria-hidden': true }
+                : { type: 'button' as const, 'aria-pressed': selected })}
             data-zoomer={hoverZoom}
             title={richTooltip ? undefined : tooltip || undefined}
             style={{
@@ -491,7 +484,7 @@ const KeyButtonViewImpl = ({
                 ...ringStyle,
             }}
             className={`relative transition-[box-shadow] duration-100 box-border text-secondary-foreground grow flex flex-col items-center justify-center w-full h-full ${chrome.className} ${
-                pressed ? 'text-white translate-y-[2px]' : ''
+                pressed ? 'text-primary-foreground translate-y-[2px]' : ''
             }`}
         >
             {chrome.face && !pressed && <div style={chrome.face} aria-hidden />}
@@ -559,7 +552,7 @@ const KeyButtonViewImpl = ({
 
                 {body}
             </div>
-        </button>
+        </Cap>
     )
 
     return (

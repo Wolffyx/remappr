@@ -63,7 +63,7 @@ export function NewsSpotlight({
                             background:
                                 k === current
                                     ? newsTone(items[current].tag)
-                                    : 'color-mix(in oklch, var(--foreground) 22%, transparent)',
+                                    : 'color-mix(in oklab, var(--foreground) 22%, transparent)',
                         }}
                     />
                 ))}
@@ -104,7 +104,7 @@ function SpotlightCard({
         <Card
             className="grid h-full grid-cols-[repeat(auto-fit,minmax(240px,1fr))] overflow-hidden rounded-2xl shadow-none"
             style={{
-                borderColor: `color-mix(in oklch, ${c} 35%, var(--border))`,
+                borderColor: `color-mix(in oklab, ${c} 35%, var(--border))`,
             }}
         >
             {n.image ? (
@@ -119,7 +119,7 @@ function SpotlightCard({
                     className="grid min-h-[170px] place-items-center"
                     style={{
                         color: c,
-                        background: `repeating-linear-gradient(135deg, color-mix(in oklch, ${c} 14%, var(--card)) 0 10px, color-mix(in oklch, ${c} 8%, var(--card)) 10px 20px)`,
+                        background: `repeating-linear-gradient(135deg, color-mix(in oklab, ${c} 14%, var(--card)) 0 10px, color-mix(in oklab, ${c} 8%, var(--card)) 10px 20px)`,
                     }}
                 >
                     <TagIcon size={40} strokeWidth={1.6} />
@@ -129,16 +129,16 @@ function SpotlightCard({
                 <div className="flex items-center gap-2">
                     {n.pinned && <PinnedMark style={{ color: c }} />}
                     <NewsTag tag={n.tag} solid />
-                    <span className="text-[12px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                         {formatNewsDate(n.date, new Date())}
                         {n.version && !n.notes ? ` · ${n.version}` : ''}
                     </span>
                 </div>
-                <CardTitle className="text-pretty text-[19px] font-extrabold leading-[1.2] tracking-[-.015em]">
+                <CardTitle className="text-pretty text-title-lg font-extrabold leading-[1.2] tracking-[-.015em]">
                     {n.title}
                 </CardTitle>
                 {n.body && (
-                    <CardDescription className="text-[13.5px] leading-normal">
+                    <CardDescription className="text-panel-title leading-normal">
                         {n.body}
                     </CardDescription>
                 )}
@@ -146,7 +146,7 @@ function SpotlightCard({
                     {n.notes && (
                         <Button
                             variant="secondary"
-                            className="h-auto border border-border px-3.5 py-2 text-[13px] font-semibold"
+                            className="h-auto border border-border px-3.5 py-2 text-panel-title font-semibold"
                             onClick={() => openNotes(n.id)}
                         >
                             {n.cta ?? 'What’s in it'}
@@ -155,7 +155,7 @@ function SpotlightCard({
                     {!n.notes && n.url && (
                         <Button
                             variant="secondary"
-                            className="h-auto border border-border px-3.5 py-2 text-[13px] font-semibold"
+                            className="h-auto border border-border px-3.5 py-2 text-panel-title font-semibold"
                             asChild
                         >
                             <a

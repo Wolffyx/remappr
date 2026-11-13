@@ -20,6 +20,6 @@ export const SECTIONS: {
     { id: 'perkey', label: 'Per-key RGB', icon: Grid3x3 },
     { id: 'mix', label: 'Mix RGB', icon: Layers },
     { id: 'underglow', label: 'Underglow', icon: Sparkles },
-    { id: 'indicator', label: 'Indicator Light', icon: CircleDot },
+    { id: 'indicator', label: 'Indicator lights', icon: CircleDot },
     { id: 'advanced', label: 'Advanced', icon: SlidersHorizontal },
 ]

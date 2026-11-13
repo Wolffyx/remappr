@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="referrer" content="no-referrer" />
+        <title>Back to Remappr</title>
+        <link rel="stylesheet" href="./desktop.css" />
+    </head>
+    <body>
+        <main>
+            <img src="../remappr.svg" alt="" width="48" height="48" />
+            <h1 id="title">Opening Remappr…</h1>
+            <p id="lead">
+                Your browser should ask to open Remappr. Allow it to finish
+                signing in.
+            </p>
+            <div id="code-box" hidden>
+                <p>
+                    If Remappr did not open, copy this code and paste it into
+                    the sign-in screen in the app:
+                </p>
+                <code id="code"></code>
+                <div class="actions">
+                    <button id="copy" type="button">Copy code</button>
+                    <a id="open" href="#">Open Remappr</a>
+                </div>
+            </div>
+        </main>
+        <script src="./desktop.js"></script>
+    </body>
+</html>

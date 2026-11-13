@@ -6,7 +6,7 @@ the bindings differ.
 
 ## Layers panel
 
-![The Layers panel with base and layer_1, and the layer menu: Rename, Duplicate, Delete](/images/builder/layers.webp){width=300}
+![The Layers panel with base and layer_1](/images/builder/layers.webp){width=300}
 
 The **Layers** section lists every layer with its name and an `L{index}` badge.
 
@@ -34,12 +34,12 @@ index).
 Select a key and click **Edit binding** (or a slot in the inspector) to open the
 picker. It docks under the canvas:
 
-![The binding picker under the canvas: the Binding header, action type, keycode tabs and the key grid](/images/builder/binding-picker.webp)
+![A key selected in the builder: the inspector on the right with its binding, geometry and matrix wiring](/images/builder/binding-picker.webp)
 
 It works like the editor's [binding editor](/guide/app/editing-bindings#the-binding-editor):
 an action-type dropdown (_Key Press_, _Mod-Tap_, _Layer-Tap_…), parameter slots,
 then the keycode picker — tabs by usage page (**Keyboard**, **Language**,
-**Consumer**, **AC**, **AL**, **Contact**, **Media**, **System**), grouped keys and
+**Consumer**, **App control**, **App launch**, **Contacts**, **Media**, **System**), grouped keys and
 _"Search keycodes by label…"_. Its header chip shows the context, e.g.
 `base · Key #5 · A` — layer, key index, slot, and current binding. A firmware
 chip (e.g. `QMK + VIA`, with a USB/Bluetooth icon) shows which targets the picker
@@ -78,10 +78,13 @@ The complete catalog — every action, its fields, and firmware support — is i
 
 ## Encoders & sliders
 
-A key tagged **Encoder** carries `cw` / `ccw` / `press` bindings per layer; a
-**Slider** carries an analog value-map. You assign these from the
-[inspector](/guide/builder/inspector#binding). In the config they live on the
-layer:
+A key tagged **Encoder** is a knob: its turns live in an encoder slot linked to
+the key (`keyboard.encoders[i].key`), its press is the key's own binding. A
+**Slider** carries a level (volume, backlight…) or up / down keys per layer
+(`sliderBindings`). You assign these from the
+[inspector](/guide/builder/inspector#binding), and in the editor: a knob's
+halves are its turns and its centre its press; a slider's halves are its up and
+down. In the config they live on the layer:
 
 ```json
 {

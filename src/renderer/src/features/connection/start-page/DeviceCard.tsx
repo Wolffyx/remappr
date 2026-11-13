@@ -17,6 +17,8 @@ import { cn } from '@/lib/cn'
 import type { DeviceStatus } from '@/features/connection/types'
 import type { DevicePreviewSnapshot } from '@/stores/devicePreviewStore'
 import { MiniKeyboardPreview } from './MiniKeyboardPreview'
+import { DevicePreview } from '@/features/devices/stage/DevicePreview'
+import { deviceSummary } from '@/lib/devices/labels'
 import { StatusBadge } from './DeviceCardStatusBadge'
 
 export interface DeviceCardProps {
@@ -40,6 +42,16 @@ function communicationLabel(
     if (comm === 'ble') return 'Bluetooth'
     if (comm === 'serial') return 'USB Serial'
     return 'USB HID'
+}
+
+/** "36 keys · 3 layers", or "Mouse · 9 controls · default layout". */
+function previewSummary(p: DevicePreviewSnapshot): string {
+    if (!p.device) return `${p.keyCount} keys · ${p.layerCount} layers`
+    const m = p.device.model
+    return (
+        deviceSummary(m.form, m.controls) +
+        (m.defaulted ? ' · default layout' : '')
+    )
 }
 
 export function DeviceCard({
@@ -221,7 +233,7 @@ export function DeviceCard({
         cardClickable &&
             'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         isConnected && 'border-primary/50 bg-primary/5',
-        isConnecting && 'border-amber-500/50',
+        isConnecting && 'border-warning/50',
         disabled && 'opacity-50 pointer-events-none',
         preview ? 'p-5' : 'p-4',
     )
@@ -260,7 +272,7 @@ export function DeviceCard({
                     className="pointer-events-none absolute inset-0 opacity-40"
                     style={{
                         backgroundImage:
-                            'radial-gradient(color-mix(in oklch, var(--muted-foreground) 22%, transparent) 1px, transparent 1px)',
+                            'radial-gradient(color-mix(in oklab, var(--muted-foreground) 22%, transparent) 1px, transparent 1px)',
                         backgroundSize: '16px 16px',
                         maskImage:
                             'radial-gradient(120% 80% at 50% 40%, black 30%, transparent 75%)',
@@ -273,13 +285,20 @@ export function DeviceCard({
                         <StatusBadge status={status} prominent />
                     </div>
 
-                    <div className="flex min-h-[132px] items-center justify-center overflow-hidden py-2">
-                        <MiniKeyboardPreview
-                            keys={preview.keys}
-                            encoders={preview.encoders}
-                            oneU={20}
-                        />
-                    </div>
+                    {preview.device ? (
+                        <div className="relative h-[132px] overflow-hidden">
+                            <DevicePreview device={preview.device} />
+                        </div>
+                    ) : (
+                        <div className="flex min-h-[132px] items-center justify-center overflow-hidden py-2">
+                            <MiniKeyboardPreview
+                                keys={preview.keys}
+                                encoders={preview.encoders}
+                                sliders={preview.sliders}
+                                oneU={20}
+                            />
+                        </div>
+                    )}
 
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -290,8 +309,7 @@ export function DeviceCard({
                             )}
                             <span className="font-mono">
                                 {communicationLabel(preview.communication)} ·{' '}
-                                {preview.keyCount} keys · {preview.layerCount}{' '}
-                                layers
+                                {previewSummary(preview)}
                             </span>
                         </div>
                         <div className="shrink-0">{connectButton}</div>
@@ -318,11 +336,11 @@ export function DeviceCard({
                         className={cn(
                             'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors duration-300',
                             isWireless
-                                ? 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500/20'
+                                ? 'bg-info/10 text-info group-hover:bg-info/20'
                                 : 'bg-muted text-muted-foreground group-hover:bg-muted/80',
                             isConnected &&
                                 (isWireless
-                                    ? 'bg-blue-500/20'
+                                    ? 'bg-info/20'
                                     : 'bg-primary/10 text-primary'),
                         )}
                     >

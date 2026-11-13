@@ -1,14 +1,18 @@
 // pattern-check: skip mechanical drop-field codemod — removes RpcConnection from store; service is the sole connection handle
 // Pattern check: no GoF pattern (-) — rejected — additive zustand store slice for keyCatalog; existing store already exists, no abstraction needed.
-import { create, StateCreator } from 'zustand'
+import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { KeyCatalog } from '@firmware/catalog/types'
 import type { KeyboardService } from '@firmware/service'
 import type { LockState } from '@firmware/types'
 import useDynamicCatalogStore from '@/stores/dynamicCatalogStore'
 import useConfigStore from '@/stores/configStore'
+import useUserSettingsStore from '@/stores/userSettingsStore'
+import { withSaveMode } from '@/lib/saveMode'
+import { confirmLeave, dismissLeavePrompt } from '@/stores/leaveGuardStore'
 import useLayerSelectionStore from '@/stores/layerSelectionStore'
 import useKeymapStore from '@/stores/keymapStore'
+import useUndoRedoStore from '@/stores/undoRedoStore'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
 import { createOsBackedKeyTest } from '@/features/keymap/keyboard/stage/osBackedKeyTest'
 
@@ -27,6 +31,23 @@ let lastHwDefaultLayer: number | null = null
 // Teardown for the config-store re-seed subscription. Module-scoped like
 // defaultLayerUnsub, for the same reason.
 let configReseedUnsub: (() => void) | null = null
+
+// A device switch is replacing the open device. The device being left closes
+// during it (on a one-link transport the next device's open closes it), and
+// that close must not clear the connection the switch is about to fill.
+let switching = false
+
+/** A service's lock state; 'locked' when the read fails. */
+export async function readLockState(
+    service: KeyboardService,
+): Promise<LockState> {
+    try {
+        return await service.getLockState()
+    } catch (err) {
+        console.warn('getLockState failed', err)
+        return 'locked'
+    }
+}
 
 // Seed (and later re-seed, via reseedConfigIfStale) the config store's
 // source-of-truth from the device. getConfigSource returns COMMITTED truth
@@ -54,6 +75,12 @@ function seedConfigFromService(
             if (isCurrent()) useConfigStore.getState().reset()
         })
 }
+
+/** The devices a switch or disconnect closes. */
+export type OpenDevices = Pick<
+    ConnectionState,
+    'service' | 'parentService' | 'connectionAbort'
+>
 
 interface ConnectionState {
     service: KeyboardService | null
@@ -84,47 +111,44 @@ interface ConnectionState {
     /** Show a newly connected service together with its lock state. The store
      *  holds 'locked' until a service's state is read, so publishing the
      *  service first drew the locked screen for a moment on every board with
-     *  an 'editor' lock (ZMK). Reads the state, sets it, then the service. */
+     *  an 'editor' lock (ZMK). Reads the state (unless given, which publishes
+     *  in the same tick), sets it, then the service. */
     publishService: (
         service: KeyboardService,
         communication?: 'serial' | 'ble' | 'hid',
+        lockState?: LockState,
     ) => Promise<void>
-    setKeyCatalog: (catalog: KeyCatalog | null) => void
+    /** A service reports it closed: the connection clears only while that
+     *  service is the device shown (or the dongle under its node view) and no
+     *  switch is replacing it. */
+    serviceClosed: (service: KeyboardService) => void
+    /** Mark a device switch as running (see `serviceClosed`). */
+    setSwitching: (on: boolean) => void
+    /** Close these devices — the service, the dongle under a node view — and
+     *  abort their connection. Leaves the store alone. */
+    closeDevices: (open: OpenDevices) => Promise<void>
     setConnectionAbort: (abort: AbortController) => void
     resetConnection: () => void
-    showConnectionModal: boolean
-    setShowConnectionModal: (visible: boolean) => void
     /** Re-seed configStore from the device if a save landed since the last seed
      *  (configStore.stale). Called by freshness-sensitive consumers (Download
      *  modal, Builder) right before they read — keeps the post-save hot path free
      *  of the full device config read. */
     reseedConfigIfStale: () => void
-    /** Open a read-only view of a behind-dongle node and make it the active
-     *  service, stashing the current (dongle) service as `parentService`. */
+    /** Open a view of a behind-dongle node and make it the active service,
+     *  stashing the current (dongle) service as `parentService`. Asks first
+     *  when the device being left holds unsaved edits (leaveGuardStore). */
     openNode: (id: number) => Promise<void>
-    /** Return from a node view to the stashed dongle service. No-op off a node. */
-    returnToParent: () => void
-    disconnect: () => Promise<void>
+    /** Return from a node view to the stashed dongle service. No-op off a node.
+     *  Asks first when the node holds unsaved edits. */
+    returnToParent: () => Promise<void>
+    /** Close the device. Asks first when it holds unsaved edits; resolves false
+     *  when the user chose to stay, true once it is closed. */
+    disconnect: () => Promise<boolean>
 }
-
-const connectionMiddleware =
-    (config: StateCreator<ConnectionState>): StateCreator<ConnectionState> =>
-    (set, get, api) =>
-        config(
-            (args, replace) => {
-                const next = args as Partial<ConnectionState>
-                if ('service' in next) {
-                    set({ showConnectionModal: next.service === null })
-                }
-                set(args, replace as false | undefined)
-            },
-            get,
-            api,
-        )
 
 const useConnectionStore = create<ConnectionState>()(
     devtools(
-        connectionMiddleware((set, get) => ({
+        (set, get) => ({
             service: null,
             parentService: null,
             activeNodeId: null,
@@ -139,13 +163,24 @@ const useConnectionStore = create<ConnectionState>()(
                 // dropped dongle transport) also drops any node-view back-pointer,
                 // so a later reconnect can't read a stale dongle as the node roster
                 // source. Swaps to a node view pass a non-null service and skip this.
-                if (!service) set({ parentService: null, activeNodeId: null })
+                if (!service) {
+                    set({ parentService: null, activeNodeId: null })
+                    // The device went away under an open unsaved-changes
+                    // prompt: nothing is left to save.
+                    dismissLeavePrompt()
+                }
                 // A demo device has no switch matrix, so give it an
                 // OS-event-backed keyTest facade — Key Test then works in demo
                 // through the same path real hardware would, and the Header gate
                 // (service.keyTest) shows the button only here, not on firmwares
                 // that lack a matrix channel.
-                if (service && service.capabilities.demo && !service.keyTest) {
+                // A device driven as controls has its own live readout instead.
+                if (
+                    service &&
+                    service.capabilities.demo &&
+                    !service.keyTest &&
+                    !service.controls
+                ) {
                     service.keyTest = createOsBackedKeyTest(() => {
                         const keymap = useKeymapStore.getState().keymap
                         if (!keymap) return null
@@ -276,28 +311,68 @@ const useConnectionStore = create<ConnectionState>()(
                 set({ lastConnectedDevice: device }),
             setDeviceName: (name) => set({ deviceName: name }),
             setLockState: (state) => set({ lockState: state }),
-            publishService: async (service, communication) => {
-                let lockState: LockState = 'locked'
-                try {
-                    lockState = await service.getLockState()
-                } catch (err) {
-                    console.warn('getLockState failed', err)
-                }
+            publishService: async (service, communication, known) => {
+                const lockState = known ?? (await readLockState(service))
                 get().setLockState(lockState)
                 get().setService(service, communication)
             },
-            setKeyCatalog: (catalog) => set({ keyCatalog: catalog }),
+            serviceClosed: (closed) => {
+                if (switching) return
+                const { service, parentService } = get()
+                if (service !== closed && parentService !== closed) return
+                set({ deviceName: null })
+                get().setService(null)
+            },
+            setSwitching: (on) => {
+                switching = on
+            },
+            closeDevices: async ({
+                service,
+                parentService,
+                connectionAbort,
+            }) => {
+                if (!service) return
+                try {
+                    await service.disconnect()
+                } catch (error) {
+                    console.warn('Failed to disconnect service cleanly', error)
+                }
+                // On a node view, `service.disconnect()` is a no-op on the shared
+                // dongle transport — tear the dongle down too so it doesn't leak.
+                if (parentService && parentService !== service) {
+                    try {
+                        await parentService.disconnect()
+                    } catch (error) {
+                        console.warn(
+                            'Failed to disconnect parent service cleanly',
+                            error,
+                        )
+                    }
+                }
+                connectionAbort.abort('User disconnected')
+            },
             setConnectionAbort: (abort) => set({ connectionAbort: abort }),
             openNode: async (id) => {
                 // The node roster lives on the dongle. When already viewing a node
                 // the dongle is the stashed parent; otherwise it's the live service.
+                if (!(get().parentService ?? get().service)?.nodes) return
+                if (!(await confirmLeave(get().service))) return
                 const { service, parentService, communication } = get()
                 const dongle = parentService ?? service
                 if (!dongle?.nodes) return
                 // Relayed read of the node's device-info + active config (may throw
                 // on an offline node); only swap once it resolves. The returned view
                 // shares the dongle's RPC, so we keep the dongle alive as parent.
-                const view = await dongle.nodes.open(id)
+                // An editable node (a mouse or a joystick) saves like a device on
+                // its own transport, so it gets the same save-mode controller; a
+                // read-only one passes through unwrapped.
+                const view = withSaveMode(
+                    await dongle.nodes.open(id),
+                    useUserSettingsStore.getState().autosave,
+                )
+                // The edit history drives the device being left; undoing it
+                // on the next one would edit the wrong device.
+                useUndoRedoStore.getState().reset()
                 set({
                     parentService: dongle,
                     activeNodeId: id,
@@ -305,9 +380,12 @@ const useConnectionStore = create<ConnectionState>()(
                 })
                 get().setService(view, communication ?? undefined)
             },
-            returnToParent: () => {
+            returnToParent: async () => {
+                if (!get().parentService) return
+                if (!(await confirmLeave(get().service))) return
                 const { parentService, communication } = get()
                 if (!parentService) return
+                useUndoRedoStore.getState().reset()
                 // Clear before the swap so setService's null-guard can't fight it.
                 set({
                     parentService: null,
@@ -339,44 +417,15 @@ const useConnectionStore = create<ConnectionState>()(
                 useDynamicCatalogStore.getState().reset()
                 useConfigStore.getState().reset()
             },
-            showConnectionModal: false,
-            setShowConnectionModal: (visible) =>
-                set({ showConnectionModal: visible }),
             disconnect: async () => {
-                const {
-                    service,
-                    parentService,
-                    connectionAbort,
-                    resetConnection,
-                } = get()
-                if (!service) {
-                    return
-                }
-
-                try {
-                    await service.disconnect()
-                } catch (error) {
-                    console.warn('Failed to disconnect service cleanly', error)
-                }
-
-                // On a node view, `service.disconnect()` is a no-op on the shared
-                // dongle transport — tear the dongle down too so it doesn't leak.
-                if (parentService && parentService !== service) {
-                    try {
-                        await parentService.disconnect()
-                    } catch (error) {
-                        console.warn(
-                            'Failed to disconnect parent service cleanly',
-                            error,
-                        )
-                    }
-                }
-
-                connectionAbort.abort('User disconnected')
-                resetConnection()
+                if (!(await confirmLeave(get().service))) return false
+                if (!get().service) return true
+                await get().closeDevices(get())
+                get().resetConnection()
                 set({ connectionAbort: new AbortController() })
+                return true
             },
-        })),
+        }),
         {
             // The live service sits in this state and the Redux DevTools
             // extension JSON-serializes it on every set. A Vial service holds a

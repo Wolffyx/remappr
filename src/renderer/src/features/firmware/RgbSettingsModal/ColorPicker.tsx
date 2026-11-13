@@ -145,9 +145,7 @@ export function ColorPicker({ value, onChange }: Props): JSX.Element {
                         key={ch}
                         className="flex items-center gap-2 rounded-lg border bg-secondary px-3 py-2 text-sm focus-within:border-primary"
                     >
-                        <span className="uppercase text-muted-foreground">
-                            {ch}
-                        </span>
+                        <span className="eyebrow">{ch}</span>
                         <input
                             type="number"
                             min={0}

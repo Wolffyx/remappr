@@ -1,10 +1,8 @@
 // pattern-check: skip — fetch + semver compare + IPC emit, with ETag caching, no abstraction
-import { app, BrowserWindow, ipcMain } from 'electron'
-import {
-    IpcChannels,
-    IpcEvents,
-    type UpdateAvailablePayload,
-} from '../shared/ipc-types'
+// The notify-only update strategy (see updates.ts): installs the package
+// manager or the user owns hear that a release is out.
+import { app, BrowserWindow } from 'electron'
+import { IpcEvents, type UpdateAvailablePayload } from '../shared/ipc-types'
 import { compareVersions } from '../shared/semver'
 
 const REPO_OWNER = 'Wolffyx'
@@ -87,12 +85,4 @@ export async function checkForUpdates(
             error: err instanceof Error ? err.message : 'unknown',
         }
     }
-}
-
-export function registerUpdateIpc(
-    getMainWindow: () => BrowserWindow | null,
-): void {
-    ipcMain.handle(IpcChannels.UPDATES_CHECK, async () => {
-        return checkForUpdates(getMainWindow())
-    })
 }

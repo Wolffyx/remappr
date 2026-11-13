@@ -28,8 +28,15 @@ const useUndoRedoStore = create<UndoRedoState>()(
         // (nothing is pushed) without breaking the chain — the caller has
         // already surfaced the error and reverted its optimistic state.
         let chain: Promise<void> = Promise.resolve()
+        // Bumped by reset() (a device switch, a discard): ops queued before
+        // it belong to the history it threw away and are skipped, and the new
+        // history starts its own chain, so an op stuck on the device left
+        // behind can't hold up the next one's edits.
+        let generation = 0
         const enqueue = (op: () => Promise<void>): Promise<void> => {
+            const queuedIn = generation
             const run = async (): Promise<void> => {
+                if (queuedIn !== generation) return
                 try {
                     await op()
                 } catch (e) {
@@ -85,7 +92,11 @@ const useUndoRedoStore = create<UndoRedoState>()(
                     }))
                 }),
 
-            reset: () => set({ redoStack: [], undoStack: [] }),
+            reset: () => {
+                generation++
+                chain = Promise.resolve()
+                set({ redoStack: [], undoStack: [] })
+            },
         }
     }),
 )

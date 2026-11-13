@@ -46,10 +46,10 @@ function shiftLightness(
 // from the workbench background; faceTop goes toward white for the top highlight,
 // skirtBot toward black for depth.
 const NEUTRAL_FACES: Omit<FaceColors, 'heat'> = {
-    skirtTop: 'color-mix(in oklch, var(--card) 90%, var(--foreground))',
-    skirtBot: 'color-mix(in oklch, var(--card) 88%, #000)',
-    faceTop: 'color-mix(in oklch, var(--card) 86%, #fff)',
-    face: 'color-mix(in oklch, var(--card) 90%, var(--foreground))',
+    skirtTop: 'color-mix(in oklab, var(--card) 90%, var(--foreground))',
+    skirtBot: 'color-mix(in oklab, var(--card) 88%, #000)',
+    faceTop: 'color-mix(in oklab, var(--card) 86%, #fff)',
+    face: 'color-mix(in oklab, var(--card) 90%, var(--foreground))',
     legend: 'var(--card-foreground)',
     edge: 'var(--border)',
     dot: null,
@@ -79,7 +79,7 @@ function resolveFaceColors(
         skirtTop: cs.face,
         // color-mix (not shiftLightness) so it still darkens when the face is a
         // CSS-var-based oklch (its lightness isn't a literal to regex-shift).
-        skirtBot: `color-mix(in oklch, ${cs.face} 88%, #000)`,
+        skirtBot: `color-mix(in oklab, ${cs.face} 88%, #000)`,
         faceTop: cs.faceTop ?? cs.face,
         face: cs.face,
         legend: cs.legend,
@@ -184,8 +184,8 @@ const CAP_CHROME: Record<
             borderRadius: Math.max(5, Math.round(oneU * 0.16)),
             background: F.heat
                 ? F.face
-                : `linear-gradient(160deg, color-mix(in oklch, ${F.faceTop} 70%, transparent), color-mix(in oklch, ${F.face} 46%, transparent))`,
-            border: `1px solid color-mix(in oklch, ${F.edge} 60%, transparent)`,
+                : `linear-gradient(160deg, color-mix(in oklab, ${F.faceTop} 70%, transparent), color-mix(in oklab, ${F.face} 46%, transparent))`,
+            border: `1px solid color-mix(in oklab, ${F.edge} 60%, transparent)`,
             backdropFilter: 'blur(6px)',
             boxShadow:
                 'inset 0 1px 0 rgba(255,255,255,.18), 0 6px 18px rgba(0,0,0,.32)',
@@ -212,6 +212,6 @@ export function capSurface(
 /** The selected-key ring, stacked over a cap's own chrome. */
 export function selectionRing(oneU: number): CSSProperties {
     return {
-        boxShadow: `0 0 0 2px var(--background), 0 0 0 4px var(--primary), 0 0 ${oneU * 0.5}px color-mix(in oklch, var(--primary) 55%, transparent)`,
+        boxShadow: `0 0 0 2px var(--background), 0 0 0 4px var(--primary), 0 0 ${oneU * 0.5}px color-mix(in oklab, var(--primary) 55%, transparent)`,
     }
 }

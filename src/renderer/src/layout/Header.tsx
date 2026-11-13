@@ -9,23 +9,38 @@
 // toggle no longer re-renders the save pill and an undo push no longer re-renders
 // the dialog buttons. What stays here is genuinely header-level: window chrome,
 // the brand button and the cluster order.
-import { Blocks, Keyboard } from 'lucide-react'
+//
+// The keymap editor's actions are the default; another editor (the device
+// editor) passes its own `tools` and brand `icon`, and the keymap editor puts
+// its tool search in the `center`.
+import type { ReactNode } from 'react'
+import { Blocks, Keyboard, type LucideIcon } from 'lucide-react'
 
 import useBuilderStore from '@/stores/builderStore'
 import useConnectionStore from '@/stores/connectionStore'
 import { SidebarTrigger, useSidebar } from '@/ui/sidebar'
-import { Separator } from '@/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
-import { ViewTools } from '@/layout/toolbar/ViewTools'
-import { ConfigTools } from '@/layout/toolbar/ConfigTools'
-import { HistoryTools } from '@/layout/toolbar/HistoryTools'
+import { KeymapHeaderActions } from '@/layout/toolbar/KeymapHeaderActions'
 import { CommunityLinks } from '@/layout/toolbar/CommunityLinks'
 import { WindowControls } from '@/layout/WindowControls'
 import { TrafficLightInset } from '@/layout/TrafficLightInset'
 
 const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 
-export function Header(): JSX.Element {
+interface HeaderProps {
+    /** Brand tile icon (the device's form on the device editor). */
+    icon?: LucideIcon
+    /** The right-hand tool clusters; the keymap editor's by default. */
+    tools?: ReactNode
+    /** The centre slot; the project links by default. */
+    center?: ReactNode
+}
+
+export function Header({
+    icon: BrandIcon = Keyboard,
+    tools = <KeymapHeaderActions />,
+    center = <CommunityLinks />,
+}: HeaderProps = {}): JSX.Element {
     const { state: sidebarState } = useSidebar()
     const disconnect = useConnectionStore((s) => s.disconnect)
     // Only when the editor was reached via the builder's "Editor" handoff do we
@@ -55,10 +70,10 @@ export function Header(): JSX.Element {
                                 onClick={disconnect}
                                 className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 text-foreground transition-colors hover:bg-accent"
                             >
-                                <span className="grid size-7 place-items-center rounded-md bg-[linear-gradient(150deg,var(--primary),color-mix(in_oklch,var(--primary)_65%,#000))] text-white">
-                                    <Keyboard className="size-4" />
+                                <span className="grid size-7 place-items-center rounded-md bg-[linear-gradient(150deg,var(--primary),color-mix(in_oklab,var(--primary)_65%,#000))] text-primary-foreground">
+                                    <BrandIcon className="size-4" />
                                 </span>
-                                <span className="text-[14.5px] font-bold">
+                                <span className="text-brand font-bold">
                                     Remappr
                                 </span>
                             </button>
@@ -73,41 +88,27 @@ export function Header(): JSX.Element {
                                 <button
                                     type="button"
                                     onClick={returnToBuilder}
-                                    className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                    className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-panel-title font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                                 >
                                     <Blocks className="size-4" />
                                     Builder
                                 </button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Back to Builder</p>
+                                <p>Back to builder</p>
                             </TooltipContent>
                         </Tooltip>
                     )}
                 </div>
             </div>
 
-            {/* ===== centre: project links ===== */}
-            <CommunityLinks />
+            {/* ===== centre: project links, or the editor's search ===== */}
+            {center}
 
             {/* ===== right: tool clusters + window controls ===== */}
             <div className="flex h-full items-center justify-self-end">
-                <div
-                    className="flex items-center gap-1 pr-1"
-                    data-coach="tools"
-                    style={noDrag}
-                >
-                    <ViewTools />
-                    <Separator
-                        orientation="vertical"
-                        className="mx-1 data-[orientation=vertical]:h-5"
-                    />
-                    <ConfigTools />
-                    <Separator
-                        orientation="vertical"
-                        className="mx-1 data-[orientation=vertical]:h-5"
-                    />
-                    <HistoryTools />
+                <div className="flex items-center gap-1 pr-1" style={noDrag}>
+                    {tools}
                 </div>
 
                 {/* native window controls (Electron, non-mac) merged into the bar */}

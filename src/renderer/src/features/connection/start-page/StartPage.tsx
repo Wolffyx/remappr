@@ -1,15 +1,16 @@
 // pattern-check: skip — UI shell, restyled to the design prototype; delegates to useConnection
 // Pattern check: no GoF pattern (-) — rejected — news layouts slot into fixed spots on the page, one layout per spot; a lookup table would still need the per-spot placement.
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Download, Keyboard, Sparkles } from 'lucide-react'
-import { toast } from 'sonner'
-import type { Transport } from '@firmware'
+import type { DemoDeviceId, Transport } from '@firmware'
 
 import { Button } from '@/ui/button'
 import { DownloadLatestButton } from '@/components/DownloadLatestButton'
 import { APP_VERSION } from '@/lib/constants'
 import { LicenseNoticeModal } from '@/components/modals/LicenseNoticeModal'
 import { Settings } from '@/components/modals/Settings'
+import { AccountButton } from '@/features/account/AccountButton'
+import { isCloudConfigured } from '@/lib/cloud/env'
 import { WindowControls } from '@/layout/WindowControls'
 import { TrafficLightInset } from '@/layout/TrafficLightInset'
 import { CommunityLinks } from '@/layout/toolbar/CommunityLinks'
@@ -34,18 +35,22 @@ import { ConfigReadyBanner } from './ConfigReadyBanner'
 import { TransportSection } from './TransportSection'
 import { FeatureCard } from './FeatureCard'
 import { BuilderCard } from './BuilderCard'
+import { DemoDeviceModal } from '../demo/DemoDeviceModal'
+import { demoDeviceFromUrl } from '../demo/connectDemo'
+import useInputDeviceStore from '../input-devices/inputDeviceStore'
+import { useInputDevices } from '../input-devices/useInputDevices'
 
 // The hero's "works with" pill; the chip news layout takes its place.
 const COMPAT_BADGE = (
     <div
-        className="mb-5 inline-flex items-center gap-[7px] rounded-full border px-3 py-[5px] text-[12px] font-semibold text-primary"
+        className="mb-5 inline-flex items-center gap-[7px] rounded-full border px-3 py-[5px] text-xs font-semibold text-primary"
         style={{
-            background: 'color-mix(in oklch, var(--primary) 14%, transparent)',
-            borderColor: 'color-mix(in oklch, var(--primary) 30%, transparent)',
+            background: 'color-mix(in oklab, var(--primary) 14%, transparent)',
+            borderColor: 'color-mix(in oklab, var(--primary) 30%, transparent)',
         }}
     >
         <span className="size-[7px] rounded-full bg-primary" />
-        QMK · VIA · ZMK compatible
+        QMK · VIA · ZMK · HID compatible
     </div>
 )
 
@@ -55,13 +60,24 @@ interface StartPageProps {
         t: Transport,
         communication: 'serial' | 'ble' | 'hid',
     ) => Promise<boolean>
-    onDemoConnect?: () => void | Promise<void>
+    /** Open the demo device `id` (Try demo's chooser picks it). */
+    onDemoConnect?: (id: DemoDeviceId) => void | Promise<void>
 }
 
 export function StartPage({
     onTransportCreated,
     onDemoConnect,
 }: StartPageProps): JSX.Element {
+    const [demoOpen, setDemoOpen] = useState(false)
+    // Dev: `?demoDevice=<id>` skips the chooser.
+    const openDemo = (): void => {
+        const id = demoDeviceFromUrl()
+        if (id && onDemoConnect) {
+            void onDemoConnect(id)
+            return
+        }
+        setDemoOpen(true)
+    }
     const {
         transports,
         haveTransports,
@@ -75,6 +91,16 @@ export function StartPage({
         simpleConnect,
         requestNew,
     } = useConnection(onTransportCreated)
+    const firmwareLabels = useMemo(
+        () => devices.map((d) => d.device.label),
+        [devices],
+    )
+    const input = useInputDevices(firmwareLabels)
+    const openInput = useInputDeviceStore((s) => s.open)
+    const refreshAll = (): void => {
+        refresh()
+        input.refresh()
+    }
 
     // Start-page news — layout and banner are picked in Settings → Start page.
     const newsStyle = useUserSettingsStore((s) => s.newsStyle)
@@ -100,7 +126,7 @@ export function StartPage({
                 className="h-[3px] shrink-0"
                 style={{
                     background:
-                        'linear-gradient(90deg, transparent, color-mix(in oklch, var(--primary) 70%, transparent), transparent)',
+                        'linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 70%, transparent), transparent)',
                 }}
             />
 
@@ -116,19 +142,19 @@ export function StartPage({
                     <TrafficLightInset />
                     <div className="flex items-center gap-3" style={NO_DRAG}>
                         <span
-                            className="grid size-[38px] place-items-center rounded-xl text-white"
+                            className="grid size-[38px] place-items-center rounded-xl text-primary-foreground"
                             style={{
                                 background:
-                                    'linear-gradient(150deg, var(--primary), color-mix(in oklch, var(--primary) 70%, #000))',
+                                    'linear-gradient(150deg, var(--primary), color-mix(in oklab, var(--primary) 70%, #000))',
                             }}
                         >
                             <Keyboard size={22} />
                         </span>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-[21px] font-extrabold tracking-tight">
+                            <span className="text-title-xl font-extrabold tracking-tight">
                                 Remappr
                             </span>
-                            <span className="font-mono text-[11px] font-semibold text-muted-foreground">
+                            <span className="font-mono text-caption font-semibold text-muted-foreground">
                                 v{APP_VERSION}
                             </span>
                         </div>
@@ -140,6 +166,7 @@ export function StartPage({
                     style={NO_DRAG}
                 >
                     {newsStyle === 'inbox' && <NewsBell {...news} />}
+                    {isCloudConfigured() && <AccountButton />}
                     <Settings />
                     {/* native window controls (Electron, non-mac) merged into
                         the bar so the start page is a single top bar. */}
@@ -162,12 +189,12 @@ export function StartPage({
                         ) : (
                             COMPAT_BADGE
                         )}
-                        <h1 className="mb-3 text-[40px] font-extrabold leading-[1.05] tracking-tight">
-                            Configure Your Device
+                        <h1 className="mb-3 text-hero font-extrabold leading-[1.05] tracking-tight">
+                            Configure your devices
                         </h1>
                         <p className="text-[16px] leading-normal text-muted-foreground">
-                            Connect your device to customize keymaps and
-                            settings.
+                            Connect your keyboard, mouse or controller to
+                            customize keymaps and settings.
                         </p>
                     </div>
 
@@ -194,37 +221,33 @@ export function StartPage({
                                 hasSimpleConnectOnly={hasSimpleConnectOnly}
                                 refreshing={refreshing}
                                 connectingDeviceId={connectingDeviceId}
-                                onRefresh={refresh}
+                                onRefresh={refreshAll}
                                 onConnect={connect}
                                 onSimpleConnect={simpleConnect}
                                 onRequestNew={requestNew}
+                                inputDevices={input.devices}
+                                gamepadHint={input.gamepadsSupported}
+                                onOpenInput={(d) => void openInput(d)}
                             />
 
                             <BuilderCard />
+                            <DemoDeviceModal
+                                opened={demoOpen}
+                                onClose={() => setDemoOpen(false)}
+                                onPick={(id) => void onDemoConnect?.(id)}
+                            />
 
                             <div className="mt-4 grid gap-4 sm:grid-cols-2">
                                 <FeatureCard
                                     icon={Sparkles}
-                                    title="Try Demo Mode"
-                                    description="Explore Remappr with a simulated keyboard — no device required."
+                                    title="Try the demo"
+                                    description="Explore Remappr with simulated keyboards, a mouse and controllers — no device required."
                                     action={
                                         <Button
                                             variant="secondary"
-                                            onClick={() => {
-                                                if (onDemoConnect) {
-                                                    void onDemoConnect()
-                                                    return
-                                                }
-                                                toast.info(
-                                                    'Demo mode coming soon!',
-                                                    {
-                                                        description:
-                                                            'This feature is currently under development.',
-                                                    },
-                                                )
-                                            }}
+                                            onClick={openDemo}
                                         >
-                                            Try Demo
+                                            Try demo
                                         </Button>
                                     }
                                 />
@@ -241,7 +264,7 @@ export function StartPage({
                     </div>
                 </main>
 
-                <footer className="border-t border-border py-5 text-center text-[12.5px] text-muted-foreground">
+                <footer className="border-t border-border py-5 text-center text-control text-muted-foreground">
                     <span>
                         &copy; {new Date().getFullYear()} — Remappr Contributors
                     </span>

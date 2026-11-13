@@ -1,0 +1,30 @@
+name: main-guard
+
+# Only `dev` reaches `main` (RELEASING.md): a branch lands in `dev` first, and
+# a PR `dev` → `main` is the release. This check fails any other PR into
+# `main`, so a feature branch can't ship on its own. release-please's own
+# release PR is the one exception. `edited` re-runs it when a PR is
+# retargeted to `main`.
+on:
+    pull_request:
+        branches: [main]
+        types: [opened, reopened, synchronize, edited]
+
+permissions: {}
+
+jobs:
+    source:
+        name: PR into main comes from dev
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check the PR's source branch
+              env:
+                  HEAD: ${{ github.head_ref }}
+                  HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+              run: |
+                  if [ "$HEAD_REPO" = "$GITHUB_REPOSITORY" ] && { [ "$HEAD" = dev ] || [[ "$HEAD" == release-please--* ]]; }; then
+                    echo "ok: $HEAD → main"
+                    exit 0
+                  fi
+                  echo "::error::Only dev merges into main (RELEASING.md). Retarget this PR to dev; the next dev → main PR releases it."
+                  exit 1

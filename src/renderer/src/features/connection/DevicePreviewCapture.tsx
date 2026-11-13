@@ -10,6 +10,7 @@ import useDevicePreviewStore, {
     type PreviewKey,
 } from '@/stores/devicePreviewStore'
 import { categoryForBinding } from '@/lib/keymap/keyCategory'
+import { freeSliderBoxes } from '@/features/sliders/model'
 
 /**
  * Mounted in the editor; while connected, captures the device's base-layer geometry,
@@ -27,6 +28,7 @@ export function DevicePreviewCapture(): null {
     const service = useConnectionStore((s) => s.service)
     const communication = useConnectionStore((s) => s.communication)
     const lastConnectedDevice = useConnectionStore((s) => s.lastConnectedDevice)
+    const viewingNode = useConnectionStore((s) => s.parentService !== null)
     const saveSnapshot = useDevicePreviewStore((s) => s.saveSnapshot)
     const lastSignature = useRef<string | null>(null)
 
@@ -38,6 +40,9 @@ export function DevicePreviewCapture(): null {
         // Demo keyboards never appear in the discovered-device list, so their
         // snapshots can't be shown — capturing one only risks clobbering a real slot.
         if (service.capabilities.demo) return
+        // A node opened through the dongle is not the device the card lists:
+        // its snapshot would land on the dongle's card.
+        if (viewingNode) return
         const layout = layouts[selectedPhysicalLayoutIndex]
         if (!layout || keymap.layers.length === 0) return
 
@@ -54,6 +59,7 @@ export function DevicePreviewCapture(): null {
                     actionLabel: p.actionLabel,
                     bindingParam1: p.bindingParam1,
                     actionTypeName: p.actionTypeName,
+                    paramParts: p.paramParts,
                     outOfRange: p.outOfRange,
                     isHoldTap: !!p.holdTap,
                     holdIsLayer: p.holdTap?.holdNodeKind === 'layer',
@@ -66,8 +72,10 @@ export function DevicePreviewCapture(): null {
             y: y / 100,
         }))
 
+        const sliders = freeSliderBoxes(layout)
+
         const key = lastConnectedDevice?.id ?? service.deviceInfo.name
-        const signature = `${key}|${selectedPhysicalLayoutIndex}|${keymap.layers.length}|${encoders.length}|${keys
+        const signature = `${key}|${selectedPhysicalLayoutIndex}|${keymap.layers.length}|${encoders.length}|${sliders.length}|${keys
             .map((k) => k.category)
             .join(',')}`
         if (signature === lastSignature.current) return
@@ -80,6 +88,7 @@ export function DevicePreviewCapture(): null {
             layerCount: keymap.layers.length,
             keys,
             encoders,
+            sliders,
             savedAt: Date.now(),
         })
     }, [
@@ -90,6 +99,7 @@ export function DevicePreviewCapture(): null {
         selectedPhysicalLayoutIndex,
         communication,
         lastConnectedDevice,
+        viewingNode,
         saveSnapshot,
     ])
 

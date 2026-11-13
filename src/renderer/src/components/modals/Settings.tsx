@@ -9,6 +9,8 @@ import {
     Palette,
     Radio,
     Settings as SettingsIcon,
+    UserRound,
+    Plug,
 } from 'lucide-react'
 import { Modal } from '@/ui/modal'
 import { ScrollArea } from '@/ui/scroll-area'
@@ -18,6 +20,10 @@ import useUserSettingsStore, {
     type ColorCodingMode,
     type KeyDisplayMode,
     type NewsStyle,
+    type ToolbarStyle,
+    type SidebarStyle,
+    type LayoutPickerStyle,
+    type LayerListStyle,
     type WorkspaceMode,
 } from '@/stores/userSettingsStore'
 import { type Theme, type ThemeName, useTheme } from '@/providers/ThemeProvider'
@@ -27,6 +33,9 @@ import { WorkspaceSection } from './settings/WorkspaceSection'
 import { StartPageSection } from './settings/StartPageSection'
 import { CommunicationSection } from './settings/CommunicationSection'
 import { AboutSection } from './settings/AboutSection'
+import { IntegrationsSection } from './settings/IntegrationsSection'
+import { AccountSection } from '@/features/account/AccountSection'
+import { isCloudConfigured } from '@/lib/cloud/env'
 
 // Settings the dialog can mutate — snapshotted on open so Cancel reverts them.
 interface SettingsSnapshot {
@@ -35,6 +44,12 @@ interface SettingsSnapshot {
     workspace: WorkspaceMode
     newsStyle: NewsStyle
     newsPinnedBanner: boolean
+    toolbarStyle: ToolbarStyle
+    sidebarStyle: SidebarStyle
+    sidebarAutoRail: boolean
+    sidebarFoldToRail: boolean
+    layoutPicker: LayoutPickerStyle
+    layerList: LayerListStyle
     keyDisplayMode: Record<string, KeyDisplayMode>
     theme: Theme
     themeName: ThemeName
@@ -55,14 +70,7 @@ interface SettingsProps {
     onClose?: () => void
     /** Limit which sections show (builder hides device-only "communication").
      *  Defaults to all. */
-    sections?: Array<
-        | 'general'
-        | 'keycaps'
-        | 'workspace'
-        | 'start'
-        | 'communication'
-        | 'about'
-    >
+    sections?: SettingsSection[]
 }
 
 type SettingsSection =
@@ -71,6 +79,8 @@ type SettingsSection =
     | 'workspace'
     | 'start'
     | 'communication'
+    | 'account'
+    | 'integrations'
     | 'about'
 
 const SECTIONS: {
@@ -83,8 +93,15 @@ const SECTIONS: {
     { id: 'workspace', label: 'Workspace', icon: LayoutPanelLeft },
     { id: 'start', label: 'Start page', icon: Newspaper },
     { id: 'communication', label: 'Communication', icon: Radio },
+    { id: 'account', label: 'Account', icon: UserRound },
+    { id: 'integrations', label: 'Integrations', icon: Plug },
     { id: 'about', label: 'About', icon: Info },
 ]
+
+/** Account shows only in builds with a cloud backend. */
+const AVAILABLE_SECTIONS = isCloudConfigured()
+    ? SECTIONS
+    : SECTIONS.filter((s) => s.id !== 'account')
 
 // pattern-check: skip — additive snapshot/revert refs; Memento considered, rejected as overkill
 export function Settings({
@@ -93,8 +110,8 @@ export function Settings({
     sections,
 }: SettingsProps): JSX.Element {
     const visibleSections = sections
-        ? SECTIONS.filter((s) => sections.includes(s.id))
-        : SECTIONS
+        ? AVAILABLE_SECTIONS.filter((s) => sections.includes(s.id))
+        : AVAILABLE_SECTIONS
     const [section, setSection] = useState<SettingsSection>(
         sections?.[0] ?? 'general',
     )
@@ -110,6 +127,12 @@ export function Settings({
             workspace: s.workspace,
             newsStyle: s.newsStyle,
             newsPinnedBanner: s.newsPinnedBanner,
+            toolbarStyle: s.toolbarStyle,
+            sidebarStyle: s.sidebarStyle,
+            sidebarAutoRail: s.sidebarAutoRail,
+            sidebarFoldToRail: s.sidebarFoldToRail,
+            layoutPicker: s.layoutPicker,
+            layerList: s.layerList,
             keyDisplayMode: { ...s.keyDisplayMode },
             theme,
             themeName,
@@ -126,6 +149,12 @@ export function Settings({
             workspace: snap.workspace,
             newsStyle: snap.newsStyle,
             newsPinnedBanner: snap.newsPinnedBanner,
+            toolbarStyle: snap.toolbarStyle,
+            sidebarStyle: snap.sidebarStyle,
+            sidebarAutoRail: snap.sidebarAutoRail,
+            sidebarFoldToRail: snap.sidebarFoldToRail,
+            layoutPicker: snap.layoutPicker,
+            layerList: snap.layerList,
             keyDisplayMode: snap.keyDisplayMode,
         })
         setTheme(snap.theme)
@@ -139,17 +168,17 @@ export function Settings({
 
     return (
         <Modal
+            size="lg"
             opened={opened}
             onClose={handleClose}
             onOk={() => {
                 committedRef.current = true
             }}
-            success="Done"
+            success="Save"
             close="Cancel"
             title="Settings"
             subtitle="Appearance, keycaps, workspace, start page & device"
             headerIcon={<SettingsIcon />}
-            customModalBoxClass="w-11/14 max-w-4xl"
             type="icon"
             icon={<SettingsIcon />}
             variant="ghost"
@@ -186,6 +215,8 @@ export function Settings({
                     {section === 'workspace' && <WorkspaceSection />}
                     {section === 'start' && <StartPageSection />}
                     {section === 'communication' && <CommunicationSection />}
+                    {section === 'account' && <AccountSection />}
+                    {section === 'integrations' && <IntegrationsSection />}
                     {section === 'about' && <AboutSection />}
                 </ScrollArea>
             </div>

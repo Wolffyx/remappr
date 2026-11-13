@@ -28,6 +28,8 @@ export function WindowControls(): JSX.Element | null {
         // useWindowMaximized — no local bookkeeping needed.
         void api.invoke(IpcChannels.WINDOW_MAXIMIZE_TOGGLE)
     }
+    // With unsaved device edits, main holds the close and the in-app
+    // Save / Discard / Cancel prompt decides (windowLeaveGuard).
     const onClose = (): void => {
         void api.invoke(IpcChannels.WINDOW_CLOSE)
     }

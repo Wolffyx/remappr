@@ -30,10 +30,6 @@ export const newsTone = (tag: NewsTagId): string => NEWS_TAGS[tag].tone
 
 export const NEWS_MONO = "'JetBrains Mono', monospace"
 
-/** Card surface shared by the feed, chip, rail and spotlight. */
-export const newsCardClass =
-    'overflow-hidden rounded-2xl border border-border bg-card'
-
 /** Both sources merged into what the start page shows. */
 export function useNews(): NewsView {
     const curated = useNewsStore((s) => s.curated)

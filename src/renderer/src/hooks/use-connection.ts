@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { Transport } from '@firmware'
 import { UserCancelledError } from '@firmware'
+import { reportConnectError } from '@/features/connection/connectTransport'
+import { listDevices } from '@/features/connection/listDevices'
 import type { AvailableDevice, TransportFactory } from '@/transport/types'
 import { ensureFirmwareClientsLoaded } from '@/transport/adapter/firmwareClients'
 import { getTransports, subscribeToTransportChanges } from '@/lib/transports'
@@ -30,14 +32,6 @@ interface UseConnectionResult {
     connect: (d: DeviceWithTransport) => Promise<void>
     simpleConnect: (t: TransportFactory) => Promise<void>
     requestNew: (t: TransportFactory) => Promise<void>
-}
-
-function reportConnectError(e: unknown, fallback: string): void {
-    if (e instanceof UserCancelledError) return
-    if (e instanceof DOMException && e.name === 'NotFoundError') return
-    if (e instanceof Error) {
-        toast.error(fallback, { description: e.message })
-    }
 }
 
 export function useConnection(
@@ -82,33 +76,9 @@ export function useConnection(
     const loadDevices = useCallback(async (): Promise<void> => {
         const reqId = ++scanReqRef.current
         setRefreshing(true)
-        // Discovery filters (hidFilters/hidDiscovery) read the adapter registry,
-        // which is now populated lazily — ensure clients are loaded first.
-        await ensureFirmwareClientsLoaded()
-        const listable = transports.filter((t): boolean => !!t.pick_and_connect)
-        const results = await Promise.all(
-            listable.map(async (t): Promise<DeviceWithTransport[]> => {
-                try {
-                    const list = await t.pick_and_connect?.list()
-                    return (list ?? []).map(
-                        (d): DeviceWithTransport => ({
-                            device: d,
-                            transport: t,
-                            status: 'available' as DeviceStatus,
-                        }),
-                    )
-                } catch (e) {
-                    console.error(
-                        'Failed to list devices for transport:',
-                        t.label,
-                        e,
-                    )
-                    return []
-                }
-            }),
-        )
+        const found = await listDevices(transports)
         if (reqId !== scanReqRef.current) return
-        setDevices(results.flat())
+        setDevices(found)
         setRefreshing(false)
     }, [transports])
 

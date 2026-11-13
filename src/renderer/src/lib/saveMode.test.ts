@@ -21,6 +21,8 @@ interface FakeOpts {
     saveMode?: 'manual' | 'automatic' | 'none'
     readOnly?: boolean
     withEncoders?: boolean
+    /** A device edited as controls: edits stage on the service itself. */
+    withControls?: boolean
 }
 
 function fakeService(opts: FakeOpts = {}): KeyboardService {
@@ -53,6 +55,16 @@ function fakeService(opts: FakeOpts = {}): KeyboardService {
         getKeymap: vi.fn(async () => ({ layers: [] })),
         ...(opts.withEncoders
             ? { encoders: { setEncoder: vi.fn(async () => undefined) } }
+            : {}),
+        ...(opts.withControls
+            ? {
+                  controls: { setBinding: vi.fn() },
+                  // what a controls edit or a settings-draft edit does
+                  stage: () => {
+                      pending = true
+                      for (const cb of listeners) cb(true)
+                  },
+              }
             : {}),
     }
     return svc as unknown as KeyboardService
@@ -197,6 +209,18 @@ describe('underlying manual (ZMK/Remappr)', () => {
         await svc.setKey(0, 1, action('kc_b'))
         await svc.setKey(0, 2, action('kc_c'))
         expect(base.commit).not.toHaveBeenCalled()
+        await vi.advanceTimersByTimeAsync(1_000)
+        expect(base.commit).toHaveBeenCalledTimes(1)
+    })
+
+    it('auto mode commits a device that stages edits on itself', async () => {
+        const base = fakeService({ saveMode: 'manual', withControls: true })
+        const svc = withSaveMode(base, true)
+        ;(base as unknown as { stage: () => void }).stage()
+        await vi.advanceTimersByTimeAsync(1_000)
+        expect(base.commit).toHaveBeenCalledTimes(1)
+        await applySaveMode(svc, false)
+        ;(base as unknown as { stage: () => void }).stage()
         await vi.advanceTimersByTimeAsync(1_000)
         expect(base.commit).toHaveBeenCalledTimes(1)
     })

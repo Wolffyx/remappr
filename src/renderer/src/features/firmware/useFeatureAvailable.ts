@@ -1,5 +1,6 @@
 // pattern-check: skip — store-reading hook + dispatch table for capability lookup
 import type { KeyboardService } from '@firmware'
+import { supportsConfigEditing } from '@firmware/configEditing'
 import useConnectionStore from '@/stores/connectionStore'
 
 type ServiceProbe = (s: KeyboardService) => unknown
@@ -20,6 +21,12 @@ export const FEATURE_PROBES = {
     unicode: (s) => s.unicode,
     // remappr-only: GET_LIMITS answered → config-blob timing/defaults editable.
     limits: (s) => s.limits,
+    // A keyboard with a battery whose config blob carries its power timeouts
+    // (node.power). Mice and joysticks show theirs in Device settings.
+    power: (s) => s.capabilities.power?.battery && supportsConfigEditing(s),
+    // A keyboard whose firmware draws screens from its config; the dialog
+    // lists its displays. Mice and joysticks show theirs in Device settings.
+    displays: (s) => s.screens && supportsConfigEditing(s),
     lock: (s) => s.capabilities.lock !== 'none',
     rename: (s) => s.capabilities.rename,
     reorderLayers: (s) => s.capabilities.reorderLayers,
@@ -31,6 +38,11 @@ export const FEATURE_PROBES = {
     // Inverse of capabilities.readOnly: a behind-dongle node view is read-only,
     // so every keymap-editing affordance gates on `editable`.
     editable: (s) => !s.capabilities.readOnly,
+    // Device-controls facade (mice, gamepads, flight sticks): the editor, its
+    // write path and its live readout are each present-or-absent per adapter.
+    controls: (s) => s.controls,
+    controlsEditable: (s) => s.controls?.setBinding,
+    controlsLive: (s) => s.controls?.onInput,
 } satisfies Record<string, ServiceProbe>
 
 export type Feature = keyof typeof FEATURE_PROBES

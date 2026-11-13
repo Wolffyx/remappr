@@ -91,3 +91,31 @@ describe('catStyle', () => {
         expect(subtle.face).not.toEqual(vivid.face)
     })
 })
+
+describe('categoryForBinding — non-HID behaviors by legend icon', () => {
+    it.each<[string, string, KeyCategory]>([
+        ['Bluetooth select', 'bluetooth', 'conn'],
+        ['output to USB', 'usb', 'conn'],
+        ['underglow toggle', 'underglow', 'light'],
+        ['backlight up', 'backlight', 'light'],
+        ['bootloader', 'bootloader', 'system'],
+        ['mouse button', 'mouse-left', 'mouse'],
+    ])('%s → %s', (_label, icon, expected) => {
+        expect(categoryForBinding({ paramParts: [{ icon }] })).toBe(expected)
+    })
+
+    it('an HID usage wins over the icon', () => {
+        expect(
+            categoryForBinding({
+                bindingParam1: u(0x14),
+                paramParts: [{ icon: 'bluetooth' }],
+            }),
+        ).toBe('alpha')
+    })
+
+    it('an unknown icon falls back to the usage rule', () => {
+        expect(categoryForBinding({ paramParts: [{ icon: 'toggle' }] })).toBe(
+            'alpha',
+        )
+    })
+})

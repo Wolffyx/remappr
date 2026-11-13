@@ -1,0 +1,180 @@
+// Pattern check: no GoF pattern (-) — rejected — a direction table, a one-slot store and pure legend mappers; data plus functions.
+//
+// The app's description of a slider: its two directions (the halves of the cap
+// and the editor's chips), which one is being edited, and what the cap shows
+// for a layer's binding. Map ids and labels come from the config's own
+// SLIDER_MAP_INFO, so the cap, the editor and the builder say the same thing.
+import { create } from 'zustand'
+import type {
+    Layer,
+    PhysicalLayout,
+    PhysicalLayoutKey,
+    SliderAction,
+} from '@firmware/types'
+import { sliderMapInfo, type SliderMap } from '@firmware/config'
+import { knobSide, type KnobSide } from '@/features/encoders/knobLegend'
+import type { KeyCategory } from '@/lib/keymap/keyCategory'
+import type { SensorInfo } from '@firmware/devices/types'
+
+export type SliderDir = 'down' | 'up'
+
+export const SLIDER_DIRS: readonly {
+    dir: SliderDir
+    short: string
+    long: string
+}[] = [
+    { dir: 'down', short: 'Down', long: 'Sliding down' },
+    { dir: 'up', short: 'Up', long: 'Sliding up' },
+]
+
+/** Which direction the editor is on; the cap's halves set it before they
+ *  select the slider's position. */
+export const useSliderDirStore = create<{
+    dir: SliderDir
+    setDir: (dir: SliderDir) => void
+}>()((set) => ({ dir: 'up', setDir: (dir) => set({ dir }) }))
+
+/** What a slider cap shows on the active layer. */
+export interface SliderLegend {
+    /** Header: the level's name, or "Slider" for keys. */
+    title: string
+    kind: 'level' | 'keys' | 'none'
+    up?: KnobSide
+    down?: KnobSide
+    /** A level's range, e.g. "0–100". */
+    range?: string
+    category: KeyCategory
+    motor?: NonNullable<PhysicalLayoutKey['motor']>['follow']
+}
+
+/** A level's tint follows whose level it is: media for the computer's, lighting
+ *  for the keyboard's own, mouse for scrolling. */
+const LEVEL_CATEGORY: Partial<Record<SliderMap, KeyCategory>> = {
+    volume: 'media',
+    brightness: 'media',
+    backlight: 'light',
+    rgb_brightness: 'light',
+    rgb_hue: 'light',
+    mouse_wheel: 'mouse',
+}
+
+/** What a slider shows, from its parts: shared by the editor (runtime
+ *  bindings) and the builder (the design's own). */
+export function buildSliderLegend(b: {
+    map?: SliderMap
+    min?: number
+    max?: number
+    up?: KnobSide
+    down?: KnobSide
+    follow?: SliderLegend['motor']
+}): SliderLegend {
+    const motor = b.follow
+    if (!b.map)
+        return { title: 'Slider', kind: 'none', category: 'alpha', motor }
+    const info = sliderMapInfo(b.map)
+    if (info.id === 'keys')
+        return {
+            title: 'Slider',
+            kind: 'keys',
+            up: b.up,
+            down: b.down,
+            category: b.up?.category ?? b.down?.category ?? 'alpha',
+            motor,
+        }
+    return {
+        title: info.label,
+        kind: 'level',
+        range:
+            b.min !== undefined || b.max !== undefined
+                ? `${b.min ?? 0}–${b.max ?? 100}`
+                : undefined,
+        category: LEVEL_CATEGORY[info.id] ?? 'system',
+        motor,
+    }
+}
+
+/** A runtime slider binding's legend (the editor). */
+export function sliderLegend(
+    action: SliderAction | undefined,
+    motor?: PhysicalLayoutKey['motor'],
+): SliderLegend {
+    return buildSliderLegend({
+        map: action?.map as SliderMap | undefined,
+        min: action?.min,
+        max: action?.max,
+        up: action?.up ? knobSide(action.up.label) : undefined,
+        down: action?.down ? knobSide(action.down.label) : undefined,
+        follow: motor?.follow,
+    })
+}
+
+/** The slots of sliders with no key of their own (a device's fader), in slot
+ *  order: the stage draws them after the keys, so position keys.length + j is
+ *  the j-th of them. */
+export function freeSliderSlots(
+    layout: Pick<PhysicalLayout, 'keys' | 'sliders'> | undefined,
+): number[] {
+    const keyCount = layout?.keys.length ?? 0
+    return (layout?.sliders ?? []).flatMap((s, i) =>
+        s.key === undefined || s.key >= keyCount ? [i] : [],
+    )
+}
+
+/** The free sliders' boxes in keyboard units (the layout's are centi-units),
+ *  for previews that draw the board's shape only. */
+export function freeSliderBoxes(
+    layout: Pick<PhysicalLayout, 'keys' | 'sliders'> | undefined,
+): { x: number; y: number; width: number; height: number; r?: number }[] {
+    return freeSliderSlots(layout).map((slot) => {
+        const s = layout!.sliders![slot]!
+        return {
+            x: s.x / 100,
+            y: s.y / 100,
+            width: (s.w ?? 100) / 100,
+            height: (s.h ?? 100) / 100,
+            ...(s.r ? { r: s.r / 100 } : {}),
+        }
+    })
+}
+
+/** The slider slot at a stage position: a slider key's slot, or a free
+ *  slider drawn after the keys; -1 when the position is not a slider. */
+export function sliderSlotAt(
+    layout: PhysicalLayout | undefined,
+    position: number | undefined,
+): number {
+    if (!layout || position === undefined) return -1
+    const keyCount = layout.keys.length
+    if (position >= keyCount)
+        return freeSliderSlots(layout)[position - keyCount] ?? -1
+    return (layout.sliders ?? []).findIndex((s) => s.key === position)
+}
+
+/** What slider `slot` does on layer `layerIndex`: its own binding, else (on
+ *  any layer but the base) the base layer's, which it follows. */
+export function effectiveSlider(
+    layers: readonly Layer[],
+    layerIndex: number,
+    slot: number,
+): SliderAction | undefined {
+    return (
+        layers[layerIndex]?.sliders?.[slot] ??
+        layers[0]?.sliders?.[slot] ??
+        undefined
+    )
+}
+
+/** The SLIDER part slot `slot` drives (the part of the same rank among the
+ *  device's SLIDER parts), or null when the device has none. */
+export function sliderPartOf(
+    parts: readonly SensorInfo[],
+    slot: number,
+): SensorInfo | null {
+    return parts.filter((p) => p.cls === 'slider')[slot] ?? null
+}
+
+/** A typed step count as the firmware takes it: a whole number 1..max. */
+export function clampSteps(value: number, max: number): number {
+    if (!Number.isFinite(value)) return 1
+    return Math.min(max, Math.max(1, Math.round(value)))
+}

@@ -1,4 +1,5 @@
 // pattern-check: skip — Keychron wireless settings modal; reads/writes through service.wireless facade
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useState } from 'react'
 import { Wifi } from 'lucide-react'
 import { toast } from 'sonner'
@@ -8,7 +9,6 @@ import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
-import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
 import { Switch } from '@/ui/switch'
 
@@ -80,8 +80,8 @@ export function WirelessSettingsModal({ opened, onClose }: Props): JSX.Element {
                     enabled: lpmEnabled,
                     timeoutMs: lpmTimeout,
                 }),
-            'Wireless LPM updated',
-            'Failed to update LPM',
+            'Low-power mode updated',
+            'Failed to update low-power mode',
         )
 
     const toggleNkro = async (next: boolean): Promise<void> => {
@@ -112,10 +112,12 @@ export function WirelessSettingsModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
+            kind="live"
             opened={opened}
             onClose={onClose}
-            title="Wireless Settings"
-            subtitle="Power, NKRO & connection"
+            title="Wireless settings"
+            subtitle="Power, NKRO and connection"
             headerIcon={<Wifi />}
         >
             <div className="flex flex-col gap-4 p-2 text-sm">
@@ -146,20 +148,18 @@ export function WirelessSettingsModal({ opened, onClose }: Props): JSX.Element {
                             onCheckedChange={setLpmEnabled}
                             disabled={loading}
                         />
-                        <Label htmlFor="lpm-enabled">Enable LPM</Label>
+                        <Label htmlFor="lpm-enabled">Low-power mode</Label>
                     </div>
                     <div className="flex items-center gap-2">
                         <Label htmlFor="lpm-timeout" className="w-28 text-xs">
                             Timeout (ms)
                         </Label>
-                        <Input
+                        <NumberInput
                             id="lpm-timeout"
-                            type="number"
                             value={lpmTimeout}
                             onChange={(e) =>
                                 setLpmTimeout(parseInt(e.target.value, 10) || 0)
                             }
-                            className="w-32"
                             disabled={loading}
                         />
                     </div>
@@ -168,13 +168,13 @@ export function WirelessSettingsModal({ opened, onClose }: Props): JSX.Element {
                         disabled={loading}
                         className="w-32"
                     >
-                        Save LPM
+                        Save
                     </Button>
                 </section>
 
                 {nkro !== null && (
                     <section className="flex flex-col gap-2">
-                        <h3 className="font-semibold">N-Key Rollover</h3>
+                        <h3 className="font-semibold">N-key rollover</h3>
                         <div className="flex items-center gap-2">
                             <Switch
                                 id="nkro"
@@ -182,7 +182,9 @@ export function WirelessSettingsModal({ opened, onClose }: Props): JSX.Element {
                                 onCheckedChange={toggleNkro}
                                 disabled={loading}
                             />
-                            <Label htmlFor="nkro">Enable NKRO</Label>
+                            <Label htmlFor="nkro">
+                                Send every key at once (NKRO)
+                            </Label>
                         </div>
                     </section>
                 )}

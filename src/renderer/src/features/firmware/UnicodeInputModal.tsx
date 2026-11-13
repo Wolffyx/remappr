@@ -106,9 +106,11 @@ export function UnicodeInputModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
+            kind="live"
             opened={opened}
             onClose={onClose}
-            title="Unicode Input"
+            title="Unicode input"
             subtitle="How &unicode bindings type a codepoint"
             headerIcon={<Languages />}
         >
@@ -141,7 +143,7 @@ export function UnicodeInputModal({ opened, onClose }: Props): JSX.Element {
                         </SelectContent>
                     </Select>
                     {selected !== null && METHODS[selected] && (
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-caption text-muted-foreground">
                             {METHODS[selected].hint}
                         </p>
                     )}
@@ -156,7 +158,7 @@ export function UnicodeInputModal({ opened, onClose }: Props): JSX.Element {
                         Save
                     </Button>
                     {mode !== null && (
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-caption text-muted-foreground">
                             On the keyboard: {labelFor(mode)} — kept across
                             reboots.
                         </span>

@@ -1,9 +1,8 @@
-import React, { JSX, Suspense, lazy, useCallback, useEffect } from 'react'
-import type { MockServiceOptions, Transport } from '@firmware'
-import { connectMock, isUnlocked, pickAdapter } from '@firmware'
-import { rememberConnectedDeviceName } from '@/transport/web-serial'
+import { JSX, useCallback, useEffect } from 'react'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
+import { LeaveGuardDialog } from '@/features/connection/LeaveGuardDialog'
 import { DongleLanding } from '@/features/connection/DongleLanding'
+import { DeviceEditor } from '@/features/devices/DeviceEditor'
 import useConnectionStore from '@/stores/connectionStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import undoRedoStore from '@/stores/undoRedoStore'
@@ -13,76 +12,54 @@ import { SidebarInset, SidebarProvider } from '@/ui/sidebar'
 import { ThemeProvider } from '@/providers/ThemeProvider'
 import { Toaster } from '@/ui/sonner'
 import { Header } from '@/layout/Header'
+import { FloatingToolbar } from '@/layout/toolbar/FloatingToolbar'
+import { ToolDialogs } from '@/layout/toolbar/ToolDialogs'
+import { ToolSearch } from '@/layout/toolbar/ToolSearch'
 import { AutoLayoutResolver } from '@/features/firmware/AutoLayoutResolver'
 import { DevicePreviewCapture } from '@/features/connection/DevicePreviewCapture'
 import { ProfileRestoreManager } from '@/features/connection/ProfileRestoreManager'
-// import { Footer } from '@/layout/Footer'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
-import { toast } from 'sonner'
 import { StartPage } from '@/features/connection/start-page/StartPage'
 import useBuilderStore from '@/stores/builderStore'
 import { CoachmarkTour } from '@/features/onboarding/CoachmarkTour'
 import { UpdateNotification } from '@/components/UpdateNotification'
+import { BuilderUpdateNotice } from '@/components/BuilderUpdateNotice'
 import { WhatsNewDialog } from '@/features/news/WhatsNewDialog'
 import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
+import { isCloudConfigured } from '@/lib/cloud/env'
+import useAuthStore from '@/stores/authStore'
+import useSyncStore from '@/stores/syncStore'
+import useGitSyncStore from '@/stores/gitSyncStore'
+import useHistoryStore from '@/stores/historyStore'
+import useLicenseStore from '@/stores/licenseStore'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
-import { withSaveMode } from '@/lib/saveMode'
-import { withUnlockPrompt } from '@/lib/unlockPrompt'
+import { useHostFeed } from '@/features/display/useHostFeed'
+import { connectDemo } from '@/features/connection/demo/connectDemo'
+import { connectTransport } from '@/features/connection/connectTransport'
 import { categoryForFirmware } from '@/lib/adapterCategories'
-
-// Code-split the full-screen builder: it drags in Monaco (multi-MB), which
-// otherwise lands in the entry chunk for users who never open the builder.
-const Builder = lazy(() =>
-    import('@/features/builder').then((m) => ({ default: m.Builder })),
-)
-
-// Hoisted so it's a stable reference — an inline object here makes a fresh ref every
-// App render, forcing the whole editor subtree (Drawer + KeymapEditor + canvas) to
-// re-render on any connection/lock-state change.
-const SIDEBAR_STYLE = {
-    '--sidebar-width': '15.5rem',
-    '--header-height': 'calc(var(--spacing) * 13)',
-    '--footer-height': 'calc(var(--spacing) * 8)',
-} as React.CSSProperties
-
-// Abort a connection attempt whose adapter handshake never answers (e.g. a
-// silent / half-flashed device) so the UI recovers instead of hanging on
-// "Connecting" forever. Generous enough not to trip a slow-but-valid BLE link.
-const CONNECT_TIMEOUT_MS = 15_000
-
-// Dev only: `?demoLock=actions` (Vial-style) or `?demoLock=editor` (ZMK-style)
-// starts the demo board locked, to try the unlock UI without a keyboard.
-function demoLockOptions(): MockServiceOptions | undefined {
-    if (!import.meta.env.DEV) return undefined
-    const kind = new URLSearchParams(window.location.search).get('demoLock')
-    if (kind === 'actions') return { lock: 'actions', initiallyLocked: true }
-    if (kind === 'editor') {
-        return {
-            lock: 'editor',
-            initiallyLocked: true,
-            deviceUnlockAfterMs: 5_000,
-        }
-    }
-    return undefined
-}
+import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
+import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
+import { SyncOnboardingDialog } from '@/features/library/SyncOnboardingDialog'
+import { BuilderGate } from '@/features/builder-gate/BuilderGate'
+import { startBuilderPrefetch } from '@/lib/builderPackage/prefetch'
+import { ShareLinkHandler } from '@/features/community/ShareLinkHandler'
+import { DesktopSignInHandler } from '@/features/account/DesktopSignInHandler'
 
 function App(): JSX.Element {
     // pattern-check: skip — UI sweep, replace store-connection with store-service
     // Field-scoped selectors — a bare useConnectionStore() re-renders the app
     // shell (and the whole editor subtree) on every unrelated field change.
     const service = useConnectionStore((s) => s.service)
-    const setService = useConnectionStore((s) => s.setService)
-    const publishService = useConnectionStore((s) => s.publishService)
-    const setDeviceName = useConnectionStore((s) => s.setDeviceName)
     const setLockState = useConnectionStore((s) => s.setLockState)
-    const setConnectionAbort = useConnectionStore((s) => s.setConnectionAbort)
     const lockState = useConnectionStore((s) => s.lockState)
     const reset = undoRedoStore((s) => s.reset)
 
     // Raise visual-editor edits back into the config (source of truth) so the
     // download modal compiles what the user sees. Mock/demo only.
     useConfigRuntimeSync()
+    // Time, CPU, media, texts... for the connected device's screens.
+    useHostFeed()
 
     const updateLockState = useCallback(async (): Promise<void> => {
         if (!service) return
@@ -119,93 +96,24 @@ function App(): JSX.Element {
         if (category) setPreferredAdapterCategory(category)
     }, [service, setPreferredAdapterCategory])
 
-    const onConnect = async (
-        t: Transport,
-        communication: 'serial' | 'ble' | 'hid',
-    ): Promise<boolean> => {
-        const adapter = await pickAdapter(t, { transportKind: communication })
-        if (!adapter) {
-            toast.error('Failed to connect to the selected device.', {
-                description: 'No firmware adapter handled the device.',
-            })
-            return false
-        }
-        // Fresh controller per attempt: the handshake below can hang on a silent
-        // device, so a timeout aborts it (adapter.connect honours the signal).
-        // A previously-aborted controller would poison the retry, so publish a
-        // new one to the store — disconnect still aborts whichever is live.
-        const abort = new AbortController()
-        setConnectionAbort(abort)
-        const timeout = setTimeout(
-            () => abort.abort(new Error('Connection timed out')),
-            CONNECT_TIMEOUT_MS,
-        )
-        try {
-            const next = await adapter.connect(t, abort.signal)
-            // Re-apply a previously imported QMK/VIA/Keychron layout BEFORE the
-            // service is exposed, so the first keymap read (Drawer) already
-            // reflects it. Doing it here — rather than in a sibling effect —
-            // keeps it off the same transport at the same time as the initial
-            // getKeymap, avoiding a last-writer-wins race on the keymap store.
-            try {
-                await next.sideload?.restoreCached?.()
-            } catch (err) {
-                console.warn('Failed to restore cached layout', err)
-            }
-            next.onClosed((): void => {
-                setDeviceName(null)
-                setService(null)
-            })
-            setDeviceName(next.deviceInfo.name)
-            if (communication === 'serial') {
-                rememberConnectedDeviceName(next.deviceInfo.name)
-            }
-            // Attach the save-mode controller (Settings → Communication →
-            // Auto-save, default off): automatic firmwares stage keymap edits
-            // until Save in manual mode; manual firmwares (ZMK/Remappr)
-            // auto-commit debounced in auto mode. Toggling later just flips
-            // the wrapper's flag — the service is never swapped.
-            // An 'actions' lock (Vial) refuses some operations while the
-            // board is locked; the unlock prompt catches those and retries.
-            const svc = withUnlockPrompt(
-                withSaveMode(next, useUserSettingsStore.getState().autosave),
-            )
-            await publishService(svc, communication)
-            // The client's own notes on how this connection was made (e.g. it
-            // had to fall back to a reduced mode) — shown once, never silent.
-            for (const notice of next.connectNotices ?? []) {
-                toast[notice.level](notice.title, {
-                    description: notice.description,
-                })
-            }
-            return true
-        } catch (err) {
-            toast.error('Failed to connect to the selected device.', {
-                description: err instanceof Error ? err.message : String(err),
-            })
-            return false
-        } finally {
-            clearTimeout(timeout)
-        }
-    }
-
-    const onDemoConnect = async (): Promise<void> => {
-        try {
-            const next = withUnlockPrompt(await connectMock(demoLockOptions()))
-            next.onClosed((): void => {
-                setDeviceName(null)
-                setService(null)
-            })
-            setDeviceName(next.deviceInfo.name)
-            await publishService(next)
-        } catch (err) {
-            toast.error('Failed to start demo mode.', {
-                description: err instanceof Error ? err.message : String(err),
-            })
-        }
-    }
-
     const isElectron = isElectronEnv()
+
+    // Version history of library entries: local, no account needed.
+    useEffect(() => {
+        useHistoryStore.getState().start()
+        // GitHub sync of linked entries: no account needed either.
+        useGitSyncStore.getState().start()
+    }, [])
+
+    // Restore a signed-in session (and pick up a desktop sign-in deep link that
+    // launched the app). Builds without a backend never load supabase-js.
+    useEffect(() => {
+        if (!isCloudConfigured()) return
+        void useAuthStore.getState().init()
+        useSyncStore.getState().start()
+        void useLicenseStore.getState().init()
+        return startBuilderPrefetch()
+    }, [])
 
     useEffect(() => {
         if (!isElectron) return
@@ -225,75 +133,62 @@ function App(): JSX.Element {
     }, [])
 
     const builderOpen = useBuilderStore((s) => s.open)
+    const landing = resolveLanding({ builderOpen, service, lockState })
 
-    // A dongle has no keymap — it lands on the node roster (DongleLanding), which
-    // gets the standalone TitleBar like the locked/start states, not the editor
-    // chrome.
-    const showEditor =
-        !!service &&
-        service.kind !== 'dongle' &&
-        !(service.capabilities.lock === 'editor' && !isUnlocked(lockState))
+    // Pattern check: Dispatch Map (Tier 0) — applied — landing → screen table replaces the nested service.kind ternary; one entry per screen.
+    const screens: Record<Landing, () => JSX.Element> = {
+        builder: () => <BuilderGate />,
+        start: () => (
+            <StartPage
+                onTransportCreated={connectTransport}
+                onDemoConnect={connectDemo}
+            />
+        ),
+        unlock: () => <UnlockPanel layout="screen" />,
+        devices: () => <DeviceEditor controls={service!.controls!} />,
+        dongle: () => <DongleLanding />,
+        keymap: () => (
+            <SidebarProvider className="!min-h-0 h-full" style={SIDEBAR_STYLE}>
+                <Drawer />
+                <SidebarInset>
+                    <Header center={<ToolSearch />} />
+                    <AutoLayoutResolver />
+                    <DevicePreviewCapture />
+                    <ProfileRestoreManager />
+                    <ToolDialogs />
+                    {/* The floating toolbar overlays the board's top edge. */}
+                    <div className="relative flex min-h-0 flex-1 flex-col">
+                        <FloatingToolbar />
+                        <ErrorBoundary>
+                            <KeymapEditor />
+                        </ErrorBoundary>
+                    </div>
+                </SidebarInset>
+                <CoachmarkTour />
+            </SidebarProvider>
+        ),
+    }
 
     return (
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
             <div className="flex h-screen flex-col overflow-hidden">
                 {/* The editor, the full-screen builder, and the start page each
                     own a header with an inline drag region + window controls;
-                    only the locked overlay (service present but locked) still
-                    needs the standalone drag bar. */}
-                {!showEditor && !builderOpen && !!service && <TitleBar />}
+                    the screens without one get the standalone drag bar. */}
+                {needsTitleBar(landing) && <TitleBar />}
                 <div className="flex-1 min-h-0 overflow-hidden">
-                    {builderOpen ? (
-                        <ErrorBoundary>
-                            <Suspense fallback={null}>
-                                <Builder />
-                            </Suspense>
-                        </ErrorBoundary>
-                    ) : service ? (
-                        service.capabilities.lock === 'editor' &&
-                        !isUnlocked(lockState) ? (
-                            <ErrorBoundary>
-                                <UnlockPanel layout="screen" />
-                            </ErrorBoundary>
-                        ) : service.kind === 'dongle' ? (
-                            <ErrorBoundary>
-                                <DongleLanding />
-                            </ErrorBoundary>
-                        ) : (
-                            <ErrorBoundary>
-                                <SidebarProvider
-                                    className="!min-h-0 h-full"
-                                    style={SIDEBAR_STYLE}
-                                >
-                                    <Drawer />
-                                    <SidebarInset>
-                                        <Header />
-                                        <AutoLayoutResolver />
-                                        <DevicePreviewCapture />
-                                        <ProfileRestoreManager />
-                                        <ErrorBoundary>
-                                            <KeymapEditor />
-                                        </ErrorBoundary>
-                                        {/*<Footer />*/}
-                                    </SidebarInset>
-                                    <CoachmarkTour />
-                                </SidebarProvider>
-                            </ErrorBoundary>
-                        )
-                    ) : (
-                        <ErrorBoundary>
-                            <StartPage
-                                onTransportCreated={onConnect}
-                                onDemoConnect={onDemoConnect}
-                            />
-                        </ErrorBoundary>
-                    )}
+                    <ErrorBoundary>{screens[landing]()}</ErrorBoundary>
                 </div>
             </div>
             <UpdateNotification />
+            <BuilderUpdateNotice />
             <WhatsNewDialog />
             <Toaster richColors position="top-center" />
+            {isCloudConfigured() && <SyncOnboardingDialog />}
+            {isCloudConfigured() && <ShareLinkHandler />}
+            {isCloudConfigured() && !isElectron && <DesktopSignInHandler />}
             <UnlockPanel layout="card" />
+            <LeaveGuardDialog />
         </ThemeProvider>
     )
 }

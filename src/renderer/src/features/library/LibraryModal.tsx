@@ -1,0 +1,373 @@
+// Pattern check: no GoF pattern (-) — rejected — list UI over libraryStore; the
+// host passes which sections it can open (a dispatch map in ./sections).
+//
+// The one Library surface. The builder, the editor and the devices screens all
+// open it; each says which kinds of entry it can open and what "Save current"
+// saves. Entries live in the local IndexedDB library, so saves are unlimited and
+// need no account.
+import { useEffect, useMemo, useState } from 'react'
+import { CloudOff, Globe, History, Layers, Plus, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import type { DeviceForm } from '@firmware/devices/types'
+import { Modal, type ModalSize } from '@/ui/modal'
+import { Button } from '@/ui/button'
+import { MiniKeyboardPreview } from '@/features/connection/start-page/MiniKeyboardPreview'
+import { FORM_ICON } from '@/features/devices/formIcons'
+import type { LibraryEntry } from '@/lib/library/types'
+import useLibraryStore from '@/stores/libraryStore'
+import useSyncStore from '@/stores/syncStore'
+import useAuthStore from '@/stores/authStore'
+import { isCloudConfigured } from '@/lib/cloud/env'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
+import { CommunityPanel } from '@/features/community/CommunityPanel'
+import { PublishDialog } from '@/features/community/PublishDialog'
+import {
+    SECTION_ORDER,
+    SECTION_TITLE,
+    sectionOf,
+    type LibraryOpener,
+    type LibrarySection,
+} from './sections'
+import { summaryFacts } from './entryFacts'
+import { SyncBadge } from './SyncBadge'
+import { SyncConflictDialog } from './SyncConflictDialog'
+import { HistoryDialog } from './HistoryDialog'
+
+export interface LibrarySaveAction {
+    label: string
+    disabled?: boolean
+    /** Saves the current document; resolves its name for the toast. */
+    run: () => Promise<string>
+}
+
+export interface LibraryModalProps {
+    open: boolean
+    onClose: () => void
+    onBack?: () => void
+    size?: ModalSize
+    title?: string
+    /** What the library holds here ("Keymaps and boards"); the modal adds
+     *  where it lives (this machine, or synced with the account). */
+    subtitle?: string
+    save?: LibrarySaveAction
+    /** The sections this host can open. Others are not listed. */
+    openers: Partial<Record<LibrarySection, LibraryOpener>>
+    emptyText?: string
+}
+
+// pattern-check: skip presentational thumbnail; reuses MiniKeyboardPreview / FORM_ICON
+function EntryThumb({ entry }: { entry: LibraryEntry }): JSX.Element | null {
+    const form = entry.summary.form as DeviceForm | undefined
+    if (form && FORM_ICON[form]) {
+        const Icon = FORM_ICON[form]
+        return (
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                <Icon className="size-5" />
+            </span>
+        )
+    }
+    if (!entry.preview?.length) return null
+    return (
+        <div className="grid h-14 w-28 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-muted/30">
+            <MiniKeyboardPreview keys={entry.preview} oneU={7} />
+        </div>
+    )
+}
+
+export function LibraryModal({
+    open,
+    onClose,
+    onBack,
+    size = 'sm',
+    title = 'Library',
+    subtitle = 'Everything',
+    save,
+    openers,
+    emptyText = 'Nothing saved yet. Save what you are working on to reopen it later.',
+}: LibraryModalProps): JSX.Element {
+    const entries = useLibraryStore((s) => s.entries)
+    const status = useLibraryStore((s) => s.status)
+    const load = useLibraryStore((s) => s.load)
+    const remove = useLibraryStore((s) => s.remove)
+    const syncing = useSyncStore((s) => s.choice === 'on')
+    const tombstones = useSyncStore((s) => s.tombstones)
+    const settleTombstone = useSyncStore((s) => s.settleTombstone)
+    const removeEverywhere = useSyncStore((s) => s.removeEverywhere)
+    const [conflict, setConflict] = useState<LibraryEntry | null>(null)
+    const [deleting, setDeleting] = useState<LibraryEntry | null>(null)
+    const [publishing, setPublishing] = useState<LibraryEntry | null>(null)
+    const [historyOf, setHistoryOf] = useState<LibraryEntry | null>(null)
+    const signedIn = useAuthStore((s) => s.status === 'signed_in')
+
+    useEffect(() => {
+        if (open) void load()
+    }, [open, load])
+
+    const sections = useMemo(
+        () =>
+            SECTION_ORDER.filter((s) => openers[s]).map((section) => ({
+                section,
+                items: entries.filter((e) => sectionOf(e) === section),
+            })),
+        [entries, openers],
+    )
+    const total = sections.reduce((n, s) => n + s.items.length, 0)
+
+    const handleSave = async (): Promise<void> => {
+        if (!save) return
+        try {
+            toast.success(`Saved "${await save.run()}" to your library`)
+        } catch (e) {
+            toast.error(`Could not save: ${e instanceof Error ? e.message : e}`)
+        }
+    }
+
+    const handleOpen = async (entry: LibraryEntry): Promise<void> => {
+        const opener = openers[sectionOf(entry)]
+        if (!opener) return
+        if (!(await opener(entry))) {
+            toast.error(`Failed to open "${entry.name}" — it is invalid`)
+            return
+        }
+        toast.success(`Opened "${entry.name}"`)
+        onClose()
+    }
+
+    const handleDelete = async (
+        entry: LibraryEntry,
+        drop: (localId: string) => Promise<void> = remove,
+    ): Promise<void> => {
+        setDeleting(null)
+        try {
+            await drop(entry.localId)
+            toast.success(`Removed "${entry.name}"`)
+        } catch (e) {
+            toast.error(
+                `Could not remove: ${e instanceof Error ? e.message : e}`,
+            )
+        }
+    }
+
+    // A synced entry asks whether the cloud copy goes too.
+    const askDelete = (entry: LibraryEntry): void => {
+        if (entry.sync.itemId && syncing) setDeleting(entry)
+        else void handleDelete(entry)
+    }
+
+    // Opens something saved from the community, when this host can open it.
+    const openFromCommunity = async (entry: LibraryEntry): Promise<boolean> => {
+        const opener = openers[sectionOf(entry)]
+        if (!opener || !(await opener(entry))) return false
+        onClose()
+        return true
+    }
+
+    const mine = (
+        <div className="space-y-4">
+            {save && (
+                <Button
+                    onClick={() => void handleSave()}
+                    disabled={save.disabled}
+                    className="flex w-full items-center justify-center gap-2"
+                >
+                    <Plus className="size-4" /> {save.label}
+                </Button>
+            )}
+
+            {tombstones.map((t) => (
+                <div
+                    key={t.localId}
+                    className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 text-sm"
+                >
+                    <CloudOff className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
+                        “{t.name}” was deleted from your account on another
+                        device.
+                    </span>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void settleTombstone(t.localId, true)}
+                    >
+                        Keep here
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void settleTombstone(t.localId, false)}
+                    >
+                        Remove
+                    </Button>
+                </div>
+            ))}
+
+            {status === 'error' && (
+                <p className="py-2 text-center text-sm text-destructive">
+                    The library could not be read in this browser.
+                </p>
+            )}
+
+            {total === 0 && status !== 'error' ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                    {emptyText}
+                </p>
+            ) : (
+                sections
+                    .filter((s) => s.items.length > 0)
+                    .map(({ section, items }) => (
+                        <div key={section}>
+                            {sections.length > 1 && (
+                                <div className="eyebrow mb-2">
+                                    {SECTION_TITLE[section]}
+                                </div>
+                            )}
+                            <ul className="space-y-2">
+                                {items.map((e) => (
+                                    <li
+                                        key={e.localId}
+                                        className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
+                                    >
+                                        <EntryThumb entry={e} />
+                                        <div className="min-w-0 flex-1">
+                                            <div className="truncate text-panel-title font-semibold">
+                                                {e.name}
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                                                {summaryFacts(
+                                                    e.summary,
+                                                    e.updatedAt,
+                                                )}
+                                                <SyncBadge
+                                                    entry={e}
+                                                    onResolve={() =>
+                                                        setConflict(e)
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                        {signedIn && e.sync.itemId && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                aria-label={`Publish ${e.name}`}
+                                                title="Publish or share"
+                                                onClick={() => setPublishing(e)}
+                                            >
+                                                <Globe className="size-4 text-muted-foreground" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            aria-label={`History of ${e.name}`}
+                                            title="Versions"
+                                            onClick={() => setHistoryOf(e)}
+                                        >
+                                            <History className="size-4 text-muted-foreground" />
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => void handleOpen(e)}
+                                        >
+                                            Open
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            aria-label={`Delete ${e.name}`}
+                                            onClick={() => askDelete(e)}
+                                        >
+                                            <Trash2 className="size-4 text-muted-foreground" />
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))
+            )}
+        </div>
+    )
+
+    return (
+        <Modal
+            size={size}
+            opened={open}
+            onClose={onClose}
+            onBack={onBack}
+            title={title}
+            subtitle={`${subtitle} ${
+                syncing ? 'synced with your account' : 'saved on this machine'
+            }`}
+            headerIcon={<Layers />}
+            showFooter={false}
+        >
+            {isCloudConfigured() ? (
+                <Tabs defaultValue="mine">
+                    <TabsList className="mb-3">
+                        <TabsTrigger value="mine">My library</TabsTrigger>
+                        <TabsTrigger value="community">Community</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="mine">{mine}</TabsContent>
+                    <TabsContent value="community">
+                        <CommunityPanel onOpen={openFromCommunity} />
+                    </TabsContent>
+                </Tabs>
+            ) : (
+                mine
+            )}
+            <SyncConflictDialog
+                entry={conflict}
+                onClose={() => setConflict(null)}
+            />
+            <PublishDialog
+                entry={publishing}
+                onClose={() => setPublishing(null)}
+            />
+            <HistoryDialog
+                // A fresh dialog per opening, so it starts at the newest version.
+                key={historyOf?.localId ?? 'closed'}
+                entry={historyOf}
+                onClose={() => setHistoryOf(null)}
+                onOpen={(e) => {
+                    // Open what the entry holds now (a restore just changed it).
+                    const live =
+                        useLibraryStore
+                            .getState()
+                            .entries.find((x) => x.localId === e.localId) ?? e
+                    setHistoryOf(null)
+                    void handleOpen(live)
+                }}
+            />
+            <Modal
+                size="sm"
+                opened={!!deleting}
+                onClose={() => setDeleting(null)}
+                title={`Delete "${deleting?.name ?? ''}"?`}
+                subtitle="It is also saved in your account."
+                headerIcon={<Trash2 />}
+                footer={
+                    <div className="flex w-full flex-wrap justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() =>
+                                deleting && void handleDelete(deleting)
+                            }
+                        >
+                            Only on this device
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() =>
+                                deleting &&
+                                void handleDelete(deleting, removeEverywhere)
+                            }
+                        >
+                            Delete everywhere
+                        </Button>
+                    </div>
+                }
+            />
+        </Modal>
+    )
+}

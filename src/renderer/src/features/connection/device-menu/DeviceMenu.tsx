@@ -6,8 +6,7 @@ import undoRedoStore from '@/stores/undoRedoStore'
 import { useShallow } from 'zustand/react/shallow'
 import {
     ArrowLeft,
-    Check,
-    Cpu,
+    CloudUpload,
     Power,
     RotateCcw,
     Settings as SettingsIcon,
@@ -18,7 +17,6 @@ import {
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/ui/dropdown-menu'
@@ -27,7 +25,8 @@ import { toast } from 'sonner'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import useProfileBackupStore, { backupKey } from '@/stores/profileBackupStore'
 import { applyRestore } from '@/features/connection/applyRestore'
-import type { NodeView } from '@firmware/service'
+import { pushBackupToCloud } from '@/features/connection/cloudBackup'
+import useAuthStore from '@/stores/authStore'
 
 export const DeviceMenu = (): JSX.Element => {
     // useShallow-scoped subscription — a bare useConnectionStore() re-renders
@@ -35,40 +34,31 @@ export const DeviceMenu = (): JSX.Element => {
     const {
         service,
         parentService,
-        activeNodeId,
         setService,
         publishService,
         communication,
         deviceName,
         disconnect,
-        openNode,
         returnToParent,
         lastConnectedDevice,
     } = useConnectionStore(
         useShallow((s) => ({
             service: s.service,
             parentService: s.parentService,
-            activeNodeId: s.activeNodeId,
             setService: s.setService,
             publishService: s.publishService,
             communication: s.communication,
             deviceName: s.deviceName,
             disconnect: s.disconnect,
-            openNode: s.openNode,
             returnToParent: s.returnToParent,
             lastConnectedDevice: s.lastConnectedDevice,
         })),
     )
     const reset = undoRedoStore((s) => s.reset)
     const [settingsOpen, setSettingsOpen] = useState(false)
-    const [nodes, setNodes] = useState<NodeView[]>([])
-    const [nodesLoading, setNodesLoading] = useState(false)
 
-    // The node roster lives on the dongle: when viewing a node that's the stashed
-    // parent, otherwise the live service. Empty for a direct (non-dongle) device,
-    // so the Mesh-nodes section stays hidden on ordinary keyboards.
-    const dongle = parentService ?? service
-    const nodesApi = dongle?.nodes
+    // The dongle's nodes are in the sidebar's device roster; here only the
+    // way back from a node to its dongle.
     const viewingNode = !!parentService
     const readOnly = !!service?.capabilities.readOnly
 
@@ -86,40 +76,25 @@ export const DeviceMenu = (): JSX.Element => {
     const backup = deviceKey ? backups[deviceKey] : undefined
     const canRestore =
         !readOnly && !!service?.capabilities.profileRestore && !!backup
+    // Cloud backup needs an account and a hardware serial to match the unit.
+    const signedIn = useAuthStore((s) => s.status === 'signed_in')
+    const setCloudBackup = useProfileBackupStore((s) => s.setCloud)
+    const canCloudBackup = canRestore && signedIn && !!backup?.serialNumber
+    const toggleCloudBackup = (on: boolean): void => {
+        if (!deviceKey || !backup) return
+        setCloudBackup(deviceKey, on)
+        if (!on) return
+        void pushBackupToCloud({ ...backup, cloud: true }).then((ok) =>
+            ok
+                ? toast.success('Backup saved to your account')
+                : toast.error('Could not save the backup to your account'),
+        )
+    }
     // Only pick-and-connect devices carry an id we can auto-reconnect to; web
     // simple-connect transports leave lastConnectedDevice null.
     const autoConnectId = lastConnectedDevice?.id ?? null
     const autoConnectOn =
         !!autoConnectId && autoConnectDeviceId === autoConnectId
-
-    const loadNodes = useCallback(async (): Promise<void> => {
-        if (!nodesApi) {
-            setNodes([])
-            return
-        }
-        setNodesLoading(true)
-        try {
-            setNodes(await nodesApi.list())
-        } catch (e) {
-            console.warn('Failed to list nodes', e)
-            setNodes([])
-        } finally {
-            setNodesLoading(false)
-        }
-    }, [nodesApi])
-
-    const handleOpenNode = useCallback(
-        async (id: number): Promise<void> => {
-            try {
-                await openNode(id)
-            } catch (e) {
-                toast.error('Failed to open node', {
-                    description: e instanceof Error ? e.message : String(e),
-                })
-            }
-        },
-        [openNode],
-    )
 
     const resetSettings = useCallback(async (): Promise<void> => {
         if (!service) return
@@ -151,10 +126,10 @@ export const DeviceMenu = (): JSX.Element => {
     // gating on the name string wrongly showed "Offline" and disabled the menu.
     const connected = !!service
     const displayName =
-        deviceName?.trim() || service?.deviceInfo.name?.trim() || 'Keyboard'
+        deviceName?.trim() || service?.deviceInfo.name?.trim() || 'Device'
     const connLabel = communication === 'ble' ? 'BLE' : 'USB'
     const statusLabel = viewingNode
-        ? 'Node · read-only'
+        ? `Node · ${readOnly ? 'read-only' : 'via dongle'}`
         : connected
           ? `Connected · ${connLabel}`
           : 'Offline'
@@ -162,29 +137,25 @@ export const DeviceMenu = (): JSX.Element => {
     return (
         <>
             {/* Device chip — card with status dot + name + connection, gear opens the menu. */}
-            <DropdownMenu
-                onOpenChange={(open): void => {
-                    if (open) void loadNodes()
-                }}
-            >
-                <div className="flex items-center gap-2.5 rounded-[10px] border border-border bg-card px-2.5 py-2">
+            <DropdownMenu>
+                <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-2.5 py-2">
                     <span
                         aria-hidden
                         className="size-2 shrink-0 rounded-full"
                         style={{
                             background: connected
-                                ? 'oklch(0.72 0.16 152)'
+                                ? 'var(--success)'
                                 : 'var(--muted-foreground)',
                             boxShadow: connected
-                                ? '0 0 8px oklch(0.72 0.16 152)'
+                                ? '0 0 8px var(--success)'
                                 : 'none',
                         }}
                     />
                     <div className="min-w-0 flex-1">
-                        <div className="truncate text-[12.5px] font-semibold">
-                            {connected ? displayName : 'No Device Connected'}
+                        <div className="truncate text-control font-semibold">
+                            {connected ? displayName : 'No device connected'}
                         </div>
-                        <div className="text-[10.5px] text-muted-foreground">
+                        <div className="text-meta text-muted-foreground">
                             {statusLabel}
                         </div>
                     </div>
@@ -215,46 +186,6 @@ export const DeviceMenu = (): JSX.Element => {
                                         'dongle'}
                                 </span>
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                        </>
-                    )}
-
-                    {(nodes.length > 0 || nodesLoading) && (
-                        <>
-                            <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">
-                                Mesh nodes
-                            </DropdownMenuLabel>
-                            {nodesLoading && nodes.length === 0 ? (
-                                <DropdownMenuItem disabled>
-                                    Scanning…
-                                </DropdownMenuItem>
-                            ) : (
-                                nodes.map((n) => (
-                                    <DropdownMenuItem
-                                        key={n.id}
-                                        disabled={
-                                            !n.online || n.id === activeNodeId
-                                        }
-                                        onClick={(): void => {
-                                            void handleOpenNode(n.id)
-                                        }}
-                                    >
-                                        <Cpu className="mr-2 h-4 w-4 shrink-0" />
-                                        <span className="flex-1 truncate">
-                                            {n.label}
-                                        </span>
-                                        {n.id === activeNodeId ? (
-                                            <Check className="h-4 w-4 shrink-0" />
-                                        ) : (
-                                            !n.online && (
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    offline
-                                                </span>
-                                            )
-                                        )}
-                                    </DropdownMenuItem>
-                                ))
-                            )}
                             <DropdownMenuSeparator />
                         </>
                     )}
@@ -294,6 +225,16 @@ export const DeviceMenu = (): JSX.Element => {
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Restore backup
                         </DropdownMenuItem>
+                    )}
+                    {canCloudBackup && (
+                        <DropdownMenuCheckboxItem
+                            checked={!!backup?.cloud}
+                            onCheckedChange={toggleCloudBackup}
+                            onSelect={(e): void => e.preventDefault()}
+                        >
+                            <CloudUpload className="mr-2 h-4 w-4" />
+                            Back up to my account
+                        </DropdownMenuCheckboxItem>
                     )}
                     {!readOnly && (
                         <RestoreStockModal

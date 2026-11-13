@@ -13,6 +13,7 @@ import useProfileBackupStore, {
     type ProfileBackup,
 } from '@/stores/profileBackupStore'
 import { applyRestore } from './applyRestore'
+import { pullBackupFromCloud, pushBackupToCloud } from './cloudBackup'
 import type { KeyboardService } from '@firmware/service'
 
 interface RestorePrompt {
@@ -81,12 +82,18 @@ export function ProfileRestoreManager(): JSX.Element {
             }
             if (cancelled) return
             const liveHash = keymapHash(live)
-            const existing = useProfileBackupStore.getState().backups[key]
+            // A new machine: the account's cloud copy stands in for a local one.
+            const existing =
+                useProfileBackupStore.getState().backups[key] ??
+                (await pullBackupFromCloud(svc.deviceInfo.serialNumber))
+            if (cancelled) return
 
             if (!existing) {
                 saveBackup(key, buildBackup(svc, live, Date.now()))
                 return
             }
+            if (!useProfileBackupStore.getState().backups[key])
+                saveBackup(key, existing)
             // In sync, or the user already dismissed this exact state.
             if (existing.hash === liveHash) return
             if (existing.dismissedHash === liveHash) return
@@ -117,9 +124,16 @@ export function ProfileRestoreManager(): JSX.Element {
             prevPending = pending
             if (wasPending && !pending) {
                 svc.getKeymap()
-                    .then((km) =>
-                        saveBackup(key, buildBackup(svc, km, Date.now())),
-                    )
+                    .then((km) => {
+                        const cloud =
+                            useProfileBackupStore.getState().backups[key]?.cloud
+                        const next = {
+                            ...buildBackup(svc, km, Date.now()),
+                            cloud,
+                        }
+                        saveBackup(key, next)
+                        void pushBackupToCloud(next)
+                    })
                     .catch(() => {})
             }
         })
@@ -131,12 +145,12 @@ export function ProfileRestoreManager(): JSX.Element {
 
     return (
         <Modal
+            size="md"
             opened={!!prompt}
             onClose={(): void => setPrompt(null)}
             title="Restore your layout?"
             subtitle={prompt ? `Last backed up ${savedAt}` : undefined}
             headerIcon={<RotateCcw />}
-            customModalBoxClass="w-11/12 max-w-lg"
             footer={
                 <div className="flex flex-wrap justify-end gap-2">
                     <Button

@@ -4,7 +4,7 @@
  * and prevent malicious or malformed data from being processed.
  */
 
-import type { AvailableDevice } from '../shared/ipc-types'
+import type { AvailableDevice, LinkId } from '../shared/ipc-types'
 
 export function isAvailableDevice(value: unknown): value is AvailableDevice {
     return (
@@ -13,10 +13,6 @@ export function isAvailableDevice(value: unknown): value is AvailableDevice {
         typeof (value as Record<string, unknown>).label === 'string' &&
         typeof (value as Record<string, unknown>).id === 'string'
     )
-}
-
-export function isUint8Array(value: unknown): value is Uint8Array {
-    return value instanceof Uint8Array || ArrayBuffer.isView(value)
 }
 
 export function validateAvailableDevice(value: unknown): AvailableDevice {
@@ -73,4 +69,11 @@ export function validateUint8Array(value: unknown): Uint8Array {
         )
     }
     return arr
+}
+
+export function validateLinkId(value: unknown): LinkId {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+        throw new Error('Invalid link id: expected a positive integer')
+    }
+    return value
 }

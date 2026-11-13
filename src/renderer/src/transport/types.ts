@@ -30,4 +30,10 @@ export type TransportFactory = {
     renameDevice?: (device: AvailableDevice, name: string) => void
     /** Revoke browser permission for a paired device (browser only). */
     forgetDevice?: (device: AvailableDevice) => Promise<void>
+    /**
+     * Holds one open link per transport: opening a device here closes the
+     * one already open on it (Electron's main process). A device switch on
+     * the same transport closes the current device first.
+     */
+    singleLink?: boolean
 }

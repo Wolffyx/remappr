@@ -2,12 +2,18 @@ name: Dev site (Cloudflare Pages)
 
 # Staging deploy. Every push to `dev` (i.e. every PR merged into dev) rebuilds
 # the web app and ships it to dev.remappr.com. Production (remappr.com) ships
-# with each release via main.yml — promoting dev -> main is the release
+# with each release via main.yml — a PR dev -> main is the release
 # (RELEASING.md).
 on:
     push:
         branches: [dev]
     workflow_dispatch:
+    # A builder release (stable or beta) from the builder repo's release
+    # workflow: rebuild so the site's builder seed is the new package. GitHub
+    # runs repository_dispatch from the DEFAULT branch's copy of this file, so
+    # this trigger works once it is on main; the checkout below still builds dev.
+    repository_dispatch:
+        types: [builder-released]
 
 # One dev deploy at a time; newer pushes cancel in-flight builds.
 concurrency:
@@ -27,6 +33,9 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              with:
+                  # repository_dispatch runs on the default branch; staging is dev.
+                  ref: ${{ github.event_name == 'repository_dispatch' && 'dev' || github.ref }}
 
             - name: Set up pnpm
               uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -56,9 +65,31 @@ jobs:
                   REMAPPR_UI_URL: ${{ vars.REMAPPR_UI_URL }}
                   REMAPPR_BUILDER_URL: ${{ vars.REMAPPR_BUILDER_URL }}
                   REMAPPR_GIT_TOKEN: ${{ secrets.REMAPPR_GIT_TOKEN }}
+                  # `package` (repo variable) ships the builder as the delivered
+                  # package instead of bundling it; unset keeps it bundled.
+                  REMAPPR_BUILDER: ${{ vars.REMAPPR_BUILDER }}
+
+            # While the builder is free, delivered builds carry the newest signed
+            # package (public/_seed) so the first run needs no download.
+            - name: Builder seed
+              if: vars.REMAPPR_BUILDER == 'package'
+              run: pnpm builder:seed
+              env:
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_STAGING }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_STAGING }}
 
             - name: Build
               run: pnpm build
+              env:
+                  # The staging backend (public-safe values: URL and
+                  # publishable key). Unset → the site builds with no cloud.
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_STAGING }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_STAGING }}
+                  VITE_REMAPPR_ENV: staging
+                  VITE_GITHUB_APP_CLIENT_ID: ${{ vars.VITE_GITHUB_APP_CLIENT_ID }}
+                  VITE_GITHUB_APP_SLUG: ${{ vars.VITE_GITHUB_APP_SLUG }}
+                  VITE_AUTH_SITE_URL: https://dev.remappr.com
+                  VITE_SIGNING_PUBLIC_KEYS: ${{ vars.SIGNING_PUBLIC_KEYS_STAGING }}
 
             - name: Deploy to Cloudflare Pages (dev)
               id: cf

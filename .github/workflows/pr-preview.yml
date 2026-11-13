@@ -46,10 +46,12 @@ jobs:
             - name: Fetch @remappr projects
               run: node scripts/link-remappr.cjs
               env:
-                  # Siblings on the PR's own branch name if they have it (a
-                  # feature spanning repos), else the branch matching the PR's
-                  # target (dev → their dev), else their default branch.
-                  REMAPPR_REF: ${{ github.head_ref }},${{ github.base_ref }}
+                  # A PR into main (the release) previews the siblings' main,
+                  # which is what the release ships. Any other PR: siblings on
+                  # the PR's own branch name if they have it (a feature spanning
+                  # repos), else the branch matching the PR's target (dev →
+                  # their dev), else their default branch.
+                  REMAPPR_REF: ${{ github.base_ref == 'main' && 'main' || format('{0},{1}', github.head_ref, github.base_ref) }}
                   REMAPPR_FIRMWARE_URL: ${{ vars.REMAPPR_FIRMWARE_URL }}
                   REMAPPR_UI_URL: ${{ vars.REMAPPR_UI_URL }}
                   REMAPPR_BUILDER_URL: ${{ vars.REMAPPR_BUILDER_URL }}
@@ -57,6 +59,15 @@ jobs:
 
             - name: Build
               run: pnpm build
+              env:
+                  # Previews only ever get the staging backend.
+                  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL_STAGING }}
+                  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY_STAGING }}
+                  VITE_REMAPPR_ENV: staging
+                  VITE_GITHUB_APP_CLIENT_ID: ${{ vars.VITE_GITHUB_APP_CLIENT_ID }}
+                  VITE_GITHUB_APP_SLUG: ${{ vars.VITE_GITHUB_APP_SLUG }}
+                  VITE_AUTH_SITE_URL: https://dev.remappr.com
+                  VITE_SIGNING_PUBLIC_KEYS: ${{ vars.SIGNING_PUBLIC_KEYS_STAGING }}
 
             - name: Deploy to Cloudflare Pages (preview)
               if: env.CAN_DEPLOY == 'true'

@@ -163,6 +163,27 @@ describe('undoRedoStore', () => {
         expect(useUndoRedoStore.getState().redoStack.length).toBe(0)
     })
 
+    it('reset drops ops queued for the old history and unblocks the new one', async () => {
+        const ran: string[] = []
+        // An op stuck on the device being left (its RPC never answers).
+        void useUndoRedoStore
+            .getState()
+            .doIt(() => new Promise<never>(() => {}))
+        const queued = useUndoRedoStore.getState().doIt(async () => {
+            ran.push('old')
+            return async () => {}
+        })
+        useUndoRedoStore.getState().reset()
+
+        await useUndoRedoStore.getState().doIt(async () => {
+            ran.push('new')
+            return async () => {}
+        })
+        expect(ran).toEqual(['new'])
+        expect(useUndoRedoStore.getState().undoStack.length).toBe(1)
+        void queued
+    })
+
     it('reset clears both stacks', async () => {
         await useUndoRedoStore.getState().doIt(async () => async () => {})
         useUndoRedoStore.getState().reset()

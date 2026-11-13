@@ -91,9 +91,7 @@ export function SlotBar({
                                     : 'cursor-pointer hover:bg-accent/30'
                             }`}
                         >
-                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                                {slot.label}
-                            </span>
+                            <span className="eyebrow">{slot.label}</span>
                             <span className="min-w-[2.5em] text-foreground">
                                 <SlotValue slot={slot} />
                             </span>

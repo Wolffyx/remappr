@@ -29,7 +29,7 @@ interface TransportPresentation {
 function presentTransport(t: TransportFactory): TransportPresentation {
     if (t.communication === 'ble' || t.isWireless) {
         return {
-            icon: <Bluetooth className="h-4 w-4 text-blue-500" />,
+            icon: <Bluetooth className="h-4 w-4 text-info" />,
             title: 'Bluetooth',
             description: 'Wireless keyboards paired over BLE',
         }

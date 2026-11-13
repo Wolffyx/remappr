@@ -8,6 +8,9 @@ export const remapprDedupe = [
     'react',
     'react-dom',
     'zustand',
+    // One zod: two copies doubled the bundle's schema runtime and split its
+    // global config (jitless, set for the CSP in main.tsx).
+    'zod',
     'react-aria-components',
     'cmdk',
     'sonner',

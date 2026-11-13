@@ -1,4 +1,5 @@
 // pattern-check: skip — Keychron Advanced-Mode settings modal; reads/writes through service.advanced + service.wireless facades
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useState } from 'react'
 import { Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -7,7 +8,6 @@ import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
-import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
 import { Switch } from '@/ui/switch'
 
@@ -116,9 +116,11 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
 
     return (
         <Modal
+            size="md"
+            kind="live"
             opened={opened}
             onClose={onClose}
-            title="Advanced Mode"
+            title="Advanced mode"
             subtitle="Debounce, report rate & key behaviour"
             headerIcon={<Settings2 />}
         >
@@ -127,7 +129,7 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                     <section className="flex flex-col gap-2">
                         <h3 className="font-semibold">Debounce</h3>
                         <label className="flex flex-col gap-1.5">
-                            <span className="flex items-center justify-between text-[13px] font-medium">
+                            <span className="flex items-center justify-between text-panel-title font-medium">
                                 Response time
                                 <span className="font-mono text-xs text-muted-foreground">
                                     {debounceMs} ms
@@ -152,9 +154,8 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                             >
                                 Mode (raw)
                             </Label>
-                            <Input
+                            <NumberInput
                                 id="debounce-mode"
-                                type="number"
                                 min={0}
                                 max={255}
                                 value={debounceMode}
@@ -163,10 +164,9 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                                         parseInt(e.target.value, 10) || 0,
                                     )
                                 }
-                                className="w-24"
                                 disabled={loading}
                             />
-                            <span className="text-[10.5px] text-muted-foreground">
+                            <span className="text-meta text-muted-foreground">
                                 enum TBD on hardware
                             </span>
                         </div>
@@ -190,9 +190,8 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                             >
                                 Value (raw)
                             </Label>
-                            <Input
+                            <NumberInput
                                 id="report-rate"
-                                type="number"
                                 min={0}
                                 max={255}
                                 value={reportRate}
@@ -201,7 +200,6 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                                         parseInt(e.target.value, 10) || 0,
                                     )
                                 }
-                                className="w-24"
                                 disabled={loading}
                             />
                         </div>
@@ -234,7 +232,7 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
 
                 {nkro !== null && (
                     <section className="flex flex-col gap-2">
-                        <h3 className="font-semibold">N-Key Rollover</h3>
+                        <h3 className="font-semibold">N-key rollover</h3>
                         <div className="flex items-center gap-2">
                             <Switch
                                 id="adv-nkro"
@@ -242,14 +240,16 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
                                 onCheckedChange={toggleNkro}
                                 disabled={loading}
                             />
-                            <Label htmlFor="adv-nkro">Enable NKRO</Label>
+                            <Label htmlFor="adv-nkro">
+                                Send every key at once (NKRO)
+                            </Label>
                         </div>
                     </section>
                 )}
 
                 {advanced.quickStart && (
                     <section className="flex flex-col gap-1">
-                        <h3 className="font-semibold">Quick Start</h3>
+                        <h3 className="font-semibold">Quick start</h3>
                         <p className="text-xs text-muted-foreground">
                             Supported by this keyboard. Auto-sleep &amp;
                             auto-backlight-off timeouts live in the Wireless

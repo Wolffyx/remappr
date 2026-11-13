@@ -1,15 +1,13 @@
-import { Plus } from 'lucide-react'
-import { useEffect, useMemo, useRef } from 'react'
+import { Plus, Search, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Keymap } from '@firmware/types'
 
 import useLayerSelectionStore from '@/stores/layerSelectionStore'
-import {
-    SidebarGroupAction,
-    SidebarGroupLabel,
-    SidebarMenu,
-} from '@/ui/sidebar'
+import { SidebarGroupLabel, SidebarMenu } from '@/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import { useLayerActions } from '@/hooks/use-layer-actions'
+import { useIndexShortcuts } from '@/features/sidebar/useIndexShortcuts'
+import { useFeatureAvailable } from '@/features/firmware/useFeatureAvailable'
 import { useLayerDragReorder } from '@/hooks/use-layer-drag-reorder'
 
 import { LayerListItem } from './LayerListItem'
@@ -19,10 +17,7 @@ interface Layer {
     name?: string
 }
 
-export type LayerClickCallback = (index: number) => void
-export type LayerMovedCallback = (index: number, destination: number) => void
-
-// pattern-check: skip — additive optional `editable` prop on existing props
+// Pattern check: no GoF pattern (-) — rejected — header search toggle, scroll mode and ⌥ shortcuts added to the existing picker; small hook beside it.
 interface LayerPickerProps {
     layers: Array<Layer>
     canAdd?: boolean
@@ -30,10 +25,10 @@ interface LayerPickerProps {
     // Read-only (behind-dongle node) views pass false to hide every layer edit
     // (drag-reorder, rename, duplicate, delete). Defaults to editable.
     editable?: boolean
-    onLayerClicked?: LayerClickCallback
+    /** The list scrolls in the space left (the sidebar's scrolling style). */
+    scroll?: boolean
     setKeymap?: (updater: (draft: Keymap) => void) => void
     keymap?: Keymap
-    setSelectedKey?: (key: number | undefined) => void
 }
 
 export const LayerPicker = ({
@@ -41,17 +36,35 @@ export const LayerPicker = ({
     canAdd,
     canRemove,
     editable = true,
-    onLayerClicked,
+    scroll = false,
     setKeymap,
     keymap,
 }: LayerPickerProps): JSX.Element => {
     const { selectedLayerIndex, setSelectedLayerIndex } =
         useLayerSelectionStore()
-    const { add, duplicate, remove, handleSaveNewLabel, selectionChanged } =
-        useLayerActions({ keymap, setKeymap })
-    const { dragSourceIndex, dragOverIndex, handlersFor } = useLayerDragReorder(
-        { setKeymap },
-    )
+    const {
+        add,
+        duplicate,
+        copyKeysFrom,
+        remove,
+        handleSaveNewLabel,
+        selectionChanged,
+    } = useLayerActions({ keymap, setKeymap })
+    const { dragSourceIndex, dragOverIndex, handlersFor, move } =
+        useLayerDragReorder({ setKeymap })
+    // Each layer edit only where the firmware declares it: QMK/Vial keep a
+    // fixed, unnamed layer set in a fixed order.
+    const canRename = useFeatureAvailable('rename')
+    const canReorder = useFeatureAvailable('reorderLayers') && editable
+    const variableCount = useFeatureAvailable('variableLayerCount')
+    const addable = !!canAdd && variableCount
+    const [query, setQuery] = useState<string | null>(null)
+    const searchOpen = query !== null
+    const searchRef = useRef<HTMLInputElement>(null)
+    useEffect(() => {
+        if (searchOpen) searchRef.current?.focus()
+    }, [searchOpen])
+    useIndexShortcuts(layers.length, selectedLayerIndex, setSelectedLayerIndex)
 
     const layersArray = useMemo(
         () =>
@@ -59,10 +72,20 @@ export const LayerPicker = ({
                 name: l.name || i.toLocaleString(),
                 id: l.id,
                 index: i,
-                selected: i === selectedLayerIndex,
             })),
-        [layers, selectedLayerIndex],
+        [layers],
     )
+
+    const names = useMemo(() => layersArray.map((l) => l.name), [layersArray])
+    const needle = query?.trim().toLowerCase() ?? ''
+    const visible = needle
+        ? layersArray.filter(
+              (l) =>
+                  l.name.toLowerCase().includes(needle) ||
+                  String(l.index) === needle,
+          )
+        : layersArray
+    const capacity = keymap ? layers.length + (keymap.availableLayers || 0) : 0
 
     const previousLengthRef = useRef<number>(layers?.length ?? 0)
     useEffect(() => {
@@ -87,58 +110,118 @@ export const LayerPicker = ({
     }, [layers?.length, selectedLayerIndex, setSelectedLayerIndex])
 
     return (
-        <>
-            <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Layers
-            </SidebarGroupLabel>
-            <SidebarGroupAction
-                title="Add Layer"
-                onClick={add}
-                disabled={!canAdd}
-            >
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <span>
-                            <Plus className="size-4" />
+        <div className={scroll ? 'flex min-h-0 flex-1 flex-col' : undefined}>
+            <div className="flex items-center gap-1.5 px-2 pb-1.5">
+                <SidebarGroupLabel className="eyebrow h-auto p-0">
+                    Layers
+                </SidebarGroupLabel>
+                {capacity > layers.length && (
+                    <span className="text-caption text-muted-foreground">
+                        {layers.length} / {capacity}
+                    </span>
+                )}
+                <button
+                    type="button"
+                    onClick={() => setQuery(query === null ? '' : null)}
+                    aria-label="Search layers"
+                    aria-pressed={query !== null}
+                    className="ml-auto grid size-[22px] place-items-center rounded-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground aria-pressed:text-primary"
+                >
+                    <Search className="size-3.5" />
+                </button>
+                {variableCount && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                type="button"
+                                onClick={add}
+                                disabled={!addable}
+                                aria-label="Add layer"
+                                className="grid size-[22px] place-items-center rounded-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground disabled:opacity-40"
+                            >
+                                <Plus className="size-4" />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Add layer</p>
+                        </TooltipContent>
+                    </Tooltip>
+                )}
+            </div>
+            {query !== null && (
+                <label className="mx-0.5 mb-1.5 flex h-[30px] items-center gap-1.5 rounded-md border border-primary/45 bg-background px-2 text-muted-foreground">
+                    <Search className="size-3.5 shrink-0" />
+                    <input
+                        ref={searchRef}
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Escape') setQuery(null)
+                            if (e.key === 'Enter' && visible[0])
+                                selectionChanged(visible[0].index)
+                        }}
+                        placeholder="Search layers"
+                        aria-label="Search layers"
+                        className="min-w-0 flex-1 bg-transparent text-control text-foreground outline-none"
+                    />
+                    {needle && (
+                        <span className="shrink-0 text-caption">
+                            {visible.length} of {layers.length}
                         </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Add Layer</p>
-                    </TooltipContent>
-                </Tooltip>
-            </SidebarGroupAction>
-            <SidebarMenu className="gap-[3px]">
-                {layersArray.map((item) => (
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => setQuery(null)}
+                        aria-label="Close search"
+                        className="grid size-5 place-items-center rounded-sm hover:text-foreground"
+                    >
+                        <X className="size-3.5" />
+                    </button>
+                </label>
+            )}
+            <SidebarMenu
+                className={
+                    scroll
+                        ? 'min-h-0 flex-1 gap-[3px] overflow-y-auto'
+                        : 'gap-[3px]'
+                }
+            >
+                {visible.map((item) => (
                     <LayerListItem
                         key={item.id ?? item.index}
                         item={item}
                         selectedLayerIndex={selectedLayerIndex}
+                        count={layers.length}
+                        names={names}
                         canRemove={canRemove}
                         editable={editable}
+                        canRename={canRename}
                         dragHandlers={
-                            editable ? handlersFor(item.index) : undefined
+                            canReorder && !needle
+                                ? handlersFor(item.index)
+                                : undefined
                         }
                         isDragSource={dragSourceIndex === item.index}
                         isDragOver={dragOverIndex === item.index}
-                        onSelect={(idx) => {
-                            selectionChanged(idx)
-                            onLayerClicked?.(idx)
-                        }}
-                        onRemove={remove}
-                        onDuplicate={duplicate}
+                        onSelect={selectionChanged}
+                        onRemove={variableCount ? remove : undefined}
+                        onDuplicate={addable ? duplicate : undefined}
+                        onMove={canReorder ? move : undefined}
+                        onCopyFrom={copyKeysFrom}
                         onSaveNewLabel={handleSaveNewLabel}
                     />
                 ))}
             </SidebarMenu>
-            {/* Dashed add-layer affordance, matching the design's list footer. */}
-            <button
-                type="button"
-                onClick={add}
-                disabled={!canAdd}
-                className="mt-1 flex w-full items-center gap-2 rounded-[9px] border border-dashed border-sidebar-border px-2.5 py-2 text-[13px] font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:cursor-default disabled:opacity-40 disabled:hover:border-sidebar-border disabled:hover:text-muted-foreground"
-            >
-                <Plus className="size-4" /> Add layer
-            </button>
-        </>
+            {!scroll && variableCount && (
+                <button
+                    type="button"
+                    onClick={add}
+                    disabled={!addable}
+                    className="mt-1 flex w-full items-center gap-2 rounded-md border border-dashed border-sidebar-border px-2.5 py-2 text-panel-title font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:cursor-default disabled:opacity-40 disabled:hover:border-sidebar-border disabled:hover:text-muted-foreground"
+                >
+                    <Plus className="size-4" /> Add layer
+                </button>
+            )}
+        </div>
     )
 }

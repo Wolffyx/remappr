@@ -14,14 +14,7 @@ import { KeycodePickerGrid } from '@/features/keymap/keycode-picker/KeycodePicke
 import { Button } from '@/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/popover'
 
-const HID_PAGE_KEYBOARD = 0x07
-
-// Dynamic entries store keycodes as raw HID usages (keyboard page implied), while
-// the picker + HidUsageLabel speak the codec's packed (page<<16)|usage. Convert at
-// the boundary — same rule as dynamicBridge's keyOfUsage / usageOfKey (&0xffff).
-const rawToPacked = (raw: number): number =>
-    raw > 0 && raw < 1 << 16 ? (HID_PAGE_KEYBOARD << 16) | raw : raw
-const packedToRaw = (packed?: number): number => (packed ?? 0) & 0xffff
+import { packedToRaw, rawToPacked } from './hidUsage'
 
 export function KeycodeField({
     value,
@@ -53,7 +46,14 @@ export function KeycodeField({
                     )}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-2" align="start">
+            {/* A definite width: the grid is a size container (@container),
+                which has no width of its own, so a w-auto popover collapsed it
+                to a sliver. Height is capped to the room the popover has. */}
+            <PopoverContent
+                className="max-h-[min(30rem,var(--radix-popover-content-available-height))] w-[min(44rem,calc(100vw-2rem))] overflow-y-auto p-2"
+                align="start"
+                collisionPadding={16}
+            >
                 <KeycodePickerGrid
                     value={rawToPacked(value)}
                     onValueChanged={(v) => onChange(packedToRaw(v))}

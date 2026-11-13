@@ -8,9 +8,11 @@ import React, {
     useRef,
     useState,
 } from 'react'
-import { Maximize2, Minus, Plus } from 'lucide-react'
 import { HoldTapLabels, KeyButtonView } from './KeyButton.tsx'
 import { EncoderCap } from './EncoderCap'
+import { SliderCap } from './SliderCap'
+import { type SliderLegend, useSliderDirStore } from '@/features/sliders/model'
+import { ZoomHud } from './ZoomHud'
 import type { KnobLegend } from '@/features/encoders/knobLegend'
 import {
     type EncoderSelection,
@@ -24,6 +26,9 @@ import useUserSettingsStore, { type CapStyle } from '@/stores/userSettingsStore'
 import useConnectionStore from '@/stores/connectionStore'
 import type { HsvColor } from '@firmware/service'
 import type { KeyLightInput, UnifiedLighting } from '@/features/lighting/engine'
+import { ControlShape } from '@/features/devices/stage/ControlShape'
+import type { ControlShape as Shape } from '@firmware/devices/types'
+import type { PhysicalLayoutPart } from '@firmware/types'
 
 // Enabled solid cfg used to render per-key colours when no global effect is active
 // (e.g. paint mode with the device effect off) — the per-key colour overrides hue.
@@ -65,6 +70,14 @@ export type KeyPosition = PropsWithChildren<{
     // A knob, not a key: skipped by key-only paths (nav, heatmap, paint), and
     // carries the legend its cap shows per turn direction.
     knob?: KnobLegend
+    /** A keymap position that is not a keycap (a knob, slider or round
+     *  button): drawn as this control shape, clicked like any key. */
+    shape?: Shape
+    /** The knob sits on this keymap position: its centre is the key (the
+     *  press), clicked like any key. */
+    knobOnKey?: boolean
+    /** A slider at this keymap position: drawn as its own cap. */
+    slider?: SliderLegend
 }>
 
 // Pattern check: no GoF pattern (-) — rejected — plain prop/callback shape additions for
@@ -78,6 +91,9 @@ export interface ClickModifiers {
 
 interface PhysicalLayoutCanvasProps {
     positions: Array<KeyPosition>
+    /** Parts on the board that are not keymap positions (a screen, a
+     *  stick…), in centi-units: drawn, not clickable. */
+    parts?: readonly PhysicalLayoutPart[]
     selectedPosition?: number
     // Additional positions highlighted as part of a multi-selection.
     selectedPositions?: Set<number>
@@ -100,12 +116,6 @@ interface PhysicalLayoutCanvasProps {
     // Per-key colours (device HSV 0–255) indexed by key position; drives the glow
     // and shows the keyboard's / painted per-key colours.
     perKeyColors?: Array<HsvColor | null> | null
-    // Paint mode: clicks paint the key instead of selecting; right-click eyedrops.
-    paintMode?: boolean
-    onKeyPaint?: (position: number) => void
-    onKeyEyedrop?: (position: number) => void
-    // Paint gesture ended (pointerup) → flush coalesced writes to the device.
-    onPaintCommit?: () => void
     onPositionClicked?: (position: number, mods?: ClickModifiers) => void
     onEncoderClicked?: (sel: EncoderSelection) => void
     // Right-click on a key (not encoder) → host shows a context menu at the
@@ -127,6 +137,24 @@ interface PhysicalLayoutCanvasProps {
 // mutated, so a single shared instance is safe.
 const EMPTY_SET: ReadonlySet<number> = new Set<number>()
 
+const NO_PARTS: readonly PhysicalLayoutPart[] = []
+
+/** The board's right and bottom edge, in key units, from the parts alone. */
+function partBounds(parts: readonly PhysicalLayoutPart[]): {
+    rightMost: number
+    bottomMost: number
+} {
+    let rightMost = 0
+    let bottomMost = 0
+    for (const p of parts) {
+        rightMost = Math.max(rightMost, (p.x + p.w) / 100)
+        bottomMost = Math.max(bottomMost, (p.y + p.h) / 100)
+    }
+    return { rightMost, bottomMost }
+}
+
+const noop = (): void => {}
+
 const MIN_ZOOM = 0.4
 const MAX_ZOOM = 3.2
 
@@ -137,6 +165,10 @@ const MAX_ZOOM = 3.2
 const MIN_ONE_U = 34
 const MAX_ONE_U = 92
 const FIT_PADDING = 48
+// The editor's floating toolbar overlays the stage top (its bottom edge is
+// published as --toolbar-h); the viewport pads its top so the fitted board
+// starts just below it, never under it. A stage without the bar pads nothing.
+const TOOLBAR_CLEARANCE = `max(0px, calc(var(--toolbar-h, 0px) + 8px - ${FIT_PADDING}px))`
 
 // pattern-check: skip — rename View.scale→zoom + relative-zoom semantics, no new abstraction
 // User-adjusted view; null = follow auto-fit (zoom 1, no pan). `zoom` is the
@@ -152,6 +184,7 @@ interface View {
 
 const PhysicalLayoutCanvasImpl = ({
     positions,
+    parts = NO_PARTS,
     selectedPosition,
     selectedPositions,
     selectedEncoder,
@@ -165,10 +198,6 @@ const PhysicalLayoutCanvasImpl = ({
     tooltips = false,
     lighting = null,
     perKeyColors = null,
-    paintMode = false,
-    onKeyPaint,
-    onKeyEyedrop,
-    onPaintCommit,
     onPositionClicked,
     onEncoderClicked,
     onPositionContextMenu,
@@ -225,9 +254,9 @@ const PhysicalLayoutCanvasImpl = ({
                     rightMost: Math.max(acc.rightMost, x + width),
                     bottomMost: Math.max(acc.bottomMost, y + height),
                 }),
-                { rightMost: 0, bottomMost: 0 },
+                partBounds(parts),
             ),
-        [positions],
+        [positions, parts],
     )
 
     // pattern-check: skip — debounce wrapper around the existing refit callbacks
@@ -243,9 +272,10 @@ const PhysicalLayoutCanvasImpl = ({
             const vp = viewportRef.current
             if (!vp || rightMost === 0 || bottomMost === 0) return
             const fit = (): void => {
+                const padTop = parseFloat(getComputedStyle(vp).paddingTop) || 0
                 const u = Math.min(
                     (vp.clientWidth - FIT_PADDING * 2) / rightMost,
-                    (vp.clientHeight - FIT_PADDING * 2) / bottomMost,
+                    (vp.clientHeight - padTop - FIT_PADDING * 2) / bottomMost,
                 )
                 if (Number.isFinite(u)) {
                     setFitU(clamp(u, MIN_ONE_U, MAX_ONE_U))
@@ -519,11 +549,14 @@ const PhysicalLayoutCanvasImpl = ({
         ) as HTMLElement | null
         if (!el) return null
         const idx = Number(el.dataset.idx)
+        // A slider half says which direction the editor should open on.
+        const sliderDir = el.dataset.sliderDir
+        if (sliderDir === 'up' || sliderDir === 'down')
+            useSliderDirStore.getState().setDir(sliderDir)
         const hitId = el.dataset.encoder
         const encoder = hitId ? parseEncoderHitId(hitId) : null
         return encoder ? { idx, encoder } : { idx }
     }
-    // pattern-check: skip — event-delegation paint handlers, plain callbacks, no abstraction
     const handleBoardClick = useCallback(
         (e: React.MouseEvent): void => {
             const hit = keyFromEvent(e)
@@ -532,67 +565,25 @@ const PhysicalLayoutCanvasImpl = ({
                 onEncoderClicked?.(hit.encoder)
                 return
             }
-            // Paint mode: pointerdown/over already paints (and commits on
-            // pointerup); swallow the click so it doesn't select/edit the key.
-            if (paintMode) return
             onPositionClicked?.(hit.idx, {
                 shiftKey: e.shiftKey,
                 metaKey: e.metaKey,
                 ctrlKey: e.ctrlKey,
             })
         },
-        [paintMode, onEncoderClicked, onPositionClicked],
+        [onEncoderClicked, onPositionClicked],
     )
     const handleBoardContextMenu = useCallback(
         (e: React.MouseEvent): void => {
             const hit = keyFromEvent(e)
-            // Paint mode: right-click eyedrops the key's colour into the brush.
-            if (paintMode && hit && !hit.encoder) {
-                e.preventDefault()
-                onKeyEyedrop?.(hit.idx)
-                return
-            }
             if (!onPositionContextMenu) return
             if (!hit || hit.encoder) return
             e.preventDefault()
             onPositionContextMenu(hit.idx, { x: e.clientX, y: e.clientY })
         },
-        [paintMode, onKeyEyedrop, onPositionContextMenu],
+        [onPositionContextMenu],
     )
 
-    // Drag-to-paint: hold and sweep across keys. paintingRef tracks the held
-    // gesture; pointerover on each key paints it. A window pointerup ends it even
-    // if the release lands off the board.
-    const paintingRef = useRef(false)
-    const handleBoardPointerDown = useCallback(
-        (e: React.PointerEvent): void => {
-            if (!paintMode) return
-            const hit = keyFromEvent(e)
-            if (!hit || hit.encoder) return
-            paintingRef.current = true
-            onKeyPaint?.(hit.idx)
-        },
-        [paintMode, onKeyPaint],
-    )
-    const handleBoardPointerOver = useCallback(
-        (e: React.PointerEvent): void => {
-            if (!paintMode || !paintingRef.current) return
-            const hit = keyFromEvent(e)
-            if (!hit || hit.encoder) return
-            onKeyPaint?.(hit.idx)
-        },
-        [paintMode, onKeyPaint],
-    )
-    useEffect((): (() => void) | void => {
-        if (!paintMode) return
-        const end = (): void => {
-            if (!paintingRef.current) return
-            paintingRef.current = false
-            onPaintCommit?.() // flush the sweep's coalesced writes in one save
-        }
-        window.addEventListener('pointerup', end)
-        return (): void => window.removeEventListener('pointerup', end)
-    }, [paintMode, onPaintCommit])
     const handleBoardKeyDown = useCallback(
         (e: React.KeyboardEvent): void => {
             if (e.key !== 'Enter' && e.key !== ' ') return
@@ -628,10 +619,35 @@ const PhysicalLayoutCanvasImpl = ({
         })
     }, [positions, lighting, perKeyColors, rightMost, bottomMost])
 
+    const sliderDir = useSliderDirStore((s) => s.dir)
     const keysPositions = useMemo(
         () =>
             positions.map((p, idx) => {
                 const posStyle = scalePosition(p, effOneU)
+                if (p.slider) {
+                    return (
+                        <div
+                            key={p.id}
+                            className="absolute leading-[0]"
+                            style={posStyle as React.CSSProperties}
+                        >
+                            <SliderCap
+                                legend={p.slider}
+                                width={p.width}
+                                height={p.height}
+                                oneU={effOneU}
+                                idx={idx}
+                                selectedDir={
+                                    idx === selectedPosition ? sliderDir : null
+                                }
+                                capStyle={capStyle}
+                                colorMode={colorMode}
+                                keyDisplayMode={keyDisplayMode}
+                                showHeaderTag={showHeaderTag}
+                            />
+                        </div>
+                    )
+                }
                 if (p.knob) {
                     // A knob: one cap, whose own hit zones carry
                     // data-encoder per turn direction.
@@ -648,6 +664,10 @@ const PhysicalLayoutCanvasImpl = ({
                         >
                             <EncoderCap
                                 knob={p.knob}
+                                pressIdx={p.knobOnKey ? idx : undefined}
+                                pressSelected={
+                                    !!p.knobOnKey && idx === selectedPosition
+                                }
                                 width={p.width}
                                 height={p.height}
                                 oneU={effOneU}
@@ -671,22 +691,57 @@ const PhysicalLayoutCanvasImpl = ({
                         data-zoomer={hoverZoom}
                         style={posStyle as React.CSSProperties}
                     >
-                        <KeyButtonView
-                            hoverZoom={hoverZoom}
-                            oneU={effOneU}
-                            selected={idx === selectedPosition}
-                            multiSelected={!!selectedPositions?.has(idx)}
-                            pressed={pressedKeys.has(idx)}
-                            seen={seenKeys.has(idx)}
-                            richTooltip={tooltips}
-                            capStyle={capStyle}
-                            colorMode={colorMode}
-                            keyDisplayMode={keyDisplayMode}
-                            showHeaderTag={showHeaderTag}
-                            showCategoryDot={showCategoryDot}
-                            light={lightInputs?.[idx] ?? null}
-                            {...p}
-                        />
+                        {p.shape ? (
+                            <ControlShape
+                                control={{
+                                    id: p.id ?? String(idx),
+                                    name: p.tapText ?? '',
+                                    shape: p.shape,
+                                    x: 0,
+                                    y: 0,
+                                    w: p.width,
+                                    h: p.height,
+                                    glyph: p.tapText,
+                                }}
+                                box={{
+                                    x: 0,
+                                    y: 0,
+                                    w: p.width * effOneU,
+                                    h: p.height * effOneU,
+                                }}
+                                summary={{
+                                    text: p.tapText ?? '',
+                                    cat: p.tapText ? 'key' : 'none',
+                                }}
+                                selected={
+                                    idx === selectedPosition ||
+                                    !!selectedPositions?.has(idx)
+                                }
+                                hovered={false}
+                                mono={false}
+                                live={false}
+                                preview
+                                onSelect={noop}
+                                onHover={noop}
+                            />
+                        ) : (
+                            <KeyButtonView
+                                hoverZoom={hoverZoom}
+                                oneU={effOneU}
+                                selected={idx === selectedPosition}
+                                multiSelected={!!selectedPositions?.has(idx)}
+                                pressed={pressedKeys.has(idx)}
+                                seen={seenKeys.has(idx)}
+                                richTooltip={tooltips}
+                                capStyle={capStyle}
+                                colorMode={colorMode}
+                                keyDisplayMode={keyDisplayMode}
+                                showHeaderTag={showHeaderTag}
+                                showCategoryDot={showCategoryDot}
+                                light={lightInputs?.[idx] ?? null}
+                                {...p}
+                            />
+                        )}
                     </div>
                 )
             }),
@@ -696,6 +751,7 @@ const PhysicalLayoutCanvasImpl = ({
             selectedPosition,
             selectedPositions,
             selectedEncoder,
+            sliderDir,
             pressedKeys,
             seenKeys,
             lightInputs,
@@ -733,22 +789,60 @@ const PhysicalLayoutCanvasImpl = ({
             onClick={handleBoardClick}
             onContextMenu={handleBoardContextMenu}
             onKeyDown={handleBoardKeyDown}
-            onPointerDown={paintMode ? handleBoardPointerDown : undefined}
-            onPointerOver={paintMode ? handleBoardPointerOver : undefined}
             {...props}
         >
             {keysPositions}
+            {parts.map((p) => (
+                <div
+                    key={p.id}
+                    aria-hidden
+                    className="pointer-events-none absolute"
+                    style={{
+                        left: (p.x / 100) * effOneU,
+                        top: (p.y / 100) * effOneU,
+                        width: (p.w / 100) * effOneU,
+                        height: (p.h / 100) * effOneU,
+                    }}
+                >
+                    <ControlShape
+                        control={{
+                            id: p.id,
+                            name: p.name,
+                            shape: p.shape,
+                            x: 0,
+                            y: 0,
+                            w: p.w / 100,
+                            h: p.h / 100,
+                            ...(p.r ? { r: p.r / 100 } : {}),
+                            ...(p.glyph ? { glyph: p.glyph } : {}),
+                        }}
+                        box={{
+                            x: 0,
+                            y: 0,
+                            w: (p.w / 100) * effOneU,
+                            h: (p.h / 100) * effOneU,
+                        }}
+                        summary={{ text: '', cat: 'none' }}
+                        selected={false}
+                        hovered={false}
+                        mono={false}
+                        live={false}
+                        preview
+                        onSelect={noop}
+                        onHover={noop}
+                    />
+                </div>
+            ))}
         </div>
     )
 
     if (!pannable) return <>{board}</>
 
-    // Show zoom relative to fit (100% = fitted), matching the design prototype.
-    const livePct = Math.round(zoomLevel * 100)
     return (
         <div
             ref={viewportRef}
             className="absolute inset-0 overflow-hidden flex items-center justify-center touch-none select-none cursor-grab active:cursor-grabbing"
+            style={{ paddingTop: TOOLBAR_CLEARANCE }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -756,44 +850,14 @@ const PhysicalLayoutCanvasImpl = ({
             onDoubleClick={onDoubleClick}
         >
             {board}
-            <div
-                data-zoomhud="true"
-                className="absolute top-3 right-3 flex items-center gap-1 rounded-lg border border-border bg-card px-1 py-1 shadow-sm"
-            >
-                <ZoomButton label="Zoom out" onClick={() => zoomBy(1 / 1.15)}>
-                    <Minus className="size-4" />
-                </ZoomButton>
-                <span className="min-w-12 text-center text-xs font-mono tabular-nums text-muted-foreground">
-                    {livePct}%
-                </span>
-                <ZoomButton label="Zoom in" onClick={() => zoomBy(1.15)}>
-                    <Plus className="size-4" />
-                </ZoomButton>
-                <ZoomButton label="Reset view" onClick={() => setView(null)}>
-                    <Maximize2 className="size-4" />
-                </ZoomButton>
-            </div>
+            <ZoomHud
+                zoom={zoomLevel}
+                onZoomBy={zoomBy}
+                onReset={() => setView(null)}
+            />
         </div>
     )
 }
 
 // pattern-check: skip — memo wrapper around the existing canvas component, no abstraction
 export const PhysicalLayoutCanvas = memo(PhysicalLayoutCanvasImpl)
-
-function ZoomButton({
-    label,
-    onClick,
-    children,
-}: PropsWithChildren<{ label: string; onClick: () => void }>): JSX.Element {
-    return (
-        <button
-            type="button"
-            aria-label={label}
-            title={label}
-            onClick={onClick}
-            className="flex size-7 items-center justify-center rounded-md text-foreground hover:bg-accent transition-colors"
-        >
-            {children}
-        </button>
-    )
-}

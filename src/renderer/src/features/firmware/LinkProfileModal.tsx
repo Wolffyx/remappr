@@ -11,6 +11,8 @@
 // enforces at COMMIT, so the editor never offers — or saves — an out-of-range or
 // cross-knob-inconsistent combo. Edits local state, stages one setNode({
 // linkProfile }) patch, and pushes on commit().
+import { FormGrid, FormRow } from '@/ui/form-row'
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useRef, useState } from 'react'
 import { Gauge, RotateCcw } from 'lucide-react'
 
@@ -22,10 +24,11 @@ import {
 
 import useConnectionStore from '@/stores/connectionStore'
 import { saveWithToast } from '@/lib/saveWithToast'
+import { LearnMore } from '@/ui/learn-more'
 import { Modal } from '@/ui/modal'
+import type { PanelFrame } from './clusterFrame'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
-import { Input } from '@/ui/input'
 import {
     Select,
     SelectContent,
@@ -48,6 +51,8 @@ import {
 interface Props {
     opened: boolean
     onClose: () => void
+    /** The dialog chrome; the merged Cluster dialog passes a tab frame. */
+    frame?: PanelFrame
 }
 
 type Profile = ConfigLinkProfile['profile']
@@ -57,7 +62,11 @@ const cloneProfile = (lp: ConfigLinkProfile): ConfigLinkProfile => ({
     ...(lp.overrides ? { overrides: lp.overrides.map((o) => ({ ...o })) } : {}),
 })
 
-export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
+export function LinkProfileModal({
+    opened,
+    onClose,
+    frame: Frame = Modal,
+}: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
     const configEditing = supportsConfigEditing(service) ? service : null
 
@@ -113,13 +122,17 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
         }
         configEditing.setNode({ linkProfile: form })
         setSaving(true)
-        const r = await saveWithToast(
-            () => service.commit(),
+        // commit() resolves to nothing, so success is a flag, not the result.
+        const saved = await saveWithToast(
+            async () => {
+                await service.commit()
+                return true
+            },
             'Link profile saved',
             'Failed to save link profile',
         )
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
     const profileHelp = LINK_PROFILE_OPTIONS.find(
@@ -127,11 +140,18 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
     )?.help
 
     return (
-        <Modal
+        <Frame
+            size="md"
             opened={opened}
             onClose={onClose}
             title="Link profile"
-            subtitle="Node-bus latency, election cadence, and power tier"
+            subtitle={
+                <>
+                    How fast nodes talk, how quickly a main node is chosen, and
+                    power use.{' '}
+                    <LearnMore path="guide/app/advanced#link-profile" />
+                </>
+            }
             headerIcon={<Gauge />}
             footer={
                 <>
@@ -173,95 +193,95 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
 
                 <div className="flex flex-col gap-3 rounded-lg border p-3">
                     <div className="flex items-center justify-between">
-                        <h3 className="font-semibold">Knob overrides</h3>
+                        <h3 className="font-semibold">Advanced values</h3>
                         {!liveLimits && (
                             <span className="text-xs text-muted-foreground">
-                                built-in ranges
+                                Built-in ranges
                             </span>
                         )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Each knob defaults to the base profile&apos;s value.
-                        Change one to override it — the firmware bounds and
-                        re-validates every value at save.
+                        Each value starts from the chosen profile; change one to
+                        override it. The device checks every value when you
+                        save.
                     </p>
 
-                    {LINK_KNOB_FIELDS.map((field) => {
-                        const value = linkKnobValue(form, field.knob)
-                        const range = linkKnobRange(field.knob, liveOrUndef)
-                        const base = LINK_PROFILE_BASE[form.profile][field.knob]
-                        const overridden = value !== base
-                        return (
-                            <div
-                                key={field.knob}
-                                className="flex flex-col gap-1"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <Label className="text-xs">
-                                        {field.label}
-                                        {field.unit ? ` (${field.unit})` : ''}
-                                    </Label>
-                                    {overridden && (
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            onClick={() =>
-                                                setKnob(field.knob, base)
+                    <FormGrid>
+                        {LINK_KNOB_FIELDS.map((field) => {
+                            const value = linkKnobValue(form, field.knob)
+                            const range = linkKnobRange(field.knob, liveOrUndef)
+                            const base =
+                                LINK_PROFILE_BASE[form.profile][field.knob]
+                            const overridden = value !== base
+                            return (
+                                <FormRow
+                                    key={field.knob}
+                                    label={field.label}
+                                    hint={`${field.help}${
+                                        field.enumOptions
+                                            ? ''
+                                            : ` · ${range.min}–${range.max}`
+                                    }${overridden ? ' · changed' : ''}`}
+                                    action={
+                                        overridden && (
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="size-6"
+                                                onClick={() =>
+                                                    setKnob(field.knob, base)
+                                                }
+                                                disabled={saving}
+                                                aria-label={`Reset ${field.label} to the profile default`}
+                                            >
+                                                <RotateCcw className="size-3.5" />
+                                            </Button>
+                                        )
+                                    }
+                                >
+                                    {field.enumOptions ? (
+                                        <Select
+                                            value={String(value)}
+                                            onValueChange={(v) =>
+                                                setKnob(
+                                                    field.knob,
+                                                    parseInt(v, 10),
+                                                )
                                             }
-                                            disabled={saving}
-                                            aria-label={`Reset ${field.label} to the profile default`}
                                         >
-                                            <RotateCcw className="size-4" />
-                                        </Button>
+                                            <SelectTrigger className="w-56">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {field.enumOptions.map((o) => (
+                                                    <SelectItem
+                                                        key={o.value}
+                                                        value={String(o.value)}
+                                                    >
+                                                        {o.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <NumberInput
+                                            unit={field.unit}
+                                            min={range.min}
+                                            max={range.max}
+                                            value={value}
+                                            onChange={(e) =>
+                                                setKnob(
+                                                    field.knob,
+                                                    num(e.target.value),
+                                                )
+                                            }
+                                        />
                                     )}
-                                </div>
-                                {field.enumOptions ? (
-                                    <Select
-                                        value={String(value)}
-                                        onValueChange={(v) =>
-                                            setKnob(field.knob, parseInt(v, 10))
-                                        }
-                                    >
-                                        <SelectTrigger className="w-64">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {field.enumOptions.map((o) => (
-                                                <SelectItem
-                                                    key={o.value}
-                                                    value={String(o.value)}
-                                                >
-                                                    {o.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                ) : (
-                                    <Input
-                                        type="number"
-                                        min={range.min}
-                                        max={range.max}
-                                        value={value}
-                                        onChange={(e) =>
-                                            setKnob(
-                                                field.knob,
-                                                num(e.target.value),
-                                            )
-                                        }
-                                    />
-                                )}
-                                <p className="text-xs text-muted-foreground">
-                                    {field.help}
-                                    {!field.enumOptions &&
-                                        ` · ${range.min}–${range.max}`}
-                                    {overridden
-                                        ? ' · overridden'
-                                        : ' · default'}
-                                </p>
-                            </div>
-                        )
-                    })}
+                                </FormRow>
+                            )
+                        })}
+                    </FormGrid>
 
                     {error && (
                         <span className="text-xs text-destructive">
@@ -270,6 +290,6 @@ export function LinkProfileModal({ opened, onClose }: Props): JSX.Element {
                     )}
                 </div>
             </div>
-        </Modal>
+        </Frame>
     )
 }

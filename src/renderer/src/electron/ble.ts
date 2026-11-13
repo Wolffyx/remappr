@@ -9,7 +9,11 @@
  * requestDevice() chooser elsewhere.
  */
 
-import { IpcChannels, IpcEvents } from '../../../shared/ipc-types'
+import {
+    IpcChannels,
+    IpcEvents,
+    type LinkConnectResult,
+} from '../../../shared/ipc-types'
 import type { Transport } from '@firmware'
 import type { AvailableDevice } from '@/transport'
 import { TransportAdapter } from '../transport/adapter/base'
@@ -17,6 +21,7 @@ import {
     electronIpc,
     type IpcConnectResult,
     IpcTransportAdapter,
+    linkIdOf,
 } from '../transport/adapter/ipc-adapter'
 import { registerTransport } from '../transport/adapter/registry'
 
@@ -200,11 +205,14 @@ export class ElectronBluezAdapter extends IpcTransportAdapter {
             devicePath: this.dev.id,
             serviceUuid: this.serviceUuid,
             charUuid: this.charUuid,
-        })) as { ok: boolean; label?: string; error?: string }
+        })) as LinkConnectResult
         if (!result.ok) {
             throw new Error(result.error ?? 'Failed to connect via BlueZ')
         }
-        return { label: result.label ?? this.dev.label ?? 'BLE Device' }
+        return {
+            label: result.label ?? this.dev.label ?? 'BLE Device',
+            linkId: linkIdOf(result),
+        }
     }
 }
 
@@ -362,6 +370,7 @@ registerTransport({
         return {
             label: 'BLE',
             communication: 'ble',
+            singleLink: true,
             isWireless: true,
             pick_and_connect: {
                 list: () => list_devices(ble.serviceUuid, ble.charUuid),

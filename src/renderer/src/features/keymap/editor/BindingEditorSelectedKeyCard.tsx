@@ -19,10 +19,10 @@ export function SelectedKeyCard({
                 <div className="truncate text-sm font-bold text-foreground">
                     {info.header}
                 </div>
-                <div className="truncate text-[11.5px] text-muted-foreground">
+                <div className="truncate text-xs text-muted-foreground">
                     {category}
                 </div>
-                <div className="text-[11px] text-muted-foreground">
+                <div className="text-caption text-muted-foreground">
                     {layerName} layer
                 </div>
             </div>
