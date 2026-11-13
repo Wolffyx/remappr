@@ -28,6 +28,7 @@ import { AppSelect } from '@/ui/app-select'
 import { Button } from '@/ui/button'
 import { NumberInput } from '@/ui/number-input'
 import { SLIDER_DIRS, useSliderDirStore } from './model'
+import { SliderCalibration } from './SliderCalibration'
 import { useSliderEditor } from './useSliderEditor'
 
 const FOLLOWS: Record<string, string> = {
@@ -282,6 +283,9 @@ export function SliderEditor({
                     A custom action from the design file; pick another use to
                     change it.
                 </p>
+            )}
+            {service?.sensor && editor.canEdit && (
+                <SliderCalibration sensor={service.sensor} slot={slot} />
             )}
         </div>
     )

@@ -14,6 +14,7 @@ import type {
 import { sliderMapInfo, type SliderMap } from '@firmware/config'
 import { knobSide, type KnobSide } from '@/features/encoders/knobLegend'
 import type { KeyCategory } from '@/lib/keymap/keyCategory'
+import type { SensorInfo } from '@firmware/devices/types'
 
 export type SliderDir = 'down' | 'up'
 
@@ -161,4 +162,13 @@ export function effectiveSlider(
         layers[0]?.sliders?.[slot] ??
         undefined
     )
+}
+
+/** The SLIDER part slot `slot` drives (the part of the same rank among the
+ *  device's SLIDER parts), or null when the device has none. */
+export function sliderPartOf(
+    parts: readonly SensorInfo[],
+    slot: number,
+): SensorInfo | null {
+    return parts.filter((p) => p.cls === 'slider')[slot] ?? null
 }

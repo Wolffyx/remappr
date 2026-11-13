@@ -293,6 +293,41 @@ function ProcedureRunner({
 
 // ---------------------------------------------------------------------------
 
+/** One part's live readings and the procedures it offers, as it describes
+ *  them (any class: a mouse sensor, a keyboard's slider…). */
+export function PartPanel({
+    api,
+    info,
+}: {
+    api: SensorApi
+    info: SensorInfo
+}): JSX.Element {
+    return (
+        <>
+            {info.metrics.length > 0 && (
+                <SensorReadings
+                    api={api}
+                    index={info.index}
+                    metrics={info.metrics}
+                />
+            )}
+            {info.procedures.map((p) => (
+                <ProcedureRunner
+                    key={p.name}
+                    api={api}
+                    index={info.index}
+                    proc={p}
+                />
+            ))}
+            {info.metrics.length === 0 && info.procedures.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    This part reports no readings or procedures.
+                </p>
+            )}
+        </>
+    )
+}
+
 export function SensorPanel({ sensor }: { sensor: SensorApi }): JSX.Element {
     const [info, setInfo] = useState<SensorInfo | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -316,29 +351,7 @@ export function SensorPanel({ sensor }: { sensor: SensorApi }): JSX.Element {
                     Reading the sensor…
                 </p>
             ) : (
-                <>
-                    {info.metrics.length > 0 && (
-                        <SensorReadings
-                            api={sensor}
-                            index={info.index}
-                            metrics={info.metrics}
-                        />
-                    )}
-                    {info.procedures.map((p) => (
-                        <ProcedureRunner
-                            key={p.name}
-                            api={sensor}
-                            index={info.index}
-                            proc={p}
-                        />
-                    ))}
-                    {info.metrics.length === 0 &&
-                        info.procedures.length === 0 && (
-                            <p className="text-sm text-muted-foreground">
-                                This sensor reports no readings or procedures.
-                            </p>
-                        )}
-                </>
+                <PartPanel api={sensor} info={info} />
             )}
         </SettingsSection>
     )
