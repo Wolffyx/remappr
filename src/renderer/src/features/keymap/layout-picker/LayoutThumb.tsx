@@ -3,11 +3,12 @@ import { useMemo } from 'react'
 import type { PhysicalLayout } from '@firmware/types'
 import { MiniKeyboardPreview } from '@/features/connection/start-page/MiniKeyboardPreview'
 import type { PreviewEncoder, PreviewKey } from '@/stores/devicePreviewStore'
+import { freeSliderBoxes } from '@/features/sliders/model'
 
 // Layouts are in centi-units and centi-degrees; the preview takes units.
 const C = 100
 
-/** A physical layout's shape only: blank caps and knobs, no bindings, so the
+/** A physical layout's shape only: blank caps, knobs and sliders, no bindings, so the
  *  layouts can be told apart by their geometry alone. */
 // pattern-check: skip — presentational props change (fit box instead of fixed key size)
 export function LayoutThumb({
@@ -15,13 +16,13 @@ export function LayoutThumb({
     fit,
     maxOneU,
 }: {
-    layout: Pick<PhysicalLayout, 'keys' | 'encoders'>
+    layout: Pick<PhysicalLayout, 'keys' | 'encoders' | 'sliders'>
     /** The box (px) the whole layout must fit in. */
     fit: { width: number; height: number }
     /** Largest key size (px), so small boards don't blow up. */
     maxOneU: number
 }): JSX.Element {
-    const { keys, encoders, oneU } = useMemo(() => {
+    const { keys, encoders, sliders, oneU } = useMemo(() => {
         const keys = layout.keys.map(
             (k): PreviewKey => ({
                 x: k.x / C,
@@ -37,15 +38,24 @@ export function LayoutThumb({
         const encoders = (layout.encoders ?? []).map(
             (e): PreviewEncoder => ({ x: e.x / C, y: e.y / C }),
         )
+        const sliders = freeSliderBoxes(layout)
         // Knobs draw as 1u caps, like keys.
         const extent = [
             ...keys,
             ...encoders.map((e) => ({ ...e, width: 1, height: 1 })),
+            ...sliders,
         ]
         const spanX = Math.max(1, ...extent.map((k) => k.x + k.width))
         const spanY = Math.max(1, ...extent.map((k) => k.y + k.height))
         const oneU = Math.min(maxOneU, fit.width / spanX, fit.height / spanY)
-        return { keys, encoders, oneU }
+        return { keys, encoders, sliders, oneU }
     }, [layout, fit.width, fit.height, maxOneU])
-    return <MiniKeyboardPreview keys={keys} encoders={encoders} oneU={oneU} />
+    return (
+        <MiniKeyboardPreview
+            keys={keys}
+            encoders={encoders}
+            sliders={sliders}
+            oneU={oneU}
+        />
+    )
 }

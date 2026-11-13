@@ -110,11 +110,30 @@ export function sliderLegend(
 /** The slots of sliders with no key of their own (a device's fader), in slot
  *  order: the stage draws them after the keys, so position keys.length + j is
  *  the j-th of them. */
-export function freeSliderSlots(layout: PhysicalLayout | undefined): number[] {
+export function freeSliderSlots(
+    layout: Pick<PhysicalLayout, 'keys' | 'sliders'> | undefined,
+): number[] {
     const keyCount = layout?.keys.length ?? 0
     return (layout?.sliders ?? []).flatMap((s, i) =>
         s.key === undefined || s.key >= keyCount ? [i] : [],
     )
+}
+
+/** The free sliders' boxes in keyboard units (the layout's are centi-units),
+ *  for previews that draw the board's shape only. */
+export function freeSliderBoxes(
+    layout: Pick<PhysicalLayout, 'keys' | 'sliders'> | undefined,
+): { x: number; y: number; width: number; height: number; r?: number }[] {
+    return freeSliderSlots(layout).map((slot) => {
+        const s = layout!.sliders![slot]!
+        return {
+            x: s.x / 100,
+            y: s.y / 100,
+            width: (s.w ?? 100) / 100,
+            height: (s.h ?? 100) / 100,
+            ...(s.r ? { r: s.r / 100 } : {}),
+        }
+    })
 }
 
 /** The slider slot at a stage position: a slider key's slot, or a free

@@ -1,7 +1,12 @@
 // pattern-check: skip vitest cases over the slider slot lookups
 import { describe, expect, it } from 'vitest'
 import type { Layer, PhysicalLayout } from '@firmware/types'
-import { effectiveSlider, freeSliderSlots, sliderSlotAt } from './model'
+import {
+    effectiveSlider,
+    freeSliderBoxes,
+    freeSliderSlots,
+    sliderSlotAt,
+} from './model'
 
 const key = { x: 0, y: 0, w: 100, h: 100 }
 // Keys 0..2; slot 0 is key 2, slot 1 a fader of its own, slot 2 key 1.
@@ -25,6 +30,13 @@ describe('slider slots on the stage', () => {
         expect(sliderSlotAt(LAYOUT, 0)).toBe(-1)
         expect(sliderSlotAt(LAYOUT, 4)).toBe(-1)
         expect(sliderSlotAt(undefined, 0)).toBe(-1)
+    })
+
+    it('previews draw a free slider’s box in keyboard units', () => {
+        expect(freeSliderBoxes(LAYOUT)).toEqual([
+            { x: 6.5, y: 0, width: 0.5, height: 4 },
+        ])
+        expect(freeSliderBoxes(undefined)).toEqual([])
     })
 
     it('a layer that sets nothing follows the base layer', () => {

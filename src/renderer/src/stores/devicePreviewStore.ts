@@ -25,6 +25,16 @@ export interface PreviewEncoder {
     y: number
 }
 
+/** A slider with no key of its own (a device's fader): its box, in keyboard
+ *  units like PreviewKey. */
+export interface PreviewSlider {
+    x: number
+    y: number
+    width: number
+    height: number
+    r?: number
+}
+
 /**
  * A snapshot of a device's base layer, captured while connected and shown on its
  * start-page card after disconnect. Keyed by the device's stable list id (falling
@@ -44,6 +54,7 @@ export interface DevicePreviewSnapshot {
     layerCount: number
     keys: PreviewKey[]
     encoders?: PreviewEncoder[]
+    sliders?: PreviewSlider[]
     /** Set for a controls device; `keys` is then empty. */
     device?: PreviewDevice
     savedAt: number

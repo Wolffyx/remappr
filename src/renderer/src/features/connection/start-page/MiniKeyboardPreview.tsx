@@ -1,5 +1,5 @@
 // Pattern check: no GoF pattern (-) — rejected — presentational mapper from cached PreviewKey[]
-// + encoder slots (or a generic fallback board) to PhysicalLayoutCanvas positions; no abstraction.
+// + encoder and free slider slots (or a generic fallback board) to PhysicalLayoutCanvas positions; no abstraction.
 import {
     PhysicalLayoutCanvas,
     type KeyPosition,
@@ -7,7 +7,12 @@ import {
 import type { KeyCategory } from '@/lib/keymap/keyCategory'
 import type { KnobLegend } from '@/features/encoders/knobLegend'
 import { ENCODER_DIRS } from '@/features/encoders/model'
-import type { PreviewEncoder, PreviewKey } from '@/stores/devicePreviewStore'
+import type { SliderLegend } from '@/features/sliders/model'
+import type {
+    PreviewEncoder,
+    PreviewKey,
+    PreviewSlider,
+} from '@/stores/devicePreviewStore'
 
 // A generic split-ish 3×5 cluster used purely as a visual flourish when no real
 // layout has been cached yet (device never connected).
@@ -33,6 +38,7 @@ const MINI_POSITIONS: KeyPosition[] = ROW_CATEGORIES.flatMap((row, y) =>
 function toPositions(
     keys: PreviewKey[],
     encoders: PreviewEncoder[],
+    sliders: PreviewSlider[],
 ): KeyPosition[] {
     const caps = keys.map(
         (k, i): KeyPosition => ({
@@ -57,7 +63,20 @@ function toPositions(
             knob: blankKnob(slot),
         }),
     )
-    return [...caps, ...knobs]
+    const faders = sliders.map(
+        (s, i): KeyPosition => ({
+            id: `prev-sld-${i}`,
+            ...s,
+            slider: BLANK_SLIDER,
+        }),
+    )
+    return [...caps, ...knobs, ...faders]
+}
+
+const BLANK_SLIDER: SliderLegend = {
+    title: '',
+    kind: 'none',
+    category: 'alpha',
 }
 
 const blankKnob = (slot: number): KnobLegend =>
@@ -73,16 +92,21 @@ interface MiniKeyboardPreviewProps {
     keys?: PreviewKey[]
     /** Cached encoder slots, drawn as blank knobs. */
     encoders?: PreviewEncoder[]
+    /** Cached free sliders (a device's fader), drawn as blank slider caps. */
+    sliders?: PreviewSlider[]
     oneU?: number
 }
 
 export function MiniKeyboardPreview({
     keys,
     encoders = [],
+    sliders = [],
     oneU = 14,
 }: MiniKeyboardPreviewProps): JSX.Element {
     const positions =
-        keys && keys.length > 0 ? toPositions(keys, encoders) : MINI_POSITIONS
+        keys && keys.length > 0
+            ? toPositions(keys, encoders, sliders)
+            : MINI_POSITIONS
     return (
         <div
             className="pointer-events-none leading-[0]"

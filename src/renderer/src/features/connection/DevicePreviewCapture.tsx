@@ -10,6 +10,7 @@ import useDevicePreviewStore, {
     type PreviewKey,
 } from '@/stores/devicePreviewStore'
 import { categoryForBinding } from '@/lib/keymap/keyCategory'
+import { freeSliderBoxes } from '@/features/sliders/model'
 
 /**
  * Mounted in the editor; while connected, captures the device's base-layer geometry,
@@ -71,8 +72,10 @@ export function DevicePreviewCapture(): null {
             y: y / 100,
         }))
 
+        const sliders = freeSliderBoxes(layout)
+
         const key = lastConnectedDevice?.id ?? service.deviceInfo.name
-        const signature = `${key}|${selectedPhysicalLayoutIndex}|${keymap.layers.length}|${encoders.length}|${keys
+        const signature = `${key}|${selectedPhysicalLayoutIndex}|${keymap.layers.length}|${encoders.length}|${sliders.length}|${keys
             .map((k) => k.category)
             .join(',')}`
         if (signature === lastSignature.current) return
@@ -85,6 +88,7 @@ export function DevicePreviewCapture(): null {
             layerCount: keymap.layers.length,
             keys,
             encoders,
+            sliders,
             savedAt: Date.now(),
         })
     }, [
