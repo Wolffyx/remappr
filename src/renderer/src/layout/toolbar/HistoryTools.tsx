@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Redo2, Save, Trash2, Undo2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { toastDeviceError } from '@/lib/saveWithToast'
 
 import { capabilityWarnings } from '@firmware/config'
 import { applySaveMode, isSaveModeManaged } from '@/lib/saveMode'
@@ -93,10 +94,9 @@ export function HistoryTools(): JSX.Element {
         } catch (e) {
             console.error('Failed to save changes', e)
             // Adapters throw a descriptive reason (e.g. ZMK maps its
-            // SaveChangesErrorCode); surface it so the user knows WHY.
-            toast.error(
-                e instanceof Error ? e.message : 'Failed to save changes',
-            )
+            // SaveChangesErrorCode, a device its raw status); surface it, with
+            // what to do about it, so the user knows WHY and what next.
+            toastDeviceError('Failed to save changes', e)
         } finally {
             setSaving(false)
         }

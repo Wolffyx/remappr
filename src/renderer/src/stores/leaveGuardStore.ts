@@ -4,6 +4,7 @@ import { devtools } from 'zustand/middleware'
 import { toast } from 'sonner'
 import type { KeyboardService } from '@firmware/service'
 import { isSaveModeManaged } from '@/lib/saveMode'
+import { toastDeviceError } from '@/lib/saveWithToast'
 
 /**
  * The unsaved-changes guard. Leaving a device (disconnect, back to the dongle,
@@ -63,7 +64,7 @@ async function save(p: Pending): Promise<void> {
     } catch (e) {
         // Stay: the edits are still there to save again, discard or keep.
         console.error('Failed to save changes before leaving', e)
-        toast.error(errorText(e, 'Failed to save changes'))
+        toastDeviceError('Failed to save changes', e)
         if (pending === p) useLeaveGuardStore.setState({ busy: null })
         return
     }

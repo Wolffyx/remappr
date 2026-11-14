@@ -13,7 +13,7 @@ import type { ConfigPowerSettings } from '@firmware/config'
 import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveConfigSection } from '@/lib/saveConfigSection'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
 import { PowerSection } from '@/features/device/PowerSection'
@@ -50,17 +50,14 @@ export function PowerSettingsModal({ opened, onClose }: Props): JSX.Element {
         }
         // {} rather than undefined: setNode drops a key set to undefined (back
         // to the committed value), and an empty section writes no TBL_POWER.
-        configEditing.setNode({ power: power ?? {} })
         setSaving(true)
-        // commit() resolves to nothing, so success is a flag, not the result.
-        const saved = await saveWithToast(
-            async () => {
-                await service.commit()
-                return true
-            },
-            'Power settings saved',
-            'Failed to save power settings',
-        )
+        const saved = await saveConfigSection({
+            service,
+            section: 'Power settings',
+            stage: () => configEditing.setNode({ power: power ?? {} }),
+            successMessage: 'Power settings saved',
+            errorPrefix: 'Failed to save power settings',
+        })
         setSaving(false)
         if (saved) onClose()
     }

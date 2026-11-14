@@ -8,7 +8,7 @@ import type { LockState } from '@firmware/types'
 import useDynamicCatalogStore from '@/stores/dynamicCatalogStore'
 import useConfigStore from '@/stores/configStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
-import { withSaveMode } from '@/lib/saveMode'
+import { cancelAutoSave, withSaveMode } from '@/lib/saveMode'
 import { confirmLeave, dismissLeavePrompt } from '@/stores/leaveGuardStore'
 import useLayerSelectionStore from '@/stores/layerSelectionStore'
 import useKeymapStore from '@/stores/keymapStore'
@@ -143,11 +143,17 @@ const useConnectionStore = create<ConnectionState>()(
             connectionAbort: new AbortController(),
             lastConnectedDevice: null,
             setService: (service, communication) => {
+                // The service being left (unplug, node / parent / device swap)
+                // must not auto-save once it is gone: the save would hit a
+                // closed transport or a view no longer shown.
+                const prev = get().service
+                if (prev !== service) cancelAutoSave(prev)
                 // Leaving every device (service → null, e.g. an onClosed from a
                 // dropped dongle transport) also drops any node-view back-pointer,
                 // so a later reconnect can't read a stale dongle as the node roster
                 // source. Swaps to a node view pass a non-null service and skip this.
                 if (!service) {
+                    cancelAutoSave(get().parentService)
                     set({ parentService: null, activeNodeId: null })
                     // The device went away under an open unsaved-changes
                     // prompt: nothing is left to save.
@@ -350,6 +356,10 @@ const useConnectionStore = create<ConnectionState>()(
                 get().setService(parentService, communication ?? undefined)
             },
             resetConnection: () => {
+                // Unplug or disconnect: a pending auto-save would only fire at
+                // a closed transport.
+                cancelAutoSave(get().service)
+                cancelAutoSave(get().parentService)
                 defaultLayerUnsub?.()
                 defaultLayerUnsub = null
                 lastHwDefaultLayer = null

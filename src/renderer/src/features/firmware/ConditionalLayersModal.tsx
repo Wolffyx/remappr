@@ -13,7 +13,7 @@ import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
 import useKeymapStore from '@/stores/keymapStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveConfigSection } from '@/lib/saveConfigSection'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
@@ -99,17 +99,14 @@ export function ConditionalLayersModal({
             onClose()
             return
         }
-        configEditing.setConditionalLayers(patch)
         setSaving(true)
-        // commit() resolves to nothing, so success is a flag, not the result.
-        const saved = await saveWithToast(
-            async () => {
-                await service.commit()
-                return true
-            },
-            'Conditional layers saved',
-            'Failed to save conditional layers',
-        )
+        const saved = await saveConfigSection({
+            service,
+            section: 'Conditional layers',
+            stage: () => configEditing.setConditionalLayers(patch),
+            successMessage: 'Conditional layers saved',
+            errorPrefix: 'Failed to save conditional layers',
+        })
         setSaving(false)
         if (saved) onClose()
     }

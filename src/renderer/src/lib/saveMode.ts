@@ -26,7 +26,14 @@
 //
 // Scope: keymap + encoder edits. Facade writes (rgb, dynamic entries, macros,
 // advanced) stay immediate by design.
-import { toast } from 'sonner'
+//
+// One save at a time: every commit and discard of a wrapped service runs
+// through one per-service queue, so the auto-save timer, the Header's Save, a
+// settings dialog's Save and the leave prompt never interleave their
+// BEGIN / CHUNK / VALIDATE / COMMIT (or ROLLBACK) steps on the device. Leaving
+// a device (disconnect, unplug, node / parent / device switch) cancels a
+// pending auto-save, so it never fires at a closed transport or the wrong view.
+import { toastDeviceError } from './saveWithToast'
 import type { KeyboardService, EncoderApi } from '@firmware/service'
 import type { KeyAction, KeyUpdate } from '@firmware/types'
 
@@ -57,6 +64,8 @@ interface SaveModeControls {
     /** Switch modes. Turning auto ON flushes staged edits first (throws on
      *  failure — caller reverts the setting). */
     setAuto: (auto: boolean) => Promise<void>
+    /** Drop a pending debounced auto-save (the device is being left). */
+    cancelAutoSave: () => void
 }
 
 function controlsOf(service: KeyboardService): SaveModeControls | undefined {
@@ -73,6 +82,23 @@ export function isSaveModeManaged(service: KeyboardService): boolean {
 /** Underlying service (identity for unmanaged services). */
 export function unwrapSaveMode(service: KeyboardService): KeyboardService {
     return controlsOf(service)?.target ?? service
+}
+
+/** Cancel `service`'s pending auto-save, if any. Call when leaving it (unplug,
+ *  node / parent / device switch); a no-op for unmanaged services. */
+export function cancelAutoSave(service: KeyboardService | null): void {
+    if (service) controlsOf(service)?.cancelAutoSave()
+}
+
+/** Run save steps one at a time: each call starts after the previous one
+ *  settles, whether it resolved or threw. */
+function serialQueue(): <T>(fn: () => Promise<T>) => Promise<T> {
+    let tail: Promise<unknown> = Promise.resolve()
+    return <T>(fn: () => Promise<T>): Promise<T> => {
+        const run = tail.then(fn, fn)
+        tail = run.catch(() => undefined)
+        return run
+    }
 }
 
 /**
@@ -126,28 +152,9 @@ export function withSaveMode(
         if (commitTimer) clearTimeout(commitTimer)
         commitTimer = null
     }
-    const scheduleAutoCommit = (): void => {
-        cancelAutoCommit()
-        commitTimer = setTimeout(() => {
-            commitTimer = null
-            service.commit().catch((e: unknown) => {
-                toast.error(
-                    e instanceof Error
-                        ? e.message
-                        : 'Auto-save failed to write to the keyboard',
-                )
-            })
-        }, AUTO_COMMIT_DEBOUNCE_MS)
-    }
+    // Every commit / discard below goes through this one queue.
+    const exclusive = serialQueue()
 
-    // A device edited as controls stages its edits on the service itself (the
-    // controls facade, the settings draft) and says so through its pending
-    // flag; in auto mode, commit them shortly after, like key edits.
-    if (service.controls && !underlyingAutomatic) {
-        service.onPendingChangesChanged((pending) => {
-            if (pending && auto) scheduleAutoCommit()
-        })
-    }
     const flushStaged = async (): Promise<void> => {
         const keyOps = [...queue.entries()].filter(
             (e): e is [string, StagedKeyOp] => e[1].kind === 'key',
@@ -219,13 +226,35 @@ export function withSaveMode(
         if (!underlyingAutomatic && auto) scheduleAutoCommit()
     }
 
-    const commit = async (): Promise<void> => {
+    const commit = (): Promise<void> => {
+        // Cancel at call time: this save covers whatever the timer would.
         cancelAutoCommit()
-        if (underlyingAutomatic) {
-            if (auto) return service.commit() // clears the fw pending flag
-            return flushStaged()
-        }
-        return service.commit()
+        return exclusive(async () => {
+            if (underlyingAutomatic) {
+                if (auto) return service.commit() // clears the fw pending flag
+                return flushStaged()
+            }
+            return service.commit()
+        })
+    }
+
+    const scheduleAutoCommit = (): void => {
+        cancelAutoCommit()
+        commitTimer = setTimeout(() => {
+            commitTimer = null
+            commit().catch((e: unknown) =>
+                toastDeviceError('Auto-save failed', e),
+            )
+        }, AUTO_COMMIT_DEBOUNCE_MS)
+    }
+
+    // A device edited as controls stages its edits on the service itself (the
+    // controls facade, the settings draft) and says so through its pending
+    // flag; in auto mode, commit them shortly after, like key edits.
+    if (service.controls && !underlyingAutomatic) {
+        service.onPendingChangesChanged((pending) => {
+            if (pending && auto) scheduleAutoCommit()
+        })
     }
 
     const discardChanges = async (): Promise<void> => {
@@ -237,7 +266,13 @@ export function withSaveMode(
             return
         }
         cancelAutoCommit()
-        return service.discardChanges()
+        // Never roll the device back under a save that is still writing.
+        return exclusive(() => service.discardChanges())
+    }
+
+    const disconnect = async (): Promise<void> => {
+        cancelAutoCommit()
+        return service.disconnect()
     }
 
     // Encoder facade mirroring setKey's mode behavior; stable identity.
@@ -272,11 +307,12 @@ export function withSaveMode(
         setAuto: async (next: boolean): Promise<void> => {
             if (next === auto) return
             if (next && underlyingAutomatic && queue.size > 0) {
-                await flushStaged() // throws → caller reverts the setting
+                await exclusive(flushStaged) // throws → caller reverts the setting
             }
             if (!next) cancelAutoCommit()
             auto = next
         },
+        cancelAutoSave: cancelAutoCommit,
     }
 
     const overrides: Record<PropertyKey, unknown> = {
@@ -286,6 +322,7 @@ export function withSaveMode(
         setKeys,
         commit,
         discardChanges,
+        disconnect,
         hasPendingChanges: (): boolean =>
             underlyingAutomatic ? queue.size > 0 : service.hasPendingChanges(),
         refreshPendingChanges: async (): Promise<boolean> =>

@@ -23,7 +23,7 @@ import {
 } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveConfigSection } from '@/lib/saveConfigSection'
 import { Modal } from '@/ui/modal'
 import type { PanelFrame } from './clusterFrame'
 import { Button } from '@/ui/button'
@@ -119,17 +119,14 @@ export function LinkProfileModal({
             onClose()
             return
         }
-        configEditing.setNode({ linkProfile: form })
         setSaving(true)
-        // commit() resolves to nothing, so success is a flag, not the result.
-        const saved = await saveWithToast(
-            async () => {
-                await service.commit()
-                return true
-            },
-            'Link profile saved',
-            'Failed to save link profile',
-        )
+        const saved = await saveConfigSection({
+            service,
+            section: 'Link profile',
+            stage: () => configEditing.setNode({ linkProfile: form }),
+            successMessage: 'Link profile saved',
+            errorPrefix: 'Failed to save link profile',
+        })
         setSaving(false)
         if (saved) onClose()
     }

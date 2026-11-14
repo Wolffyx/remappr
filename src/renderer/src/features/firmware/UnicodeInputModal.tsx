@@ -6,7 +6,7 @@ import { Languages } from 'lucide-react'
 import { toast } from 'sonner'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveSucceeded } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
@@ -93,7 +93,7 @@ export function UnicodeInputModal({ opened, onClose }: Props): JSX.Element {
 
     const save = async (): Promise<void> => {
         if (selected === null) return
-        const r = await saveWithToast(
+        const ok = await saveSucceeded(
             () => unicode.setMode(selected),
             `Unicode input set to ${labelFor(selected)}`,
             'Failed to set unicode input method',
@@ -101,7 +101,7 @@ export function UnicodeInputModal({ opened, onClose }: Props): JSX.Element {
         // Only commit to local state once the device accepted it — it rejects a
         // method it cannot type, and showing the new label anyway would claim a
         // selection the keyboard never took.
-        if (r !== undefined) setMode(selected)
+        if (ok) setMode(selected)
     }
 
     return (

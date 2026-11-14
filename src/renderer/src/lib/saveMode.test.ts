@@ -233,7 +233,10 @@ describe('underlying manual (ZMK/Remappr)', () => {
         const svc = withSaveMode(base, true)
         await svc.setKey(0, 0, action('kc_a'))
         await vi.advanceTimersByTimeAsync(1_000)
-        expect(toast.error).toHaveBeenCalledWith('NVS full')
+        expect(toast.error).toHaveBeenCalledWith(
+            'Auto-save failed: NVS full',
+            {},
+        )
     })
 
     it('switching back to manual cancels a pending auto-commit', async () => {
