@@ -17,7 +17,12 @@ export class ElectronHidAdapter extends IpcTransportAdapter {
     protected async connectIpc(): Promise<IpcConnectResult> {
         const result = (await window.api.invoke(IpcChannels.HID_CONNECT, {
             device: this.dev,
-        })) as { ok: boolean; label?: string; error?: string }
+        })) as {
+            ok: boolean
+            label?: string
+            error?: string
+            connectionId?: number
+        }
         if (!result.ok) {
             throw new Error(result.error ?? 'HID connect failed')
         }
@@ -26,7 +31,7 @@ export class ElectronHidAdapter extends IpcTransportAdapter {
         // readTransportIds() parses out of the discovery label (buildLabel),
         // breaking the QMK/VIA/Keychron layout cache key on Electron. Keep the
         // discovery label, which carries "VVVV:PPPP".
-        return { label: this.dev.label }
+        return { label: this.dev.label, connectionId: result.connectionId }
     }
 }
 
@@ -51,6 +56,7 @@ registerTransport({
         return {
             label: 'HID',
             communication: 'hid',
+            exclusive: true,
             pick_and_connect: {
                 list: () => list_devices({ filters }),
                 connect: (dev) => new ElectronHidAdapter(dev).connect(),

@@ -14,6 +14,7 @@ import { validateAvailableDevice, validateUint8Array } from './ipc-validation'
 import {
     connectSerial,
     disconnectSerial,
+    hasActiveSerialConnection,
     listSerialDevices,
     writeSerial,
 } from './serial'
@@ -35,6 +36,7 @@ import {
 } from './hid'
 import { registerSecretHandlers } from './secret-store'
 import { registerGithubArtifactHandler } from './github-artifact'
+import { createTransportRouter, type TransportRouter } from './transport-router'
 
 const log = createLogger('ipc')
 
@@ -80,11 +82,47 @@ function parseHidDiscovery(arg: unknown): HidDiscoveryFilter[] {
         .filter((f): f is HidDiscoveryFilter => f !== null)
 }
 
-// Tracks which transport currently owns send/close. Set when a transport
-// connects, cleared on disconnect/error. Lets TRANSPORT_SEND_DATA and
-// TRANSPORT_CLOSE route to whichever transport is active.
-type ActiveKind = 'serial' | 'bluez' | 'hid' | null
-let activeKind: ActiveKind = null
+// pattern-check: skip — local IPC payload validator, no abstraction.
+// A connection id from the renderer: a positive integer, else none (an older
+// caller that names no connection).
+function parseConnectionId(arg: unknown): number | undefined {
+    return typeof arg === 'number' && Number.isInteger(arg) && arg > 0
+        ? arg
+        : undefined
+}
+
+const errorMessage = (e: unknown): string =>
+    e instanceof Error ? e.message : String(e)
+
+// The one device connection the main process holds, across every transport.
+// Opening any kind closes the others; sends, closes and events carry the
+// connection id so a stale one can't touch its successor (L4.1, L4.3).
+function createRouter(): TransportRouter {
+    return createTransportRouter(
+        {
+            serial: {
+                write: writeSerial,
+                close: disconnectSerial,
+                isOpen: hasActiveSerialConnection,
+            },
+            bluez: {
+                write: writeGatt,
+                close: disconnectGattDevice,
+                isOpen: hasActiveBluezConnection,
+            },
+            hid: {
+                write: writeHid,
+                close: disconnectHidDevice,
+                isOpen: hasActiveHidConnection,
+            },
+        },
+        {
+            data: (data, id) => ipcHandlerContext.emitConnectionData(data, id),
+            disconnected: (id) =>
+                ipcHandlerContext.emitConnectionDisconnected(id),
+        },
+    )
+}
 
 /** Send an event to all renderer windows */
 function sendToAllWindows(
@@ -110,6 +148,8 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
     // --- GitHub artifact download proxy (dodges renderer CORS) ---
     registerGithubArtifactHandler()
 
+    const router = createRouter()
+
     // --- Serial Device Handlers ---
 
     ipcMain.handle(IpcChannels.SERIAL_LIST_DEVICES, async () => {
@@ -118,20 +158,20 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
 
     ipcMain.handle(IpcChannels.SERIAL_CONNECT, async (_, device: unknown) => {
         const validDevice = validateAvailableDevice(device)
-        const ok = await connectSerial(validDevice.id, {
-            onData: (data) => ipcHandlerContext.emitConnectionData(data),
-            onDisconnected: () => {
-                activeKind = null
-                ipcHandlerContext.emitConnectionDisconnected()
-            },
-        })
-        if (ok) activeKind = 'serial'
-        return ok
+        try {
+            const { connectionId } = await router.open('serial', (callbacks) =>
+                connectSerial(validDevice.id, callbacks),
+            )
+            return { ok: true, connectionId }
+        } catch (e) {
+            log.error('SERIAL_CONNECT failed:', errorMessage(e))
+            return { ok: false, error: errorMessage(e) }
+        }
     })
 
     ipcMain.handle(IpcChannels.SERIAL_DISCONNECT, async () => {
-        await disconnectSerial()
-        if (activeKind === 'serial') activeKind = null
+        if (router.activeKind() === 'serial') await router.close()
+        else await disconnectSerial()
     })
 
     // --- BLE Device Handlers ---
@@ -157,25 +197,20 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
             return { ok: false, error: 'Invalid discovery payload' }
         }
         try {
-            const label = await connectGattDevice(
-                devicePath,
-                d.serviceUuid,
-                d.charUuid,
-                {
-                    onData: (data) =>
-                        ipcHandlerContext.emitConnectionData(data),
-                    onDisconnected: () => {
-                        activeKind = null
-                        ipcHandlerContext.emitConnectionDisconnected()
-                    },
-                },
+            const { connectionId, result: label } = await router.open(
+                'bluez',
+                (callbacks) =>
+                    connectGattDevice(
+                        devicePath,
+                        d.serviceUuid,
+                        d.charUuid,
+                        callbacks,
+                    ),
             )
-            activeKind = 'bluez'
-            return { ok: true, label }
+            return { ok: true, label, connectionId }
         } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e)
-            log.error('BLUEZ_CONNECT failed:', msg)
-            return { ok: false, error: msg }
+            log.error('BLUEZ_CONNECT failed:', errorMessage(e))
+            return { ok: false, error: errorMessage(e) }
         }
     })
 
@@ -196,48 +231,33 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
             a?.device && typeof a.device.id === 'string' ? a.device.id : null
         if (!path) return { ok: false, error: 'Invalid HID device path' }
         try {
-            const label = await connectHidDevice(path, {
-                onData: (data) => ipcHandlerContext.emitConnectionData(data),
-                onDisconnected: () => {
-                    activeKind = null
-                    ipcHandlerContext.emitConnectionDisconnected()
-                },
-            })
-            activeKind = 'hid'
-            return { ok: true, label }
+            const { connectionId, result: label } = await router.open(
+                'hid',
+                (callbacks) => connectHidDevice(path, callbacks),
+            )
+            return { ok: true, label, connectionId }
         } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e)
-            log.error('HID_CONNECT failed:', msg)
-            return { ok: false, error: msg }
+            log.error('HID_CONNECT failed:', errorMessage(e))
+            return { ok: false, error: errorMessage(e) }
         }
     })
 
-    // --- Transport Handlers (route via activeKind) ---
+    // --- Transport Handlers (route via the active connection) ---
 
     ipcMain.handle(
         IpcChannels.TRANSPORT_SEND_DATA,
-        async (_, data: unknown) => {
+        async (_, data: unknown, connectionId: unknown) => {
             const validData = validateUint8Array(data)
-            if (activeKind === 'bluez') {
-                await writeGatt(validData)
-            } else if (activeKind === 'hid') {
-                await writeHid(validData)
-            } else {
-                await writeSerial(validData)
-            }
+            await router.send(validData, parseConnectionId(connectionId))
         },
     )
 
-    ipcMain.handle(IpcChannels.TRANSPORT_CLOSE, async () => {
-        if (activeKind === 'bluez' || hasActiveBluezConnection()) {
-            await disconnectGattDevice()
-        } else if (activeKind === 'hid' || hasActiveHidConnection()) {
-            await disconnectHidDevice()
-        } else {
-            await disconnectSerial()
-        }
-        activeKind = null
-    })
+    ipcMain.handle(
+        IpcChannels.TRANSPORT_CLOSE,
+        async (_, connectionId: unknown) => {
+            await router.close(parseConnectionId(connectionId))
+        },
+    )
 
     // Expose event helpers for use by transport implementations
     return void setupEventEmitters(getWindows)
@@ -248,12 +268,26 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
  * to push data/events to the renderer process.
  */
 function setupEventEmitters(getWindows: () => BrowserWindow[]): void {
-    ipcHandlerContext.emitConnectionData = (data: number[]): void => {
-        sendToAllWindows(getWindows(), IpcEvents.CONNECTION_DATA, data)
+    ipcHandlerContext.emitConnectionData = (
+        data: number[],
+        connectionId: number,
+    ): void => {
+        sendToAllWindows(
+            getWindows(),
+            IpcEvents.CONNECTION_DATA,
+            data,
+            connectionId,
+        )
     }
 
-    ipcHandlerContext.emitConnectionDisconnected = (): void => {
-        sendToAllWindows(getWindows(), IpcEvents.CONNECTION_DISCONNECTED)
+    ipcHandlerContext.emitConnectionDisconnected = (
+        connectionId: number,
+    ): void => {
+        sendToAllWindows(
+            getWindows(),
+            IpcEvents.CONNECTION_DISCONNECTED,
+            connectionId,
+        )
     }
 }
 
@@ -263,8 +297,9 @@ function setupEventEmitters(getWindows: () => BrowserWindow[]): void {
  */
 export const ipcHandlerContext = {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    emitConnectionData: (_data: number[]): void => {},
-    emitConnectionDisconnected: (): void => {},
+    emitConnectionData: (_data: number[], _connectionId: number): void => {},
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    emitConnectionDisconnected: (_connectionId: number): void => {},
 }
 
 /**
