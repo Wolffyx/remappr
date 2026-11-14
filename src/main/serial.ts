@@ -281,6 +281,10 @@ export async function disconnectSerial(): Promise<void> {
     })
 }
 
+export function hasActiveSerialConnection(): boolean {
+    return activeConnection !== null
+}
+
 const HOTPLUG_POLL_MS = 2000
 
 function fingerprint(devices: SerialDeviceInfo[]): string {
