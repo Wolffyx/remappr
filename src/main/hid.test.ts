@@ -1,6 +1,7 @@
 // pattern-check: skip — unit test with node-hid faked, no production logic
 import { EventEmitter } from 'node:events'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { IpcEvents } from '../shared/ipc-types'
 
 /* A node-hid HID handle: emits 'data' / 'error', counts close(). */
 class FakeHid extends EventEmitter {
@@ -37,6 +38,7 @@ import {
     disconnectHidDevice,
     hasActiveHidConnection,
     listHidDevices,
+    startHidDevicePolling,
     writeHid,
 } from './hid'
 
@@ -122,5 +124,51 @@ describe('node-hid transport', () => {
         await disconnectHidDevice()
         expect(fake.opened[0].closed).toBe(1)
         expect(hasActiveHidConnection()).toBe(false)
+    })
+})
+
+describe('HID hotplug polling (L4.6)', () => {
+    const sent: unknown[][] = []
+    const win = {
+        isDestroyed: () => false,
+        webContents: { send: (...a: unknown[]) => void sent.push(a) },
+    }
+    let stop: () => void = () => undefined
+
+    beforeEach(() => {
+        vi.useFakeTimers()
+        sent.length = 0
+    })
+    afterEach(() => {
+        stop()
+        vi.useRealTimers()
+    })
+
+    it('tells the renderer when a HID device appears or goes', async () => {
+        fake.devices = [KEYBOARD]
+        stop = startHidDevicePolling(() => [win as never], 2000)
+        await vi.advanceTimersByTimeAsync(0)
+        expect(sent).toEqual([])
+
+        fake.devices = [KEYBOARD, DONGLE]
+        await vi.advanceTimersByTimeAsync(2000)
+        expect(sent).toEqual([[IpcEvents.HID_DEVICES_CHANGED]])
+
+        await vi.advanceTimersByTimeAsync(2000)
+        expect(sent).toHaveLength(1)
+
+        fake.devices = [DONGLE]
+        await vi.advanceTimersByTimeAsync(2000)
+        expect(sent).toHaveLength(2)
+    })
+
+    it('stops polling when stopped', async () => {
+        fake.devices = [KEYBOARD]
+        stop = startHidDevicePolling(() => [win as never], 2000)
+        await vi.advanceTimersByTimeAsync(0)
+        stop()
+        fake.devices = []
+        await vi.advanceTimersByTimeAsync(4000)
+        expect(sent).toEqual([])
     })
 })

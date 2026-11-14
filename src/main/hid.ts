@@ -3,7 +3,8 @@
 // Uses node-hid; loaded lazily so packaging without the native module
 // (e.g. browser-only Vite preview) doesn't blow up at import time.
 
-import type { HidMousePayload } from '../shared/ipc-types'
+import type { BrowserWindow } from 'electron'
+import { type HidMousePayload, IpcEvents } from '../shared/ipc-types'
 import { createLogger } from '../shared/logger'
 
 const log = createLogger('hid')
@@ -52,9 +53,13 @@ interface NodeHidModule {
 }
 
 let cachedModule: NodeHidModule | null = null
+// A failed load stays failed: the hotplug poll would otherwise retry the
+// import and warn every 2 s on a build without the native module.
+let loadFailed = false
 
 async function loadNodeHid(): Promise<NodeHidModule | null> {
     if (cachedModule) return cachedModule
+    if (loadFailed) return null
     try {
         const mod = (await import('node-hid')) as unknown as
             | NodeHidModule
@@ -66,6 +71,7 @@ async function loadNodeHid(): Promise<NodeHidModule | null> {
         return cachedModule
     } catch (err) {
         log.warn('node-hid unavailable:', err)
+        loadFailed = true
         return null
     }
 }
@@ -260,4 +266,52 @@ export async function disconnectHidDevice(): Promise<void> {
 
 export function hasActiveHidConnection(): boolean {
     return activeConnection !== null
+}
+
+const HID_HOTPLUG_POLL_MS = 2000
+
+// pattern-check: skip — sibling of startSerialDevicePolling; a timer and a
+// fingerprint compare, no GoF abstraction.
+/**
+ * node-hid has no hotplug events, so poll its device list and tell the
+ * renderer when the set of HID paths changes; it re-lists with its own
+ * filters. Without this a HID-only device (Remappr) neither appears nor
+ * disappears under Electron until a manual Refresh (L4.6). The first pass
+ * only takes the baseline. Returns a stop function.
+ */
+export function startHidDevicePolling(
+    getWindows: () => BrowserWindow[],
+    intervalMs: number = HID_HOTPLUG_POLL_MS,
+): () => void {
+    let last: string | null = null
+    let stopped = false
+
+    const tick = async (): Promise<void> => {
+        const mod = await loadNodeHid()
+        if (!mod || stopped) return
+        let fp: string
+        try {
+            fp = [...new Set(mod.devices().map((d) => d.path ?? ''))]
+                .sort()
+                .join('\n')
+        } catch (err) {
+            log.warn('hotplug poll failed:', err)
+            return
+        }
+        const changed = last !== null && fp !== last
+        last = fp
+        if (!changed) return
+        for (const w of getWindows()) {
+            if (!w.isDestroyed()) {
+                w.webContents.send(IpcEvents.HID_DEVICES_CHANGED)
+            }
+        }
+    }
+
+    const id = setInterval(() => void tick(), intervalMs)
+    void tick()
+    return (): void => {
+        stopped = true
+        clearInterval(id)
+    }
 }

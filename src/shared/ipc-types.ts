@@ -108,6 +108,8 @@ export const IpcEvents = {
     CONNECTION_DISCONNECTED: 'connection:disconnected',
     BLE_DEVICES_DISCOVERED: 'ble:devices-discovered',
     SERIAL_DEVICES_CHANGED: 'serial:devices-changed',
+    /** A HID device appeared or went (no payload; the renderer re-lists). */
+    HID_DEVICES_CHANGED: 'hid:devices-changed',
     UPDATE_AVAILABLE: 'update:available',
     /** A close or quit waits on the renderer's unsaved-changes prompt. */
     WINDOW_LEAVE_REQUESTED: 'window:leave-requested',

@@ -1,6 +1,6 @@
 // Pattern check: Adapter (Tier 1) — extended — bridges Electron HID_CONNECT IPC into IpcTransportAdapter contract
 import type { HidDiscoveryPayload } from '../../../shared/ipc-types'
-import { IpcChannels } from '../../../shared/ipc-types'
+import { IpcChannels, IpcEvents } from '../../../shared/ipc-types'
 import type { AvailableDevice } from '../transport/types'
 import {
     electronIpc,
@@ -62,5 +62,9 @@ registerTransport({
                 connect: (dev) => new ElectronHidAdapter(dev).connect(),
             },
         }
+    },
+    // The main process polls node-hid and says when the device set changed.
+    subscribeChanges(_ctx, cb) {
+        return window.api.on(IpcEvents.HID_DEVICES_CHANGED, cb)
     },
 })

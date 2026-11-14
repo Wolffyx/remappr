@@ -7,6 +7,7 @@ import { registerIpcHandlers } from './ipc-handlers'
 import { registerBleIpcHandlers, setupBleDeviceSelection } from './ble-manager'
 import { setupSerialDeviceSelection } from './serial-picker'
 import { startSerialDevicePolling } from './serial'
+import { startHidDevicePolling } from './hid'
 import { silenceConsoleInProduction } from '../shared/logger'
 import { checkForUpdates, registerUpdateIpc } from './update-checker'
 import { guardWindowLeave, registerWindowControlsIpc } from './window-controls'
@@ -288,6 +289,8 @@ app.whenReady().then((): void => {
 
     // Start USB hotplug polling — pushes SERIAL_DEVICES_CHANGED on changes.
     startSerialDevicePolling(() => BrowserWindow.getAllWindows())
+    // node-hid has no hotplug events either — HID_DEVICES_CHANGED on changes.
+    startHidDevicePolling(() => BrowserWindow.getAllWindows())
 
     createWindow()
 
