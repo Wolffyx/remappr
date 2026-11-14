@@ -124,6 +124,23 @@ describe('switchToDevice', () => {
         })
     })
 
+    // L4.12: the switch must keep the device-reported key (the USB serial),
+    // or snapshots, backups and auto-connect fall back to the OS path.
+    it("keeps the switched-to device's stable key", async () => {
+        connectCurrent(makeService('Old'))
+        adapter.connect.mockResolvedValue(makeService('Next'))
+        const { target } = listed('/dev/hidraw7')
+        target.device = { ...target.device, key: 'usb-serial-123' }
+
+        expect(await switchToDevice(target)).toBe(true)
+
+        expect(useConnectionStore.getState().lastConnectedDevice).toEqual({
+            id: '/dev/hidraw7',
+            label: 'Device /dev/hidraw7',
+            key: 'usb-serial-123',
+        })
+    })
+
     it('keeps the current device when the new one fails to open', async () => {
         const old = makeService('Old')
         connectCurrent(old)
