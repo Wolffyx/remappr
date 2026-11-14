@@ -4,8 +4,11 @@
 // uses. The effect is read ONCE on connect into rgbEffectStore (HID is serialized
 // and slow), so opening this modal is instant. Edits update the cache optimistically
 // (the on-screen glow follows via useStageLighting) and are written to the keyboard
-// on a short debounce so dragging a slider doesn't flood HID. Footer Save persists.
-import { useCallback, useEffect, useRef } from 'react'
+// on a short debounce so dragging a slider doesn't flood HID. A write the
+// keyboard refuses puts the controls back to what it last took, with a toast.
+// Footer Save persists.
+import { useEffect, useMemo } from 'react'
+import { toast } from 'sonner'
 
 import type { RgbApi, RgbEffectState } from '@firmware/service'
 import { effectUsesColor } from '@firmware/lighting'
@@ -14,6 +17,7 @@ import useLightingCatalogStore from '@/stores/lightingCatalogStore'
 import useRgbEffectStore from '@/stores/rgbEffectStore'
 
 import { RgbControls, type RgbControlsModel } from './RgbControls'
+import { DebouncedWriter } from './debouncedWriter'
 
 interface Props {
     rgb: RgbApi
@@ -39,17 +43,28 @@ export function DeviceRgbControls({ rgb }: Props): JSX.Element {
 
     // Debounced device write: glow/UI update instantly via the cache; the keyboard
     // gets at most one write per WRITE_DEBOUNCE_MS while a slider is dragged.
-    const pending = useRef<RgbEffectState | null>(null)
-    const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const flush = useCallback((): void => {
-        if (timer.current) {
-            clearTimeout(timer.current)
-            timer.current = null
-        }
-        const next = pending.current
-        pending.current = null
-        if (next && rgb.setEffect) void rgb.setEffect(next)
-    }, [rgb])
+    const writer = useMemo(
+        () =>
+            new DebouncedWriter<RgbEffectState>({
+                write: (next) => rgb.setEffect?.(next) ?? Promise.resolve(),
+                onRejected: (lastAccepted, e) => {
+                    console.warn('RGB effect write refused', e)
+                    toast.error('Failed to set the RGB effect', {
+                        description: e instanceof Error ? e.message : String(e),
+                    })
+                    if (lastAccepted) setCached(lastAccepted)
+                },
+                delayMs: WRITE_DEBOUNCE_MS,
+            }),
+        [rgb, setCached],
+    )
+
+    // What the keyboard holds when the controls open is the value to go back
+    // to if a write is refused.
+    useEffect(() => {
+        const current = useRgbEffectStore.getState().effect
+        if (current) writer.accept(current)
+    }, [writer])
 
     // Seed the cache if connect didn't manage to read the effect (HID was busy).
     useEffect(() => {
@@ -61,7 +76,10 @@ export function DeviceRgbControls({ rgb }: Props): JSX.Element {
                 null,
                 'Read RGB effect failed',
             )
-            if (!cancelled && r) setCached(r)
+            if (!cancelled && r) {
+                writer.accept(r)
+                setCached(r)
+            }
         })()
         return (): void => {
             cancelled = true
@@ -70,7 +88,7 @@ export function DeviceRgbControls({ rgb }: Props): JSX.Element {
     }, [rgb])
 
     // Flush any pending write when the modal closes (component unmounts).
-    useEffect(() => flush, [flush])
+    useEffect(() => () => void writer.flush(), [writer])
 
     if (!cat || !rgb.getEffect || !rgb.setEffect) {
         return (
@@ -84,9 +102,7 @@ export function DeviceRgbControls({ rgb }: Props): JSX.Element {
         if (!state) return
         const next = { ...state, ...patch }
         setCached(next) // instant UI + glow
-        pending.current = next
-        if (timer.current) clearTimeout(timer.current)
-        timer.current = setTimeout(flush, WRITE_DEBOUNCE_MS)
+        writer.set(next)
     }
 
     const reload = async (): Promise<void> => {
@@ -95,7 +111,9 @@ export function DeviceRgbControls({ rgb }: Props): JSX.Element {
             null,
             'Read RGB effect failed',
         )
-        if (r) setCached(r)
+        if (!r) return
+        writer.accept(r)
+        setCached(r)
     }
 
     const name = state ? (cat.effects[state.mode] ?? '') : ''

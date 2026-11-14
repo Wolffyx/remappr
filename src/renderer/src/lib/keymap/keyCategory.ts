@@ -125,6 +125,11 @@ function keyboardUsageCategory(id: number): KeyCategory {
     if (id === 0x4a || id === 0x4b || id === 0x4d || id === 0x4e) return 'nav'
     if (id >= 0x4f && id <= 0x52) return 'nav'
     if (id >= 0x53 && id <= 0x63) return 'num' // keypad NumLock + KP digits/ops
+    if (id === 0x85) return 'num' // Keypad Comma (Brazil)
+    // International1–9 (Ro, Kana, Yen, Henkan, Muhenkan …): non-US keys
+    if (id >= 0x87 && id <= 0x8f) return 'punct'
+    // LANG1–9 switch the input mode, like Caps Lock
+    if (id >= 0x90 && id <= 0x98) return 'mod'
     // Left/Right Ctrl/Shift/Alt/GUI
     if (id >= 0xe0 && id <= 0xe7) return 'mod'
     return 'system'
