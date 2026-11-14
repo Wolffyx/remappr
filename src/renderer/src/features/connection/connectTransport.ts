@@ -141,10 +141,7 @@ async function finishSwitch(
     opened: OpenedDevice,
 ): Promise<void> {
     undoRedoStore.getState().reset()
-    useConnectionStore.getState().setLastConnectedDevice({
-        id: target.device.id,
-        label: target.device.label,
-    })
+    useConnectionStore.getState().setLastConnectedDevice(target.device)
     await publishDevice(opened, target.transport.communication)
 }
 

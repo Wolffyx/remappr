@@ -3,7 +3,12 @@ import type { Transport } from '@firmware'
 
 export interface AvailableDevice {
     label: string
+    /** This session's handle for connecting (an OS path, a browser index). */
     id: string
+    /** Stable identity across replugs, when the transport can read one the
+     *  device reports (its USB serial number). Per-device state is stored
+     *  under it; see deviceKey. */
+    key?: string
 }
 
 /**

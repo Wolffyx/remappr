@@ -4,7 +4,8 @@
 //
 // Where a host lands after connecting to a ROLE_DONGLE device: the dongle has no
 // keymap of its own, so instead of the editor we show its bonded node roster.
-// Clicking an online node opens a view of it via the store's openNode, which
+// Clicking a secured node (online with its session up) opens a view of it via
+// the store's openNode, which
 // swaps the active service to the relayed node: a mouse or a joystick to edit
 // through the relay, a keyboard read-only.
 import { Badge } from '@/ui/badge'
@@ -32,6 +33,21 @@ import { DongleRadioPanel } from '@/features/device/DongleRadioPanel'
 import { NodeIcon } from '@/features/devices/NodeIcon'
 import { BatteryIndicator } from '@/features/battery/BatteryIndicator'
 import { shownBattery } from '@/features/battery/battery'
+import { useConfirm } from '@/components/ConfirmDialog'
+import { clusterCoordinator, notReachable, useNodeRoster } from './nodeRoster'
+
+const errText = (e: unknown): string =>
+    e instanceof Error ? e.message : String(e)
+
+/** The status line under a node's name. */
+function nodeStatus(n: NodeView): string {
+    const link = !n.online ? 'Offline' : n.secured ? 'Online' : 'Connecting'
+    const rssi = n.online && n.rssi ? ` · ${n.rssi} dBm` : ''
+    const hops = n.hopCount
+        ? ` · ${n.hopCount} hop${n.hopCount > 1 ? 's' : ''}`
+        : ''
+    return `${link}${rssi}${hops}`
+}
 
 export function DongleLanding(): JSX.Element {
     // Field-scoped selectors — avoids re-rendering on unrelated store changes.
@@ -39,38 +55,30 @@ export function DongleLanding(): JSX.Element {
     const communication = useConnectionStore((s) => s.communication)
     const openNode = useConnectionStore((s) => s.openNode)
     const disconnect = useConnectionStore((s) => s.disconnect)
-    const [nodes, setNodes] = useState<NodeView[]>([])
-    const [loading, setLoading] = useState(true)
     const [pairing, setPairing] = useState(false)
     // null = state not read yet (query in flight / unsupported firmware).
     const [nkro, setNkro] = useState<boolean | null>(null)
 
-    const nodesApi = service?.nodes
+    const [refreshing, setRefreshing] = useState(false)
+    const { confirm, dialog } = useConfirm()
 
-    // All setState happens AFTER the await (never synchronously in the effect
-    // body), so the initial load and a manual refresh share one path. `loading`
-    // starts true; the refresh button flips it back on before re-fetching.
-    const fetchNodes = useCallback(async (): Promise<void> => {
-        if (!nodesApi) return
+    const nodesApi = service?.nodes
+    // The roster the sidebar shows too: polled, and a failed read keeps the
+    // last good list instead of emptying it.
+    const { nodes, loading, refresh: refreshRoster } = useNodeRoster(nodesApi)
+    const coordinator = clusterCoordinator(nodes)
+
+    // A re-list after an action: a failure keeps the list and says so.
+    const relist = useCallback(async (): Promise<void> => {
         try {
-            setNodes(await nodesApi.list())
+            await refreshRoster()
         } catch (e) {
             console.warn('Failed to list nodes', e)
             toast.error('Failed to list nodes', {
-                description: e instanceof Error ? e.message : String(e),
+                description: errText(e),
             })
-            setNodes([])
-        } finally {
-            setLoading(false)
         }
-    }, [nodesApi])
-
-    useEffect(() => {
-        // One-shot roster fetch on mount; setState lands after the await. Matches
-        // the codebase's async-load-in-effect idiom (see AutoLayoutResolver).
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        void fetchNodes()
-    }, [fetchNodes])
+    }, [refreshRoster])
 
     // NKRO-state query (DONGLE.SET_NKRO, no arg = read-only). An older firmware
     // answers ERR_CMD — leave the toggle hidden (null). Re-run after a settings
@@ -105,10 +113,14 @@ export function DongleLanding(): JSX.Element {
         [nodesApi],
     )
 
-    const refresh = useCallback((): void => {
-        setLoading(true)
-        void fetchNodes()
-    }, [fetchNodes])
+    const refresh = useCallback(async (): Promise<void> => {
+        setRefreshing(true)
+        try {
+            await relist()
+        } finally {
+            setRefreshing(false)
+        }
+    }, [relist])
 
     const handleOpen = useCallback(
         async (id: number): Promise<void> => {
@@ -149,21 +161,30 @@ export function DongleLanding(): JSX.Element {
     }, [nodesApi])
 
     // Forget a node (DONGLE.FORGET_NODE) — works on offline/stale bonds too, then
-    // re-lists so the freed pipe disappears from the roster.
+    // re-lists so the freed pipe disappears from the roster. The node has to
+    // pair again, so confirm first.
     const handleForget = useCallback(
         async (id: number, label: string): Promise<void> => {
             if (!nodesApi) return
+            const ok = await confirm({
+                title: `Forget ${label}?`,
+                description:
+                    'The dongle drops its bond with this node. The node has to pair again before it works through the dongle.',
+                confirmLabel: 'Forget',
+                destructive: true,
+            })
+            if (!ok) return
             try {
                 await nodesApi.forgetNode(id)
                 toast.success(`Forgot ${label}`)
-                void fetchNodes()
+                await relist()
             } catch (e) {
                 toast.error('Failed to forget node', {
-                    description: e instanceof Error ? e.message : String(e),
+                    description: errText(e),
                 })
             }
         },
-        [nodesApi, fetchNodes],
+        [nodesApi, confirm, relist],
     )
 
     // pattern-check: skip — UI event handler mirroring handleForget; thin facade
@@ -179,14 +200,14 @@ export function DongleLanding(): JSX.Element {
                 toast.success(`Unpaired ${label}`, {
                     description: 'Node will re-arm and re-pair.',
                 })
-                void fetchNodes()
+                await relist()
             } catch (e) {
                 toast.error('Failed to unpair node', {
-                    description: e instanceof Error ? e.message : String(e),
+                    description: errText(e),
                 })
             }
         },
-        [nodesApi, fetchNodes],
+        [nodesApi, relist],
     )
 
     // pattern-check: skip — UI event handler; thin facade call + confirm/toast,
@@ -196,22 +217,24 @@ export function DongleLanding(): JSX.Element {
     // re-pair), so confirm first; re-lists after.
     const handleClearAllBonds = useCallback(async (): Promise<void> => {
         if (!nodesApi) return
-        if (
-            !window.confirm(
-                'Clear ALL dongle bonds? Every paired node is forgotten and must re-pair.',
-            )
-        )
-            return
+        const ok = await confirm({
+            title: 'Clear all dongle bonds?',
+            description:
+                'Every paired node is forgotten and has to pair again.',
+            confirmLabel: 'Clear bonds',
+            destructive: true,
+        })
+        if (!ok) return
         try {
             const cleared = await nodesApi.clearAllBonds()
             toast.success(`Cleared ${cleared} bond${cleared === 1 ? '' : 's'}`)
-            void fetchNodes()
+            await relist()
         } catch (e) {
             toast.error('Failed to clear bonds', {
-                description: e instanceof Error ? e.message : String(e),
+                description: errText(e),
             })
         }
-    }, [nodesApi, fetchNodes])
+    }, [nodesApi, confirm, relist])
 
     const dongleName = service?.deviceInfo.name?.trim() || 'Remappr Dongle'
     const connLabel = communication === 'ble' ? 'BLE' : 'USB'
@@ -259,8 +282,8 @@ export function DongleLanding(): JSX.Element {
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={refresh}
-                    disabled={loading}
+                    onClick={() => void refresh()}
+                    disabled={loading || refreshing}
                 >
                     <RefreshCw className="mr-1.5 size-3.5" />
                     Refresh
@@ -327,96 +350,91 @@ export function DongleLanding(): JSX.Element {
                             {/* pattern-check: skip — presentational JSX restructure
                             of the node row (open + unpair + forget buttons); no
                             new logic or abstraction. */}
-                            {nodes.map((n) => (
-                                <div
-                                    key={n.id}
-                                    className="flex items-center gap-1 rounded-lg border border-border bg-card pr-1.5 transition-colors hover:border-foreground/30"
-                                >
-                                    <button
-                                        type="button"
-                                        disabled={!n.online}
-                                        onClick={() => void handleOpen(n.id)}
-                                        className="flex min-w-0 flex-1 items-center gap-3 rounded-l-lg px-3.5 py-3 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                            {nodes.map((n) => {
+                                const blocked = notReachable(n)
+                                return (
+                                    <div
+                                        key={n.id}
+                                        className="flex items-center gap-1 rounded-lg border border-border bg-card pr-1.5 transition-colors hover:border-foreground/30"
                                     >
-                                        <NodeIcon
-                                            kind={n.kind}
-                                            className="size-5 shrink-0 text-muted-foreground"
-                                        />
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-1.5">
-                                                <span className="truncate text-sm font-semibold">
-                                                    {n.label}
-                                                </span>
-                                                {n.isMaster && (
-                                                    <Badge
-                                                        size="sm"
-                                                        tone="warning"
-                                                        title="Topology master (§5 election)"
-                                                        className="shrink-0"
-                                                    >
-                                                        <Crown />
-                                                        Master
-                                                    </Badge>
-                                                )}
-                                                {n.battery && (
-                                                    <BatteryIndicator
-                                                        battery={shownBattery(
-                                                            n.battery,
-                                                        )}
-                                                        className="ml-auto"
-                                                    />
-                                                )}
+                                        <button
+                                            type="button"
+                                            disabled={!!blocked}
+                                            title={blocked}
+                                            onClick={() =>
+                                                void handleOpen(n.id)
+                                            }
+                                            className="flex min-w-0 flex-1 items-center gap-3 rounded-l-lg px-3.5 py-3 text-left transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            <NodeIcon
+                                                kind={n.kind}
+                                                className="size-5 shrink-0 text-muted-foreground"
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="truncate text-sm font-semibold">
+                                                        {n.label}
+                                                    </span>
+                                                    {n.id === coordinator && (
+                                                        <Badge
+                                                            size="sm"
+                                                            tone="warning"
+                                                            title="Coordinator: merges the other parts of this keyboard and talks to the host"
+                                                            className="shrink-0"
+                                                        >
+                                                            <Crown />
+                                                            Coordinator
+                                                        </Badge>
+                                                    )}
+                                                    {n.battery && (
+                                                        <BatteryIndicator
+                                                            battery={shownBattery(
+                                                                n.battery,
+                                                            )}
+                                                            className="ml-auto"
+                                                        />
+                                                    )}
+                                                </div>
+                                                <div className="text-caption text-muted-foreground">
+                                                    {nodeStatus(n)}
+                                                </div>
                                             </div>
-                                            <div className="text-caption text-muted-foreground">
-                                                {n.online
-                                                    ? 'Online'
-                                                    : 'Offline'}
-                                                {n.online && n.rssi
-                                                    ? ` · ${n.rssi} dBm`
-                                                    : ''}
-                                                {n.hopCount
-                                                    ? ` · ${n.hopCount} hop${
-                                                          n.hopCount > 1
-                                                              ? 's'
-                                                              : ''
-                                                      }`
-                                                    : ''}
-                                            </div>
-                                        </div>
-                                    </button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        disabled={!n.online}
-                                        className="size-8 shrink-0 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                                        title={
-                                            n.online
-                                                ? 'Unpair radio (node forgets the dongle and re-pairs)'
-                                                : 'Unpair needs the node online'
-                                        }
-                                        onClick={() =>
-                                            void handleUnpair(n.id, n.label)
-                                        }
-                                    >
-                                        <Unplug className="size-4" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
-                                        title="Forget node"
-                                        onClick={() =>
-                                            void handleForget(n.id, n.label)
-                                        }
-                                    >
-                                        <Trash2 className="size-4" />
-                                    </Button>
-                                </div>
-                            ))}
+                                        </button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            disabled={!!blocked}
+                                            className="size-8 shrink-0 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                            title={
+                                                blocked
+                                                    ? `Unpair needs a secure session with the node. ${blocked}.`
+                                                    : 'Unpair radio (node forgets the dongle and re-pairs)'
+                                            }
+                                            onClick={() =>
+                                                void handleUnpair(n.id, n.label)
+                                            }
+                                        >
+                                            <Unplug className="size-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+                                            title="Forget node"
+                                            onClick={() =>
+                                                void handleForget(n.id, n.label)
+                                            }
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </Button>
+                                    </div>
+                                )
+                            })}
                         </div>
                     )}
                 </DongleBody>
             </div>
+            {dialog}
         </div>
     )
 }

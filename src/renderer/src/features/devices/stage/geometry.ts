@@ -324,6 +324,7 @@ const RADIUS: Readonly<Record<ControlShape, (w: number, h: number) => string>> =
             `6px ${w * 0.92}px 16px 8px / 6px ${h * 0.72}px 16px 8px`,
         key: (w, h) => `${Math.min(w, h) * 0.16}px`,
         dpad: () => '12px',
+        screen: (w, h) => `${Math.min(w, h) * 0.08}px`,
     }
 
 /** Border-radius of a control of `shape` drawn at `w` × `h` px. */

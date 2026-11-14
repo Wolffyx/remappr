@@ -13,7 +13,18 @@ import { Dialog, DialogContent, DialogTitle } from '@/ui/dialog'
 import { cn } from '@/lib/cn'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import { BatteryIndicator } from '@/features/battery/BatteryIndicator'
-import { groupRoster, type RosterEntry, type RosterKind } from './roster'
+import { toast } from 'sonner'
+import {
+    canOpenEntry,
+    groupRoster,
+    openEntry,
+    type RosterEntry,
+    type RosterKind,
+} from './roster'
+
+const reportOpenError = (title: string, description: string): void => {
+    toast.error(title, { description })
+}
 
 const KIND_CHIPS: readonly { kind: RosterKind | 'all'; label: string }[] = [
     { kind: 'all', label: 'All' },
@@ -50,8 +61,10 @@ export function DevicePicker({
         kind === 'all' ? entries : entries.filter((e) => e.kind === kind)
 
     const pick = (e: RosterEntry): void => {
+        // An unreachable node stays listed (and pinnable) but does not open.
+        if (!canOpenEntry(e)) return
         onOpenChange(false)
-        void e.open()
+        void openEntry(e, reportOpenError)
     }
 
     return (

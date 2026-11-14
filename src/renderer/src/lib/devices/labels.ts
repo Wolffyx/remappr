@@ -25,6 +25,7 @@ export const KIND_LABEL: Readonly<Record<ControlKind, string>> = {
     sensor: 'Optical sensor',
     encoder: 'Rotary encoder',
     axis: 'Analog axis',
+    display: 'Display',
 }
 
 export const CURVE_LABEL: Readonly<Record<ResponseCurve, string>> = {
@@ -73,4 +74,5 @@ export const SHAPE_LABEL: Readonly<Record<ControlShape, string>> = {
     sensor: 'Sensor',
     mouseL: 'Left mouse button',
     mouseR: 'Right mouse button',
+    screen: 'Screen',
 }

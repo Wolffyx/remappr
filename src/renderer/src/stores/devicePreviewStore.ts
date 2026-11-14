@@ -67,6 +67,22 @@ const stripLegend = ({
     category,
 }: PreviewKey): PreviewKey => ({ x, y, width, height, r, rx, ry, category })
 
+/** How many devices keep a start-page snapshot. A device's key used to change
+ *  on every replug (an OS path), so the map only ever grew. */
+export const MAX_SNAPSHOTS = 24
+
+/** The `max` most recently saved snapshots of `snapshots`. */
+export function pruneSnapshots(
+    snapshots: Record<string, DevicePreviewSnapshot>,
+    max: number = MAX_SNAPSHOTS,
+): Record<string, DevicePreviewSnapshot> {
+    const entries = Object.entries(snapshots)
+    if (entries.length <= max) return snapshots
+    return Object.fromEntries(
+        entries.sort(([, a], [, b]) => b.savedAt - a.savedAt).slice(0, max),
+    )
+}
+
 /** Persist migration. v1: snapshots no longer carry key legends
  *  (tap/hold/action); strip the ones saved before. */
 export function migrateDevicePreviews(
@@ -91,7 +107,10 @@ const useDevicePreviewStore = create<DevicePreviewState>()(
                 snapshots: {},
                 saveSnapshot: (key, snapshot) =>
                     set((s) => ({
-                        snapshots: { ...s.snapshots, [key]: snapshot },
+                        snapshots: pruneSnapshots({
+                            ...s.snapshots,
+                            [key]: snapshot,
+                        }),
                     })),
                 clear: (key) =>
                     set((s) => {

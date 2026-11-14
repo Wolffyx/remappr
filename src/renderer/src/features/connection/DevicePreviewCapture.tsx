@@ -71,7 +71,7 @@ export function DevicePreviewCapture(): null {
             y: y / 100,
         }))
 
-        const key = lastConnectedDevice?.id ?? service.deviceInfo.name
+        const key = lastConnectedDevice?.key ?? service.deviceInfo.name
         const signature = `${key}|${selectedPhysicalLayoutIndex}|${keymap.layers.length}|${encoders.length}|${keys
             .map((k) => k.category)
             .join(',')}`
