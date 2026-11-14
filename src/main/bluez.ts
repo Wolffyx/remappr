@@ -11,10 +11,12 @@
  * Listing: enumerate org.bluez.Device1 objects via ObjectManager,
  * filter by firmware studio service UUID in their UUIDs property.
  *
- * Connection: call Device1.Connect(), walk GattService1/GattCharacteristic1
- * children to find the studio characteristic, StartNotify(), wire
- * PropertiesChanged → onData callback. Writes go through
- * GattCharacteristic1.WriteValue.
+ * Connection: call Device1.Connect() (only when the OS has no link up),
+ * walk GattService1/GattCharacteristic1 children to find the studio
+ * characteristic, StartNotify(), wire PropertiesChanged → onData callback.
+ * Writes go through GattCharacteristic1.WriteValue. Closing the session
+ * stops notifications and drops the link only if this module brought it up:
+ * an OS-made link (the keyboard typing over BLE HID) stays up.
  */
 
 // dbus-next is a Linux-only optional dependency (it drags in the unix-only
@@ -48,12 +50,22 @@ interface ActiveBluezConnection {
     bus: dbus.MessageBus
     char: dbus.ProxyObject
     callbacks: BluezEventCallbacks
-    charSignalKey: string
-    deviceSignalKey: string
-    charMatchRule: string
-    deviceMatchRule: string
-    onCharProps: (msg: { body: unknown[] }) => void
-    onDeviceProps: (msg: { body: unknown[] }) => void
+    /** Removes the signal handlers, match rules and the emit wrapper. */
+    unsubscribe: () => Promise<void>
+    /** This module called Device1.Connect(); closing drops the link again. */
+    weConnected: boolean
+}
+
+// dbus-next internals the raw signal subscription uses. _addMatch and
+// _signals are internal but stable across dbus-next 0.10.x.
+interface BusInternal {
+    _addMatch: (rule: string) => Promise<void>
+    _removeMatch: (rule: string) => Promise<void>
+    _signals: {
+        on: (k: string, cb: (msg: unknown) => void) => void
+        off: (k: string, cb: (msg: unknown) => void) => void
+        emit: (k: string, msg: unknown) => boolean
+    }
 }
 
 let active: ActiveBluezConnection | null = null
@@ -237,8 +249,58 @@ export async function connectGattDevice(
         log.info('Device1.Connect() returned')
     }
 
-    // Wait for ServicesResolved before walking GATT objects. BlueZ exposes
-    // service/char children only after this flag flips.
+    let unsubscribe: (() => Promise<void>) | null = null
+    try {
+        const charPath = await resolveCharacteristic(
+            bus,
+            deviceProps,
+            devicePath,
+            serviceUuid,
+            charUuid,
+        )
+        const charObj = await bus.getProxyObject(BLUEZ_BUS, charPath)
+        const char = charObj.getInterface(IFACE_GATT_CHAR)
+        await logCharFlags(charObj)
+
+        unsubscribe = await subscribeProperties(
+            bus,
+            devicePath,
+            charPath,
+            callbacks,
+        )
+        await startNotifications(bus, charPath, char, charObj)
+        const label = await readLabel(bus, devicePath)
+        active = {
+            devicePath,
+            charPath,
+            bus,
+            char: charObj,
+            callbacks,
+            unsubscribe,
+            weConnected: !alreadyConnected,
+        }
+        return label
+    } catch (err) {
+        // A failed connect must leave nothing behind: a handler left on the
+        // bus would deliver every later notification twice (L4.4).
+        await unsubscribe?.()
+        if (!alreadyConnected) await dropLink(bus, devicePath)
+        throw err
+    }
+}
+
+/**
+ * Wait for ServicesResolved, then find the studio characteristic's path.
+ * BlueZ exposes service/char children only after that flag flips, and even
+ * on a link that was already up it may need a moment to expose them.
+ */
+async function resolveCharacteristic(
+    bus: dbus.MessageBus,
+    deviceProps: dbus.ClientInterface,
+    devicePath: string,
+    serviceUuid: string,
+    charUuid: string,
+): Promise<string> {
     const servicesResolvedDeadline = Date.now() + 8000
     while (Date.now() < servicesResolvedDeadline) {
         const sr = (await deviceProps.Get(
@@ -250,8 +312,6 @@ export async function connectGattDevice(
     }
     log.info('ServicesResolved=true (or timed out)')
 
-    // Find characteristic. Even if already connected, BlueZ may need a
-    // moment to expose GATT child objects.
     const charPath = await waitForCharResolution(
         bus,
         devicePath,
@@ -265,11 +325,11 @@ export async function connectGattDevice(
         )
     }
     log.info(`resolved char path=${charPath}`)
+    return charPath
+}
 
-    const charObj = await bus.getProxyObject(BLUEZ_BUS, charPath)
-    const char = charObj.getInterface(IFACE_GATT_CHAR)
-
-    // Log char Flags so we know which write modes BlueZ thinks are valid.
+/** Log char Flags so we know which write modes BlueZ thinks are valid. */
+async function logCharFlags(charObj: dbus.ProxyObject): Promise<void> {
     try {
         const cp = charObj.getInterface(IFACE_PROPERTIES)
         const flagsV = (await cp.Get(IFACE_GATT_CHAR, 'Flags')) as dbus.Variant
@@ -277,37 +337,31 @@ export async function connectGattDevice(
     } catch (e) {
         log.warn('could not read char Flags:', e)
     }
+}
 
-    // Subscribe to PropertiesChanged via raw bus signal mechanism. dbus-next
-    // ProxyInterface skips match-rule add when the signal isn't in the
-    // introspection $signals array — BlueZ sometimes omits the standard
-    // org.freedesktop.DBus.Properties signals from per-object introspection.
-    // Workaround: add match rule manually + listen on bus._signals.
-    const charMatchRule = `type='signal',sender='${BLUEZ_BUS}',interface='${IFACE_PROPERTIES}',path='${charPath}',member='PropertiesChanged'`
-    const deviceMatchRule = `type='signal',sender='${BLUEZ_BUS}',interface='${IFACE_PROPERTIES}',path='${devicePath}',member='PropertiesChanged'`
-
-    // _addMatch is internal but stable across dbus-next 0.10.x.
-    const busInternal = bus as unknown as {
-        _addMatch: (rule: string) => Promise<void>
-        _removeMatch: (rule: string) => Promise<void>
-        _signals: {
-            on: (k: string, cb: (msg: unknown) => void) => void
-            off: (k: string, cb: (msg: unknown) => void) => void
-        }
-    }
-    await busInternal._addMatch(charMatchRule)
-    await busInternal._addMatch(deviceMatchRule)
-
-    const charSignalKey = JSON.stringify({
-        path: charPath,
-        interface: IFACE_PROPERTIES,
-        member: 'PropertiesChanged',
-    })
-    const deviceSignalKey = JSON.stringify({
-        path: devicePath,
-        interface: IFACE_PROPERTIES,
-        member: 'PropertiesChanged',
-    })
+/**
+ * Subscribe to PropertiesChanged on the characteristic (data) and the device
+ * (link drop) via the raw bus signal mechanism. dbus-next ProxyInterface
+ * skips match-rule add when the signal isn't in the introspection $signals
+ * array — BlueZ sometimes omits the standard org.freedesktop.DBus.Properties
+ * signals from per-object introspection. Workaround: add the match rules by
+ * hand and listen on bus._signals. Resolves to the undo of all of it.
+ */
+async function subscribeProperties(
+    bus: dbus.MessageBus,
+    devicePath: string,
+    charPath: string,
+    callbacks: BluezEventCallbacks,
+): Promise<() => Promise<void>> {
+    const busInternal = bus as unknown as BusInternal
+    const ruleFor = (path: string): string =>
+        `type='signal',sender='${BLUEZ_BUS}',interface='${IFACE_PROPERTIES}',path='${path}',member='PropertiesChanged'`
+    const keyFor = (path: string): string =>
+        JSON.stringify({
+            path,
+            interface: IFACE_PROPERTIES,
+            member: 'PropertiesChanged',
+        })
 
     const onCharProps = (msg: { body: unknown[] }): void => {
         const iface = msg.body[0] as string
@@ -334,24 +388,18 @@ export async function connectGattDevice(
         }
     }
 
-    busInternal._signals.on(
-        charSignalKey,
-        onCharProps as (msg: unknown) => void,
-    )
-    busInternal._signals.on(
-        deviceSignalKey,
-        onDeviceProps as (msg: unknown) => void,
-    )
-    log.info('subscribed PropertiesChanged via raw match rule')
-    log.info('charSignalKey:', charSignalKey)
+    const subs: [string, string, (msg: unknown) => void][] = [
+        [ruleFor(charPath), keyFor(charPath), onCharProps as never],
+        [ruleFor(devicePath), keyFor(devicePath), onDeviceProps as never],
+    ]
+    const added: typeof subs = []
 
-    // Diagnostic: log EVERY signal emitted on the bus to see if BlueZ is
-    // sending PropertiesChanged at all.
-    const sigEmitter = busInternal._signals as unknown as {
-        emit: (k: string, msg: unknown) => boolean
-    }
-    const origEmit = sigEmitter.emit.bind(sigEmitter)
-    sigEmitter.emit = (k: string, msg: unknown): boolean => {
+    // Diagnostic: log every signal BlueZ emits for a device on the bus, to see
+    // whether PropertiesChanged arrives at all. Undone on unsubscribe, so
+    // connects never stack wrappers.
+    const sig = busInternal._signals
+    const prevEmit = sig.emit
+    sig.emit = (k: string, msg: unknown): boolean => {
         const m = msg as { path?: string; interface?: string; member?: string }
         if (m.path?.startsWith('/org/bluez/hci0/dev_')) {
             log.info(
@@ -363,9 +411,41 @@ export async function connectGattDevice(
                 m.path,
             )
         }
-        return origEmit(k, msg)
+        return prevEmit.call(sig, k, msg)
     }
 
+    const unsubscribe = async (): Promise<void> => {
+        sig.emit = prevEmit
+        for (const [rule, key, cb] of added) {
+            sig.off(key, cb)
+            await busInternal._removeMatch(rule).catch((e: unknown) => {
+                log.warn('removeMatch failed:', e)
+            })
+        }
+        added.length = 0
+    }
+
+    try {
+        for (const sub of subs) {
+            const [rule, key, cb] = sub
+            added.push(sub)
+            sig.on(key, cb)
+            await busInternal._addMatch(rule)
+        }
+    } catch (err) {
+        await unsubscribe()
+        throw err
+    }
+    log.info('subscribed PropertiesChanged via raw match rule')
+    return unsubscribe
+}
+
+async function startNotifications(
+    bus: dbus.MessageBus,
+    charPath: string,
+    char: dbus.ClientInterface,
+    charObj: dbus.ProxyObject,
+): Promise<void> {
     // List descriptors under char (look for CCCD 0x2902).
     try {
         const root = await bus.getProxyObject(BLUEZ_BUS, '/')
@@ -452,27 +532,29 @@ export async function connectGattDevice(
     } catch (e) {
         log.warn('ReadValue failed:', e)
     }
+}
 
-    const devObj2 = await bus.getProxyObject(BLUEZ_BUS, devicePath)
-    const deviceProps2 = devObj2.getInterface(IFACE_PROPERTIES)
-    const nameV = (await deviceProps2.Get(IFACE_DEVICE, 'Name')) as dbus.Variant
-    const label = (nameV?.value as string) || 'BLE Device'
+async function readLabel(
+    bus: dbus.MessageBus,
+    devicePath: string,
+): Promise<string> {
+    const devObj = await bus.getProxyObject(BLUEZ_BUS, devicePath)
+    const deviceProps = devObj.getInterface(IFACE_PROPERTIES)
+    const nameV = (await deviceProps.Get(IFACE_DEVICE, 'Name')) as dbus.Variant
+    return (nameV?.value as string) || 'BLE Device'
+}
 
-    active = {
-        devicePath,
-        charPath,
-        bus,
-        char: charObj,
-        callbacks,
-        charSignalKey,
-        deviceSignalKey,
-        charMatchRule,
-        deviceMatchRule,
-        onCharProps,
-        onDeviceProps,
+/** Device1.Disconnect(), for a link this module brought up. */
+async function dropLink(
+    bus: dbus.MessageBus,
+    devicePath: string,
+): Promise<void> {
+    try {
+        const devObj = await bus.getProxyObject(BLUEZ_BUS, devicePath)
+        await devObj.getInterface(IFACE_DEVICE).Disconnect()
+    } catch (e) {
+        log.warn('Device1.Disconnect failed:', e)
     }
-
-    return label
 }
 
 export async function writeGatt(data: Uint8Array): Promise<void> {
@@ -497,37 +579,17 @@ export async function disconnectGattDevice(): Promise<void> {
     const a = active
     active = null
 
-    const busInternal = a.bus as unknown as {
-        _removeMatch: (rule: string) => Promise<void>
-        _signals: { off: (k: string, cb: (msg: unknown) => void) => void }
-    }
-    try {
-        busInternal._signals.off(
-            a.charSignalKey,
-            a.onCharProps as (msg: unknown) => void,
-        )
-        busInternal._signals.off(
-            a.deviceSignalKey,
-            a.onDeviceProps as (msg: unknown) => void,
-        )
-        await busInternal._removeMatch(a.charMatchRule).catch(() => {})
-        await busInternal._removeMatch(a.deviceMatchRule).catch(() => {})
-    } catch {
-        /* ignore */
-    }
+    await a.unsubscribe()
     try {
         const char = a.char.getInterface(IFACE_GATT_CHAR)
         await char.StopNotify()
-    } catch {
-        /* ignore — device may already be gone */
+    } catch (e) {
+        // The device may already be gone.
+        log.warn('StopNotify failed:', e)
     }
-    try {
-        const devObj = await a.bus.getProxyObject(BLUEZ_BUS, a.devicePath)
-        const device = devObj.getInterface(IFACE_DEVICE)
-        await device.Disconnect()
-    } catch {
-        /* ignore */
-    }
+    // Only drop a link this module made. The OS link (the keyboard typing
+    // over BLE HID) is not ours to close (L4.5).
+    if (a.weConnected) await dropLink(a.bus, a.devicePath)
 }
 
 export function hasActiveBluezConnection(): boolean {
