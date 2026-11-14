@@ -524,6 +524,7 @@ const VIEWS: { [K in ControlKind]: Partial<Record<SectionId, View<K>>> } = {
     sensor: SENSOR,
     encoder: ENCODER,
     axis: AXIS,
+    display: {},
 }
 
 export interface ControlInspectorProps {
