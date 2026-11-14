@@ -15,6 +15,7 @@ import {
     Download,
     Flame,
     Gauge,
+    Grid3x3,
     Languages,
     Layers,
     Lightbulb,
@@ -187,6 +188,15 @@ export const TOOLS: readonly ToolDef[] = [
         description: 'Tapping term, debounce and other defaults',
         icon: Timer,
         feature: 'limits',
+        action: 'dialog',
+    },
+    {
+        id: 'scanning',
+        group: 'device',
+        label: 'Scanning',
+        description: 'Key matrix scan rate, debounce and eager press',
+        icon: Grid3x3,
+        feature: 'scanning',
         action: 'dialog',
     },
     {

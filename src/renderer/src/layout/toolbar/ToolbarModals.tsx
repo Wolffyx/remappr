@@ -37,6 +37,14 @@ export const TOOLBAR_MODALS: readonly ToolbarModalSpec[] = [
         ),
     },
     {
+        id: 'scanning',
+        Modal: lazyModal(() =>
+            import('@/features/firmware/ScanningSettingsModal').then(
+                (m) => m.ScanningSettingsModal,
+            ),
+        ),
+    },
+    {
         id: 'power',
         Modal: lazyModal(() =>
             import('@/features/firmware/PowerSettingsModal').then(

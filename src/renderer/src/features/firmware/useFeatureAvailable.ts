@@ -24,6 +24,10 @@ export const FEATURE_PROBES = {
     // A keyboard with a battery whose config blob carries its power timeouts
     // (node.power). Mice and joysticks show theirs in Device settings.
     power: (s) => s.capabilities.power?.battery && supportsConfigEditing(s),
+    // A keyboard whose firmware describes its parts (PART namespace): the
+    // key matrix's scan and debounce settings. Mice and joysticks show their
+    // parts in Device settings.
+    scanning: (s) => (s.kind ?? 'keyboard') === 'keyboard' && s.sensor,
     lock: (s) => s.capabilities.lock !== 'none',
     rename: (s) => s.capabilities.rename,
     reorderLayers: (s) => s.capabilities.reorderLayers,

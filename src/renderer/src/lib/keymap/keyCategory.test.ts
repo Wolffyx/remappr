@@ -25,6 +25,12 @@ describe('categoryForUsage', () => {
         ['Right arrow', u(0x4f), 'nav'],
         ['Home', u(0x4a), 'nav'],
         ['Left Ctrl', u(0xe0), 'mod'],
+        ['Keypad Comma', u(0x85), 'num'],
+        ['International1 (Ro)', u(0x87), 'punct'],
+        ['International3 (Yen)', u(0x89), 'punct'],
+        ['International5 (Muhenkan)', u(0x8b), 'punct'],
+        ['LANG1', u(0x90), 'mod'],
+        ['LANG2', u(0x91), 'mod'],
         ['Volume Up (consumer)', u(0xe9, CONSUMER), 'media'],
     ])('%s → %s', (_label, usage, expected) => {
         expect(categoryForUsage(usage)).toBe(expected)
