@@ -5,7 +5,7 @@ import { Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveSucceeded, saveWithToast } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
@@ -96,22 +96,22 @@ export function AdvancedSettingsModal({ opened, onClose }: Props): JSX.Element {
 
     const toggleSnap = async (next: boolean): Promise<void> => {
         if (!advanced.setSnapClick) return
-        const r = await saveWithToast(
+        const ok = await saveSucceeded(
             () => advanced.setSnapClick!(next),
             `Snap-click ${next ? 'enabled' : 'disabled'}`,
             'Failed to update snap-click',
         )
-        if (r !== undefined) setSnapClick(next)
+        if (ok) setSnapClick(next)
     }
 
     const toggleNkro = async (next: boolean): Promise<void> => {
         if (!wireless?.setNkro) return
-        const r = await saveWithToast(
+        const ok = await saveSucceeded(
             () => wireless.setNkro!(next),
             `NKRO ${next ? 'enabled' : 'disabled'}`,
             'Failed to update NKRO',
         )
-        if (r !== undefined) setNkro(next)
+        if (ok) setNkro(next)
     }
 
     return (
