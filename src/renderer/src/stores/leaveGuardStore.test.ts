@@ -71,6 +71,7 @@ const NODE: NodeView = {
     label: 'Mouse 0x0002',
     personality: 2,
     online: true,
+    secured: true,
     bonded: true,
     rssi: -40,
     hopCount: 0,

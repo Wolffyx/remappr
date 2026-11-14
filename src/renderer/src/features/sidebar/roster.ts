@@ -73,3 +73,28 @@ export function groupRoster(
     }
     return [...out.values()]
 }
+
+/** Whether a click can open `e` now: the open device always, any other only
+ *  while it is reachable. */
+export const canOpenEntry = (e: RosterEntry): boolean => e.active || e.online
+
+/**
+ * Open a roster entry from a click. An unreachable entry does nothing (its
+ * button is disabled); a failed open, such as a relayed discovery that does
+ * not answer, is reported instead of becoming an unhandled rejection.
+ */
+export async function openEntry(
+    e: RosterEntry,
+    report: (title: string, description: string) => void,
+): Promise<void> {
+    if (!canOpenEntry(e)) return
+    try {
+        await e.open()
+    } catch (err) {
+        console.warn(`Failed to open ${e.name}`, err)
+        report(
+            `Failed to open ${e.name}`,
+            err instanceof Error ? err.message : String(err),
+        )
+    }
+}

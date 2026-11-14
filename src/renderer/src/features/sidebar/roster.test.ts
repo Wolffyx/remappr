@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Keyboard } from 'lucide-react'
 import {
+    canOpenEntry,
     groupRoster,
+    openEntry,
     stripOrder,
     type RosterEntry,
     type RosterGroup,
@@ -56,5 +58,47 @@ describe('groupRoster', () => {
         ])
         expect(groups.map((g) => g.group.id)).toEqual(['usb', 'dongle:x'])
         expect(groups[1].entries.map((e) => e.key)).toEqual(['n1', 'n2'])
+    })
+})
+
+describe('openEntry', () => {
+    // L4.9: an offline node opened on click, and its failed relayed discovery
+    // was an unhandled rejection with no toast.
+    it('does not open an unreachable entry', async () => {
+        const open = vi.fn(async () => {})
+        const report = vi.fn()
+        const e = entry('node', { online: false, open })
+
+        expect(canOpenEntry(e)).toBe(false)
+        await openEntry(e, report)
+
+        expect(open).not.toHaveBeenCalled()
+        expect(report).not.toHaveBeenCalled()
+    })
+
+    it('reports a rejected open instead of leaving it unhandled', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const report = vi.fn()
+        const e = entry('node', {
+            name: 'Keyboard 0x0002',
+            open: () => Promise.reject(new Error('relay timeout')),
+        })
+
+        await expect(openEntry(e, report)).resolves.toBeUndefined()
+
+        expect(report).toHaveBeenCalledWith(
+            'Failed to open Keyboard 0x0002',
+            'relay timeout',
+        )
+        vi.restoreAllMocks()
+    })
+
+    it('opens the active entry even when it reads offline', async () => {
+        const open = vi.fn(async () => {})
+        await openEntry(
+            entry('me', { active: true, online: false, open }),
+            vi.fn(),
+        )
+        expect(open).toHaveBeenCalled()
     })
 })
