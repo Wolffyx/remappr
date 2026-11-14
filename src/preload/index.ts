@@ -15,8 +15,9 @@ declare global {
 // Only the channel-whitelisted `api` below reaches the renderer. The
 // @electron-toolkit `electronAPI` bundle is deliberately NOT exposed: it hands
 // out raw ipcRenderer send/invoke/on (bypassing the whitelist) and
-// `process.env` (which can hold tokens such as GITHUB_TOKEN). Nothing in the
-// renderer used it.
+// `process.env` (which can hold tokens such as GITHUB_TOKEN). The one thing
+// the renderer read from it, `process.platform` (traffic-light inset, window
+// controls, release-asset pick), is exposed as `api.platform` instead.
 
 // Allowed invoke channels (whitelist for security)
 const VALID_INVOKE_CHANNELS = new Set<string>(Object.values(IpcChannels))
@@ -26,6 +27,8 @@ const VALID_EVENT_CHANNELS = new Set<string>(Object.values(IpcEvents))
 
 // Custom IPC API for renderer
 const api = {
+    platform: process.platform,
+
     invoke(channel: string, ...args: unknown[]): Promise<unknown> {
         if (!VALID_INVOKE_CHANNELS.has(channel)) {
             return Promise.reject(new Error(`Invalid IPC channel: ${channel}`))

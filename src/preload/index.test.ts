@@ -37,6 +37,11 @@ describe('preload bridge (L4.22)', () => {
         expect([...electron.exposed.keys()]).toEqual(['api'])
     })
 
+    it('exposes the host platform on api (no window.electron needed)', () => {
+        const api = electron.exposed.get('api') as { platform: string }
+        expect(api.platform).toBe(process.platform)
+    })
+
     it('rejects a channel outside the whitelist', async () => {
         const api = electron.exposed.get('api') as ExposedApi
         await expect(api.invoke('evil:channel')).rejects.toThrow(

@@ -257,6 +257,9 @@ export interface IpcEventMap {
  * Type safety at call sites is provided by the typed electron adapter modules.
  */
 export interface ElectronIpcApi {
+    /** Host OS (`process.platform`: 'darwin' | 'win32' | 'linux' …). */
+    readonly platform: string
+
     invoke(channel: string, ...args: unknown[]): Promise<unknown>
 
     on(event: string, callback: (...args: unknown[]) => void): () => void
