@@ -1,6 +1,6 @@
 // pattern-check: skip — unit test with dbus-next faked, no production logic
 import { EventEmitter } from 'node:events'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
 const DEV = '/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF'
 const SVC_PATH = `${DEV}/service0010`
@@ -138,9 +138,12 @@ const notify = (bytes: number[]): void => {
 }
 
 const callbacks = (): {
-    onData: ReturnType<typeof vi.fn>
-    onDisconnected: ReturnType<typeof vi.fn>
-} => ({ onData: vi.fn(), onDisconnected: vi.fn() })
+    onData: Mock<(data: number[]) => void>
+    onDisconnected: Mock<() => void>
+} => ({
+    onData: vi.fn<(data: number[]) => void>(),
+    onDisconnected: vi.fn<() => void>(),
+})
 
 const connect = (cb = callbacks()): Promise<string> =>
     connectGattDevice(DEV, SVC, CHR, cb)

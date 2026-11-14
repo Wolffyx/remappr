@@ -49,6 +49,7 @@ interface HidLike {
 
 interface NodeHidModule {
     devices: () => NodeHidDevice[]
+    devicesAsync: () => Promise<NodeHidDevice[]>
     HID: new (path: string) => HidLike
 }
 
@@ -285,19 +286,33 @@ export function startHidDevicePolling(
 ): () => void {
     let last: string | null = null
     let stopped = false
+    // A slow enumeration must not stack up ticks behind it.
+    let inFlight = false
 
     const tick = async (): Promise<void> => {
+        if (inFlight) return
+        inFlight = true
+        try {
+            await poll()
+        } finally {
+            inFlight = false
+        }
+    }
+
+    const poll = async (): Promise<void> => {
         const mod = await loadNodeHid()
         if (!mod || stopped) return
         let fp: string
         try {
-            fp = [...new Set(mod.devices().map((d) => d.path ?? ''))]
-                .sort()
-                .join('\n')
+            // devicesAsync enumerates off the main thread: the sync
+            // devices() blocks every IPC for tens of ms on a busy bus.
+            const list = await mod.devicesAsync()
+            fp = [...new Set(list.map((d) => d.path ?? ''))].sort().join('\n')
         } catch (err) {
             log.warn('hotplug poll failed:', err)
             return
         }
+        if (stopped) return
         const changed = last !== null && fp !== last
         last = fp
         if (!changed) return

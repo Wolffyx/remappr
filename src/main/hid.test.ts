@@ -1,6 +1,14 @@
 // pattern-check: skip — unit test with node-hid faked, no production logic
 import { EventEmitter } from 'node:events'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    type Mock,
+    vi,
+} from 'vitest'
 import { IpcEvents } from '../shared/ipc-types'
 
 /* A node-hid HID handle: emits 'data' / 'error', counts close(). */
@@ -26,10 +34,22 @@ class FakeHid extends EventEmitter {
 const fake = vi.hoisted(() => ({
     opened: [] as FakeHid[],
     devices: [] as Array<Record<string, unknown>>,
+    syncCalls: 0,
+    asyncCalls: 0,
+    // Set to hold every devicesAsync() call open until released.
+    gate: null as Promise<void> | null,
 }))
 
 vi.mock('node-hid', () => ({
-    devices: () => fake.devices,
+    devices: () => {
+        fake.syncCalls++
+        return fake.devices
+    },
+    devicesAsync: async () => {
+        fake.asyncCalls++
+        if (fake.gate) await fake.gate
+        return fake.devices
+    },
     HID: FakeHid,
 }))
 
@@ -52,9 +72,12 @@ const KEYBOARD = {
 const DONGLE = { ...KEYBOARD, path: '/dev/hidraw4', productId: 0x0002 }
 
 const callbacks = (): {
-    onData: ReturnType<typeof vi.fn>
-    onDisconnected: ReturnType<typeof vi.fn>
-} => ({ onData: vi.fn(), onDisconnected: vi.fn() })
+    onData: Mock<(data: number[]) => void>
+    onDisconnected: Mock<() => void>
+} => ({
+    onData: vi.fn<(data: number[]) => void>(),
+    onDisconnected: vi.fn<() => void>(),
+})
 
 beforeEach(async () => {
     await disconnectHidDevice()
@@ -138,6 +161,9 @@ describe('HID hotplug polling (L4.6)', () => {
     beforeEach(() => {
         vi.useFakeTimers()
         sent.length = 0
+        fake.syncCalls = 0
+        fake.asyncCalls = 0
+        fake.gate = null
     })
     afterEach(() => {
         stop()
@@ -170,5 +196,27 @@ describe('HID hotplug polling (L4.6)', () => {
         fake.devices = []
         await vi.advanceTimersByTimeAsync(4000)
         expect(sent).toEqual([])
+    })
+
+    it('enumerates without blocking the main process', async () => {
+        fake.devices = [KEYBOARD]
+        stop = startHidDevicePolling(() => [win as never], 2000)
+        await vi.advanceTimersByTimeAsync(4000)
+        expect(fake.syncCalls).toBe(0)
+        expect(fake.asyncCalls).toBe(3)
+    })
+
+    it('skips a tick while the last enumeration is still running', async () => {
+        let release: () => void = () => undefined
+        fake.gate = new Promise((r) => (release = r))
+        fake.devices = [KEYBOARD]
+        stop = startHidDevicePolling(() => [win as never], 2000)
+        await vi.advanceTimersByTimeAsync(6000)
+        expect(fake.asyncCalls).toBe(1)
+
+        fake.gate = null
+        release()
+        await vi.advanceTimersByTimeAsync(2000)
+        expect(fake.asyncCalls).toBe(2)
     })
 })
