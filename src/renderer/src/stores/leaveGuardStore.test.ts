@@ -159,7 +159,10 @@ describe('confirmLeave', () => {
         await promptOpen()
         choose('save')
         await vi.waitFor(() => expect(toast.error).toHaveBeenCalled())
-        expect(toast.error).toHaveBeenCalledWith('COMMIT_CONFIG failed')
+        expect(toast.error).toHaveBeenCalledWith(
+            'Failed to save changes: COMMIT_CONFIG failed',
+            {},
+        )
         expect(useLeaveGuardStore.getState().deviceName).toBe('Mouse')
         expect(useLeaveGuardStore.getState().busy).toBeNull()
         choose('discard')
