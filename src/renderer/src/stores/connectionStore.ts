@@ -15,6 +15,8 @@ import useKeymapStore from '@/stores/keymapStore'
 import useUndoRedoStore from '@/stores/undoRedoStore'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
 import { createOsBackedKeyTest } from '@/features/keymap/keyboard/stage/osBackedKeyTest'
+import type { AvailableDevice } from '@/transport/types'
+import { deviceKey } from '@/features/connection/deviceKey'
 
 // Teardown for the connected keyboard's default-layer subscription (Feature 1).
 // Module-scoped: the store is a singleton, and this keeps the internal handle off
@@ -74,15 +76,15 @@ interface ConnectionState {
     lockState: LockState
     keyCatalog: KeyCatalog | null
     connectionAbort: AbortController
-    /** Identity of the listed device being connected — bridges connect → preview capture. */
-    lastConnectedDevice: { id: string; label: string } | null
+    /** Identity of the listed device being connected — bridges connect → preview capture.
+     *  `id` is the session's connect handle, `key` the stable per-device key
+     *  (deviceKey) that snapshots, backups and auto-connect are stored under. */
+    lastConnectedDevice: { id: string; label: string; key: string } | null
     setService: (
         service: KeyboardService | null,
         communication?: 'serial' | 'ble' | 'hid',
     ) => void
-    setLastConnectedDevice: (
-        device: { id: string; label: string } | null,
-    ) => void
+    setLastConnectedDevice: (device: AvailableDevice | null) => void
     setDeviceName: (name: string | null) => void
     setLockState: (state: LockState) => void
     /** Show a newly connected service together with its lock state. The store
@@ -292,7 +294,13 @@ const useConnectionStore = create<ConnectionState>()(
                 seedConfigFromService(service, isCurrent)
             },
             setLastConnectedDevice: (device) =>
-                set({ lastConnectedDevice: device }),
+                set({
+                    lastConnectedDevice: device && {
+                        id: device.id,
+                        label: device.label,
+                        key: deviceKey(device),
+                    },
+                }),
             setDeviceName: (name) => set({ deviceName: name }),
             setLockState: (state) => set({ lockState: state }),
             publishService: async (service, communication) => {

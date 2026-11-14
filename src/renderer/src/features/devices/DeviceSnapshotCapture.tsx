@@ -37,7 +37,7 @@ export function DeviceSnapshotCapture(): null {
                 bindingSummary(c, bindings, index).cat,
             ]),
         )
-        const key = lastConnectedDevice?.id ?? service.deviceInfo.name
+        const key = lastConnectedDevice?.key ?? service.deviceInfo.name
         const signature = `${key}|${model.controls.length}|${JSON.stringify(categories)}`
         if (signature === lastSignature.current) return
         lastSignature.current = signature

@@ -120,6 +120,7 @@ describe('switchToDevice', () => {
         expect(useConnectionStore.getState().lastConnectedDevice).toEqual({
             id: 'next-id',
             label: 'Device next-id',
+            key: 'next-id', // no device-reported identity: the transport id
         })
     })
 

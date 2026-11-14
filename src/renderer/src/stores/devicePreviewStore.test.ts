@@ -1,6 +1,11 @@
 // pattern-check: skip — assertions over the device-preview persist migration
 import { describe, expect, it } from 'vitest'
-import { migrateDevicePreviews } from './devicePreviewStore'
+import {
+    MAX_SNAPSHOTS,
+    migrateDevicePreviews,
+    pruneSnapshots,
+    type DevicePreviewSnapshot,
+} from './devicePreviewStore'
 
 describe('devicePreviewStore migration', () => {
     it('strips key legends from snapshots saved before v1', () => {
@@ -36,5 +41,27 @@ describe('devicePreviewStore migration', () => {
             category: 'alpha',
         })
         expect(out.snapshots.dev.name).toBe('PM Test')
+    })
+})
+
+describe('pruneSnapshots', () => {
+    const snap = (savedAt: number): DevicePreviewSnapshot => ({
+        name: 'x',
+        communication: 'hid',
+        keyCount: 0,
+        layerCount: 0,
+        keys: [],
+        savedAt,
+    })
+
+    // L4.12: every replug saved under a new key and nothing pruned the map.
+    it('keeps only the most recently saved snapshots', () => {
+        const out = pruneSnapshots({ a: snap(1), b: snap(3), c: snap(2) }, 2)
+        expect(Object.keys(out).sort()).toEqual(['b', 'c'])
+    })
+
+    it('leaves a map under the cap as it is', () => {
+        const map = { a: snap(1) }
+        expect(pruneSnapshots(map, MAX_SNAPSHOTS)).toBe(map)
     })
 })

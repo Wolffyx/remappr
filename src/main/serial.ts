@@ -15,6 +15,8 @@ const execAsync = promisify(exec)
 export interface SerialDeviceInfo {
     id: string
     label: string
+    /** Stable across replugs: the USB serial the device reports. */
+    key?: string
 }
 
 export interface SerialEventCallbacks {
@@ -170,6 +172,21 @@ function buildFallbackLabel(port: {
     return parts.length ? `${port.path} · ${parts.join(' · ')}` : port.path
 }
 
+/** A key that survives a replug (the tty path does not): vid, pid and the USB
+ *  serial number, when the port reports a real one (not a Windows PnP
+ *  instance fragment). */
+export function serialDeviceKey(port: {
+    serialNumber?: string
+    vendorId?: string
+    productId?: string
+}): string | undefined {
+    const sn = (port.serialNumber || '').trim()
+    if (!sn || isPnpFragment(sn) || !port.vendorId || !port.productId) {
+        return undefined
+    }
+    return `serial:${port.vendorId.toLowerCase()}:${port.productId.toLowerCase()}:${sn}`
+}
+
 export async function listSerialDevices(): Promise<SerialDeviceInfo[]> {
     try {
         const allPorts = await SerialPort.list()
@@ -181,20 +198,23 @@ export async function listSerialDevices(): Promise<SerialDeviceInfo[]> {
                 ? allPorts.filter((p) => !!p.vendorId)
                 : allPorts
         const enriched = await Promise.all(
-            ports.map(async (port) => {
+            ports.map(async (port): Promise<SerialDeviceInfo> => {
+                const key = serialDeviceKey(port)
+                const info = (label: string): SerialDeviceInfo => ({
+                    id: port.path,
+                    label,
+                    ...(key ? { key } : {}),
+                })
                 const linuxProduct = getLinuxProductName(port.path)
-                if (linuxProduct) {
-                    return { id: port.path, label: linuxProduct }
-                }
+                if (linuxProduct) return info(linuxProduct)
                 const macProduct = await getMacProductName(port.path)
-                if (macProduct) {
-                    return { id: port.path, label: macProduct }
-                }
+                if (macProduct) return info(macProduct)
                 const product = await getWindowsProductName(port.pnpId)
-                const label = product
-                    ? `${product} (${port.path})`
-                    : buildFallbackLabel(port)
-                return { id: port.path, label }
+                return info(
+                    product
+                        ? `${product} (${port.path})`
+                        : buildFallbackLabel(port),
+                )
             }),
         )
         knownSerialPaths = new Set(enriched.map((d) => d.id))

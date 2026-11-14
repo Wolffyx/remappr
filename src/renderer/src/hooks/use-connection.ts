@@ -10,6 +10,7 @@ import { ensureFirmwareClientsLoaded } from '@/transport/adapter/firmwareClients
 import { getTransports, subscribeToTransportChanges } from '@/lib/transports'
 import useConnectionStore from '@/stores/connectionStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
+import { deviceKey } from '@/features/connection/deviceKey'
 import type {
     DeviceStatus,
     DeviceWithTransport,
@@ -140,10 +141,7 @@ export function useConnection(
             try {
                 await ensureFirmwareClientsLoaded()
                 const rpc = await transport.pick_and_connect!.connect(device)
-                useConnectionStore.getState().setLastConnectedDevice({
-                    id: device.id,
-                    label: device.label,
-                })
+                useConnectionStore.getState().setLastConnectedDevice(device)
                 // The transport opened, but the adapter handshake still runs
                 // inside onTransportCreated and can fail or hang there. Await it
                 // and, if it doesn't reach a connected service, drop the card
@@ -221,11 +219,7 @@ export function useConnection(
                         after.find((d) => !grantedBefore.has(d.id)) ??
                         (after.length === 1 ? after[0] : null)
                 }
-                useConnectionStore
-                    .getState()
-                    .setLastConnectedDevice(
-                        paired ? { id: paired.id, label: paired.label } : null,
-                    )
+                useConnectionStore.getState().setLastConnectedDevice(paired)
                 if (rpc) await onTransportCreated(rpc, transport.communication)
             } catch (e) {
                 if (
@@ -254,7 +248,9 @@ export function useConnection(
         }
         if (!autoConnectDeviceId) return
         if (connectingDeviceIdRef.current !== null) return
-        const match = devices.find((d) => d.device.id === autoConnectDeviceId)
+        const match = devices.find(
+            (d) => deviceKey(d.device) === autoConnectDeviceId,
+        )
         if (!match) return
         autoConnectAttempted = true
         // Defer out of the effect body so the connect's setState doesn't
