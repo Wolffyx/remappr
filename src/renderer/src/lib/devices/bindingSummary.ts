@@ -140,6 +140,8 @@ const FORMAT: Formatters = {
             cat: o.cat,
         }
     },
+    // A screen shows the device's own content; it has no binding to name.
+    display: () => ({ text: 'Display', sub: undefined, cat: 'none' }),
 }
 
 /** Summarise `binding` as a `control.kind` binding. */
