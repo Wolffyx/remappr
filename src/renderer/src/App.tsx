@@ -1,6 +1,7 @@
 import { JSX, useCallback, useEffect } from 'react'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
 import { LeaveGuardDialog } from '@/features/connection/LeaveGuardDialog'
+import { SaveAllPromptDialog } from '@/features/firmware/SaveAllPromptDialog'
 import { DongleLanding } from '@/features/connection/DongleLanding'
 import { DeviceEditor } from '@/features/devices/DeviceEditor'
 import useConnectionStore from '@/stores/connectionStore'
@@ -189,6 +190,7 @@ function App(): JSX.Element {
             {isCloudConfigured() && !isElectron && <DesktopSignInHandler />}
             <UnlockPanel layout="card" />
             <LeaveGuardDialog />
+            <SaveAllPromptDialog />
         </ThemeProvider>
     )
 }

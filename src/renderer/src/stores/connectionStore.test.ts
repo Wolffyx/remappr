@@ -1,10 +1,11 @@
 // pattern-check: skip — store unit test, no production logic
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import useConnectionStore from './connectionStore'
 import useConfigStore from './configStore'
 import useLayerSelectionStore from './layerSelectionStore'
 import type { KeyboardService, NodeView } from '@firmware/service'
-import { isSaveModeManaged, unwrapSaveMode } from '@/lib/saveMode'
+import { isSaveModeManaged, unwrapSaveMode, withSaveMode } from '@/lib/saveMode'
+import useUserSettingsStore from './userSettingsStore'
 
 /* A behind-dongle node view: read-only, shares the dongle RPC, so its own
  * disconnect is a no-op on the transport (tracked here to prove the store
@@ -79,6 +80,7 @@ const ROSTER: NodeView[] = [
         label: 'Node 0x0007',
         personality: 2,
         online: true,
+        secured: true,
         bonded: true,
         rssi: -40,
         hopCount: 0,
@@ -90,6 +92,7 @@ const ROSTER: NodeView[] = [
         label: 'Node 0x0009',
         personality: 4,
         online: false,
+        secured: false,
         bonded: true,
         rssi: -72,
         hopCount: 1,
@@ -214,6 +217,74 @@ describe('connectionStore node views', () => {
         const s = useConnectionStore.getState()
         expect(s.parentService).toBeNull()
         expect(s.activeNodeId).toBeNull()
+    })
+})
+
+/* An editable on-device-staging service in Auto-save mode: a key edit arms
+ * the debounced auto-save. Reports nothing pending so leaving never prompts or
+ * flushes, which isolates the timer. */
+function makeAutoSaveService(name: string): {
+    service: KeyboardService
+    commit: ReturnType<typeof vi.fn>
+} {
+    const commit = vi.fn(async () => undefined)
+    const service = {
+        deviceInfo: { name, firmware: 'fake' },
+        capabilities: { lock: 'none', saveMode: 'manual' },
+        listActionTypes: async () => [],
+        setKey: vi.fn(async () => undefined),
+        commit,
+        discardChanges: vi.fn(async () => undefined),
+        disconnect: vi.fn(async () => undefined),
+        hasPendingChanges: () => false,
+        refreshPendingChanges: async () => false,
+        onPendingChangesChanged: () => () => undefined,
+    } as unknown as KeyboardService
+    return { service, commit }
+}
+
+describe('connectionStore auto-save on leave (L4.15)', () => {
+    beforeEach(() => {
+        useConnectionStore.getState().resetConnection()
+        vi.useFakeTimers()
+    })
+    afterEach(() => vi.useRealTimers())
+
+    const edit = (svc: KeyboardService): Promise<void> =>
+        svc.setKey(0, 0, { kind: 'kp', params: [] } as never)
+
+    it('an unplug (resetConnection) cancels the pending auto-save', async () => {
+        const { service, commit } = makeAutoSaveService('KB')
+        const svc = withSaveMode(service, true)
+        useConnectionStore.getState().setService(svc, 'hid')
+        await edit(svc)
+        useConnectionStore.getState().resetConnection()
+        await vi.advanceTimersByTimeAsync(5_000)
+        expect(commit).not.toHaveBeenCalled()
+    })
+
+    it('a dropped transport (setService(null)) cancels the pending auto-save', async () => {
+        const { service, commit } = makeAutoSaveService('KB')
+        const svc = withSaveMode(service, true)
+        useConnectionStore.getState().setService(svc, 'hid')
+        await edit(svc)
+        useConnectionStore.getState().setService(null)
+        await vi.advanceTimersByTimeAsync(5_000)
+        expect(commit).not.toHaveBeenCalled()
+    })
+
+    it('returning to the dongle cancels the node view auto-save', async () => {
+        const { service: dongle } = makeDongle(ROSTER)
+        const { service: node, commit } = makeAutoSaveService('Node')
+        Object.assign(dongle.nodes!, { open: async () => node })
+        useConnectionStore.getState().setService(dongle, 'hid')
+        useUserSettingsStore.setState({ autosave: true })
+        await useConnectionStore.getState().openNode(0x0007)
+        await edit(useConnectionStore.getState().service!)
+
+        await useConnectionStore.getState().returnToParent()
+        await vi.advanceTimersByTimeAsync(5_000)
+        expect(commit).not.toHaveBeenCalled()
     })
 })
 
@@ -456,5 +527,24 @@ describe('publishService', () => {
         )
         expect(useConnectionStore.getState().lockState).toBe('locked')
         expect(useConnectionStore.getState().service).not.toBeNull()
+    })
+})
+
+describe('setLastConnectedDevice', () => {
+    // L4.12: snapshots, backups and auto-connect read the device's key, not
+    // the OS path that a replug changes.
+    it('stores the device-reported key beside the connect handle', () => {
+        useConnectionStore.getState().setLastConnectedDevice({
+            id: '/dev/hidraw4',
+            label: 'Remappr',
+            key: 'hid:1209:0001:E4A1',
+        })
+        expect(useConnectionStore.getState().lastConnectedDevice).toEqual({
+            id: '/dev/hidraw4',
+            label: 'Remappr',
+            key: 'hid:1209:0001:E4A1',
+        })
+        useConnectionStore.getState().setLastConnectedDevice(null)
+        expect(useConnectionStore.getState().lastConnectedDevice).toBeNull()
     })
 })

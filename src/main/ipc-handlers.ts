@@ -134,6 +134,17 @@ function commitLink(id: LinkId, kind: LinkKind): void {
     links.set(id, kind)
 }
 
+// Opens and closes run one after another, in the order they arrive, so a
+// close still awaiting its port can't land on a link opened meanwhile.
+let linkQueue: Promise<unknown> = Promise.resolve()
+
+/** Run `fn` after every connect and close queued before it. */
+function inOrder<T>(fn: () => Promise<T>): Promise<T> {
+    const run = linkQueue.then(fn, fn)
+    linkQueue = run.catch(() => undefined)
+    return run
+}
+
 /** Forget a link and tell the renderer it closed — once. */
 function endLink(id: LinkId): void {
     if (!links.delete(id)) return
@@ -178,10 +189,12 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
 
     ipcMain.handle(IpcChannels.SERIAL_CONNECT, async (_, device: unknown) => {
         const validDevice = validateAvailableDevice(device)
-        const link = beginLink()
-        await connectSerial(validDevice.id, link.callbacks)
-        commitLink(link.id, 'serial')
-        return link.id
+        return inOrder(async () => {
+            const link = beginLink()
+            await connectSerial(validDevice.id, link.callbacks)
+            commitLink(link.id, 'serial')
+            return link.id
+        })
     })
 
     // --- BLE Device Handlers ---
@@ -207,15 +220,17 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
             return { ok: false, error: 'Invalid discovery payload' }
         }
         try {
-            const link = beginLink()
-            const label = await connectGattDevice(
-                devicePath,
-                d.serviceUuid,
-                d.charUuid,
-                link.callbacks,
-            )
-            commitLink(link.id, 'bluez')
-            return { ok: true, label, linkId: link.id }
+            return await inOrder(async () => {
+                const link = beginLink()
+                const label = await connectGattDevice(
+                    devicePath,
+                    d.serviceUuid,
+                    d.charUuid,
+                    link.callbacks,
+                )
+                commitLink(link.id, 'bluez')
+                return { ok: true, label, linkId: link.id }
+            })
         } catch (e) {
             const msg = e instanceof Error ? e.message : String(e)
             log.error('BLUEZ_CONNECT failed:', msg)
@@ -240,10 +255,12 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
             a?.device && typeof a.device.id === 'string' ? a.device.id : null
         if (!path) return { ok: false, error: 'Invalid HID device path' }
         try {
-            const link = beginLink()
-            const label = await connectHidDevice(path, link.callbacks)
-            commitLink(link.id, 'hid')
-            return { ok: true, label, linkId: link.id }
+            return await inOrder(async () => {
+                const link = beginLink()
+                const label = await connectHidDevice(path, link.callbacks)
+                commitLink(link.id, 'hid')
+                return { ok: true, label, linkId: link.id }
+            })
         } catch (e) {
             const msg = e instanceof Error ? e.message : String(e)
             log.error('HID_CONNECT failed:', msg)
@@ -264,11 +281,13 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
 
     ipcMain.handle(IpcChannels.TRANSPORT_CLOSE, async (_, linkId: unknown) => {
         const id = validateLinkId(linkId)
-        const kind = links.get(id)
-        // Already replaced or closed: nothing of this link is left to close.
-        if (!kind) return
-        links.delete(id)
-        await CLOSE_LINK[kind]()
+        return inOrder(async () => {
+            const kind = links.get(id)
+            // Already replaced or closed: nothing of this link is left to close.
+            if (!kind) return
+            links.delete(id)
+            await CLOSE_LINK[kind]()
+        })
     })
 
     // Expose event helpers for use by transport implementations

@@ -19,7 +19,7 @@ import {
 import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveConfigSection } from '@/lib/saveConfigSection'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
@@ -84,17 +84,14 @@ export function AutocorrectModal({ opened, onClose }: Props): JSX.Element {
             onClose()
             return
         }
-        configEditing.setAutocorrect(staged)
         setSaving(true)
-        // commit() resolves to nothing, so success is a flag, not the result.
-        const saved = await saveWithToast(
-            async () => {
-                await service.commit()
-                return true
-            },
-            'Autocorrect dictionary saved',
-            'Failed to save autocorrect dictionary',
-        )
+        const saved = await saveConfigSection({
+            service,
+            section: 'Autocorrect dictionary',
+            stage: () => configEditing.setAutocorrect(staged),
+            successMessage: 'Autocorrect dictionary saved',
+            errorPrefix: 'Failed to save autocorrect dictionary',
+        })
         setSaving(false)
         if (saved) onClose()
     }
