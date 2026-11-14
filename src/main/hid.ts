@@ -213,14 +213,18 @@ export async function connectHidDevice(
     activeConnection = { device, path: devicePath, callbacks }
 
     device.on('data', (data: Buffer) => {
+        if (activeConnection?.device !== device) return
         callbacks.onData(Array.from(new Uint8Array(data)))
     })
+    // node-hid raises 'error' on unplug or a failed read. The handle is dead
+    // but still open: close it, or every unplug leaks the hidraw fd and the
+    // read thread (L4.2). A replaced device was already closed by disconnect.
     device.on('error', (err: Error) => {
         log.error('device error:', err)
-        if (activeConnection?.path === devicePath) {
-            activeConnection = null
-            callbacks.onDisconnected()
-        }
+        if (activeConnection?.device !== device) return
+        activeConnection = null
+        closeQuietly(device)
+        callbacks.onDisconnected()
     })
     return devicePath
 }
@@ -239,14 +243,19 @@ export async function writeHid(data: Uint8Array): Promise<void> {
     activeConnection.device.write(wire)
 }
 
-export async function disconnectHidDevice(): Promise<void> {
-    if (!activeConnection) return
+function closeQuietly(device: HidLike): void {
     try {
-        activeConnection.device.close()
+        device.close()
     } catch (err) {
         log.warn('close failed:', err)
     }
+}
+
+export async function disconnectHidDevice(): Promise<void> {
+    if (!activeConnection) return
+    const { device } = activeConnection
     activeConnection = null
+    closeQuietly(device)
 }
 
 export function hasActiveHidConnection(): boolean {
