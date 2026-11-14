@@ -146,6 +146,8 @@ export const IpcEvents = {
     CONNECTION_DISCONNECTED: 'connection:disconnected',
     BLE_DEVICES_DISCOVERED: 'ble:devices-discovered',
     SERIAL_DEVICES_CHANGED: 'serial:devices-changed',
+    /** A HID device appeared or went (no payload; the renderer re-lists). */
+    HID_DEVICES_CHANGED: 'hid:devices-changed',
     UPDATE_AVAILABLE: 'update:available',
     /** A self-updating install (AppImage, NSIS, signed macOS) downloaded an
      *  update; it installs on restart or quit. */
@@ -192,6 +194,9 @@ export interface UpdateCheckResultPayload {
  * Type safety at call sites is provided by the typed electron adapter modules.
  */
 export interface ElectronIpcApi {
+    /** Host OS (`process.platform`: 'darwin' | 'win32' | 'linux' …). */
+    readonly platform: string
+
     invoke(channel: string, ...args: unknown[]): Promise<unknown>
 
     on(event: string, callback: (...args: unknown[]) => void): () => void

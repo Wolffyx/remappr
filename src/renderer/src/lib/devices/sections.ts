@@ -70,6 +70,8 @@ const SECTIONS: SectionTable = {
         ['output', ['out']],
         ['response', ['curve', 'dz', 'inv']],
     ],
+    // A screen takes no binding: nothing to edit per control.
+    display: [],
 }
 
 /** Whether the adapter honours `field` of a `kind` binding. */

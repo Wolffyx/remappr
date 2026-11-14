@@ -7,7 +7,14 @@ import { registerIpcHandlers } from './ipc-handlers'
 import { registerBleIpcHandlers, setupBleDeviceSelection } from './ble-manager'
 import { setupSerialDeviceSelection } from './serial-picker'
 import { startSerialDevicePolling } from './serial'
-import { silenceConsoleInProduction } from '../shared/logger'
+import { startHidDevicePolling } from './hid'
+import { isDevBuild, silenceConsoleInProduction } from '../shared/logger'
+import {
+    type LogFile,
+    openLogFile,
+    rendererLogLevel,
+    teeConsoleToLog,
+} from './logFile'
 import { checkForAppUpdates, registerUpdateIpc } from './updates'
 import { guardWindowLeave, registerWindowControlsIpc } from './window-controls'
 import { setupDeepLinks } from './deep-link'
@@ -96,6 +103,10 @@ protocol.registerSchemesAsPrivileged([
     APP_SCHEME_PRIVILEGES,
     PACKAGE_SCHEME_PRIVILEGES,
 ])
+
+// Shipped builds write warnings and errors (main and renderer) to a file in
+// the app's logs folder; opened once the app is ready (app.getPath).
+let logFile: LogFile | null = null
 
 // Enable Web Bluetooth (navigator.bluetooth) in Chromium. Must run before
 // app.whenReady(). Without this, Electron exposes no `navigator.bluetooth`
@@ -246,6 +257,11 @@ function createWindow(): void {
         void checkForAppUpdates(() => mainWindow)
     })
 
+    mainWindow.webContents.on('console-message', (e): void => {
+        const level = rendererLogLevel(e.level)
+        if (level && logFile) logFile.write(level, 'renderer', [e.message])
+    })
+
     // Bestow a synthetic user gesture each time the renderer finishes loading
     // so the initial BLE scan (navigator.bluetooth.requestDevice) doesn't
     // bounce with SecurityError. The event fires inside an executeJavaScript
@@ -299,6 +315,12 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then((): void => {
     if (!hasInstanceLock) return
+
+    if (!isDevBuild()) {
+        logFile = openLogFile(app.getPath('logs'))
+        teeConsoleToLog(console, logFile, 'main')
+    }
+
     // Set app user model id for windows
     electronApp.setAppUserModelId('com.electron')
 
@@ -345,6 +367,8 @@ app.whenReady().then((): void => {
 
     // Start USB hotplug polling — pushes SERIAL_DEVICES_CHANGED on changes.
     startSerialDevicePolling(() => BrowserWindow.getAllWindows())
+    // node-hid has no hotplug events either — HID_DEVICES_CHANGED on changes.
+    startHidDevicePolling(() => BrowserWindow.getAllWindows())
 
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
         createWindow()

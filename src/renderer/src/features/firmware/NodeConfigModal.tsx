@@ -14,7 +14,7 @@ import type { ConfigClusterNode, ConfigNode } from '@firmware/config'
 import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveConfigSection } from '@/lib/saveConfigSection'
 import { LearnMore } from '@/ui/learn-more'
 import { Modal } from '@/ui/modal'
 import type { PanelFrame } from './clusterFrame'
@@ -122,17 +122,14 @@ export function NodeConfigModal({
             onClose()
             return
         }
-        configEditing.setNode(patch)
         setSaving(true)
-        // commit() resolves to nothing, so success is a flag, not the result.
-        const saved = await saveWithToast(
-            async () => {
-                await service.commit()
-                return true
-            },
-            'Node settings saved',
-            'Failed to save node settings',
-        )
+        const saved = await saveConfigSection({
+            service,
+            section: 'Node settings',
+            stage: () => configEditing.setNode(patch),
+            successMessage: 'Node settings saved',
+            errorPrefix: 'Failed to save node settings',
+        })
         setSaving(false)
         if (saved) onClose()
     }

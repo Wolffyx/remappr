@@ -74,7 +74,7 @@ export function DevicePreviewCapture(): null {
 
         const sliders = freeSliderBoxes(layout)
 
-        const key = lastConnectedDevice?.id ?? service.deviceInfo.name
+        const key = lastConnectedDevice?.key ?? service.deviceInfo.name
         const signature = `${key}|${selectedPhysicalLayoutIndex}|${keymap.layers.length}|${encoders.length}|${sliders.length}|${keys
             .map((k) => k.category)
             .join(',')}`

@@ -2,6 +2,7 @@
 import { DeviceCard } from './DeviceCard'
 import type { DeviceWithTransport } from '@/features/connection/types'
 import useDevicePreviewStore from '@/stores/devicePreviewStore'
+import { deviceKey } from '@/features/connection/deviceKey'
 
 interface DiscoveredDeviceListProps {
     devices: DeviceWithTransport[]
@@ -25,7 +26,7 @@ export function DiscoveredDeviceList({
                 const canRename = !!d.transport.renameDevice
                 const canForget = !!d.transport.forgetDevice
                 const preview =
-                    snapshots[d.device.id] ??
+                    snapshots[deviceKey(d.device)] ??
                     Object.values(snapshots).find(
                         (s) => s.name === d.device.label,
                     )

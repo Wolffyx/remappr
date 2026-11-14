@@ -157,10 +157,8 @@ async function showTarget(
     const store = useConnectionStore.getState()
     undoRedoStore.getState().reset()
     store.resetConnection()
-    store.setLastConnectedDevice({
-        id: target.device.id,
-        label: target.device.label,
-    })
+    // The whole device: its stable `key` (USB serial) must survive the switch.
+    store.setLastConnectedDevice(target.device)
     await publishDevice(opened, target.transport.communication, lockState)
 }
 

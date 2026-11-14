@@ -8,13 +8,15 @@ import type { LockState } from '@firmware/types'
 import useDynamicCatalogStore from '@/stores/dynamicCatalogStore'
 import useConfigStore from '@/stores/configStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
-import { withSaveMode } from '@/lib/saveMode'
+import { cancelAutoSave, withSaveMode } from '@/lib/saveMode'
 import { confirmLeave, dismissLeavePrompt } from '@/stores/leaveGuardStore'
 import useLayerSelectionStore from '@/stores/layerSelectionStore'
 import useKeymapStore from '@/stores/keymapStore'
 import useUndoRedoStore from '@/stores/undoRedoStore'
 import useLightingCatalogStore from '@/stores/lightingCatalogStore'
 import { createOsBackedKeyTest } from '@/features/keymap/keyboard/stage/osBackedKeyTest'
+import type { AvailableDevice } from '@/transport/types'
+import { deviceKey } from '@/features/connection/deviceKey'
 
 // Teardown for the connected keyboard's default-layer subscription (Feature 1).
 // Module-scoped: the store is a singleton, and this keeps the internal handle off
@@ -97,15 +99,15 @@ interface ConnectionState {
     lockState: LockState
     keyCatalog: KeyCatalog | null
     connectionAbort: AbortController
-    /** Identity of the listed device being connected — bridges connect → preview capture. */
-    lastConnectedDevice: { id: string; label: string } | null
+    /** Identity of the listed device being connected — bridges connect → preview capture.
+     *  `id` is the session's connect handle, `key` the stable per-device key
+     *  (deviceKey) that snapshots, backups and auto-connect are stored under. */
+    lastConnectedDevice: { id: string; label: string; key: string } | null
     setService: (
         service: KeyboardService | null,
         communication?: 'serial' | 'ble' | 'hid',
     ) => void
-    setLastConnectedDevice: (
-        device: { id: string; label: string } | null,
-    ) => void
+    setLastConnectedDevice: (device: AvailableDevice | null) => void
     setDeviceName: (name: string | null) => void
     setLockState: (state: LockState) => void
     /** Show a newly connected service together with its lock state. The store
@@ -159,11 +161,17 @@ const useConnectionStore = create<ConnectionState>()(
             connectionAbort: new AbortController(),
             lastConnectedDevice: null,
             setService: (service, communication) => {
+                // The service being left (unplug, node / parent / device swap)
+                // must not auto-save once it is gone: the save would hit a
+                // closed transport or a view no longer shown.
+                const prev = get().service
+                if (prev !== service) cancelAutoSave(prev)
                 // Leaving every device (service → null, e.g. an onClosed from a
                 // dropped dongle transport) also drops any node-view back-pointer,
                 // so a later reconnect can't read a stale dongle as the node roster
                 // source. Swaps to a node view pass a non-null service and skip this.
                 if (!service) {
+                    cancelAutoSave(get().parentService)
                     set({ parentService: null, activeNodeId: null })
                     // The device went away under an open unsaved-changes
                     // prompt: nothing is left to save.
@@ -308,7 +316,13 @@ const useConnectionStore = create<ConnectionState>()(
                 seedConfigFromService(service, isCurrent)
             },
             setLastConnectedDevice: (device) =>
-                set({ lastConnectedDevice: device }),
+                set({
+                    lastConnectedDevice: device && {
+                        id: device.id,
+                        label: device.label,
+                        key: deviceKey(device),
+                    },
+                }),
             setDeviceName: (name) => set({ deviceName: name }),
             setLockState: (state) => set({ lockState: state }),
             publishService: async (service, communication, known) => {
@@ -395,6 +409,10 @@ const useConnectionStore = create<ConnectionState>()(
                 get().setService(parentService, communication ?? undefined)
             },
             resetConnection: () => {
+                // Unplug or disconnect: a pending auto-save would only fire at
+                // a closed transport.
+                cancelAutoSave(get().service)
+                cancelAutoSave(get().parentService)
                 defaultLayerUnsub?.()
                 defaultLayerUnsub = null
                 lastHwDefaultLayer = null

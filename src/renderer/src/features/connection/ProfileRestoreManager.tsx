@@ -69,7 +69,7 @@ export function ProfileRestoreManager(): JSX.Element {
         const svc = service
         const key = backupKey(
             svc,
-            useConnectionStore.getState().lastConnectedDevice?.id,
+            useConnectionStore.getState().lastConnectedDevice?.key,
         )
         let cancelled = false
 
@@ -116,7 +116,7 @@ export function ProfileRestoreManager(): JSX.Element {
         const svc = service
         const key = backupKey(
             svc,
-            useConnectionStore.getState().lastConnectedDevice?.id,
+            useConnectionStore.getState().lastConnectedDevice?.key,
         )
         let prevPending = svc.hasPendingChanges()
         return svc.onPendingChangesChanged((pending) => {
