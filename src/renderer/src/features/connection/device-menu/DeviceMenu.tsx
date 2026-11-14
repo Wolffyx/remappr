@@ -68,14 +68,14 @@ export const DeviceMenu = (): JSX.Element => {
     )
     const backups = useProfileBackupStore((s) => s.backups)
     const deviceKey = service
-        ? backupKey(service, lastConnectedDevice?.id)
+        ? backupKey(service, lastConnectedDevice?.key)
         : null
     const backup = deviceKey ? backups[deviceKey] : undefined
     const canRestore =
         !readOnly && !!service?.capabilities.profileRestore && !!backup
     // Only pick-and-connect devices carry an id we can auto-reconnect to; web
     // simple-connect transports leave lastConnectedDevice null.
-    const autoConnectId = lastConnectedDevice?.id ?? null
+    const autoConnectId = lastConnectedDevice?.key ?? null
     const autoConnectOn =
         !!autoConnectId && autoConnectDeviceId === autoConnectId
 

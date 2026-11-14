@@ -151,9 +151,7 @@ export async function switchToDevice(
         return false
     }
     undoRedoStore.getState().reset()
-    useConnectionStore
-        .getState()
-        .setLastConnectedDevice({ id: device.id, label: device.label })
+    useConnectionStore.getState().setLastConnectedDevice(device)
     await publishDevice(opened, communication)
     return true
 }

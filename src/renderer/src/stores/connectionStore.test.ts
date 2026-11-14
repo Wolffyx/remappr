@@ -79,6 +79,7 @@ const ROSTER: NodeView[] = [
         label: 'Node 0x0007',
         personality: 2,
         online: true,
+        secured: true,
         bonded: true,
         rssi: -40,
         hopCount: 0,
@@ -90,6 +91,7 @@ const ROSTER: NodeView[] = [
         label: 'Node 0x0009',
         personality: 4,
         online: false,
+        secured: false,
         bonded: true,
         rssi: -72,
         hopCount: 1,
@@ -456,5 +458,24 @@ describe('publishService', () => {
         )
         expect(useConnectionStore.getState().lockState).toBe('locked')
         expect(useConnectionStore.getState().service).not.toBeNull()
+    })
+})
+
+describe('setLastConnectedDevice', () => {
+    // L4.12: snapshots, backups and auto-connect read the device's key, not
+    // the OS path that a replug changes.
+    it('stores the device-reported key beside the connect handle', () => {
+        useConnectionStore.getState().setLastConnectedDevice({
+            id: '/dev/hidraw4',
+            label: 'Remappr',
+            key: 'hid:1209:0001:E4A1',
+        })
+        expect(useConnectionStore.getState().lastConnectedDevice).toEqual({
+            id: '/dev/hidraw4',
+            label: 'Remappr',
+            key: 'hid:1209:0001:E4A1',
+        })
+        useConnectionStore.getState().setLastConnectedDevice(null)
+        expect(useConnectionStore.getState().lastConnectedDevice).toBeNull()
     })
 })

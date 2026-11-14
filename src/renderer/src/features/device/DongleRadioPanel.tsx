@@ -5,14 +5,16 @@
 // and a button that moves every node off the failing channels. The dongle never
 // changes channels on its own (each node remembers them to reconnect fast), so
 // this is the only way they change. The change rolls out a channel at a time;
-// the panel polls until it is done.
-import { JSX, useCallback, useEffect, useState } from 'react'
+// the panel polls until it is done, or until reads keep failing.
+import { JSX, useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRightLeft, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import type { NodesApi, RadioLinkStats } from '@firmware/service'
 
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
+import { useConfirm } from '@/components/ConfirmDialog'
+import { rolloutPollGivesUp } from './rolloutPoll'
 
 import { SettingsSection } from './SettingRows'
 
@@ -26,13 +28,20 @@ export function DongleRadioPanel({ nodes }: { nodes: NodesApi }): JSX.Element {
     const [stats, setStats] = useState<RadioLinkStats | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
+    const [pollStopped, setPollStopped] = useState(false)
+    const failures = useRef(0)
+    const { confirm, dialog } = useConfirm()
 
     const load = useCallback(async (): Promise<void> => {
         try {
             setStats(await nodes.getLinkStats())
             setError(null)
+            failures.current = 0
+            setPollStopped(false)
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e))
+            failures.current += 1
+            if (rolloutPollGivesUp(failures.current)) setPollStopped(true)
         }
     }, [nodes])
 
@@ -45,10 +54,10 @@ export function DongleRadioPanel({ nodes }: { nodes: NodesApi }): JSX.Element {
     const rolling = stats?.changeInProgress ?? false
 
     useEffect(() => {
-        if (!rolling) return
+        if (!rolling || pollStopped) return
         const timer = setInterval(() => void load(), ROLLOUT_POLL_MS)
         return (): void => clearInterval(timer)
-    }, [rolling, load])
+    }, [rolling, pollStopped, load])
 
     const badCount =
         stats?.channels.filter((c) =>
@@ -56,12 +65,13 @@ export function DongleRadioPanel({ nodes }: { nodes: NodesApi }): JSX.Element {
         ).length ?? 0
 
     const change = useCallback(async (): Promise<void> => {
-        if (
-            !window.confirm(
-                'Move every connected device off the failing channels? Devices that are off right now find the dongle again when they are turned on.',
-            )
-        )
-            return
+        const ok = await confirm({
+            title: 'Change the failing channels?',
+            description:
+                'Every connected device moves off the failing channels. Devices that are off right now find the dongle again when they are turned on.',
+            confirmLabel: 'Change channels',
+        })
+        if (!ok) return
         setBusy(true)
         try {
             const r = await nodes.changeChannels()
@@ -81,7 +91,7 @@ export function DongleRadioPanel({ nodes }: { nodes: NodesApi }): JSX.Element {
         } finally {
             setBusy(false)
         }
-    }, [nodes, load])
+    }, [nodes, load, confirm])
 
     return (
         <SettingsSection
@@ -113,7 +123,14 @@ export function DongleRadioPanel({ nodes }: { nodes: NodesApi }): JSX.Element {
                 </div>
             }
         >
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {error && (
+                <p className="text-xs text-destructive">
+                    {error}
+                    {pollStopped &&
+                        rolling &&
+                        ' · stopped checking the change; Refresh to read again'}
+                </p>
+            )}
             {stats && (
                 <>
                     <div className="text-xs text-muted-foreground">
@@ -154,6 +171,7 @@ export function DongleRadioPanel({ nodes }: { nodes: NodesApi }): JSX.Element {
                     </div>
                 </>
             )}
+            {dialog}
         </SettingsSection>
     )
 }

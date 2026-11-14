@@ -3,11 +3,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Bluetooth, Keyboard, Usb, type LucideIcon } from 'lucide-react'
 import { DEMO_DEVICES, type DemoDeviceId } from '@firmware'
 import type { DeviceForm, DeviceKind } from '@firmware/devices/types'
-import type { KeyboardService, NodeView } from '@firmware/service'
+import type { NodeView } from '@firmware/service'
 import { getTransports, subscribeToTransportChanges } from '@/lib/transports'
 import { FORM_LABEL } from '@/lib/devices/labels'
 import { switchToDevice } from '@/features/connection/connectTransport'
 import { listDevices } from '@/features/connection/listDevices'
+import { deviceKey } from '@/features/connection/deviceKey'
+import { nodeKey, useNodeRoster } from '@/features/connection/nodeRoster'
 import type { DeviceWithTransport } from '@/features/connection/types'
 import {
     connectDemo,
@@ -20,10 +22,7 @@ import useDevicePreviewStore, {
 } from '@/stores/devicePreviewStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import { shownBattery } from '@/features/battery/battery'
-import {
-    BATTERY_POLL_MS,
-    useDeviceBattery,
-} from '@/features/battery/useDeviceBattery'
+import { useDeviceBattery } from '@/features/battery/useDeviceBattery'
 import type { RosterEntry, RosterGroup, RosterKind } from './roster'
 
 const FORM_KIND: Readonly<Record<DeviceForm, RosterKind>> = {
@@ -75,38 +74,10 @@ function useListedDevices(enabled: boolean): DeviceWithTransport[] {
     return enabled ? devices : []
 }
 
-/** The nodes behind the connected dongle, re-listed now and then so their
- *  link and battery stay current; empty for any other device. */
-function useDongleNodes(dongle: KeyboardService | null): {
-    nodes: NodeView[]
-    refresh: () => void
-} {
-    const [nodes, setNodes] = useState<NodeView[]>([])
-    const [tick, setTick] = useState(0)
-    const api = dongle?.nodes
-    useEffect(() => {
-        if (!api) return
-        let live = true
-        api.list().then(
-            (found) => {
-                if (live) setNodes(found)
-            },
-            (e: unknown) => {
-                console.warn('Failed to list nodes', e)
-                if (live) setNodes([])
-            },
-        )
-        return (): void => {
-            live = false
-        }
-    }, [api, tick])
-    useEffect(() => {
-        if (!api) return
-        const id = setInterval(() => setTick((t) => t + 1), BATTERY_POLL_MS)
-        return (): void => clearInterval(id)
-    }, [api])
-    const refresh = useCallback((): void => setTick((t) => t + 1), [])
-    return { nodes: api ? nodes : [], refresh }
+/** How a node is reached now: through the dongle once its session is up. */
+function nodeLink(n: NodeView): string {
+    if (n.secured) return 'via dongle'
+    return n.online ? 'connecting' : 'asleep'
 }
 
 /** What the last session on a device saw of it, else how it is attached. */
@@ -153,6 +124,7 @@ export function useDeviceRoster(): {
     const parentService = useConnectionStore((s) => s.parentService)
     const activeNodeId = useConnectionStore((s) => s.activeNodeId)
     const currentId = useConnectionStore((s) => s.lastConnectedDevice?.id)
+    const currentKey = useConnectionStore((s) => s.lastConnectedDevice?.key)
     const deviceName = useConnectionStore((s) => s.deviceName)
     const openNode = useConnectionStore((s) => s.openNode)
     const returnToParent = useConnectionStore((s) => s.returnToParent)
@@ -163,7 +135,16 @@ export function useDeviceRoster(): {
     const demo = !!service?.capabilities.demo
     const listed = useListedDevices(!!service && !demo)
     const dongle = parentService ?? service
-    const { nodes, refresh } = useDongleNodes(demo ? null : dongle)
+    // The dongle landing's roster too: polled, and a failed read keeps the
+    // last good list.
+    const roster = useNodeRoster(demo ? undefined : dongle?.nodes)
+    const nodes = roster.nodes
+    const refreshRoster = roster.refresh
+    const refresh = useCallback((): void => {
+        refreshRoster().catch((e: unknown) => {
+            console.warn('Failed to list nodes', e)
+        })
+    }, [refreshRoster])
     // The open device's own reading: its threshold, and fresher than a roster.
     const battery = useDeviceBattery(service)
 
@@ -175,11 +156,12 @@ export function useDeviceRoster(): {
             )
         }
         const out: RosterEntry[] = listed.map((d) => {
-            const { icon, label, kind } = describe(d, snapshots[d.device.id])
+            const key = deviceKey(d.device)
+            const { icon, label, kind } = describe(d, snapshots[key])
             const current = d.device.id === currentId
             const via = d.transport.isWireless ? 'Bluetooth' : 'USB'
             return {
-                key: `dev:${d.device.id}`,
+                key: `dev:${key}`,
                 name: d.device.label,
                 detail: `${label} · ${via}`,
                 icon,
@@ -196,8 +178,9 @@ export function useDeviceRoster(): {
             }
         })
         const dongleName = dongle?.deviceInfo.name?.trim() || 'Dongle'
+        const dongleId = currentKey ?? dongleName
         const dongleGroup: RosterGroup = {
-            id: `dongle:${currentId ?? dongleName}`,
+            id: `dongle:${dongleId}`,
             label: dongleName,
             kind: 'dongle',
         }
@@ -211,13 +194,14 @@ export function useDeviceRoster(): {
                       ? shownBattery(n.battery)
                       : undefined
             out.push({
-                key: `node:${currentId ?? dongleName}:${n.id}`,
+                key: `node:${dongleId}:${nodeKey(n)}`,
                 name: n.label,
-                detail: `${kindLabel} · ${n.online ? 'via dongle' : 'asleep'}`,
+                detail: `${kindLabel} · ${nodeLink(n)}`,
                 icon: n.kind ? KIND_ICON[n.kind] : Keyboard,
                 kind: n.kind ? NODE_KIND[n.kind] : 'other',
                 group: dongleGroup,
-                online: n.online,
+                // Opening relays through the node's secure session.
+                online: n.secured,
                 active,
                 ...(nodeBattery ? { battery: nodeBattery } : {}),
                 open: () => openNode(n.id),
@@ -249,6 +233,7 @@ export function useDeviceRoster(): {
         listed,
         snapshots,
         currentId,
+        currentKey,
         parentService,
         returnToParent,
         dongle,

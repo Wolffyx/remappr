@@ -11,6 +11,8 @@ const log = createLogger('hid')
 export interface HidDeviceInfo {
     id: string
     label: string
+    /** Stable across replugs: the USB serial the device reports. */
+    key?: string
 }
 
 export interface HidEventCallbacks {
@@ -105,6 +107,16 @@ function matchesFilter(d: NodeHidDevice, filter: HidDiscoveryFilter): boolean {
     return true
 }
 
+const hex4 = (n: number): string => n.toString(16).padStart(4, '0')
+
+/** A key that survives a replug (the path, /dev/hidrawN, does not): vid, pid
+ *  and the USB serial number, when the device reports one. */
+export function hidDeviceKey(d: NodeHidDevice): string | undefined {
+    const sn = d.serialNumber?.trim()
+    if (!sn) return undefined
+    return `hid:${hex4(d.vendorId)}:${hex4(d.productId)}:${sn}`
+}
+
 function buildLabel(d: NodeHidDevice): string {
     const parts: string[] = []
     if (d.product) parts.push(d.product)
@@ -133,7 +145,14 @@ export async function listHidDevices(
         )
         const devices = matched
             .filter((d): d is NodeHidDevice & { path: string } => !!d.path)
-            .map((d) => ({ id: d.path, label: buildLabel(d) }))
+            .map((d): HidDeviceInfo => {
+                const key = hidDeviceKey(d)
+                return {
+                    id: d.path,
+                    label: buildLabel(d),
+                    ...(key ? { key } : {}),
+                }
+            })
         knownDevicePaths = new Set(devices.map((d) => d.id))
         return devices
     } catch (err) {
