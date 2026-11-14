@@ -3,7 +3,8 @@
 // Uses node-hid; loaded lazily so packaging without the native module
 // (e.g. browser-only Vite preview) doesn't blow up at import time.
 
-import type { HidMousePayload } from '../shared/ipc-types'
+import type { BrowserWindow } from 'electron'
+import { type HidMousePayload, IpcEvents } from '../shared/ipc-types'
 import { createLogger } from '../shared/logger'
 
 const log = createLogger('hid')
@@ -48,13 +49,18 @@ interface HidLike {
 
 interface NodeHidModule {
     devices: () => NodeHidDevice[]
+    devicesAsync: () => Promise<NodeHidDevice[]>
     HID: new (path: string) => HidLike
 }
 
 let cachedModule: NodeHidModule | null = null
+// A failed load stays failed: the hotplug poll would otherwise retry the
+// import and warn every 2 s on a build without the native module.
+let loadFailed = false
 
 async function loadNodeHid(): Promise<NodeHidModule | null> {
     if (cachedModule) return cachedModule
+    if (loadFailed) return null
     try {
         const mod = (await import('node-hid')) as unknown as
             | NodeHidModule
@@ -66,6 +72,7 @@ async function loadNodeHid(): Promise<NodeHidModule | null> {
         return cachedModule
     } catch (err) {
         log.warn('node-hid unavailable:', err)
+        loadFailed = true
         return null
     }
 }
@@ -213,14 +220,18 @@ export async function connectHidDevice(
     activeConnection = { device, path: devicePath, callbacks }
 
     device.on('data', (data: Buffer) => {
+        if (activeConnection?.device !== device) return
         callbacks.onData(Array.from(new Uint8Array(data)))
     })
+    // node-hid raises 'error' on unplug or a failed read. The handle is dead
+    // but still open: close it, or every unplug leaks the hidraw fd and the
+    // read thread (L4.2). A replaced device was already closed by disconnect.
     device.on('error', (err: Error) => {
         log.error('device error:', err)
-        if (activeConnection?.path === devicePath) {
-            activeConnection = null
-            callbacks.onDisconnected()
-        }
+        if (activeConnection?.device !== device) return
+        activeConnection = null
+        closeQuietly(device)
+        callbacks.onDisconnected()
     })
     return devicePath
 }
@@ -239,16 +250,83 @@ export async function writeHid(data: Uint8Array): Promise<void> {
     activeConnection.device.write(wire)
 }
 
-export async function disconnectHidDevice(): Promise<void> {
-    if (!activeConnection) return
+function closeQuietly(device: HidLike): void {
     try {
-        activeConnection.device.close()
+        device.close()
     } catch (err) {
         log.warn('close failed:', err)
     }
+}
+
+export async function disconnectHidDevice(): Promise<void> {
+    if (!activeConnection) return
+    const { device } = activeConnection
     activeConnection = null
+    closeQuietly(device)
 }
 
 export function hasActiveHidConnection(): boolean {
     return activeConnection !== null
+}
+
+const HID_HOTPLUG_POLL_MS = 2000
+
+// pattern-check: skip — sibling of startSerialDevicePolling; a timer and a
+// fingerprint compare, no GoF abstraction.
+/**
+ * node-hid has no hotplug events, so poll its device list and tell the
+ * renderer when the set of HID paths changes; it re-lists with its own
+ * filters. Without this a HID-only device (Remappr) neither appears nor
+ * disappears under Electron until a manual Refresh (L4.6). The first pass
+ * only takes the baseline. Returns a stop function.
+ */
+export function startHidDevicePolling(
+    getWindows: () => BrowserWindow[],
+    intervalMs: number = HID_HOTPLUG_POLL_MS,
+): () => void {
+    let last: string | null = null
+    let stopped = false
+    // A slow enumeration must not stack up ticks behind it.
+    let inFlight = false
+
+    const tick = async (): Promise<void> => {
+        if (inFlight) return
+        inFlight = true
+        try {
+            await poll()
+        } finally {
+            inFlight = false
+        }
+    }
+
+    const poll = async (): Promise<void> => {
+        const mod = await loadNodeHid()
+        if (!mod || stopped) return
+        let fp: string
+        try {
+            // devicesAsync enumerates off the main thread: the sync
+            // devices() blocks every IPC for tens of ms on a busy bus.
+            const list = await mod.devicesAsync()
+            fp = [...new Set(list.map((d) => d.path ?? ''))].sort().join('\n')
+        } catch (err) {
+            log.warn('hotplug poll failed:', err)
+            return
+        }
+        if (stopped) return
+        const changed = last !== null && fp !== last
+        last = fp
+        if (!changed) return
+        for (const w of getWindows()) {
+            if (!w.isDestroyed()) {
+                w.webContents.send(IpcEvents.HID_DEVICES_CHANGED)
+            }
+        }
+    }
+
+    const id = setInterval(() => void tick(), intervalMs)
+    void tick()
+    return (): void => {
+        stopped = true
+        clearInterval(id)
+    }
 }

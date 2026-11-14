@@ -118,11 +118,59 @@ export async function connectTransport(
     return true
 }
 
+/** Open `target` (its transport, then the adapter handshake). Null after a
+ *  toast when it fails. */
+async function openTarget(
+    target: DeviceWithTransport,
+): Promise<OpenedDevice | null> {
+    const { device, transport } = target
+    try {
+        await ensureFirmwareClientsLoaded()
+        const rpc = await transport.pick_and_connect!.connect(device)
+        return await openDevice(rpc, transport.communication)
+    } catch (e) {
+        console.error('Connection error:', e)
+        reportConnectError(e, 'Failed to connect to the selected device.')
+        return null
+    }
+}
+
+/** Show `opened` as the device just switched to. */
+async function finishSwitch(
+    target: DeviceWithTransport,
+    opened: OpenedDevice,
+): Promise<void> {
+    undoRedoStore.getState().reset()
+    useConnectionStore.getState().setLastConnectedDevice({
+        id: target.device.id,
+        label: target.device.label,
+    })
+    await publishDevice(opened, target.transport.communication)
+}
+
+/**
+ * Switch on a host that holds one connection for every transport (Electron's
+ * main process). Opening the new device would close the old one underneath
+ * it, so close the old one first; a failed open then lands on the start page.
+ */
+async function switchClosingFirst(
+    target: DeviceWithTransport,
+): Promise<boolean> {
+    // false: edits came back on the old device and the user chose to stay.
+    if (!(await useConnectionStore.getState().disconnect())) return false
+    const opened = await openTarget(target)
+    if (!opened) return false
+    await finishSwitch(target, opened)
+    return true
+}
+
 /**
  * Switch from the connected device to `target`. Asks first when the current
- * device holds unsaved edits; opens the new device before closing the old one,
- * so a failed connect leaves the user where they were and a good one never
- * passes through the start page. Resolves true once `target` is shown.
+ * device holds unsaved edits. Where the transports are independent (the
+ * browser), opens the new device before closing the old one, so a failed
+ * connect leaves the user where they were and a good one never passes through
+ * the start page. An exclusive transport closes first (switchClosingFirst).
+ * Resolves true once `target` is shown.
  */
 export async function switchToDevice(
     target: DeviceWithTransport,
@@ -130,18 +178,8 @@ export async function switchToDevice(
     if (!(await confirmLeave(useConnectionStore.getState().service))) {
         return false
     }
-    const { device, transport } = target
-    const communication = transport.communication
-    let opened: OpenedDevice | null
-    try {
-        await ensureFirmwareClientsLoaded()
-        const rpc = await transport.pick_and_connect!.connect(device)
-        opened = await openDevice(rpc, communication)
-    } catch (e) {
-        console.error('Connection error:', e)
-        reportConnectError(e, 'Failed to connect to the selected device.')
-        return false
-    }
+    if (target.transport.exclusive) return switchClosingFirst(target)
+    const opened = await openTarget(target)
     if (!opened) return false
     if (!(await useConnectionStore.getState().disconnect())) {
         // Edits came back on the old device and the user chose to stay.
@@ -150,10 +188,6 @@ export async function switchToDevice(
         })
         return false
     }
-    undoRedoStore.getState().reset()
-    useConnectionStore
-        .getState()
-        .setLastConnectedDevice({ id: device.id, label: device.label })
-    await publishDevice(opened, communication)
+    await finishSwitch(target, opened)
     return true
 }
