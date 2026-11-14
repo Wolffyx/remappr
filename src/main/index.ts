@@ -7,7 +7,13 @@ import { registerIpcHandlers } from './ipc-handlers'
 import { registerBleIpcHandlers, setupBleDeviceSelection } from './ble-manager'
 import { setupSerialDeviceSelection } from './serial-picker'
 import { startSerialDevicePolling } from './serial'
-import { silenceConsoleInProduction } from '../shared/logger'
+import { isDevBuild, silenceConsoleInProduction } from '../shared/logger'
+import {
+    type LogFile,
+    openLogFile,
+    rendererLogLevel,
+    teeConsoleToLog,
+} from './logFile'
 import { checkForUpdates, registerUpdateIpc } from './update-checker'
 import { guardWindowLeave, registerWindowControlsIpc } from './window-controls'
 
@@ -23,6 +29,10 @@ function isAllowedOrigin(origin: string): boolean {
 }
 
 silenceConsoleInProduction()
+
+// Shipped builds write warnings and errors (main and renderer) to a file in
+// the app's logs folder; opened once the app is ready (app.getPath).
+let logFile: LogFile | null = null
 
 // Enable Web Bluetooth (navigator.bluetooth) in Chromium. Must run before
 // app.whenReady(). Without this, Electron exposes no `navigator.bluetooth`
@@ -192,6 +202,11 @@ function createWindow(): void {
         void checkForUpdates(mainWindow)
     })
 
+    mainWindow.webContents.on('console-message', (e): void => {
+        const level = rendererLogLevel(e.level)
+        if (level && logFile) logFile.write(level, 'renderer', [e.message])
+    })
+
     // Bestow a synthetic user gesture each time the renderer finishes loading
     // so the initial BLE scan (navigator.bluetooth.requestDevice) doesn't
     // bounce with SecurityError. The event fires inside an executeJavaScript
@@ -244,6 +259,11 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then((): void => {
+    if (!isDevBuild()) {
+        logFile = openLogFile(app.getPath('logs'))
+        teeConsoleToLog(console, logFile, 'main')
+    }
+
     // Set app user model id for windows
     electronApp.setAppUserModelId('com.electron')
 
