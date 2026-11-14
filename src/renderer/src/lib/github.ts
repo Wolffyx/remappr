@@ -2,6 +2,7 @@
 // Pattern check: Strategy (Tier 1) — applied — per-platform asset matching rules swappable without touching consumers
 
 import { GITHUB_OWNER, GITHUB_REPO } from '@/lib/constants'
+import { getPlatform } from '@/electron/api'
 
 export interface ReleaseAsset {
     name: string
@@ -100,11 +101,7 @@ export function getPlatformLabel(platform: AppPlatform): string {
 }
 
 export function detectPlatform(): AppPlatform {
-    const electronPlatform = (
-        window as unknown as {
-            electron?: { process?: { platform?: string } }
-        }
-    ).electron?.process?.platform
+    const electronPlatform = getPlatform()
     if (electronPlatform === 'win32') return 'win32'
     if (electronPlatform === 'darwin') return 'darwin'
     if (electronPlatform === 'linux') return 'linux'

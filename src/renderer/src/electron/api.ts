@@ -6,7 +6,6 @@ import type { ElectronIpcApi } from '@shared/ipc-types'
 
 interface ElectronWindow {
     api?: ElectronIpcApi
-    electron?: { process?: { platform?: string } }
 }
 
 /** The context-bridged IPC API, or undefined outside Electron (e.g. the web build). */
@@ -14,7 +13,8 @@ export function getApi(): ElectronIpcApi | undefined {
     return (window as unknown as ElectronWindow).api
 }
 
-/** Host platform string (e.g. 'darwin'/'win32'/'linux'), if exposed. */
+/** Host platform string (e.g. 'darwin'/'win32'/'linux'), or undefined
+ *  outside Electron. */
 export function getPlatform(): string | undefined {
-    return (window as unknown as ElectronWindow).electron?.process?.platform
+    return getApi()?.platform
 }
