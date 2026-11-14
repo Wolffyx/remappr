@@ -13,6 +13,7 @@
  * import here.
  */
 
+import { getAdapters } from '@firmware/registry'
 import type { TransportFactory } from '../transport/types'
 import { detectEnv, isElectron } from '../transport/adapter/env'
 import {
@@ -32,10 +33,22 @@ import '../transport/web-ble'
 
 export { isElectron }
 
-let cachedTransports: TransportFactory[] | null = null
+// Keyed by how many firmware adapters have registered. A transport's create()
+// reads their discovery filters (Electron HID returns null with none), and the
+// clients load lazily, so a list built before they registered must not stick
+// (L4.25). Adapters only ever register, so the count is a valid key.
+let cached: { adapterCount: number; transports: TransportFactory[] } | null =
+    null
 
 export function getTransports(): TransportFactory[] {
-    return (cachedTransports ??= getRegisteredTransports(detectEnv()))
+    const adapterCount = getAdapters().length
+    if (cached?.adapterCount !== adapterCount) {
+        cached = {
+            adapterCount,
+            transports: getRegisteredTransports(detectEnv()),
+        }
+    }
+    return cached.transports
 }
 
 export function subscribeToTransportChanges(cb: () => void): () => void {
