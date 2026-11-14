@@ -3,7 +3,12 @@ import type { JSX } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import { cn } from '@/lib/cn'
 import { batteryText } from '@/features/battery/battery'
-import type { RosterEntry } from './roster'
+import { toast } from 'sonner'
+import { canOpenEntry, openEntry, type RosterEntry } from './roster'
+
+const reportOpenError = (title: string, description: string): void => {
+    toast.error(title, { description })
+}
 
 /** A device as an icon: status dot (red while its battery is low), tooltip
  *  with its name, link and battery, one click to open it. */
@@ -24,8 +29,10 @@ export function DeviceIconButton({
                     type="button"
                     aria-label={entry.name}
                     aria-current={entry.active ? 'true' : undefined}
-                    onClick={(): void => void entry.open()}
+                    aria-disabled={canOpenEntry(entry) ? undefined : 'true'}
+                    onClick={(): void => void openEntry(entry, reportOpenError)}
                     className={cn(
+                        !canOpenEntry(entry) && 'cursor-not-allowed opacity-60',
                         'relative grid shrink-0 place-items-center rounded-md border border-transparent text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                         size === 'strip' ? 'h-7 w-[30px]' : 'size-9',
                         entry.active &&

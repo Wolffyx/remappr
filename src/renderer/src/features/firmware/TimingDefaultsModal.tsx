@@ -17,7 +17,7 @@ import type { ConfigDefaults } from '@firmware/config'
 import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveConfigSection } from '@/lib/saveConfigSection'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
 
@@ -75,16 +75,13 @@ export function TimingDefaultsModal({ opened, onClose }: Props): JSX.Element {
         }
         setSaving(true)
         // Stage onto the concrete service, then push the whole config via commit.
-        configEditing.setConfigDefaults(patch)
-        // commit() resolves to nothing, so success is a flag, not the result.
-        const saved = await saveWithToast(
-            async () => {
-                await service.commit()
-                return true
-            },
-            'Timing defaults saved',
-            'Failed to save timing defaults',
-        )
+        const saved = await saveConfigSection({
+            service,
+            section: 'Timing defaults',
+            stage: () => configEditing.setConfigDefaults(patch),
+            successMessage: 'Timing defaults saved',
+            errorPrefix: 'Failed to save timing defaults',
+        })
         setSaving(false)
         if (saved) onClose()
     }
