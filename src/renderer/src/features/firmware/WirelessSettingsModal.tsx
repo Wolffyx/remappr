@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 
 import type { WirelessStatus } from '@firmware'
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveSucceeded, saveWithToast } from '@/lib/saveWithToast'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
@@ -86,12 +86,12 @@ export function WirelessSettingsModal({ opened, onClose }: Props): JSX.Element {
 
     const toggleNkro = async (next: boolean): Promise<void> => {
         if (!wireless.setNkro) return
-        const r = await saveWithToast(
+        const ok = await saveSucceeded(
             () => wireless.setNkro!(next),
             `NKRO ${next ? 'enabled' : 'disabled'}`,
             'Failed to update NKRO',
         )
-        if (r !== undefined) setNkro(next)
+        if (ok) setNkro(next)
     }
 
     const factoryReset = (): Promise<void | undefined> | void => {

@@ -6,7 +6,8 @@
 // through here: values are encrypted with Electron's safeStorage (DPAPI on
 // Windows, Keychain on macOS, libsecret/kwallet on Linux) and persisted as
 // base64 in userData/secrets.json. If OS encryption is unavailable the handlers
-// fail closed (return null/false) so the renderer falls back to its own store.
+// fail closed (return null/false); the renderer then refuses to persist the
+// secret rather than writing it in plaintext (see renderer lib/secretStore).
 import { app, ipcMain, safeStorage } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'

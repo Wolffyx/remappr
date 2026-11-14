@@ -14,7 +14,7 @@ import type { CanonHoldTapDef, CanonModMorph } from '@firmware/config'
 import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveConfigSection } from '@/lib/saveConfigSection'
 import { cn } from '@/lib/cn'
 import { Modal } from '@/ui/modal'
 import { Button } from '@/ui/button'
@@ -96,35 +96,28 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
 
     const handleSave = async (): Promise<void> => {
         if (!service) return
-        let staged = 0
-        holdTaps.forEach((h, i) => {
-            const p = holdTapPatch(origHT.current[i], h)
-            if (p) {
-                configEditing.setHoldTap(i, p)
-                staged++
-            }
-        })
-        modMorphs.forEach((m, i) => {
-            const p = modMorphPatch(origMM.current[i], m.mods, m.keepMods ?? [])
-            if (p) {
-                configEditing.setModMorph(i, p)
-                staged++
-            }
-        })
-        if (staged === 0) {
+        const htPatches = holdTaps.map((h, i) =>
+            holdTapPatch(origHT.current[i], h),
+        )
+        const mmPatches = modMorphs.map((m, i) =>
+            modMorphPatch(origMM.current[i], m.mods, m.keepMods ?? []),
+        )
+        if (!htPatches.some(Boolean) && !mmPatches.some(Boolean)) {
             onClose()
             return
         }
+        const stage = (): void => {
+            htPatches.forEach((p, i) => p && configEditing.setHoldTap(i, p))
+            mmPatches.forEach((p, i) => p && configEditing.setModMorph(i, p))
+        }
         setSaving(true)
-        // commit() resolves to nothing, so success is a flag, not the result.
-        const saved = await saveWithToast(
-            async () => {
-                await service.commit()
-                return true
-            },
-            'Behaviors saved',
-            'Failed to save behaviors',
-        )
+        const saved = await saveConfigSection({
+            service,
+            section: 'Behaviors',
+            stage: stage,
+            successMessage: 'Behaviors saved',
+            errorPrefix: 'Failed to save behaviors',
+        })
         setSaving(false)
         if (saved) onClose()
     }
