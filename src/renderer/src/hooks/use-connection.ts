@@ -8,6 +8,7 @@ import { listDevices } from '@/features/connection/listDevices'
 import type { AvailableDevice, TransportFactory } from '@/transport/types'
 import { ensureFirmwareClientsLoaded } from '@/transport/adapter/firmwareClients'
 import { getTransports, subscribeToTransportChanges } from '@/lib/transports'
+import { useFirmwareClientsReady } from '@/hooks/use-firmware-clients-ready'
 import useConnectionStore from '@/stores/connectionStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
 import type {
@@ -42,7 +43,11 @@ export function useConnection(
         // fails/times out — lets the caller clear a device's "connecting" state.
     ) => Promise<boolean>,
 ): UseConnectionResult {
-    const transports = useMemo(() => getTransports(), [])
+    // Re-render once the lazy firmware clients have registered: the Electron
+    // HID transport only exists once an adapter supplies its filter. The list
+    // is cached by getTransports(), so its identity holds between renders.
+    useFirmwareClientsReady()
+    const transports = getTransports()
 
     const { haveTransports, hasListableTransports, hasSimpleConnectOnly } =
         useMemo(() => {

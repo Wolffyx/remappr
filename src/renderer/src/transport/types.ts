@@ -15,6 +15,13 @@ export type TransportFactory = {
     label: string
     communication: 'serial' | 'ble' | 'hid'
     isWireless?: boolean
+    /**
+     * The host holds ONE connection across every transport with this flag
+     * (Electron's main process): opening one closes whatever else is open.
+     * Switching devices must then close the current one before opening the
+     * next, since the old one can't survive the open anyway.
+     */
+    exclusive?: boolean
     connect?: () => Promise<Transport>
     pick_and_connect?: {
         list: () => Promise<Array<AvailableDevice>>
