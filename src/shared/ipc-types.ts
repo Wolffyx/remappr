@@ -108,6 +108,8 @@ export const IpcEvents = {
     CONNECTION_DISCONNECTED: 'connection:disconnected',
     BLE_DEVICES_DISCOVERED: 'ble:devices-discovered',
     SERIAL_DEVICES_CHANGED: 'serial:devices-changed',
+    /** A HID device appeared or went (no payload; the renderer re-lists). */
+    HID_DEVICES_CHANGED: 'hid:devices-changed',
     UPDATE_AVAILABLE: 'update:available',
     /** A close or quit waits on the renderer's unsaved-changes prompt. */
     WINDOW_LEAVE_REQUESTED: 'window:leave-requested',
@@ -135,6 +137,16 @@ export type IpcEvent = (typeof IpcEvents)[keyof typeof IpcEvents]
 
 // --- Payload Types ---
 
+// pattern-check: skip — flat IPC DTO, no behavior
+/** What every main-process transport connect returns. */
+export interface TransportConnectResult {
+    ok: boolean
+    label?: string
+    error?: string
+    /** Names this connection in sends, closes and events. */
+    connectionId?: number
+}
+
 /** Map of invoke channel -> { params, result } */
 export interface IpcInvokeMap {
     [IpcChannels.SERIAL_LIST_DEVICES]: {
@@ -143,7 +155,7 @@ export interface IpcInvokeMap {
     }
     [IpcChannels.SERIAL_CONNECT]: {
         params: AvailableDevice
-        result: boolean
+        result: TransportConnectResult
     }
     [IpcChannels.SERIAL_DISCONNECT]: {
         params: void
@@ -167,7 +179,7 @@ export interface IpcInvokeMap {
     }
     [IpcChannels.BLUEZ_CONNECT]: {
         params: { devicePath: string } & BleDiscoveryPayload
-        result: { ok: boolean; label?: string; error?: string }
+        result: TransportConnectResult
     }
     [IpcChannels.HID_LIST_DEVICES]: {
         params: HidDiscoveryPayload
@@ -175,7 +187,7 @@ export interface IpcInvokeMap {
     }
     [IpcChannels.HID_CONNECT]: {
         params: { device: AvailableDevice }
-        result: { ok: boolean; label?: string; error?: string }
+        result: TransportConnectResult
     }
     [IpcChannels.HID_LIST_MICE]: {
         params: void
@@ -185,12 +197,14 @@ export interface IpcInvokeMap {
         params: void
         result: NodeJS.Platform
     }
+    /** Data, then the connection id it is for (a stale id is refused). */
     [IpcChannels.TRANSPORT_SEND_DATA]: {
-        params: Uint8Array
+        params: [Uint8Array, number?]
         result: void
     }
+    /** Closes the named connection; a stale id is a no-op. */
     [IpcChannels.TRANSPORT_CLOSE]: {
-        params: void
+        params: number | void
         result: void
     }
     [IpcChannels.UPDATES_CHECK]: {
@@ -242,8 +256,10 @@ export interface IpcInvokeMap {
 
 /** Map of event channel -> payload type */
 export interface IpcEventMap {
+    /** Sent as (data, connectionId). */
     [IpcEvents.CONNECTION_DATA]: number[]
-    [IpcEvents.CONNECTION_DISCONNECTED]: void
+    /** Sent with the connectionId that dropped. */
+    [IpcEvents.CONNECTION_DISCONNECTED]: number
     [IpcEvents.BLE_DEVICES_DISCOVERED]: AvailableDevice[]
     [IpcEvents.UPDATE_AVAILABLE]: UpdateAvailablePayload
     [IpcEvents.WINDOW_LEAVE_REQUESTED]: void
