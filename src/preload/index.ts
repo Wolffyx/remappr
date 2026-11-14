@@ -1,6 +1,5 @@
 // pattern-check: skip — merge conflict resolution, no new logic
 import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI, type ElectronAPI } from '@electron-toolkit/preload'
 import {
     type ElectronIpcApi,
     IpcChannels,
@@ -9,10 +8,15 @@ import {
 
 declare global {
     interface Window {
-        electron: ElectronAPI
         api: ElectronIpcApi
     }
 }
+
+// Only the channel-whitelisted `api` below reaches the renderer. The
+// @electron-toolkit `electronAPI` bundle is deliberately NOT exposed: it hands
+// out raw ipcRenderer send/invoke/on (bypassing the whitelist) and
+// `process.env` (which can hold tokens such as GITHUB_TOKEN). Nothing in the
+// renderer used it.
 
 // Allowed invoke channels (whitelist for security)
 const VALID_INVOKE_CHANNELS = new Set<string>(Object.values(IpcChannels))
@@ -50,17 +54,14 @@ const api = {
     },
 } satisfies ElectronIpcApi
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+// Use `contextBridge` APIs to expose the API to the renderer only if context
+// isolation is enabled, otherwise just add it to the DOM global.
 if (process.contextIsolated) {
     try {
-        contextBridge.exposeInMainWorld('electron', electronAPI)
         contextBridge.exposeInMainWorld('api', api)
     } catch (error) {
         console.error(error)
     }
 } else {
-    window.electron = electronAPI
     window.api = api
 }
