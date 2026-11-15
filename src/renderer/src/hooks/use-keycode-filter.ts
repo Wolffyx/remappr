@@ -14,6 +14,8 @@ import { filterKeysBySearch } from '@/lib/keymap/keycodeGrid'
 // Canonical-id prefixes whose tiles are gated by Capabilities.behaviors.
 // Adapter that explicitly sets the flag to `false` hides the family;
 // `undefined` means unspecified → treat as supported (backward compat).
+// The behavior-family flags (a keyboard built without combos, macros, …) gate
+// the tiles that family's firmware code serves.
 const BEHAVIOR_PREFIX_GATES: ReadonlyArray<{
     flag: keyof FirmwareBehaviorFlags
     prefix: string
@@ -22,9 +24,17 @@ const BEHAVIOR_PREFIX_GATES: ReadonlyArray<{
     { flag: 'leader', prefix: 'leader.' },
     { flag: 'autoShift', prefix: 'auto_shift.' },
     { flag: 'swapHands', prefix: 'swap_hands.' },
+    { flag: 'tapHold', prefix: 'auto_shift.' },
+    { flag: 'combos', prefix: 'combo.' },
+    { flag: 'macros', prefix: 'macro.' },
+    { flag: 'sequences', prefix: 'leader.' },
+    { flag: 'unicode', prefix: 'unicode.' },
+    { flag: 'keyOverrides', prefix: 'key_override.' },
 ]
 
-const filterPagesByBehaviorFlags = (
+/** Drop the tiles of every behavior the adapter flags `false`. A page left
+ *  empty by that (e.g. Macros on a keyboard built without macros) goes too. */
+export const filterPagesByBehaviorFlags = (
     pages: CatalogPage[],
     flags: FirmwareBehaviorFlags | undefined,
 ): CatalogPage[] => {
@@ -33,12 +43,13 @@ const filterPagesByBehaviorFlags = (
         ({ flag }) => flags[flag] === false,
     )
     if (disabled.length === 0) return pages
-    return pages.map((p) => ({
-        ...p,
-        entries: p.entries.filter(
+    return pages.flatMap((p) => {
+        const entries = p.entries.filter(
             (e) => !disabled.some(({ prefix }) => e.id.startsWith(prefix)),
-        ),
-    }))
+        )
+        if (entries.length === 0 && p.entries.length > 0) return []
+        return [{ ...p, entries }]
+    })
 }
 
 // Enrich Macros-page tiles with the user's real macro names from the
@@ -167,13 +178,15 @@ export function useKeycodeFilter(
 
     const pages: CatalogPage[] = useMemo(() => {
         const base = keyCatalog?.pages ?? CATALOG_PAGES
-        const gated = filterPagesByBehaviorFlags(base, behaviorFlags)
-        return mergeBehaviorEntries(
-            gated,
+        // Gate after the merge so device-derived macro / combo tiles hide with
+        // their family too.
+        const merged = mergeBehaviorEntries(
+            base,
             extraMacroEntries,
             extraComboEntries,
             sideloadedComboEntries,
-        ).map((p) =>
+        )
+        return filterPagesByBehaviorFlags(merged, behaviorFlags).map((p) =>
             p.id === 'macros'
                 ? {
                       ...p,
