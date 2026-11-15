@@ -14,6 +14,7 @@ import type { CanonHoldTapDef, CanonModMorph } from '@firmware/config'
 import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
+import { useBehaviorFamily } from './behaviorFamily'
 import { saveConfigSection } from '@/lib/saveConfigSection'
 import { cn } from '@/lib/cn'
 import { Modal } from '@/ui/modal'
@@ -52,6 +53,9 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
     const configEditing = supportsConfigEditing(service) ? service : null
     const featureBitmask = service?.limits?.featureBitmask ?? 0
+    // Hold-tap defs belong to the tap-hold family; a keyboard built without it
+    // refuses them, so their section hides. Mod-morphs are core.
+    const tapHold = useBehaviorFamily('tapHold')
 
     const [holdTaps, setHoldTaps] = useState<CanonHoldTapDef[]>([])
     const [modMorphs, setModMorphs] = useState<CanonModMorph[]>([])
@@ -124,7 +128,8 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
         if (saved) onClose()
     }
 
-    const empty = holdTaps.length === 0 && modMorphs.length === 0
+    const showHoldTaps = tapHold && holdTaps.length > 0
+    const empty = !showHoldTaps && modMorphs.length === 0
 
     return (
         <Modal
@@ -156,7 +161,7 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                     </p>
                 )}
 
-                {holdTaps.length > 0 && (
+                {showHoldTaps && (
                     <section className="flex flex-col gap-3">
                         <h3 className="font-semibold">Hold-taps</h3>
                         {holdTaps.map((h, i) => (

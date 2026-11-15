@@ -9,6 +9,7 @@ import { Layers, Repeat, Replace, Sparkles, Sliders } from 'lucide-react'
 
 import type { KeyboardService } from '@firmware'
 import useConnectionStore from '@/stores/connectionStore'
+import { serviceHasFamily } from '@/features/firmware/behaviorFamily'
 import useAdvancedSheetStore, {
     type AdvancedSheetSection,
 } from '@/stores/advancedSheetStore'
@@ -35,19 +36,23 @@ const SECTION_META: Record<
     macros: { label: 'Macros', icon: Sparkles },
 }
 
-/** Which sections the connected service supports, in nav order. */
+/** Which sections the connected service supports, in nav order. A section
+ *  whose behavior family the keyboard was built without is left out. */
 function availableSections(
     service: KeyboardService,
     counts:
         | ReturnType<NonNullable<KeyboardService['dynamic']>['getCounts']>
         | undefined,
 ): AdvancedSheetSection[] {
+    const has = (f: Parameters<typeof serviceHasFamily>[1]): boolean =>
+        serviceHasFamily(service, f)
     const out: AdvancedSheetSection[] = []
-    if (counts?.tapDance) out.push('td')
-    if (counts?.combo) out.push('combo')
-    if (counts?.keyOverride) out.push('ko')
+    if (counts?.tapDance && has('sequences')) out.push('td')
+    if (counts?.combo && has('combos')) out.push('combo')
+    if (counts?.keyOverride && has('keyOverrides')) out.push('ko')
     if (service.dynamic?.getAltRepeatKey) out.push('ark')
-    if ((service.macros?.getCount() ?? 0) > 0) out.push('macros')
+    if ((service.macros?.getCount() ?? 0) > 0 && has('macros'))
+        out.push('macros')
     return out
 }
 
