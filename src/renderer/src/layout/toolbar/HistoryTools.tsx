@@ -73,24 +73,33 @@ export function HistoryTools(): JSX.Element {
 
     const save = useCallback(async (): Promise<void> => {
         if (!service) return
+        // §7.4.1 feature bitmask. `limits` is present only once GET_LIMITS
+        // answered, so firmwares without it never warn.
+        const config = useConfigStore.getState().config
+        const featureBitmask = service.limits?.featureBitmask
+        const warnings =
+            config && featureBitmask !== undefined
+                ? capabilityWarnings(config, featureBitmask)
+                : []
+        // A keyboard built without a behavior family refuses a config that
+        // uses it: say which, instead of pushing and failing validation.
+        const blocking = warnings.filter((w) => w.blocking)
+        if (blocking.length > 0) {
+            for (const w of blocking) toast.error(w.message)
+            return
+        }
         setSaving(true)
         try {
             await service.commit()
             // The push succeeded, but a device silently ignores config fields
-            // its firmware is too old to honor (§7.4.1 feature bitmask). Warn so
-            // the user knows to update the firmware instead of chasing a
-            // "setting had no effect" ghost. `limits` is present only once
-            // GET_LIMITS answered, so firmwares without it never warn.
-            const config = useConfigStore.getState().config
-            const featureBitmask = service.limits?.featureBitmask
-            if (config && featureBitmask !== undefined) {
-                const warnings = capabilityWarnings(config, featureBitmask)
-                if (warnings.length === 1) toast.warning(warnings[0].message)
-                else if (warnings.length > 1)
-                    toast.warning(
-                        `Saved — but this firmware ignores ${warnings.length} settings you configured. Update the firmware to use them.`,
-                    )
-            }
+            // its firmware is too old to honor. Warn so the user knows to
+            // update the firmware instead of chasing a "setting had no effect"
+            // ghost.
+            if (warnings.length === 1) toast.warning(warnings[0].message)
+            else if (warnings.length > 1)
+                toast.warning(
+                    `Saved — but this firmware ignores ${warnings.length} settings you configured. Update the firmware to use them.`,
+                )
         } catch (e) {
             console.error('Failed to save changes', e)
             // Adapters throw a descriptive reason (e.g. ZMK maps its
