@@ -2,6 +2,7 @@
 import type { KeyboardService } from '@firmware'
 import { supportsConfigEditing } from '@firmware/configEditing'
 import useConnectionStore from '@/stores/connectionStore'
+import { serviceHasFamily } from './behaviorFamily'
 
 type ServiceProbe = (s: KeyboardService) => unknown
 
@@ -17,10 +18,14 @@ export const FEATURE_PROBES = {
     // firmware wired a cluster-diag source (Cap.CLUSTER_DIAG).
     cluster: (s) => s.cluster,
     // §5.2-E: host input method for &unicode bindings — present only on a node
-    // whose firmware wired unicode ops (Cap.UNICODE).
-    unicode: (s) => s.unicode,
+    // whose firmware wired unicode ops (Cap.UNICODE) and built the Unicode
+    // behavior family in (without it the input method does nothing).
+    unicode: (s) => s.unicode && serviceHasFamily(s, 'unicode'),
     // remappr-only: GET_LIMITS answered → config-blob timing/defaults editable.
     limits: (s) => s.limits,
+    // The conditional-layers editor: config-blob editing on a keyboard built
+    // with the conditional-layers family.
+    conditionalLayers: (s) => s.limits && serviceHasFamily(s, 'conditionals'),
     // A keyboard with a battery whose config blob carries its power timeouts
     // (node.power). Mice and joysticks show theirs in Device settings.
     power: (s) => s.capabilities.power?.battery && supportsConfigEditing(s),

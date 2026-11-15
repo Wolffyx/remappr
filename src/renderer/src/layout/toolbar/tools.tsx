@@ -152,7 +152,7 @@ export const TOOLS: readonly ToolDef[] = [
         short: 'Cond. layers',
         description: 'Two layers together turn on a third',
         icon: Layers,
-        feature: 'limits',
+        feature: 'conditionalLayers',
         action: 'dialog',
     },
     {
