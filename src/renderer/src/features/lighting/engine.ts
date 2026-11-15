@@ -227,7 +227,7 @@ export function lightingFromDevice(
 /* ---- math helpers ---- */
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t
 const mix = (color: string, pct: number): string =>
-    `color-mix(in oklch, ${color} ${Math.max(0, Math.min(100, pct)).toFixed(1)}%, transparent)`
+    `color-mix(in oklab, ${color} ${Math.max(0, Math.min(100, pct)).toFixed(1)}%, transparent)`
 
 /** One key's computed glow layer, or null when nothing should render. */
 export interface KeyLightResult {

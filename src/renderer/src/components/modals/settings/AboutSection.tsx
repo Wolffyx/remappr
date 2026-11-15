@@ -9,6 +9,45 @@ import type { UpdateCheckResultPayload } from '../../../../../shared/ipc-types'
 import { IpcChannels } from '../../../../../shared/ipc-types'
 import { getApi } from '@/electron/api'
 import { openCurrentReleaseNotes } from '@/features/news/whatsNew'
+import { Switch } from '@/ui/switch'
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldLabel,
+    FieldTitle,
+} from '@/ui/field'
+import useUserSettingsStore from '@/stores/userSettingsStore'
+import { builderSource } from '@/lib/builderPackage/source'
+import { isCloudConfigured } from '@/lib/cloud/env'
+
+/** Beta builder packages: only for builds that load the delivered builder. */
+function BuilderChannelField(): JSX.Element | null {
+    const channel = useUserSettingsStore((s) => s.builderChannel)
+    const setChannel = useUserSettingsStore((s) => s.setBuilderChannel)
+    if (builderSource() !== 'delivered' || !isCloudConfigured()) return null
+    return (
+        <FieldLabel htmlFor="builder-beta">
+            <Field orientation="horizontal">
+                <FieldContent>
+                    <FieldTitle>Beta builder updates</FieldTitle>
+                    <FieldDescription>
+                        Get new builder versions before they reach everyone.
+                        Turning this off keeps the builder you have until a
+                        newer stable one comes out.
+                    </FieldDescription>
+                </FieldContent>
+                <Switch
+                    id="builder-beta"
+                    checked={channel === 'beta'}
+                    onCheckedChange={(on: boolean): void =>
+                        setChannel(on ? 'beta' : 'stable')
+                    }
+                />
+            </Field>
+        </FieldLabel>
+    )
+}
 
 export function AboutSection(): JSX.Element {
     const [checking, setChecking] = useState(false)
@@ -77,6 +116,7 @@ export function AboutSection(): JSX.Element {
                     </Button>
                 )}
             </div>
+            <BuilderChannelField />
         </div>
     )
 }

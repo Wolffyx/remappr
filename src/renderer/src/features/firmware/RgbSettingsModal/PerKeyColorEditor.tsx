@@ -86,12 +86,12 @@ export function PerKeyColorEditor({
 
     return (
         <div className="flex flex-col gap-3">
-            <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
                 Select one or more keys on the keyboard, then pick a colour.
                 Cmd/Ctrl-click adds keys; Shift-click selects a range.
             </p>
             {volatile && (
-                <p className="rounded-lg border border-dashed p-2 text-[11.5px] leading-relaxed text-muted-foreground">
+                <p className="rounded-lg border border-dashed p-2 text-xs leading-relaxed text-muted-foreground">
                     This keyboard can&apos;t store per-key colours. They stay
                     until it&apos;s unplugged.
                 </p>

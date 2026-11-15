@@ -15,6 +15,8 @@ const execAsync = promisify(exec)
 export interface SerialDeviceInfo {
     id: string
     label: string
+    /** Stable across replugs: the USB serial the device reports. */
+    key?: string
 }
 
 export interface SerialEventCallbacks {
@@ -170,6 +172,21 @@ function buildFallbackLabel(port: {
     return parts.length ? `${port.path} · ${parts.join(' · ')}` : port.path
 }
 
+/** A key that survives a replug (the tty path does not): vid, pid and the USB
+ *  serial number, when the port reports a real one (not a Windows PnP
+ *  instance fragment). */
+export function serialDeviceKey(port: {
+    serialNumber?: string
+    vendorId?: string
+    productId?: string
+}): string | undefined {
+    const sn = (port.serialNumber || '').trim()
+    if (!sn || isPnpFragment(sn) || !port.vendorId || !port.productId) {
+        return undefined
+    }
+    return `serial:${port.vendorId.toLowerCase()}:${port.productId.toLowerCase()}:${sn}`
+}
+
 export async function listSerialDevices(): Promise<SerialDeviceInfo[]> {
     try {
         const allPorts = await SerialPort.list()
@@ -181,20 +198,23 @@ export async function listSerialDevices(): Promise<SerialDeviceInfo[]> {
                 ? allPorts.filter((p) => !!p.vendorId)
                 : allPorts
         const enriched = await Promise.all(
-            ports.map(async (port) => {
+            ports.map(async (port): Promise<SerialDeviceInfo> => {
+                const key = serialDeviceKey(port)
+                const info = (label: string): SerialDeviceInfo => ({
+                    id: port.path,
+                    label,
+                    ...(key ? { key } : {}),
+                })
                 const linuxProduct = getLinuxProductName(port.path)
-                if (linuxProduct) {
-                    return { id: port.path, label: linuxProduct }
-                }
+                if (linuxProduct) return info(linuxProduct)
                 const macProduct = await getMacProductName(port.path)
-                if (macProduct) {
-                    return { id: port.path, label: macProduct }
-                }
+                if (macProduct) return info(macProduct)
                 const product = await getWindowsProductName(port.pnpId)
-                const label = product
-                    ? `${product} (${port.path})`
-                    : buildFallbackLabel(port)
-                return { id: port.path, label }
+                return info(
+                    product
+                        ? `${product} (${port.path})`
+                        : buildFallbackLabel(port),
+                )
             }),
         )
         knownSerialPaths = new Set(enriched.map((d) => d.id))
@@ -216,9 +236,7 @@ export async function connectSerial(
     callbacks: SerialEventCallbacks,
     baudRate: number = ZMK_SERIAL_BAUD,
 ): Promise<boolean> {
-    if (activeConnection) {
-        await disconnectSerial()
-    }
+    await disconnectSerial()
 
     if (!knownSerialPaths.has(deviceId)) {
         throw new Error(
@@ -252,7 +270,8 @@ export async function connectSerial(
                 })
 
                 port.on('close', () => {
-                    activeConnection = null
+                    // A port closed for a newer connection must not clear it.
+                    if (activeConnection?.port === port) activeConnection = null
                     callbacks.onDisconnected()
                 })
 
@@ -265,20 +284,26 @@ export async function connectSerial(
     }
 }
 
-export async function disconnectSerial(): Promise<void> {
-    if (!activeConnection) {
-        return
-    }
+/** Settles once the last port asked to close has closed. */
+let pendingClose: Promise<void> = Promise.resolve()
 
-    return new Promise((resolve) => {
-        activeConnection!.port.close((err) => {
+/** Close the open port. With none open, waits for one still closing, so a
+ *  connect right after a close never opens (the same) port mid-close. */
+export async function disconnectSerial(): Promise<void> {
+    const closing = activeConnection
+    if (!closing) return pendingClose
+    // Cleared now, not in the close callback, so a late callback can't clear
+    // a connection opened after it.
+    activeConnection = null
+    pendingClose = new Promise((resolve) => {
+        closing.port.close((err) => {
             if (err) {
                 log.error('Error closing serial port:', err)
             }
-            activeConnection = null
             resolve()
         })
     })
+    return pendingClose
 }
 
 const HOTPLUG_POLL_MS = 2000

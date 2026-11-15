@@ -22,13 +22,39 @@ export const NEWS_STYLES = [
     'none',
 ] as const
 export type NewsStyle = (typeof NEWS_STYLES)[number]
+/** How the editor's floating toolbar lays out its tools; see
+ *  layout/toolbar/FloatingToolbar. */
+export const TOOLBAR_STYLES = [
+    'labelled',
+    'compact',
+    'groups',
+    'expand',
+    'search',
+    'pinned',
+] as const
+export type ToolbarStyle = (typeof TOOLBAR_STYLES)[number]
+/** How the editor sidebar shows the other devices: a card with an icon strip,
+ *  or a rail of device icons beside the panel. See features/sidebar. */
+export type SidebarStyle = 'card' | 'rail'
+/** Physical layouts as one select menu, or as a list of rows. */
+export type LayoutPickerStyle = 'select' | 'list'
+/** Layers in a scrolling list with the legend folded, or all rows with the
+ *  legend open. */
+export type LayerListStyle = 'scroll' | 'full'
+/** How many devices the "last used" list remembers. */
+const RECENT_DEVICES_MAX = 20
+/** Tools on the bar in the 'pinned' style, by tool id (layout/toolbar/tools). */
+export const DEFAULT_PINNED_TOOLS = ['heatmap', 'live', 'dynamic', 'lighting']
 
 const DEFAULT_FIRMWARE_KEY = '_default'
 
 // pattern-check: skip — additive optional fields on existing settings interface
+/** Which builder packages this device takes: stable only, or betas too. */
+export type BuilderChannel = 'stable' | 'beta'
+
 interface UserSettingsState {
-    theme: 'dark' | 'light'
     autosave: boolean
+    builderChannel: BuilderChannel
     autoLoadLayout: boolean
     /** When on, a wiped-but-known keyboard is silently restored from its backup
      *  on reconnect instead of prompting. See profileBackupStore / restoreProfile. */
@@ -43,6 +69,20 @@ interface UserSettingsState {
     newsStyle: NewsStyle
     /** Show the pinned-news banner on top of whichever layout is picked. */
     newsPinnedBanner: boolean
+    toolbarStyle: ToolbarStyle
+    pinnedTools: string[]
+    sidebarStyle: SidebarStyle
+    /** Card style: switch to the rail once more devices are reachable than
+     *  the card's strip shows. */
+    sidebarAutoRail: boolean
+    /** In the rail style, fold the panel away; layers sit on the rail. */
+    sidebarFoldToRail: boolean
+    layoutPicker: LayoutPickerStyle
+    layerList: LayerListStyle
+    /** Roster keys (features/sidebar/roster) kept at the front of the strip. */
+    pinnedDevices: string[]
+    /** Roster keys, most recently opened first. */
+    recentDevices: string[]
     seenBuilderTour: boolean
     /** Version of the last launch; a newer one on start opens "what's new".
      *  null until the first launch records it. */
@@ -54,8 +94,17 @@ interface UserSettingsState {
     setWorkspace: (workspace: WorkspaceMode) => void
     setNewsStyle: (style: NewsStyle) => void
     setNewsPinnedBanner: (enabled: boolean) => void
-    setTheme: (theme: 'dark' | 'light') => void
+    setToolbarStyle: (style: ToolbarStyle) => void
+    togglePinnedTool: (id: string) => void
+    setSidebarStyle: (style: SidebarStyle) => void
+    setSidebarAutoRail: (enabled: boolean) => void
+    setSidebarFoldToRail: (enabled: boolean) => void
+    setLayoutPicker: (style: LayoutPickerStyle) => void
+    setLayerList: (style: LayerListStyle) => void
+    togglePinnedDevice: (key: string) => void
+    markDeviceUsed: (key: string) => void
     setAutosave: (enabled: boolean) => void
+    setBuilderChannel: (channel: BuilderChannel) => void
     setAutoLoadLayout: (enabled: boolean) => void
     setAutoRestoreProfile: (enabled: boolean) => void
     setAutoConnectDeviceId: (id: string | null) => void
@@ -71,8 +120,8 @@ const useUserSettingsStore = create<UserSettingsState>()(
     devtools(
         persist(
             (set, get) => ({
-                theme: 'light',
                 autosave: false,
+                builderChannel: 'stable',
                 autoLoadLayout: false,
                 autoRestoreProfile: false,
                 autoConnectDeviceId: null,
@@ -83,6 +132,15 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 workspace: 'workbench',
                 newsStyle: 'rail',
                 newsPinnedBanner: false,
+                toolbarStyle: 'labelled',
+                pinnedTools: DEFAULT_PINNED_TOOLS,
+                sidebarStyle: 'card',
+                sidebarAutoRail: true,
+                sidebarFoldToRail: false,
+                layoutPicker: 'select',
+                layerList: 'scroll',
+                pinnedDevices: [],
+                recentDevices: [],
                 seenBuilderTour: false,
                 lastRunVersion: null,
                 setLastRunVersion: (lastRunVersion) => set({ lastRunVersion }),
@@ -94,8 +152,35 @@ const useUserSettingsStore = create<UserSettingsState>()(
                 setNewsStyle: (newsStyle) => set({ newsStyle }),
                 setNewsPinnedBanner: (newsPinnedBanner) =>
                     set({ newsPinnedBanner }),
-                setTheme: (theme) => set({ theme }),
+                setToolbarStyle: (toolbarStyle) => set({ toolbarStyle }),
+                togglePinnedTool: (id) =>
+                    set((s) => ({
+                        pinnedTools: s.pinnedTools.includes(id)
+                            ? s.pinnedTools.filter((t) => t !== id)
+                            : [...s.pinnedTools, id],
+                    })),
+                setSidebarStyle: (sidebarStyle) => set({ sidebarStyle }),
+                setSidebarAutoRail: (sidebarAutoRail) =>
+                    set({ sidebarAutoRail }),
+                setSidebarFoldToRail: (sidebarFoldToRail) =>
+                    set({ sidebarFoldToRail }),
+                setLayoutPicker: (layoutPicker) => set({ layoutPicker }),
+                setLayerList: (layerList) => set({ layerList }),
+                togglePinnedDevice: (key) =>
+                    set((s) => ({
+                        pinnedDevices: s.pinnedDevices.includes(key)
+                            ? s.pinnedDevices.filter((k) => k !== key)
+                            : [...s.pinnedDevices, key],
+                    })),
+                markDeviceUsed: (key) =>
+                    set((s) => ({
+                        recentDevices: [
+                            key,
+                            ...s.recentDevices.filter((k) => k !== key),
+                        ].slice(0, RECENT_DEVICES_MAX),
+                    })),
                 setAutosave: (enabled) => set({ autosave: enabled }),
+                setBuilderChannel: (builderChannel) => set({ builderChannel }),
                 setAutoLoadLayout: (enabled) =>
                     set({ autoLoadLayout: enabled }),
                 setAutoRestoreProfile: (enabled) =>
@@ -123,7 +208,7 @@ const useUserSettingsStore = create<UserSettingsState>()(
             {
                 name: 'user-settings-store',
                 storage: createJSONStorage(() => localStorage),
-                version: 9,
+                version: 11,
                 migrate: (persisted: unknown, version: number) => {
                     if (!persisted || typeof persisted !== 'object') {
                         return persisted as Partial<UserSettingsState>
@@ -214,6 +299,35 @@ const useUserSettingsStore = create<UserSettingsState>()(
                         }
                         if (typeof p.newsPinnedBanner !== 'boolean') {
                             p.newsPinnedBanner = false
+                        }
+                    }
+                    if (version < 10) {
+                        // Floating toolbar. Everyone starts on the labelled bar.
+                        const style = p.toolbarStyle
+                        if (!TOOLBAR_STYLES.includes(style as ToolbarStyle)) {
+                            p.toolbarStyle = 'labelled'
+                        }
+                        if (!Array.isArray(p.pinnedTools)) {
+                            p.pinnedTools = DEFAULT_PINNED_TOOLS
+                        }
+                    }
+                    if (version < 11) {
+                        // f13: tap dance + macros became one "dynamic" tool, and
+                        // the three cluster dialogs one "cluster" tool.
+                        const merged: Record<string, string> = {
+                            'tap-dance': 'dynamic',
+                            macros: 'dynamic',
+                            'node-config': 'cluster',
+                            'link-profile': 'cluster',
+                        }
+                        if (Array.isArray(p.pinnedTools)) {
+                            p.pinnedTools = [
+                                ...new Set(
+                                    (p.pinnedTools as string[]).map(
+                                        (id) => merged[id] ?? id,
+                                    ),
+                                ),
+                            ]
                         }
                     }
                     return p as Partial<UserSettingsState>

@@ -6,7 +6,7 @@
 // Azure blob URL that sends no CORS headers for the app origin, so a renderer
 // `fetch` throws. Node's fetch has no CORS, so we do it here. Security: the token
 // is read from the OS-encrypted secret store (never passed in from the renderer),
-// and only `api.github.com` URLs are honored so this can't be turned into an
+// and only `https://api.github.com` URLs are honored so this can't be turned into an
 // arbitrary-URL token-attaching SSRF gadget. Node's fetch follows the redirect
 // and strips Authorization on the cross-origin hop, so the token never reaches
 // the blob host.
@@ -17,12 +17,54 @@ import { getStoredSecret } from './secret-store'
 
 const log = createLogger('github-artifact')
 
-// Must match the renderer's secretStore GITHUB_TOKEN_KEY.
+// Must match the renderer's secretStore GITHUB_TOKEN_KEY and the GitHub App
+// connection key in lib/github/connection.ts.
 const GITHUB_TOKEN_KEY = 'githubToken'
+const GITHUB_APP_KEY = 'githubApp'
+// A token this close to running out is not used (the renderer refreshes it).
+const EXPIRY_MARGIN_MS = 30_000
+
+/** The GitHub App's user token while it is valid, else the personal access
+ *  token (Connect GitHub stores the former, the advanced fallback the latter). */
+export function githubToken(
+    read: (key: string) => string | null = getStoredSecret,
+    now: number = Date.now(),
+): string | null {
+    const raw = read(GITHUB_APP_KEY)
+    if (raw) {
+        try {
+            const app = JSON.parse(raw) as {
+                accessToken?: unknown
+                expiresAt?: unknown
+            }
+            const fresh =
+                typeof app.expiresAt !== 'number' ||
+                app.expiresAt - EXPIRY_MARGIN_MS > now
+            if (typeof app.accessToken === 'string' && app.accessToken && fresh)
+                return app.accessToken
+        } catch {
+            log.warn('stored GitHub App connection is unreadable')
+        }
+    }
+    return read(GITHUB_TOKEN_KEY) || null
+}
 
 function urlOf(arg: unknown): string | null {
     const u = (arg as { url?: unknown })?.url
     return typeof u === 'string' && u ? u : null
+}
+
+/** True only for an `https://api.github.com/…` URL: the one place the bearer
+ *  token may be sent. A plain `http://` URL to the same host is refused, or the
+ *  token would cross the network in cleartext. */
+export function isAllowedArtifactUrl(url: string): boolean {
+    let parsed: URL
+    try {
+        parsed = new URL(url)
+    } catch {
+        return false
+    }
+    return parsed.protocol === 'https:' && parsed.host === 'api.github.com'
 }
 
 /** Register the github:download-artifact IPC handler. Call once at startup. */
@@ -32,18 +74,13 @@ export function registerGithubArtifactHandler(): void {
         async (_e, arg: unknown): Promise<Uint8Array | null> => {
             const url = urlOf(arg)
             if (!url) return null
-            // Only proxy GitHub API URLs — never attach the token elsewhere.
-            let host: string
-            try {
-                host = new URL(url).host
-            } catch {
+            // Only proxy https GitHub API URLs — never attach the token
+            // elsewhere, and never over cleartext.
+            if (!isAllowedArtifactUrl(url)) {
+                log.error('refused artifact url (not https://api.github.com)')
                 return null
             }
-            if (host !== 'api.github.com') {
-                log.error('refused non-GitHub artifact url', host)
-                return null
-            }
-            const token = getStoredSecret(GITHUB_TOKEN_KEY)
+            const token = githubToken()
             if (!token) {
                 log.error('no stored GitHub token for artifact download')
                 return null

@@ -3,7 +3,12 @@ import type { Transport } from '@firmware'
 
 export interface AvailableDevice {
     label: string
+    /** This session's handle for connecting (an OS path, a browser index). */
     id: string
+    /** Stable identity across replugs, when the transport can read one the
+     *  device reports (its USB serial number). Per-device state is stored
+     *  under it; see deviceKey. */
+    key?: string
 }
 
 /**
@@ -30,4 +35,10 @@ export type TransportFactory = {
     renameDevice?: (device: AvailableDevice, name: string) => void
     /** Revoke browser permission for a paired device (browser only). */
     forgetDevice?: (device: AvailableDevice) => Promise<void>
+    /**
+     * Holds one open link per transport: opening a device here closes the
+     * one already open on it (Electron's main process). A device switch on
+     * the same transport closes the current device first.
+     */
+    singleLink?: boolean
 }

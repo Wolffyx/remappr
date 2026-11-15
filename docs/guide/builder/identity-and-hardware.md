@@ -1,15 +1,16 @@
 # Identity & hardware
 
-The **Identity** panel holds everything about the board that is not its layout or
-bindings — name, USB identity, firmware targets, controller, matrix, lighting and
-firmware config. These fields turn a keymap into a _flashable_ project. Sections
-appear/disappear based on the firmware targets you select.
+The settings in the left panel hold everything about the board that is not its
+layout or bindings — name, USB identity, firmware targets, controller, matrix,
+lighting and firmware config. These fields turn a keymap into a _flashable_
+project. They sit in five groups, one open at a time: **Board**, **Firmware**,
+**Lighting**, **Behavior** and **Readiness**; **Filter settings** at the top
+narrows them, and [search](/guide/builder/overview#search) (`/`) jumps to any
+one. Sections appear/disappear based on the firmware targets you select.
 
-![The top of the Identity panel: Identity, USB identifiers, Firmware targets and the keyboard-type line](/images/builder/identity.webp){width=300}
+![The top of the Board group: Identity and USB identifiers](/images/builder/identity.webp){width=300}
 
-The panel scrolls, top to bottom: Identity · USB identifiers · Firmware targets
-· Controller · Matrix · Capabilities · Lighting · Firmware config · Hardware pins
-· Timing & defaults · Behaviors · Conditional layers · Readiness. Every field below is labelled exactly as it appears in the panel, with the
+Every field below is labelled exactly as it appears in the panel, with the
 config key it writes.
 
 ## Identity
@@ -45,6 +46,51 @@ An info line under the cards summarises the choice — _"Keyboard type · Wired 
 wireless"_ (or wired / wireless only) and _"Keycodes & behaviours follow ZMK +
 Remappr"_. VIA and Vial compile through QMK. See
 [Firmware targets](/reference/config/firmware-targets).
+
+## Feature cards {#feature-cards}
+
+_"What should it do?"_ — the same cards for every design, keyboard or device,
+because any part can go on any design (a trackball on a keyboard, a knob on a
+mouse):
+
+- **Connection & power:** **Wireless** (Bluetooth or a 2.4 GHz dongle),
+  **Edit live from the app**, **Battery & sleep**, **Lighting**.
+- **Parts:** **Motion sensor** (an optical sensor or trackball on SPI),
+  **Encoders** (a scroll wheel or knobs), **Analog inputs** (sticks, triggers,
+  sliders), **Screen** (an OLED, LCD or e-paper screen). Turning on **Screen**
+  shows its module tiles right under the cards — see
+  [Screens](/guide/builder/layout#screens).
+
+Each says what it needs wired (e.g. _"LED data pin"_). The kind of design only
+marks some **Suggested** — a mouse starts with sensor and encoders on, a gamepad
+with analog inputs. Each card's firmware chips come from that firmware's own
+table, crossed out where it has no option for that part (for a screen: no
+driver for one). _"Each card sets the
+right options for"_ every firmware you picked; the picks are saved in
+`keyboard.features` (a device keeps them with its design). They are step 3 of a
+[new design](/guide/builder/overview#starting-a-board), and **Pick…** /
+**Change…** in the Firmware group opens them later.
+
+::: tip
+Turning off **Edit live from the app** also turns off the firmware's live-edit
+support (for ZMK, ZMK Studio), on purpose.
+:::
+
+## Firmware tabs {#firmware-tabs}
+
+Under the targets, the **Firmware** group has one tab per firmware you picked
+(e.g. **ZMK** · **Remappr**). Each tab lists that firmware's own switches, with
+the exact line it writes under the name (e.g. `CONFIG_ZMK_BLE=y`):
+
+- **from {feature}** — the switch was turned on by a feature card.
+- **changed** — set by hand. The tab header counts them (_"2 changed from
+  defaults"_) and **Reset** puts them back; with none changed it names the file
+  it writes (_"Writes .conf"_).
+- A **· sub-switch** only applies while the switch above it is on.
+- Some switches are fixed by the board and show their state instead of a toggle.
+
+The extra lines, generated files and firmware-specific sections below
+(**Firmware config**, **Hardware pins**, **Vial security**…) follow the tab.
 
 ## Controller
 
@@ -87,7 +133,7 @@ when keys have matrix positions). Per-key wiring is in the [inspector](/guide/bu
 
 ## Lighting
 
-![Lighting with RGB underglow on: Effect chips, colour swatches and Brightness](/images/builder/lighting.webp){width=300}
+![Lighting: the RGB underglow and per-key backlight switches](/images/builder/lighting.webp){width=300}
 
 Writes `keyboard.lighting`; _"Configured for every firmware target — the exporter
 maps it to each platform."_
@@ -106,10 +152,10 @@ See [Lighting](/guide/builder/lighting) for the full picture (actions vs config)
 
 ## Firmware config (.conf) — ZMK
 
-![Firmware config (.conf): the Kconfig toggles and the Extra Kconfig box](/images/builder/firmware-config.webp){width=300}
+![Firmware config (.conf): the Kconfig toggles and the Extra firmware settings box](/images/builder/firmware-config.webp){width=300}
 
 Toggles that derive the ZMK `.conf`, writing `keyboard.firmwareConfig`. A live
-**Generated .conf** preview updates as you flip them. **Extra Kconfig** (e.g.
+**Generated .conf** preview updates as you flip them. **Extra firmware settings (Kconfig)** (e.g.
 `CONFIG_ZMK_SLEEP=y`) is appended verbatim.
 
 | Toggle                     | Derives                     |
@@ -130,7 +176,7 @@ toggling sets an explicit override. See
 
 ## Hardware pins — ZMK {#hardware-pins-zmk}
 
-![Hardware pins: the WS2812 underglow data pin, LED count, colour order and SPI instance](/images/builder/hardware-pins.webp){width=300}
+![Hardware pins: the external-power control GPIO and Active low](/images/builder/hardware-pins.webp){width=300}
 
 Appears when a feature needs a pin — here, after turning **RGB underglow** on. Friendly nRF labels like `P0.13` emit psels;
 _"verify against your board wiring."_ Writes `keyboard.hardware`.
@@ -147,7 +193,7 @@ Board-wide behavior timings, written to the config's top-level
 [`defaults`](/reference/config/keymap-format#defaults). Every field is optional:
 _"Blank = the firmware / devicetree default."_
 
-![Timing & defaults: Tap-hold & combo, Debounce and Engine timing groups, all on auto](/images/builder/timing.webp){width=300}
+![Timing and defaults: Tap-hold & combo, Debounce and Engine timing groups, all on auto, with Learn more](/images/builder/timing.webp){width=300}
 
 | Group                | Field                   | Writes                    | Meaning                                              |
 | -------------------- | ----------------------- | ------------------------- | ---------------------------------------------------- |
@@ -166,14 +212,14 @@ _"Blank = the firmware / devicetree default."_
 
 The **Engine timing** fields apply on Remappr Firmware. The same fields are
 editable live on a connected board in the editor's
-[Timing & Defaults](/guide/app/advanced#timing-defaults) dialog.
+[Timing and defaults](/guide/app/advanced#timing-defaults) dialog.
 
 ## Behaviors (hold-taps & mod-morphs)
 
 _"Custom hold-tap and mod-morph defs the keymap can bind. Add one below, then
 tune its behaviors, timing and modifiers."_
 
-![Behaviors: a new hold-tap ht_1 with Hold and Tap behaviors, flavor, timings and toggles; Add hold-tap / Add mod-morph; Conditional layers and Readiness below](/images/builder/behaviors.webp){width=300}
+![Behaviors: a new hold-tap (Hold-tap 1, ht_1) with Hold and Tap behaviors, flavor, timings and toggles, a new mod-morph, and Add hold-tap / Add mod-morph](/images/builder/behaviors.webp){width=300}
 
 - **+ Add hold-tap** — a new definition (`ht_1`, `ht_2`…) in
   [`holdTaps`](/reference/config/keymap-format#holdtaps): the **Hold** and **Tap**

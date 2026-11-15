@@ -6,6 +6,7 @@
 // timing / flags) and mod-morph defs (trigger + kept modifiers), stages the
 // changed fields via setHoldTap/setModMorph, and pushes on commit(). A flag whose
 // firmware feature bit is absent is annotated as ignored, not hidden.
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useRef, useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 
@@ -13,11 +14,12 @@ import type { CanonHoldTapDef, CanonModMorph } from '@firmware/config'
 import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { useBehaviorFamily } from './behaviorFamily'
+import { saveConfigSection } from '@/lib/saveConfigSection'
 import { cn } from '@/lib/cn'
 import { Modal } from '@/ui/modal'
+import { NamedId } from '@/ui/named-id'
 import { Button } from '@/ui/button'
-import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
 import { Switch } from '@/ui/switch'
 import {
@@ -30,6 +32,7 @@ import {
 
 import {
     ALL_MODIFIERS,
+    FLAVOR_LABELS,
     FLAVOR_OPTIONS,
     HOLD_TAP_FLAG_FIELDS,
     HOLD_TAP_NUM_FIELDS,
@@ -50,6 +53,9 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
     const configEditing = supportsConfigEditing(service) ? service : null
     const featureBitmask = service?.limits?.featureBitmask ?? 0
+    // Hold-tap defs belong to the tap-hold family; a keyboard built without it
+    // refuses them, so their section hides. Mod-morphs are core.
+    const tapHold = useBehaviorFamily('tapHold')
 
     const [holdTaps, setHoldTaps] = useState<CanonHoldTapDef[]>([])
     const [modMorphs, setModMorphs] = useState<CanonModMorph[]>([])
@@ -96,39 +102,38 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
 
     const handleSave = async (): Promise<void> => {
         if (!service) return
-        let staged = 0
-        holdTaps.forEach((h, i) => {
-            const p = holdTapPatch(origHT.current[i], h)
-            if (p) {
-                configEditing.setHoldTap(i, p)
-                staged++
-            }
-        })
-        modMorphs.forEach((m, i) => {
-            const p = modMorphPatch(origMM.current[i], m.mods, m.keepMods ?? [])
-            if (p) {
-                configEditing.setModMorph(i, p)
-                staged++
-            }
-        })
-        if (staged === 0) {
+        const htPatches = holdTaps.map((h, i) =>
+            holdTapPatch(origHT.current[i], h),
+        )
+        const mmPatches = modMorphs.map((m, i) =>
+            modMorphPatch(origMM.current[i], m.mods, m.keepMods ?? []),
+        )
+        if (!htPatches.some(Boolean) && !mmPatches.some(Boolean)) {
             onClose()
             return
         }
+        const stage = (): void => {
+            htPatches.forEach((p, i) => p && configEditing.setHoldTap(i, p))
+            mmPatches.forEach((p, i) => p && configEditing.setModMorph(i, p))
+        }
         setSaving(true)
-        const r = await saveWithToast(
-            () => service.commit(),
-            'Behaviors saved',
-            'Failed to save behaviors',
-        )
+        const saved = await saveConfigSection({
+            service,
+            section: 'Behaviors',
+            stage: stage,
+            successMessage: 'Behaviors saved',
+            errorPrefix: 'Failed to save behaviors',
+        })
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
-    const empty = holdTaps.length === 0 && modMorphs.length === 0
+    const showHoldTaps = tapHold && holdTaps.length > 0
+    const empty = !showHoldTaps && modMorphs.length === 0
 
     return (
         <Modal
+            size="md"
             opened={opened}
             onClose={onClose}
             title="Behaviors"
@@ -156,7 +161,7 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                     </p>
                 )}
 
-                {holdTaps.length > 0 && (
+                {showHoldTaps && (
                     <section className="flex flex-col gap-3">
                         <h3 className="font-semibold">Hold-taps</h3>
                         {holdTaps.map((h, i) => (
@@ -164,7 +169,10 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                 key={h.id}
                                 className="flex flex-col gap-2 rounded-lg border p-3"
                             >
-                                <div className="font-mono text-xs">{h.id}</div>
+                                <NamedId
+                                    name={h.description || `Hold-tap ${i + 1}`}
+                                    id={h.id}
+                                />
                                 <div className="flex items-center gap-2">
                                     <Label className="w-28 text-xs">
                                         Flavor
@@ -175,13 +183,16 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                             patchHT(i, { flavor: v as Flavor })
                                         }
                                     >
-                                        <SelectTrigger className="w-56">
+                                        <SelectTrigger className="h-auto min-h-9 w-64 py-1 text-left">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {FLAVOR_OPTIONS.map((f) => (
                                                 <SelectItem key={f} value={f}>
-                                                    {f}
+                                                    <NamedId
+                                                        name={FLAVOR_LABELS[f]}
+                                                        id={f}
+                                                    />
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -195,8 +206,7 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                         <Label className="w-28 text-xs">
                                             {f.label}
                                         </Label>
-                                        <Input
-                                            type="number"
+                                        <NumberInput
                                             min={f.min}
                                             max={f.max}
                                             value={h[f.key] ?? 0}
@@ -209,10 +219,9 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                                         ) || 0,
                                                 })
                                             }
-                                            className="w-24"
                                             disabled={saving}
                                         />
-                                        <span className="text-[10.5px] text-muted-foreground">
+                                        <span className="text-meta text-muted-foreground">
                                             ms
                                         </span>
                                     </div>
@@ -261,7 +270,10 @@ export function BehaviorDefsModal({ opened, onClose }: Props): JSX.Element {
                                 key={m.id}
                                 className="flex flex-col gap-2 rounded-lg border p-3"
                             >
-                                <div className="font-mono text-xs">{m.id}</div>
+                                <NamedId
+                                    name={m.description || `Mod-morph ${i + 1}`}
+                                    id={m.id}
+                                />
                                 {(['mods', 'keepMods'] as const).map(
                                     (field) => (
                                         <div

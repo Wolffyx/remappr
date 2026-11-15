@@ -84,7 +84,7 @@ export function ReleaseNotesView({
                                         } as CSSProperties
                                     }
                                 >
-                                    <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <h4 className="eyebrow flex items-center gap-2">
                                         {section.title}
                                         <Badge
                                             variant="tone"

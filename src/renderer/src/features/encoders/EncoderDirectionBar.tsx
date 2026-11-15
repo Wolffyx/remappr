@@ -48,9 +48,7 @@ export function EncoderDirectionBar({
                                 : 'border-border'
                         }`}
                     >
-                        <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                            {short}
-                        </span>
+                        <span className="eyebrow">{short}</span>
                         <span className="min-w-[2.5em] text-sm text-foreground">
                             <SideValue side={legend[dir]} />
                         </span>

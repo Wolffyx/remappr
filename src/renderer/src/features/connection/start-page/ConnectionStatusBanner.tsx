@@ -16,7 +16,9 @@ export function ConnectionStatusBanner(): JSX.Element {
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
                         <AlertCircle className="h-8 w-8 text-destructive" />
                     </div>
-                    <CardTitle>Browser Not Supported</CardTitle>
+                    <CardTitle>
+                        This browser can’t connect to keyboards
+                    </CardTitle>
                     <CardDescription>
                         Your browser doesn&apos;t support the required features.
                     </CardDescription>

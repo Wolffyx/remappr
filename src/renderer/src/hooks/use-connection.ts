@@ -3,11 +3,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { Transport } from '@firmware'
 import { UserCancelledError } from '@firmware'
+import { reportConnectError } from '@/features/connection/connectTransport'
+import { listDevices } from '@/features/connection/listDevices'
 import type { AvailableDevice, TransportFactory } from '@/transport/types'
 import { ensureFirmwareClientsLoaded } from '@/transport/adapter/firmwareClients'
 import { getTransports, subscribeToTransportChanges } from '@/lib/transports'
+import { useFirmwareClientsReady } from '@/hooks/use-firmware-clients-ready'
 import useConnectionStore from '@/stores/connectionStore'
 import useUserSettingsStore from '@/stores/userSettingsStore'
+import { deviceKey } from '@/features/connection/deviceKey'
 import type {
     DeviceStatus,
     DeviceWithTransport,
@@ -32,14 +36,6 @@ interface UseConnectionResult {
     requestNew: (t: TransportFactory) => Promise<void>
 }
 
-function reportConnectError(e: unknown, fallback: string): void {
-    if (e instanceof UserCancelledError) return
-    if (e instanceof DOMException && e.name === 'NotFoundError') return
-    if (e instanceof Error) {
-        toast.error(fallback, { description: e.message })
-    }
-}
-
 export function useConnection(
     onTransportCreated: (
         t: Transport,
@@ -48,7 +44,11 @@ export function useConnection(
         // fails/times out — lets the caller clear a device's "connecting" state.
     ) => Promise<boolean>,
 ): UseConnectionResult {
-    const transports = useMemo(() => getTransports(), [])
+    // Re-render once the lazy firmware clients have registered: the Electron
+    // HID transport only exists once an adapter supplies its filter. The list
+    // is cached by getTransports(), so its identity holds between renders.
+    useFirmwareClientsReady()
+    const transports = getTransports()
 
     const { haveTransports, hasListableTransports, hasSimpleConnectOnly } =
         useMemo(() => {
@@ -82,33 +82,9 @@ export function useConnection(
     const loadDevices = useCallback(async (): Promise<void> => {
         const reqId = ++scanReqRef.current
         setRefreshing(true)
-        // Discovery filters (hidFilters/hidDiscovery) read the adapter registry,
-        // which is now populated lazily — ensure clients are loaded first.
-        await ensureFirmwareClientsLoaded()
-        const listable = transports.filter((t): boolean => !!t.pick_and_connect)
-        const results = await Promise.all(
-            listable.map(async (t): Promise<DeviceWithTransport[]> => {
-                try {
-                    const list = await t.pick_and_connect?.list()
-                    return (list ?? []).map(
-                        (d): DeviceWithTransport => ({
-                            device: d,
-                            transport: t,
-                            status: 'available' as DeviceStatus,
-                        }),
-                    )
-                } catch (e) {
-                    console.error(
-                        'Failed to list devices for transport:',
-                        t.label,
-                        e,
-                    )
-                    return []
-                }
-            }),
-        )
+        const found = await listDevices(transports)
         if (reqId !== scanReqRef.current) return
-        setDevices(results.flat())
+        setDevices(found)
         setRefreshing(false)
     }, [transports])
 
@@ -170,10 +146,7 @@ export function useConnection(
             try {
                 await ensureFirmwareClientsLoaded()
                 const rpc = await transport.pick_and_connect!.connect(device)
-                useConnectionStore.getState().setLastConnectedDevice({
-                    id: device.id,
-                    label: device.label,
-                })
+                useConnectionStore.getState().setLastConnectedDevice(device)
                 // The transport opened, but the adapter handshake still runs
                 // inside onTransportCreated and can fail or hang there. Await it
                 // and, if it doesn't reach a connected service, drop the card
@@ -251,11 +224,7 @@ export function useConnection(
                         after.find((d) => !grantedBefore.has(d.id)) ??
                         (after.length === 1 ? after[0] : null)
                 }
-                useConnectionStore
-                    .getState()
-                    .setLastConnectedDevice(
-                        paired ? { id: paired.id, label: paired.label } : null,
-                    )
+                useConnectionStore.getState().setLastConnectedDevice(paired)
                 if (rpc) await onTransportCreated(rpc, transport.communication)
             } catch (e) {
                 if (
@@ -284,7 +253,9 @@ export function useConnection(
         }
         if (!autoConnectDeviceId) return
         if (connectingDeviceIdRef.current !== null) return
-        const match = devices.find((d) => d.device.id === autoConnectDeviceId)
+        const match = devices.find(
+            (d) => deviceKey(d.device) === autoConnectDeviceId,
+        )
         if (!match) return
         autoConnectAttempted = true
         // Defer out of the effect body so the connect's setState doesn't

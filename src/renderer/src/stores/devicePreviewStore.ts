@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, devtools, persist } from 'zustand/middleware'
 import type { KeyCategory } from '@/lib/keymap/keyCategory'
+import type { DeviceActionCategory, DeviceModel } from '@firmware/devices/types'
 
 /** One key of a cached base-layer preview — fully serializable (no ReactNodes).
  *  Shape and colour category only: the card shows the board, never what the
@@ -24,11 +25,28 @@ export interface PreviewEncoder {
     y: number
 }
 
+/** A slider with no key of its own (a device's fader): its box, in keyboard
+ *  units like PreviewKey. */
+export interface PreviewSlider {
+    x: number
+    y: number
+    width: number
+    height: number
+    r?: number
+}
+
 /**
  * A snapshot of a device's base layer, captured while connected and shown on its
  * start-page card after disconnect. Keyed by the device's stable list id (falling
  * back to the firmware-reported name for pair-new flows that have no list id).
  */
+/** A device driven as controls (mouse, gamepad …): its layout and the colour
+ *  category of what each control is bound to — never the binding itself. */
+export interface PreviewDevice {
+    model: DeviceModel
+    categories: Record<string, DeviceActionCategory>
+}
+
 export interface DevicePreviewSnapshot {
     name: string
     communication: 'serial' | 'ble' | 'hid'
@@ -36,13 +54,15 @@ export interface DevicePreviewSnapshot {
     layerCount: number
     keys: PreviewKey[]
     encoders?: PreviewEncoder[]
+    sliders?: PreviewSlider[]
+    /** Set for a controls device; `keys` is then empty. */
+    device?: PreviewDevice
     savedAt: number
 }
 
 interface DevicePreviewState {
     snapshots: Record<string, DevicePreviewSnapshot>
     saveSnapshot: (key: string, snapshot: DevicePreviewSnapshot) => void
-    clear: (key: string) => void
 }
 
 // Keeps only a key's shape and category, whatever else an older snapshot saved.
@@ -56,6 +76,22 @@ const stripLegend = ({
     ry,
     category,
 }: PreviewKey): PreviewKey => ({ x, y, width, height, r, rx, ry, category })
+
+/** How many devices keep a start-page snapshot. A device's key used to change
+ *  on every replug (an OS path), so the map only ever grew. */
+export const MAX_SNAPSHOTS = 24
+
+/** The `max` most recently saved snapshots of `snapshots`. */
+export function pruneSnapshots(
+    snapshots: Record<string, DevicePreviewSnapshot>,
+    max: number = MAX_SNAPSHOTS,
+): Record<string, DevicePreviewSnapshot> {
+    const entries = Object.entries(snapshots)
+    if (entries.length <= max) return snapshots
+    return Object.fromEntries(
+        entries.sort(([, a], [, b]) => b.savedAt - a.savedAt).slice(0, max),
+    )
+}
 
 /** Persist migration. v1: snapshots no longer carry key legends
  *  (tap/hold/action); strip the ones saved before. */
@@ -81,14 +117,11 @@ const useDevicePreviewStore = create<DevicePreviewState>()(
                 snapshots: {},
                 saveSnapshot: (key, snapshot) =>
                     set((s) => ({
-                        snapshots: { ...s.snapshots, [key]: snapshot },
+                        snapshots: pruneSnapshots({
+                            ...s.snapshots,
+                            [key]: snapshot,
+                        }),
                     })),
-                clear: (key) =>
-                    set((s) => {
-                        const next = { ...s.snapshots }
-                        delete next[key]
-                        return { snapshots: next }
-                    }),
             }),
             {
                 name: 'device-preview-store',

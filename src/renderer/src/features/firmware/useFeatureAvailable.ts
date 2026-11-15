@@ -1,6 +1,8 @@
 // pattern-check: skip — store-reading hook + dispatch table for capability lookup
 import type { KeyboardService } from '@firmware'
+import { supportsConfigEditing } from '@firmware/configEditing'
 import useConnectionStore from '@/stores/connectionStore'
+import { serviceHasFamily } from './behaviorFamily'
 
 type ServiceProbe = (s: KeyboardService) => unknown
 
@@ -16,10 +18,24 @@ export const FEATURE_PROBES = {
     // firmware wired a cluster-diag source (Cap.CLUSTER_DIAG).
     cluster: (s) => s.cluster,
     // §5.2-E: host input method for &unicode bindings — present only on a node
-    // whose firmware wired unicode ops (Cap.UNICODE).
-    unicode: (s) => s.unicode,
+    // whose firmware wired unicode ops (Cap.UNICODE) and built the Unicode
+    // behavior family in (without it the input method does nothing).
+    unicode: (s) => s.unicode && serviceHasFamily(s, 'unicode'),
     // remappr-only: GET_LIMITS answered → config-blob timing/defaults editable.
     limits: (s) => s.limits,
+    // The conditional-layers editor: config-blob editing on a keyboard built
+    // with the conditional-layers family.
+    conditionalLayers: (s) => s.limits && serviceHasFamily(s, 'conditionals'),
+    // A keyboard with a battery whose config blob carries its power timeouts
+    // (node.power). Mice and joysticks show theirs in Device settings.
+    power: (s) => s.capabilities.power?.battery && supportsConfigEditing(s),
+    // A keyboard whose firmware draws screens from its config; the dialog
+    // lists its displays. Mice and joysticks show theirs in Device settings.
+    displays: (s) => s.screens && supportsConfigEditing(s),
+    // A keyboard whose firmware describes its parts (PART namespace): the
+    // key matrix's scan and debounce settings. Mice and joysticks show their
+    // parts in Device settings.
+    scanning: (s) => (s.kind ?? 'keyboard') === 'keyboard' && s.sensor,
     lock: (s) => s.capabilities.lock !== 'none',
     rename: (s) => s.capabilities.rename,
     reorderLayers: (s) => s.capabilities.reorderLayers,
@@ -31,6 +47,11 @@ export const FEATURE_PROBES = {
     // Inverse of capabilities.readOnly: a behind-dongle node view is read-only,
     // so every keymap-editing affordance gates on `editable`.
     editable: (s) => !s.capabilities.readOnly,
+    // Device-controls facade (mice, gamepads, flight sticks): the editor, its
+    // write path and its live readout are each present-or-absent per adapter.
+    controls: (s) => s.controls,
+    controlsEditable: (s) => s.controls?.setBinding,
+    controlsLive: (s) => s.controls?.onInput,
 } satisfies Record<string, ServiceProbe>
 
 export type Feature = keyof typeof FEATURE_PROBES

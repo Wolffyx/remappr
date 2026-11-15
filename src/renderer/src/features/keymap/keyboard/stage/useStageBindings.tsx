@@ -2,6 +2,7 @@
 import { useMemo } from 'react'
 import type { Keymap } from '@firmware/types'
 import { resolveBindingLabels } from '@firmware'
+import { ELEMENT_SHAPE } from '@firmware/config'
 import {
     hidUsageLongLabel,
     usageGlyph,
@@ -13,7 +14,13 @@ import {
 } from '@/lib/keymap/keyCategory'
 import { HidUsageLabel } from '../HidUsageLabel'
 import type { KeyPosition } from '../PhysicalLayoutCanvas'
-import { knobLegend } from '@/features/encoders/knobLegend'
+import { knobLegend, knobSide } from '@/features/encoders/knobLegend'
+import {
+    effectiveSlider,
+    freeSliderSlots,
+    sliderLegend,
+    sliderSlotAt,
+} from '@/features/sliders/model'
 import type { KeypressDetectionConfig } from '@/lib/keypress/keypressDetector'
 import { ParamLegend } from '../ParamLegend'
 import { LegendParts } from '../LegendParts'
@@ -55,9 +62,24 @@ export function useStageBindings({
             layout,
             keymap,
             displayLayerIndex,
-        ).map((p) => ({
+        ).map((p, i) => ({
             id: p.id,
             header: p.header,
+            // A slider draws as its own cap; other elements as their shape.
+            ...(layout.keys[i]?.element === 'slider'
+                ? {
+                      slider: sliderLegend(
+                          effectiveSlider(
+                              keymap.layers,
+                              displayLayerIndex,
+                              sliderSlotAt(layout, i),
+                          ),
+                          layout.keys[i]!.motor,
+                      ),
+                  }
+                : layout.keys[i]?.element
+                  ? { shape: ELEMENT_SHAPE[layout.keys[i]!.element!] }
+                  : {}),
             // Tap glyph text (e.g. "Q", "Vol+") for legend sizing — mirrors what
             // HidUsageLabel renders, so KeyButton sizes the legend off the glyph
             // length (design rule), not the action-type tag in `header`. For
@@ -94,6 +116,7 @@ export function useStageBindings({
                 actionLabel: p.actionLabel,
                 bindingParam1: p.bindingParam1,
                 actionTypeName: p.actionTypeName,
+                paramParts: p.paramParts,
                 outOfRange: p.outOfRange,
                 isHoldTap: !!p.holdTap,
                 holdIsLayer: p.holdTap?.holdNodeKind === 'layer',
@@ -102,6 +125,7 @@ export function useStageBindings({
                 actionLabel: p.actionLabel,
                 bindingParam1: p.bindingParam1,
                 actionTypeName: p.actionTypeName,
+                paramParts: p.paramParts,
                 outOfRange: p.outOfRange,
                 isHoldTap: !!p.holdTap,
                 holdIsLayer: p.holdTap?.holdNodeKind === 'layer',
@@ -120,13 +144,29 @@ export function useStageBindings({
             ) : p.bindingParam1 == null && p.paramText ? (
                 <ParamLegend text={p.paramText} title={p.paramTitle} />
             ) : (
-                <HidUsageLabel
-                    hid_usage={p.bindingParam1!}
-                    header={p.actionTypeName || 'Unknown'}
-                    hideMods
-                />
+                <HidUsageLabel hid_usage={p.bindingParam1!} hideMods />
             ),
         }))
+
+        // Sliders with no key of their own (a device's fader) follow the keys,
+        // so position keys.length + j is the j-th of them (sliderSlotAt).
+        keyPositions.push(
+            ...freeSliderSlots(layout).map((slot): KeyPosition => {
+                const at = layout.sliders![slot]!
+                return {
+                    id: `sld-${slot}`,
+                    header: 'Slider',
+                    x: at.x / 100,
+                    y: at.y / 100,
+                    width: (at.w ?? 100) / 100,
+                    height: (at.h ?? 100) / 100,
+                    ...(at.r ? { r: at.r / 100 } : {}),
+                    slider: sliderLegend(
+                        effectiveSlider(keymap.layers, displayLayerIndex, slot),
+                    ),
+                }
+            }),
+        )
 
         const encoderActions = keymap.layers[displayLayerIndex]?.encoders
         const encoderSlots = layout.encoders ?? []
@@ -134,11 +174,31 @@ export function useStageBindings({
 
         // One 1U knob per encoder (the Keycap System REncoder). `knob` marks
         // it for the guards that skip encoders (nav, heatmap, paint); the cap
-        // exposes one hit zone per turn direction.
+        // exposes one hit zone per turn direction. A knob on a keymap position
+        // takes that key's place; the cap's centre is the key (the press).
         const encoderPositions: KeyPosition[] = []
         encoderSlots.forEach((slot, i) => {
             const action = encoderActions[i]
             if (!action) return
+            const onKey =
+                slot.key !== undefined ? keyPositions[slot.key] : undefined
+            if (onKey && slot.key !== undefined) {
+                const label =
+                    keymap.layers[displayLayerIndex]?.keys[slot.key]?.label
+                const press = label ? knobSide(label) : undefined
+                keyPositions[slot.key] = {
+                    ...onKey,
+                    knob: {
+                        ...knobLegend(i, action),
+                        // the button shows only when it does something
+                        ...(press?.text && press.category !== 'trans'
+                            ? { press }
+                            : {}),
+                    },
+                    knobOnKey: true,
+                }
+                return
+            }
             encoderPositions.push({
                 id: `enc-${i}`,
                 header: 'Encoder',

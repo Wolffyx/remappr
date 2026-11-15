@@ -1,0 +1,250 @@
+// pattern-check: skip — unit test, no production logic
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Transport } from '@firmware'
+import type { KeyboardService } from '@firmware/service'
+
+const adapter = vi.hoisted(() => ({ connect: vi.fn() }))
+const pickAdapter = vi.hoisted(() => vi.fn())
+vi.mock('@firmware', () => ({
+    pickAdapter,
+    UserCancelledError: class UserCancelledError extends Error {},
+}))
+vi.mock('@/transport/adapter/firmwareClients', () => ({
+    ensureFirmwareClientsLoaded: async () => undefined,
+}))
+vi.mock('sonner', () => ({
+    toast: { error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+}))
+
+import { connectTransport, switchToDevice } from './connectTransport'
+import type { DeviceWithTransport } from './types'
+import useConnectionStore from '@/stores/connectionStore'
+import useLeaveGuardStore, {
+    dismissLeavePrompt,
+} from '@/stores/leaveGuardStore'
+import { unwrapSaveMode, withSaveMode } from '@/lib/saveMode'
+
+function makeService(
+    name: string,
+    pending = false,
+): KeyboardService & { disconnect: ReturnType<typeof vi.fn> } {
+    let p = pending
+    return {
+        deviceInfo: { name, firmware: 'remappr', firmwareVersion: '1.0.0' },
+        capabilities: { lock: 'none', saveMode: 'manual' },
+        listActionTypes: async () => [],
+        disconnect: vi.fn(async () => undefined),
+        commit: async () => {
+            p = false
+        },
+        discardChanges: async () => {
+            p = false
+        },
+        hasPendingChanges: () => p,
+        refreshPendingChanges: async () => p,
+        onPendingChangesChanged: () => () => undefined,
+        onClosed: () => () => undefined,
+        getLockState: async () => 'unlocked',
+    } as unknown as KeyboardService & {
+        disconnect: ReturnType<typeof vi.fn>
+    }
+}
+
+/* A listed device whose transport hands back a fake rpc. */
+function listed(
+    id: string,
+    singleLink = false,
+): {
+    target: DeviceWithTransport
+    pick: ReturnType<typeof vi.fn>
+} {
+    const pick = vi.fn(async () => ({ label: 'hid' }) as unknown as Transport)
+    return {
+        target: {
+            device: { id, label: `Device ${id}` },
+            transport: {
+                label: 'USB',
+                communication: 'hid',
+                singleLink,
+                pick_and_connect: { list: async () => [], connect: pick },
+            } as unknown as DeviceWithTransport['transport'],
+            status: 'available',
+        },
+        pick,
+    }
+}
+
+const connectCurrent = (service: KeyboardService): void =>
+    useConnectionStore
+        .getState()
+        .setService(withSaveMode(service, false), 'hid')
+
+const current = (): KeyboardService | null => {
+    const s = useConnectionStore.getState().service
+    return s ? unwrapSaveMode(s) : null
+}
+
+beforeEach(() => {
+    dismissLeavePrompt()
+    useConnectionStore.getState().resetConnection()
+    pickAdapter.mockReset().mockReturnValue(adapter)
+    adapter.connect.mockReset()
+})
+
+describe('connectTransport', () => {
+    it('shows the device once the handshake succeeds', async () => {
+        const next = makeService('Mouse')
+        adapter.connect.mockResolvedValue(next)
+
+        expect(await connectTransport({} as Transport, 'hid')).toBe(true)
+        expect(current()).toBe(next)
+        expect(useConnectionStore.getState().deviceName).toBe('Mouse')
+    })
+
+    it('reports false when no adapter takes the device', async () => {
+        pickAdapter.mockReturnValue(null)
+        expect(await connectTransport({} as Transport, 'hid')).toBe(false)
+        expect(current()).toBeNull()
+    })
+})
+
+describe('switchToDevice', () => {
+    it('opens the new device, then closes the old one', async () => {
+        const old = makeService('Old')
+        connectCurrent(old)
+        const next = makeService('Next')
+        adapter.connect.mockResolvedValue(next)
+        const { target, pick } = listed('next-id')
+
+        expect(await switchToDevice(target)).toBe(true)
+
+        expect(pick).toHaveBeenCalledTimes(1)
+        expect(old.disconnect).toHaveBeenCalledTimes(1)
+        expect(current()).toBe(next)
+        expect(useConnectionStore.getState().lastConnectedDevice).toEqual({
+            id: 'next-id',
+            label: 'Device next-id',
+            key: 'next-id', // no device-reported identity: the transport id
+        })
+    })
+
+    // L4.12: the switch must keep the device-reported key (the USB serial),
+    // or snapshots, backups and auto-connect fall back to the OS path.
+    it("keeps the switched-to device's stable key", async () => {
+        connectCurrent(makeService('Old'))
+        adapter.connect.mockResolvedValue(makeService('Next'))
+        const { target } = listed('/dev/hidraw7')
+        target.device = { ...target.device, key: 'usb-serial-123' }
+
+        expect(await switchToDevice(target)).toBe(true)
+
+        expect(useConnectionStore.getState().lastConnectedDevice).toEqual({
+            id: '/dev/hidraw7',
+            label: 'Device /dev/hidraw7',
+            key: 'usb-serial-123',
+        })
+    })
+
+    it('keeps the current device when the new one fails to open', async () => {
+        const old = makeService('Old')
+        connectCurrent(old)
+        adapter.connect.mockRejectedValue(new Error('timeout'))
+
+        expect(await switchToDevice(listed('next-id').target)).toBe(false)
+
+        expect(old.disconnect).not.toHaveBeenCalled()
+        expect(current()).toBe(old)
+    })
+
+    it('opens nothing when the user stays on a device with unsaved edits', async () => {
+        const old = makeService('Old', true)
+        connectCurrent(old)
+        const { target, pick } = listed('next-id')
+
+        const switching = switchToDevice(target)
+        await vi.waitFor(() =>
+            expect(useLeaveGuardStore.getState().deviceName).toBe('Old'),
+        )
+        useLeaveGuardStore.getState().choose('cancel')
+
+        expect(await switching).toBe(false)
+        expect(pick).not.toHaveBeenCalled()
+        expect(current()).toBe(old)
+    })
+
+    it('switches after Discard', async () => {
+        const old = makeService('Old', true)
+        connectCurrent(old)
+        const next = makeService('Next')
+        adapter.connect.mockResolvedValue(next)
+
+        const switching = switchToDevice(listed('next-id').target)
+        await vi.waitFor(() =>
+            expect(useLeaveGuardStore.getState().deviceName).toBe('Old'),
+        )
+        useLeaveGuardStore.getState().choose('discard')
+
+        expect(await switching).toBe(true)
+        expect(current()).toBe(next)
+    })
+
+    // The current device is on HID too: a single-link HID transport would
+    // close it on the open, so it closes first (L4.1).
+    describe('on a single-link transport already holding the device (L4.1)', () => {
+        it('closes the old device before it opens the new one', async () => {
+            const old = makeService('Old')
+            connectCurrent(old)
+            const next = makeService('Next')
+            adapter.connect.mockResolvedValue(next)
+            const { target, pick } = listed('next-id', true)
+            const order: string[] = []
+            old.disconnect.mockImplementation(async () => {
+                order.push('close old')
+            })
+            pick.mockImplementation(async () => {
+                order.push('open new')
+                return { label: 'hid' } as unknown as Transport
+            })
+
+            expect(await switchToDevice(target)).toBe(true)
+
+            expect(order).toEqual(['close old', 'open new'])
+            expect(current()).toBe(next)
+            expect(useConnectionStore.getState().lastConnectedDevice).toEqual({
+                id: 'next-id',
+                key: 'next-id',
+                label: 'Device next-id',
+            })
+        })
+
+        it('lands on the start page when the new device fails to open', async () => {
+            const old = makeService('Old')
+            connectCurrent(old)
+            adapter.connect.mockRejectedValue(new Error('timeout'))
+
+            expect(await switchToDevice(listed('next-id', true).target)).toBe(
+                false,
+            )
+
+            expect(old.disconnect).toHaveBeenCalledTimes(1)
+            expect(current()).toBeNull()
+        })
+
+        it('opens nothing when the user stays on unsaved edits', async () => {
+            const old = makeService('Old', true)
+            connectCurrent(old)
+            const { target, pick } = listed('next-id', true)
+
+            const switching = switchToDevice(target)
+            await vi.waitFor(() =>
+                expect(useLeaveGuardStore.getState().deviceName).toBe('Old'),
+            )
+            useLeaveGuardStore.getState().choose('cancel')
+
+            expect(await switching).toBe(false)
+            expect(pick).not.toHaveBeenCalled()
+            expect(old.disconnect).not.toHaveBeenCalled()
+            expect(current()).toBe(old)
+        })
+    })
+})

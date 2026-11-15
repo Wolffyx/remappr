@@ -14,16 +14,16 @@ const STATUS_CONFIG: Record<
     }
 > = {
     available: {
-        bgColor: 'bg-emerald-500/15',
-        textColor: 'text-emerald-500',
-        dotColor: 'bg-emerald-500',
+        bgColor: 'bg-success/15',
+        textColor: 'text-success',
+        dotColor: 'bg-success',
         pulse: false,
         label: 'Ready',
     },
     connecting: {
-        bgColor: 'bg-amber-500/15',
-        textColor: 'text-amber-500',
-        dotColor: 'bg-amber-500',
+        bgColor: 'bg-warning/15',
+        textColor: 'text-warning',
+        dotColor: 'bg-warning',
         pulse: true,
         label: 'Connecting',
     },
