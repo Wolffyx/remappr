@@ -140,6 +140,7 @@ export function EntryTable<T>({
                                         else rowRefs.current.delete(idx)
                                     }}
                                     idx={idx}
+                                    name={spec.name?.(idx)}
                                     dirty={dirty}
                                     open={isOpen}
                                     focused={focus === idx}
@@ -188,6 +189,7 @@ export function EntryTable<T>({
 function EntryRow({
     rowRef,
     idx,
+    name,
     dirty,
     open,
     focused,
@@ -200,6 +202,7 @@ function EntryRow({
 }: {
     rowRef: (el: HTMLTableRowElement | null) => void
     idx: number
+    name?: string
     dirty: boolean
     open: boolean
     focused: boolean
@@ -230,6 +233,11 @@ function EntryRow({
                     <span className="font-mono font-bold text-muted-foreground">
                         #{idx}
                     </span>
+                    {name && (
+                        <span className="ml-2 whitespace-nowrap text-caption text-muted-foreground">
+                            {name}
+                        </span>
+                    )}
                     {dirty && (
                         <span
                             className="ml-1.5 inline-block size-[7px] rounded-full bg-primary align-middle"

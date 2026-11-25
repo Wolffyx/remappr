@@ -2,9 +2,16 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Circle, Plus } from 'lucide-react'
 
-import type { KeyboardService, MacroAction } from '@firmware'
+import type { KeyboardService, MacroAction, MacroPlayMode } from '@firmware'
 import { HidUsageLabel } from '@/features/keymap/keyboard/HidUsageLabel'
 import { Button } from '@/ui/button'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/ui/select'
 
 import { EntryTable, type EntryColumn } from '../_shared/EntryTable'
 import type { EntrySpec } from '../_shared/entryTable'
@@ -20,6 +27,20 @@ interface Props {
 
 type Steps = MacroAction[]
 type SetSteps = (f: (p: Steps) => Steps) => void
+
+/** A macro as the table edits it: its steps, and how it plays where the
+ *  firmware lets each macro choose. */
+interface Entry {
+    steps: Steps
+    mode?: MacroPlayMode
+}
+
+const PLAY_MODE_LABEL: Readonly<Record<MacroPlayMode, string>> = {
+    once: 'Once',
+    whileHeld: 'While held',
+    toggle: 'Until pressed again',
+    untilAnyKey: 'Until any key',
+}
 
 /** Steps shown in a row before "+N more". */
 const PREVIEW = 6
@@ -93,23 +114,72 @@ function StepsSummary({ steps }: { steps: Steps }): JSX.Element {
     )
 }
 
-const COLUMNS: readonly EntryColumn<Steps>[] = [
+const COLUMNS: readonly EntryColumn<Entry>[] = [
     {
         id: 'steps',
         header: 'What it does, in order',
-        cell: (steps) => <StepsSummary steps={steps} />,
+        cell: (e) => <StepsSummary steps={e.steps} />,
     },
     {
         id: 'length',
         header: 'Length',
         className: 'w-24',
-        cell: (steps) => (
+        cell: (e) => (
             <span className="text-caption text-muted-foreground">
-                {steps.length} {steps.length === 1 ? 'step' : 'steps'}
+                {e.steps.length} {e.steps.length === 1 ? 'step' : 'steps'}
             </span>
         ),
     },
 ]
+
+const MODE_COLUMN: EntryColumn<Entry> = {
+    id: 'mode',
+    header: 'Plays',
+    className: 'w-40',
+    cell: (e) => (
+        <span className="text-caption text-muted-foreground">
+            {e.mode ? PLAY_MODE_LABEL[e.mode] : ''}
+        </span>
+    ),
+}
+
+/** How the macro plays, for firmware that lets each macro choose. */
+function PlayModeSelect({
+    modes,
+    mode,
+    onChange,
+    editable,
+}: {
+    modes: readonly MacroPlayMode[]
+    mode: MacroPlayMode
+    onChange: (m: MacroPlayMode) => void
+    editable: boolean
+}): JSX.Element {
+    return (
+        <div className="flex items-center gap-2">
+            <span className="text-caption text-muted-foreground">Plays</span>
+            <Select
+                value={mode}
+                disabled={!editable}
+                onValueChange={(m) => onChange(m as MacroPlayMode)}
+            >
+                <SelectTrigger
+                    className="w-48"
+                    aria-label="How the macro plays"
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    {modes.map((m) => (
+                        <SelectItem key={m} value={m}>
+                            {PLAY_MODE_LABEL[m]}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+    )
+}
 
 /** The step editor under an open row: the existing step rows, Add and Record. */
 function StepEditor({
@@ -193,18 +263,32 @@ export function MacrosTab({ service, opened }: Props): JSX.Element | null {
         !service.macros.readonly &&
         !!service.macros.setMacro
 
-    const spec = useMemo<EntrySpec<Steps>>(
+    const modes = service.macros?.getPlayMode
+        ? service.macros.playModes
+        : undefined
+
+    const spec = useMemo<EntrySpec<Entry>>(
         () => ({
             noun: 'macro',
             count,
-            fetch: (i) => service.macros!.getMacro(i),
+            fetch: async (i) => {
+                const macros = service.macros!
+                const steps = await macros.getMacro(i)
+                if (!modes || !macros.getPlayMode) return { steps }
+                return { steps, mode: await macros.getPlayMode(i) }
+            },
             store: editable
-                ? (i, steps) => service.macros!.setMacro!(i, steps)
+                ? (i, e) => service.macros!.setMacro!(i, e.steps, e.mode)
                 : undefined,
-            isEmpty: (steps) => steps.length === 0,
-            blank: () => [],
+            isEmpty: (e) => e.steps.length === 0,
+            blank: () => ({ steps: [] }),
+            name: (i) => service.macros?.listNames?.()[i],
         }),
-        [service, count, editable],
+        [service, count, editable, modes],
+    )
+    const columns = useMemo(
+        () => (modes?.length ? [...COLUMNS, MODE_COLUMN] : COLUMNS),
+        [modes],
     )
     const table = useEntryTable(spec, opened)
 
@@ -220,10 +304,28 @@ export function MacrosTab({ service, opened }: Props): JSX.Element | null {
             )}
             <EntryTable
                 table={table}
-                columns={COLUMNS}
+                columns={columns}
                 detailLabel={editable ? 'Edit steps' : 'Show steps'}
-                detail={(steps, set) => (
-                    <StepEditor steps={steps} set={set} editable={editable} />
+                detail={(entry, set) => (
+                    <div className="space-y-3">
+                        {modes?.length ? (
+                            <PlayModeSelect
+                                modes={modes}
+                                mode={entry.mode ?? modes[0]}
+                                onChange={(mode) =>
+                                    set((e) => ({ ...e, mode }))
+                                }
+                                editable={editable}
+                            />
+                        ) : null}
+                        <StepEditor
+                            steps={entry.steps}
+                            set={(f) =>
+                                set((e) => ({ ...e, steps: f(e.steps) }))
+                            }
+                            editable={editable}
+                        />
+                    </div>
                 )}
             />
         </div>

@@ -72,6 +72,9 @@ export const IpcChannels = {
     HID_CONNECT: 'hid:connect',
     // Mice the OS lists (enumerated only; view + live test, never opened)
     HID_LIST_MICE: 'hid:list-mice',
+    // Feature reports on an open HID link (vendor configuration protocols)
+    HID_FEATURE_SEND: 'hid:feature-send',
+    HID_FEATURE_GET: 'hid:feature-get',
 
     // Platform info
     GET_PLATFORM: 'platform:get',

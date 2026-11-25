@@ -20,6 +20,9 @@ export interface EntrySpec<T> {
     isEmpty(entry: T): boolean
     /** What Clear writes. */
     blank(): T
+    /** A slot's own name, shown beside its number (a mouse's macros are
+     *  per button). */
+    name?(idx: number): string | undefined
 }
 
 /** The first empty slot not already listed (`skip`), or null when none. */
