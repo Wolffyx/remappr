@@ -22,7 +22,7 @@ interface AdvancedSheetState {
 const useAdvancedSheetStore = create<AdvancedSheetState>()(
     devtools((set) => ({
         open: false,
-        section: 'td',
+        section: 'macros',
         setOpen: (open) => set({ open }),
         openAt: (section) => set({ open: true, section }),
         setSection: (section) => set({ section }),

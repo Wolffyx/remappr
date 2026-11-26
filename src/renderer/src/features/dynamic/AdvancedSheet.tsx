@@ -29,9 +29,9 @@ const SECTION_META: Record<
     AdvancedSheetSection,
     { label: string; icon: typeof Sliders }
 > = {
-    td: { label: 'Tap dance', icon: Sliders },
-    combo: { label: 'Combo', icon: Layers },
-    ko: { label: 'Key override', icon: Replace },
+    td: { label: 'Tap dances', icon: Sliders },
+    combo: { label: 'Combos', icon: Layers },
+    ko: { label: 'Key overrides', icon: Replace },
     ark: { label: 'Alt repeat', icon: Repeat },
     macros: { label: 'Macros', icon: Sparkles },
 }
@@ -47,13 +47,30 @@ function availableSections(
     const has = (f: Parameters<typeof serviceHasFamily>[1]): boolean =>
         serviceHasFamily(service, f)
     const out: AdvancedSheetSection[] = []
+    if ((service.macros?.getCount() ?? 0) > 0 && has('macros'))
+        out.push('macros')
     if (counts?.tapDance && has('sequences')) out.push('td')
     if (counts?.combo && has('combos')) out.push('combo')
     if (counts?.keyOverride && has('keyOverrides')) out.push('ko')
     if (service.dynamic?.getAltRepeatKey) out.push('ark')
-    if ((service.macros?.getCount() ?? 0) > 0 && has('macros'))
-        out.push('macros')
     return out
+}
+
+/** How many entries a section holds, for its tab label; undefined = no count. */
+function sectionCount(
+    id: AdvancedSheetSection,
+    service: KeyboardService,
+    counts:
+        | ReturnType<NonNullable<KeyboardService['dynamic']>['getCounts']>
+        | undefined,
+): number | undefined {
+    const byId: Partial<Record<AdvancedSheetSection, number | undefined>> = {
+        macros: service.macros?.getCount(),
+        td: counts?.tapDance,
+        combo: counts?.combo,
+        ko: counts?.keyOverride,
+    }
+    return byId[id]
 }
 
 export function AdvancedSheet({ onClose }: Props): JSX.Element | null {
@@ -74,7 +91,16 @@ export function AdvancedSheet({ onClose }: Props): JSX.Element | null {
         <DockShell
             icon={Sliders}
             title="Dynamic entries"
-            tabs={sections.map((id) => ({ id, ...SECTION_META[id] }))}
+            tabs={sections.map((id) => {
+                // DockTab labels are plain strings, so the count rides in the label.
+                const n = sectionCount(id, service, counts)
+                const meta = SECTION_META[id]
+                return {
+                    id,
+                    icon: meta.icon,
+                    label: n === undefined ? meta.label : `${meta.label} ${n}`,
+                }
+            })}
             active={activeSection}
             onTab={setSection}
             onClose={onClose}

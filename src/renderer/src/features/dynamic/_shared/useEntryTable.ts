@@ -34,6 +34,8 @@ export interface EntryTableState<T> {
     /** Lists an empty slot (New, Go to #); returns it, or null when none. */
     reveal: (idx?: number) => number | null
     save: () => Promise<void>
+    /** Drops every unsaved draft. */
+    discard: () => void
 }
 
 export function useEntryTable<T>(
@@ -151,6 +153,8 @@ export function useEntryTable<T>(
         console.error(error)
     }, [drafts, spec])
 
+    const discard = useCallback((): void => setDrafts(new Map()), [])
+
     return {
         spec,
         count,
@@ -166,5 +170,6 @@ export function useEntryTable<T>(
         clear,
         reveal,
         save,
+        discard,
     }
 }
