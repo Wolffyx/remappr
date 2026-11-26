@@ -49,8 +49,13 @@ export function useStageSelection({
     // ranges into a multi-selection. Multi and single selection are mutually exclusive.
     const handlePositionClicked = useCallback(
         (position: number, mods?: ClickModifiers): void => {
+            // A position past the keys (a slider with no key of its own) is
+            // never multi-selected; it opens its own editor in the picker.
             if (position >= keyCount) {
+                if (multiSelection.size > 0) setMultiSelection(new Set())
                 setSelectedKeyPosition(position)
+                if (workspace !== 'command' && !suppressPicker)
+                    setPickerOpen?.(true)
                 return
             }
             if (mods?.shiftKey && anchorRef.current != null) {

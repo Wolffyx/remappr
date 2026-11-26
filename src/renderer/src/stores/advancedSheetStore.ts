@@ -16,17 +16,15 @@ interface AdvancedSheetState {
     section: AdvancedSheetSection
     setOpen: (open: boolean) => void
     openAt: (section: AdvancedSheetSection) => void
-    toggle: () => void
     setSection: (section: AdvancedSheetSection) => void
 }
 
 const useAdvancedSheetStore = create<AdvancedSheetState>()(
     devtools((set) => ({
         open: false,
-        section: 'td',
+        section: 'macros',
         setOpen: (open) => set({ open }),
         openAt: (section) => set({ open: true, section }),
-        toggle: () => set((s) => ({ open: !s.open })),
         setSection: (section) => set({ section }),
     })),
 )

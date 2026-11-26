@@ -26,7 +26,7 @@ key.
 In the default **Workbench** workspace the editor opens as a sheet under the
 board:
 
-![A Mod-Tap key selected: the action type, its TAP and HOLD slots, and the keycode picker below](/images/editor/key-selected.webp)
+![A key selected: its action type and the keycode picker in the sheet below the board](/images/editor/key-selected.webp)
 
 From the top:
 
@@ -38,7 +38,7 @@ From the top:
    Layer-Tap has **TAP** and the layer. Click a slot to aim the picker at it;
    **×** clears it.
 3. **The keycode picker** — tabs by HID usage page: **Keyboard**, **Language**,
-   **Consumer**, **AC**, **AL**, **Contact**, **Media**, **System**, and
+   **Consumer**, **App control**, **App launch**, **Contacts**, **Media**, **System**, and
    **Macros** when the device has macros. Inside a tab keys are grouped
    (**MODIFIERS**, **NUMBERS & SYMBOLS**, **LETTERS**, …) with a count per group
    and for the tab (_"188 keys in this tab"_).

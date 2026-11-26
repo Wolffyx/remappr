@@ -13,7 +13,8 @@ interface KeycodeButtonProps {
     name?: string
     /** Neutral icon id shown before the label (e.g. a mouse-cursor arrow). */
     icon?: string
-    aliases?: string[]
+    /** The connected firmware's own names for the key (its codec's). */
+    names?: readonly string[]
     notes?: string
     baseKeyValue?: number
     colorMode?: ColorMode
@@ -30,7 +31,7 @@ export default function KeycodeButton({
     label,
     name,
     icon,
-    aliases,
+    names: firmwareNames,
     notes,
     baseKeyValue,
     colorMode = 'subtle',
@@ -47,7 +48,7 @@ export default function KeycodeButton({
     const cs = catStyle(cat, colorMode)
     const tinted = !!cs.face
 
-    const tintedBorder = `color-mix(in oklch, ${cs.edge} 40%, transparent)`
+    const tintedBorder = `color-mix(in oklab, ${cs.edge} 40%, transparent)`
     const restingBorder = isSelected
         ? 'var(--primary)'
         : tinted
@@ -77,7 +78,7 @@ export default function KeycodeButton({
         color: tinted ? cs.legend : 'var(--foreground)',
         transform: hovered ? 'translateY(-2px)' : 'none',
         boxShadow: isSelected
-            ? '0 0 0 1px var(--primary), 0 0 0 4px color-mix(in oklch, var(--primary) 25%, transparent)'
+            ? '0 0 0 1px var(--primary), 0 0 0 4px color-mix(in oklab, var(--primary) 25%, transparent)'
             : 'none',
         transition: 'transform .12s ease, border-color .12s ease',
     }
@@ -90,7 +91,7 @@ export default function KeycodeButton({
         if (value !== undefined) onSelect(value)
     }
 
-    const aliasLine = aliases && aliases.length > 0 ? aliases.join(' · ') : null
+    const namesLine = firmwareNames?.length ? firmwareNames.join(' · ') : null
 
     return (
         <Tooltip>
@@ -121,9 +122,10 @@ export default function KeycodeButton({
                 {name && name !== label ? (
                     <div className="text-xs opacity-70">{label}</div>
                 ) : null}
-                {aliasLine ? (
+                {namesLine ? (
                     <div className="text-xs mt-1 opacity-80">
-                        Aliases: {aliasLine}
+                        In firmware:{' '}
+                        <span className="font-mono">{namesLine}</span>
                     </div>
                 ) : null}
                 {notes ? (

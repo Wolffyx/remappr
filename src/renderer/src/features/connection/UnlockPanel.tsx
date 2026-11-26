@@ -71,7 +71,7 @@ export function UnlockPanel({ layout }: UnlockPanelProps): JSX.Element | null {
                 <h2 id={titleId} className="text-xl font-semibold">
                     {layout === 'card'
                         ? 'Unlock the keyboard'
-                        : 'Unlock To Continue'}
+                        : 'Unlock to continue'}
                 </h2>
             </div>
             <p className="text-sm text-muted-foreground">

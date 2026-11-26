@@ -3,6 +3,8 @@
 // Uses node-hid; loaded lazily so packaging without the native module
 // (e.g. browser-only Vite preview) doesn't blow up at import time.
 
+import type { BrowserWindow } from 'electron'
+import { type HidMousePayload, IpcEvents } from '../shared/ipc-types'
 import { createLogger } from '../shared/logger'
 
 const log = createLogger('hid')
@@ -10,6 +12,8 @@ const log = createLogger('hid')
 export interface HidDeviceInfo {
     id: string
     label: string
+    /** Stable across replugs: the USB serial the device reports. */
+    key?: string
 }
 
 export interface HidEventCallbacks {
@@ -42,18 +46,29 @@ interface HidLike {
 
     write(data: number[]): number
 
+    /** `data[0]` is the report id. */
+    sendFeatureReport(data: number[]): number
+
+    /** Answers the report id followed by the payload. */
+    getFeatureReport(reportId: number, length: number): number[]
+
     close(): void
 }
 
 interface NodeHidModule {
     devices: () => NodeHidDevice[]
+    devicesAsync: () => Promise<NodeHidDevice[]>
     HID: new (path: string) => HidLike
 }
 
 let cachedModule: NodeHidModule | null = null
+// A failed load stays failed: the hotplug poll would otherwise retry the
+// import and warn every 2 s on a build without the native module.
+let loadFailed = false
 
 async function loadNodeHid(): Promise<NodeHidModule | null> {
     if (cachedModule) return cachedModule
+    if (loadFailed) return null
     try {
         const mod = (await import('node-hid')) as unknown as
             | NodeHidModule
@@ -65,6 +80,7 @@ async function loadNodeHid(): Promise<NodeHidModule | null> {
         return cachedModule
     } catch (err) {
         log.warn('node-hid unavailable:', err)
+        loadFailed = true
         return null
     }
 }
@@ -104,6 +120,16 @@ function matchesFilter(d: NodeHidDevice, filter: HidDiscoveryFilter): boolean {
     return true
 }
 
+const hex4 = (n: number): string => n.toString(16).padStart(4, '0')
+
+/** A key that survives a replug (the path, /dev/hidrawN, does not): vid, pid
+ *  and the USB serial number, when the device reports one. */
+export function hidDeviceKey(d: NodeHidDevice): string | undefined {
+    const sn = d.serialNumber?.trim()
+    if (!sn) return undefined
+    return `hid:${hex4(d.vendorId)}:${hex4(d.productId)}:${sn}`
+}
+
 function buildLabel(d: NodeHidDevice): string {
     const parts: string[] = []
     if (d.product) parts.push(d.product)
@@ -132,11 +158,57 @@ export async function listHidDevices(
         )
         const devices = matched
             .filter((d): d is NodeHidDevice & { path: string } => !!d.path)
-            .map((d) => ({ id: d.path, label: buildLabel(d) }))
+            .map((d): HidDeviceInfo => {
+                const key = hidDeviceKey(d)
+                return {
+                    id: d.path,
+                    label: buildLabel(d),
+                    ...(key ? { key } : {}),
+                }
+            })
         knownDevicePaths = new Set(devices.map((d) => d.id))
         return devices
     } catch (err) {
         log.error('list failed:', err)
+        return []
+    }
+}
+
+const GENERIC_DESKTOP_PAGE = 0x01
+const MOUSE_USAGE = 0x02
+
+function mouseName(d: NodeHidDevice): string {
+    return d.product || (d.manufacturer ? `${d.manufacturer} mouse` : 'Mouse')
+}
+
+// pattern-check: skip — second enumeration beside listHidDevices; filters the
+// same node-hid list by usage, no GoF abstraction.
+/**
+ * Every HID mouse the OS lists, one per unit (a mouse exposes several
+ * collections; vid:pid:serial collapses them). Enumeration only: the paths are
+ * NOT added to knownDevicePaths, so none of these can be opened through
+ * HID_CONNECT.
+ */
+export async function listHidMice(): Promise<HidMousePayload[]> {
+    const mod = await loadNodeHid()
+    if (!mod) return []
+    try {
+        const units = new Map<string, HidMousePayload>()
+        for (const d of mod.devices()) {
+            if (d.usagePage !== GENERIC_DESKTOP_PAGE) continue
+            if (d.usage !== MOUSE_USAGE) continue
+            const key = `${d.vendorId}:${d.productId}:${d.serialNumber ?? ''}`
+            if (units.has(key)) continue
+            units.set(key, {
+                name: mouseName(d),
+                vendorId: d.vendorId,
+                productId: d.productId,
+                ...(d.serialNumber ? { serialNumber: d.serialNumber } : {}),
+            })
+        }
+        return [...units.values()]
+    } catch (err) {
+        log.error('mouse list failed:', err)
         return []
     }
 }
@@ -173,14 +245,18 @@ export async function connectHidDevice(
     activeConnection = { device, path: devicePath, callbacks }
 
     device.on('data', (data: Buffer) => {
+        if (activeConnection?.device !== device) return
         callbacks.onData(Array.from(new Uint8Array(data)))
     })
+    // node-hid raises 'error' on unplug or a failed read. The handle is dead
+    // but still open: close it, or every unplug leaks the hidraw fd and the
+    // read thread (L4.2). A replaced device was already closed by disconnect.
     device.on('error', (err: Error) => {
         log.error('device error:', err)
-        if (activeConnection?.path === devicePath) {
-            activeConnection = null
-            callbacks.onDisconnected()
-        }
+        if (activeConnection?.device !== device) return
+        activeConnection = null
+        closeQuietly(device)
+        callbacks.onDisconnected()
     })
     return devicePath
 }
@@ -199,16 +275,131 @@ export async function writeHid(data: Uint8Array): Promise<void> {
     activeConnection.device.write(wire)
 }
 
-export async function disconnectHidDevice(): Promise<void> {
-    if (!activeConnection) return
+// pattern-check: skip — two thin node-hid calls beside writeHid, no abstraction.
+const MAX_FEATURE_PAYLOAD = 4096
+
+function activeDevice(): HidLike {
+    if (!activeConnection) throw new Error('No active HID connection')
+    return activeConnection.device
+}
+
+function validReportId(reportId: number): number {
+    if (!Number.isInteger(reportId) || reportId < 0 || reportId > 255) {
+        throw new Error('Invalid HID report id')
+    }
+    return reportId
+}
+
+/** Send feature report `reportId` with `payload` (the id is added here). */
+export async function sendHidFeature(
+    reportId: number,
+    payload: Uint8Array,
+): Promise<void> {
+    if (payload.length > MAX_FEATURE_PAYLOAD) {
+        throw new Error('HID feature report too long')
+    }
+    activeDevice().sendFeatureReport([validReportId(reportId), ...payload])
+}
+
+// pattern-check: skip — bug fix inside the node-hid feature read: strip the id unconditionally.
+/** Read `length` payload bytes of feature report `reportId`. hidapi always
+ *  answers with the report id in front; it is stripped here. */
+export async function getHidFeature(
+    reportId: number,
+    length: number,
+): Promise<Uint8Array> {
+    if (
+        !Number.isInteger(length) ||
+        length < 1 ||
+        length > MAX_FEATURE_PAYLOAD
+    ) {
+        throw new Error('Invalid HID feature report length')
+    }
+    const got = activeDevice().getFeatureReport(
+        validReportId(reportId),
+        length + 1,
+    )
+    return Uint8Array.from(got.slice(1, 1 + length))
+}
+
+function closeQuietly(device: HidLike): void {
     try {
-        activeConnection.device.close()
+        device.close()
     } catch (err) {
         log.warn('close failed:', err)
     }
-    activeConnection = null
 }
 
+export async function disconnectHidDevice(): Promise<void> {
+    if (!activeConnection) return
+    const { device } = activeConnection
+    activeConnection = null
+    closeQuietly(device)
+}
+
+/** Whether a node-hid handle is open (the error and close paths reset it). */
 export function hasActiveHidConnection(): boolean {
     return activeConnection !== null
+}
+
+const HID_HOTPLUG_POLL_MS = 2000
+
+// pattern-check: skip — sibling of startSerialDevicePolling; a timer and a
+// fingerprint compare, no GoF abstraction.
+/**
+ * node-hid has no hotplug events, so poll its device list and tell the
+ * renderer when the set of HID paths changes; it re-lists with its own
+ * filters. Without this a HID-only device (Remappr) neither appears nor
+ * disappears under Electron until a manual Refresh (L4.6). The first pass
+ * only takes the baseline. Returns a stop function.
+ */
+export function startHidDevicePolling(
+    getWindows: () => BrowserWindow[],
+    intervalMs: number = HID_HOTPLUG_POLL_MS,
+): () => void {
+    let last: string | null = null
+    let stopped = false
+    // A slow enumeration must not stack up ticks behind it.
+    let inFlight = false
+
+    const tick = async (): Promise<void> => {
+        if (inFlight) return
+        inFlight = true
+        try {
+            await poll()
+        } finally {
+            inFlight = false
+        }
+    }
+
+    const poll = async (): Promise<void> => {
+        const mod = await loadNodeHid()
+        if (!mod || stopped) return
+        let fp: string
+        try {
+            // devicesAsync enumerates off the main thread: the sync
+            // devices() blocks every IPC for tens of ms on a busy bus.
+            const list = await mod.devicesAsync()
+            fp = [...new Set(list.map((d) => d.path ?? ''))].sort().join('\n')
+        } catch (err) {
+            log.warn('hotplug poll failed:', err)
+            return
+        }
+        if (stopped) return
+        const changed = last !== null && fp !== last
+        last = fp
+        if (!changed) return
+        for (const w of getWindows()) {
+            if (!w.isDestroyed()) {
+                w.webContents.send(IpcEvents.HID_DEVICES_CHANGED)
+            }
+        }
+    }
+
+    const id = setInterval(() => void tick(), intervalMs)
+    void tick()
+    return (): void => {
+        stopped = true
+        clearInterval(id)
+    }
 }

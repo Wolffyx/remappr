@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Redo2, Save, Trash2, Undo2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { toastDeviceError } from '@/lib/saveWithToast'
 
 import { capabilityWarnings } from '@firmware/config'
 import { applySaveMode, isSaveModeManaged } from '@/lib/saveMode'
@@ -29,6 +30,9 @@ export function HistoryTools(): JSX.Element {
     const canRedo = undoRedoStore((s) => s.redoStack.length > 0)
 
     const [unsaved, setUnsaved] = useState<boolean>(false)
+    // A push can take a moment (a node behind the dongle: 1–2 s), so the pill
+    // says it is saving and takes no second click meanwhile.
+    const [saving, setSaving] = useState(false)
     // One Save button for every saveable firmware, driven by the Auto-save
     // setting via the save-mode controller (lib/saveMode.ts — attached to
     // every saveable service at connect; mock 'none' and read-only views stay
@@ -69,30 +73,41 @@ export function HistoryTools(): JSX.Element {
 
     const save = useCallback(async (): Promise<void> => {
         if (!service) return
+        // §7.4.1 feature bitmask. `limits` is present only once GET_LIMITS
+        // answered, so firmwares without it never warn.
+        const config = useConfigStore.getState().config
+        const featureBitmask = service.limits?.featureBitmask
+        const warnings =
+            config && featureBitmask !== undefined
+                ? capabilityWarnings(config, featureBitmask)
+                : []
+        // A keyboard built without a behavior family refuses a config that
+        // uses it: say which, instead of pushing and failing validation.
+        const blocking = warnings.filter((w) => w.blocking)
+        if (blocking.length > 0) {
+            for (const w of blocking) toast.error(w.message)
+            return
+        }
+        setSaving(true)
         try {
             await service.commit()
             // The push succeeded, but a device silently ignores config fields
-            // its firmware is too old to honor (§7.4.1 feature bitmask). Warn so
-            // the user knows to update the firmware instead of chasing a
-            // "setting had no effect" ghost. `limits` is present only once
-            // GET_LIMITS answered, so firmwares without it never warn.
-            const config = useConfigStore.getState().config
-            const featureBitmask = service.limits?.featureBitmask
-            if (config && featureBitmask !== undefined) {
-                const warnings = capabilityWarnings(config, featureBitmask)
-                if (warnings.length === 1) toast.warning(warnings[0].message)
-                else if (warnings.length > 1)
-                    toast.warning(
-                        `Saved — but this firmware ignores ${warnings.length} settings you configured. Update the firmware to use them.`,
-                    )
-            }
+            // its firmware is too old to honor. Warn so the user knows to
+            // update the firmware instead of chasing a "setting had no effect"
+            // ghost.
+            if (warnings.length === 1) toast.warning(warnings[0].message)
+            else if (warnings.length > 1)
+                toast.warning(
+                    `Saved — but this firmware ignores ${warnings.length} settings you configured. Update the firmware to use them.`,
+                )
         } catch (e) {
             console.error('Failed to save changes', e)
             // Adapters throw a descriptive reason (e.g. ZMK maps its
-            // SaveChangesErrorCode); surface it so the user knows WHY.
-            toast.error(
-                e instanceof Error ? e.message : 'Failed to save changes',
-            )
+            // SaveChangesErrorCode, a device its raw status); surface it, with
+            // what to do about it, so the user knows WHY and what next.
+            toastDeviceError('Failed to save changes', e)
+        } finally {
+            setSaving(false)
         }
     }, [service])
 
@@ -155,19 +170,23 @@ export function HistoryTools(): JSX.Element {
                     <TooltipTrigger asChild>
                         <button
                             type="button"
-                            disabled={autoSaveActive || !unsaved || !service}
+                            disabled={
+                                autoSaveActive || !unsaved || !service || saving
+                            }
                             onClick={save}
                             data-dirty={unsaved && !autoSaveActive}
                             data-autosave={autoSaveActive}
-                            className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-semibold transition-colors data-[dirty=false]:border-border data-[dirty=false]:bg-secondary data-[dirty=false]:text-muted-foreground data-[dirty=true]:border-transparent data-[dirty=true]:bg-primary data-[dirty=true]:text-primary-foreground data-[autosave=true]:animate-pulse data-[autosave=true]:border-primary/40 data-[autosave=true]:bg-primary/10 data-[autosave=true]:text-primary disabled:cursor-default disabled:opacity-100"
+                            className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-panel-title font-semibold transition-colors data-[dirty=false]:border-border data-[dirty=false]:bg-secondary data-[dirty=false]:text-muted-foreground data-[dirty=true]:border-transparent data-[dirty=true]:bg-primary data-[dirty=true]:text-primary-foreground data-[autosave=true]:animate-pulse data-[autosave=true]:border-primary/40 data-[autosave=true]:bg-primary/10 data-[autosave=true]:text-primary disabled:cursor-default disabled:opacity-100"
                         >
                             <Save className="size-3.5" />
                             {autoSaveActive
                                 ? 'Auto-save'
-                                : unsaved
-                                  ? 'Save'
-                                  : 'Saved'}
-                            {unsaved && !autoSaveActive && (
+                                : saving
+                                  ? 'Saving…'
+                                  : unsaved
+                                    ? 'Save'
+                                    : 'Saved'}
+                            {unsaved && !autoSaveActive && !saving && (
                                 <span className="size-1.5 rounded-full bg-current" />
                             )}
                         </button>
@@ -175,8 +194,8 @@ export function HistoryTools(): JSX.Element {
                     <TooltipContent>
                         <p>
                             {autoSaveActive
-                                ? 'Auto-save is on — every change is written to the keyboard immediately. Toggle it in Settings → Communication.'
-                                : 'Save keymap to keyboard'}
+                                ? 'Auto-save is on — every change is written to the device immediately. Toggle it in Settings → Communication.'
+                                : 'Save changes to the device'}
                         </p>
                     </TooltipContent>
                 </Tooltip>

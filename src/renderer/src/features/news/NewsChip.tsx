@@ -39,13 +39,13 @@ export function NewsChip({
             <CollapsibleTrigger asChild>
                 <Button
                     variant="outline"
-                    className="h-auto max-w-full gap-[9px] rounded-full bg-card py-1 pl-1 pr-3 text-[12.5px] font-semibold shadow-none"
+                    className="h-auto max-w-full gap-[9px] rounded-full bg-card py-1 pl-1 pr-3 text-control font-semibold shadow-none"
                     style={{
                         borderColor:
-                            'color-mix(in oklch, var(--primary) 35%, var(--border))',
+                            'color-mix(in oklab, var(--primary) 35%, var(--border))',
                     }}
                 >
-                    <Badge className="rounded-full px-2 py-[3px] text-[10.5px] font-extrabold leading-none shadow-none">
+                    <Badge className="rounded-full px-2 py-[3px] text-meta font-extrabold leading-none shadow-none">
                         NEW
                     </Badge>
                     {head.version && !head.notes && (
@@ -85,10 +85,10 @@ export function NewsChip({
                                     style={{ background: newsTone(x.tag) }}
                                 />
                             )}
-                            <span className="flex-1 text-[13px] font-semibold">
+                            <span className="flex-1 text-panel-title font-semibold">
                                 {x.title}
                             </span>
-                            <span className="text-[12px] text-muted-foreground">
+                            <span className="text-xs text-muted-foreground">
                                 {formatNewsDate(x.date, now)}
                             </span>
                         </NewsItemLink>

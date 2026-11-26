@@ -112,7 +112,7 @@ export function IndicatorPanel({ rgb }: Props): JSX.Element {
 
     return (
         <div className="flex flex-col gap-4">
-            <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
                 Indicators light only while their lock is active (e.g. Num Lock
                 on). All indicators share one colour.
             </p>

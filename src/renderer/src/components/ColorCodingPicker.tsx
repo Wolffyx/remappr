@@ -1,6 +1,6 @@
-// Pattern check: no GoF pattern (-) — rejected — presentational segmented control bound
-// to a single store field; no abstraction warranted.
-import { cn } from '@/lib/cn'
+// Pattern check: no GoF pattern (-) — rejected — binds the shared Segmented to a
+// single store field; no abstraction warranted.
+import { Segmented } from '@/ui/segmented'
 import useUserSettingsStore, {
     type ColorCodingMode,
 } from '@/stores/userSettingsStore'
@@ -16,31 +16,11 @@ export function ColorCodingPicker(): JSX.Element {
     const setColorMode = useUserSettingsStore((s) => s.setColorMode)
 
     return (
-        <div
-            role="radiogroup"
-            aria-label="Colour coding intensity"
-            className="inline-flex rounded-md border bg-muted/40 p-0.5"
-        >
-            {OPTIONS.map(({ value, label }) => {
-                const active = colorMode === value
-                return (
-                    <button
-                        key={value}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        onClick={() => setColorMode(value)}
-                        className={cn(
-                            'rounded px-3 py-1 text-sm font-medium transition-colors',
-                            active
-                                ? 'bg-background text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground',
-                        )}
-                    >
-                        {label}
-                    </button>
-                )
-            })}
-        </div>
+        <Segmented
+            label="Colour coding intensity"
+            value={colorMode}
+            options={OPTIONS}
+            onChange={setColorMode}
+        />
     )
 }

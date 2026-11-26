@@ -43,6 +43,10 @@ interface EncoderCapProps {
     colorMode: ColorMode
     keyDisplayMode: KeyDisplayMode
     showHeaderTag?: boolean
+    /** The keymap position under the knob: its centre is that key (the press). */
+    pressIdx?: number
+    /** That key is the selected position. */
+    pressSelected?: boolean
 }
 
 /** Rim arc per cap side, in degrees: [from, to, SVG sweep flag]. */
@@ -64,6 +68,8 @@ const EncoderCapImpl = ({
     colorMode,
     keyDisplayMode,
     showHeaderTag = true,
+    pressIdx,
+    pressSelected = false,
 }: EncoderCapProps): JSX.Element => {
     const S = oneU
     // Same footprint rule as a key (makeSize): 2px gutter.
@@ -102,7 +108,7 @@ const EncoderCapImpl = ({
     const selected = selectedDir !== null
     const lit = (d: EncoderDir): boolean => selectedDir === d
     const arrowCol = (d: EncoderDir): string =>
-        lit(d) ? ink : `color-mix(in oklch, ${edge} 55%, transparent)`
+        lit(d) ? ink : `color-mix(in oklab, ${edge} 55%, transparent)`
     const marker = `enc-arr-${knob.slot}`
     const stroke = Math.max(1.5, S * 0.016)
     const angle = !selectedDir
@@ -119,8 +125,8 @@ const EncoderCapImpl = ({
     const headerHidden = !showHeaderTag || keyDisplayMode === 'hidden'
     const isBindingMode = keyDisplayMode === 'binding'
     const headerColor = accent
-        ? `color-mix(in oklch, ${accent.legend} 92%, transparent)`
-        : 'color-mix(in oklch, var(--foreground) 44%, transparent)'
+        ? `color-mix(in oklab, ${accent.legend} 92%, transparent)`
+        : 'color-mix(in oklab, var(--foreground) 44%, transparent)'
 
     const dirLabel = (d: EncoderDir): JSX.Element => {
         const side = knob[d]
@@ -176,10 +182,10 @@ const EncoderCapImpl = ({
 
     // Knob surfaces derived from the cap face, so the knob follows the key's
     // tint and theme: a contrasting ridged grip and a lit dome.
-    const gripLight = `color-mix(in oklch, ${F.face} 62%, ${F.legend})`
-    const gripDark = `color-mix(in oklch, ${F.face} 78%, #000)`
-    const domeLight = `color-mix(in oklch, ${F.faceTop} 78%, #fff)`
-    const domeDark = `color-mix(in oklch, ${F.face} 88%, #000)`
+    const gripLight = `color-mix(in oklab, ${F.face} 62%, ${F.legend})`
+    const gripDark = `color-mix(in oklab, ${F.face} 78%, #000)`
+    const domeLight = `color-mix(in oklab, ${F.faceTop} 78%, #fff)`
+    const domeDark = `color-mix(in oklab, ${F.face} 88%, #000)`
 
     return (
         <div style={{ position: 'relative', width: W, height: H }}>
@@ -328,7 +334,8 @@ const EncoderCapImpl = ({
                         }}
                     />
                 </div>
-                {/* no press binding in the encoder model — the design's empty centre */}
+                {/* The centre: the knob's button (the key under it) when it
+                    has one, else the design's empty centre. */}
                 <div
                     style={{
                         position: 'absolute',
@@ -336,18 +343,53 @@ const EncoderCapImpl = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        paddingTop: D * 0.06,
+                        paddingTop: knob.press ? 0 : D * 0.06,
                     }}
                 >
-                    <span
-                        style={{
-                            width: D * 0.1,
-                            height: D * 0.1,
-                            borderRadius: '50%',
-                            background: gripDark,
-                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,.6)',
-                        }}
-                    />
+                    {knob.press ? (
+                        <span
+                            title={knob.press.title ?? knob.press.text}
+                            className="font-keycap"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: D * 0.56,
+                                height: D * 0.56,
+                                borderRadius: '50%',
+                                background: `radial-gradient(circle at 40% 32%, ${domeLight}, ${domeDark} 80%)`,
+                                boxShadow: `0 1px 2px rgba(0,0,0,.45), 0 0 0 1px ${gripDark}`,
+                                color: ink,
+                                fontSize: Math.max(
+                                    7,
+                                    Math.round(lblSize * 0.9),
+                                ),
+                                fontWeight: 700,
+                                lineHeight: 1,
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {knob.press.parts ? (
+                                <LegendParts
+                                    parts={knob.press.parts}
+                                    title={knob.press.title}
+                                />
+                            ) : (
+                                knob.press.text
+                            )}
+                        </span>
+                    ) : (
+                        <span
+                            style={{
+                                width: D * 0.1,
+                                height: D * 0.1,
+                                borderRadius: '50%',
+                                background: gripDark,
+                                boxShadow: 'inset 0 1px 2px rgba(0,0,0,.6)',
+                            }}
+                        />
+                    )}
                 </div>
             </div>
             {/* Hit zones — the board's delegated click reads data-encoder. */}
@@ -369,6 +411,28 @@ const EncoderCapImpl = ({
                     }}
                 />
             ))}
+            {/* Centre = the key under the knob: a plain key hit (data-idx). */}
+            {pressIdx !== undefined && (
+                <div
+                    role="button"
+                    tabIndex={0}
+                    data-key="true"
+                    data-idx={pressIdx}
+                    aria-label={`Encoder ${knob.slot + 1} press`}
+                    style={{
+                        position: 'absolute',
+                        left: cx - D * 0.3,
+                        top: cy - D * 0.3,
+                        width: D * 0.6,
+                        height: D * 0.6,
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        boxShadow: pressSelected
+                            ? '0 0 0 2px var(--primary)'
+                            : undefined,
+                    }}
+                />
+            )}
         </div>
     )
 }

@@ -18,7 +18,7 @@ export const RgbSlider = memo(function RgbSlider({
 }): JSX.Element {
     return (
         <label className="flex flex-col gap-1.5">
-            <span className="flex items-center justify-between text-[13px] font-semibold">
+            <span className="flex items-center justify-between text-panel-title font-semibold">
                 {label}
                 <span className="font-mono text-xs text-muted-foreground">
                     {value}

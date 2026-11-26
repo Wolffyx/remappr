@@ -82,8 +82,26 @@ async function openTransport(device: HIDDevice): Promise<Transport> {
     }
     device.addEventListener('inputreport', onInputReport)
 
+    // WebHID fires one navigator-level `disconnect` per unplugged device.
+    // Ending the readable on our device's unplug is what lets the client fire
+    // onClosed at once, instead of the editor sitting on a gone device until
+    // an RPC times out (L4.6).
+    const detach = (): void => {
+        device.removeEventListener('inputreport', onInputReport)
+        navigator.hid.removeEventListener('disconnect', onDisconnect)
+    }
+    const onDisconnect = (e: Event): void => {
+        if ((e as HIDConnectionEvent).device !== device) return
+        detach()
+        responseWriter.close().catch(() => {})
+    }
+    navigator.hid.addEventListener('disconnect', onDisconnect)
+
     if (!device.opened) {
-        await device.open()
+        await device.open().catch((err: unknown) => {
+            detach()
+            throw err
+        })
     }
 
     let reportId = 0
@@ -106,7 +124,7 @@ async function openTransport(device: HIDDevice): Promise<Transport> {
     })
 
     const abortCb = async (): Promise<void> => {
-        device.removeEventListener('inputreport', onInputReport)
+        detach()
         try {
             await responseWriter.close()
         } catch {
@@ -127,7 +145,28 @@ async function openTransport(device: HIDDevice): Promise<Transport> {
         writable,
         vid: device.vendorId,
         pid: device.productId,
+        feature: {
+            send: (reportId, payload) =>
+                device.sendFeatureReport(reportId, payload.slice()),
+            receive: async (reportId, length) => {
+                const view = await device.receiveFeatureReport(reportId)
+                return featurePayload(view, reportId, length)
+            },
+        },
     }
+}
+
+// pattern-check: skip — one pure byte-normalising helper beside the transport, no abstraction.
+/** Chrome hands a numbered feature report back with its id in front; the
+ *  Transport contract wants the payload alone. */
+export function featurePayload(
+    view: DataView,
+    reportId: number,
+    length: number,
+): Uint8Array {
+    const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
+    const prefixed = bytes.length > length && bytes[0] === reportId
+    return (prefixed ? bytes.subarray(1) : bytes).slice(0, length)
 }
 
 export async function connectToGrantedDevice(

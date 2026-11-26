@@ -110,6 +110,20 @@ export const DOM_KEY_TO_HID: Readonly<Record<string, number>> = Object.freeze({
     F22: 113,
     F23: 114,
     F24: 115,
+    // International and LANG keys (keyboard page 0x85–0x94): Brazilian keypad
+    // comma, Japanese Ro / Kana / Yen / Henkan / Muhenkan, and the Korean and
+    // Japanese input-mode keys. Codes as the UI Events spec names them.
+    NumpadComma: 0x85,
+    IntlRo: 0x87,
+    KanaMode: 0x88,
+    IntlYen: 0x89,
+    Convert: 0x8a,
+    NonConvert: 0x8b,
+    Lang1: 0x90,
+    Lang2: 0x91,
+    Lang3: 0x92,
+    Lang4: 0x93,
+    Lang5: 0x94,
     ControlLeft: 224,
     ShiftLeft: 225,
     AltLeft: 226,

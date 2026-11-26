@@ -6,6 +6,7 @@
 // coordinator, its input forward mode, and — for a mode-A coordinator — the cluster
 // address map (hardware UID → position/encoder/pointer base). Edits local state,
 // stages one setNode() patch of the changed fields, and pushes on commit().
+import { NumberInput } from '@/ui/number-input'
 import { useEffect, useRef, useState } from 'react'
 import { Waypoints, Plus, Trash2 } from 'lucide-react'
 
@@ -13,8 +14,10 @@ import type { ConfigClusterNode, ConfigNode } from '@firmware/config'
 import { supportsConfigEditing } from '@firmware/configEditing'
 
 import useConnectionStore from '@/stores/connectionStore'
-import { saveWithToast } from '@/lib/saveWithToast'
+import { saveConfigSection } from '@/lib/saveConfigSection'
+import { LearnMore } from '@/ui/learn-more'
 import { Modal } from '@/ui/modal'
+import type { PanelFrame } from './clusterFrame'
 import { Button } from '@/ui/button'
 import { Label } from '@/ui/label'
 import { Input } from '@/ui/input'
@@ -36,6 +39,8 @@ import {
 interface Props {
     opened: boolean
     onClose: () => void
+    /** The dialog chrome; the merged Cluster dialog passes a tab frame. */
+    frame?: PanelFrame
 }
 
 type Role = NonNullable<ConfigNode['role']>
@@ -52,7 +57,11 @@ const sameCluster = (
     b: readonly ConfigClusterNode[],
 ): boolean => JSON.stringify(a) === JSON.stringify(b)
 
-export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
+export function NodeConfigModal({
+    opened,
+    onClose,
+    frame: Frame = Modal,
+}: Props): JSX.Element {
     const service = useConnectionStore((s) => s.service)
     const configEditing = supportsConfigEditing(service) ? service : null
 
@@ -113,15 +122,16 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
             onClose()
             return
         }
-        configEditing.setNode(patch)
         setSaving(true)
-        const r = await saveWithToast(
-            () => service.commit(),
-            'Node settings saved',
-            'Failed to save node settings',
-        )
+        const saved = await saveConfigSection({
+            service,
+            section: 'Node settings',
+            stage: () => configEditing.setNode(patch),
+            successMessage: 'Node settings saved',
+            errorPrefix: 'Failed to save node settings',
+        })
         setSaving(false)
-        if (r !== undefined) onClose()
+        if (saved) onClose()
     }
 
     const roleHelp = ROLE_OPTIONS.find((o) => o.value === form.role)?.help
@@ -131,11 +141,18 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
     const modeA = form.forwardMode === 'physical'
 
     return (
-        <Modal
+        <Frame
+            size="md"
             opened={opened}
             onClose={onClose}
-            title="Node & cluster"
-            subtitle="Cluster role, input forwarding, and the mode-A position map"
+            title="Node and cluster"
+            subtitle={
+                <>
+                    What this node does in the group, and how it sends key
+                    presses.{' '}
+                    <LearnMore path="guide/app/advanced#node-cluster" />
+                </>
+            }
             headerIcon={<Waypoints />}
             footer={
                 <>
@@ -173,7 +190,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                         </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                        {roleHelp ?? 'Leave as the firmware Kconfig default.'}
+                        {roleHelp ?? 'Leave as the firmware’s default.'}
                     </p>
                 </div>
 
@@ -216,17 +233,16 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Maps each node&apos;s hardware UID to where its keys
-                        land in the whole-cluster position space — a mode-A
-                        coordinator resolves forwarded positions against this
-                        map.
+                        Maps each node&apos;s hardware UID to where its keys sit
+                        in the whole group. The main node uses this map to tell
+                        which key a follower pressed.
                     </p>
 
                     {form.cluster.length === 0 && (
                         <p className="text-muted-foreground">
                             No cluster nodes yet.
                             {modeA &&
-                                ' Mode A forwards raw positions — add each follower so the coordinator can resolve them.'}
+                                ' Add each follower so the main node knows its keys.'}
                         </p>
                     )}
 
@@ -269,8 +285,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                     <Label className="text-xs">
                                         Position base
                                     </Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={0}
                                         value={n.positionBase}
                                         onChange={(e) =>
@@ -284,8 +299,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <Label className="text-xs">Rows</Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={1}
                                         value={n.rows}
                                         onChange={(e) =>
@@ -297,8 +311,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <Label className="text-xs">Cols</Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={1}
                                         value={n.cols}
                                         onChange={(e) =>
@@ -314,8 +327,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                     <Label className="text-xs">
                                         Encoder base (optional)
                                     </Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={0}
                                         value={n.encoderBase ?? ''}
                                         onChange={(e) =>
@@ -331,8 +343,7 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                                     <Label className="text-xs">
                                         Pointer base (optional)
                                     </Label>
-                                    <Input
-                                        type="number"
+                                    <NumberInput
                                         min={0}
                                         value={n.pointerBase ?? ''}
                                         onChange={(e) =>
@@ -355,6 +366,6 @@ export function NodeConfigModal({ opened, onClose }: Props): JSX.Element {
                     )}
                 </div>
             </div>
-        </Modal>
+        </Frame>
     )
 }

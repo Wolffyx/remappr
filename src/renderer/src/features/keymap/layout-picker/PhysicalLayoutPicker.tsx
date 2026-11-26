@@ -1,7 +1,7 @@
 // pattern-check: skip — hover-preview restructure of layout chips, presentational only
 import { useCallback, useState } from 'react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/ui/popover'
-import { LayerKeyboardPreview } from '../keyboard/LayerKeyboardPreview'
+import { LayoutThumb } from './LayoutThumb'
 import {
     SidebarGroupContent,
     SidebarGroupLabel,
@@ -11,7 +11,10 @@ import {
 import { Check, Cpu, Plus } from 'lucide-react'
 import type { PhysicalLayout } from '@firmware/types'
 
-export type PhysicalLayoutItem = Pick<PhysicalLayout, 'name' | 'keys'>
+export type PhysicalLayoutItem = Pick<
+    PhysicalLayout,
+    'name' | 'keys' | 'encoders'
+>
 
 export type PhysicalLayoutClickCallback = (index: number) => void
 
@@ -38,11 +41,9 @@ export const PhysicalLayoutPicker = ({
 
     return (
         <SidebarGroupContent>
-            <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Layouts
-            </SidebarGroupLabel>
-            <SidebarGroupAction title="Add Layout">
-                <Plus /> <span className="sr-only">Add Layout</span>
+            <SidebarGroupLabel className="eyebrow">Layouts</SidebarGroupLabel>
+            <SidebarGroupAction title="Add layout">
+                <Plus /> <span className="sr-only">Add layout</span>
             </SidebarGroupAction>
             {layouts && (
                 <div className="space-y-2">
@@ -52,14 +53,14 @@ export const PhysicalLayoutPicker = ({
                             <Popover key={layout.name} open={hovered === index}>
                                 <PopoverTrigger asChild>
                                     <SidebarMenuButton
-                                        className="h-auto items-center gap-2.5 rounded-[10px] border px-2.5 py-2.5 data-[active=true]:bg-transparent"
+                                        className="h-auto items-center gap-2.5 rounded-lg border px-2.5 py-2.5 data-[active=true]:bg-transparent"
                                         style={
                                             selected
                                                 ? {
                                                       background:
-                                                          'color-mix(in oklch, var(--primary) 12%, var(--sidebar))',
+                                                          'color-mix(in oklab, var(--primary) 12%, var(--sidebar))',
                                                       borderColor:
-                                                          'color-mix(in oklch, var(--primary) 32%, transparent)',
+                                                          'color-mix(in oklab, var(--primary) 32%, transparent)',
                                                   }
                                                 : {
                                                       borderColor:
@@ -85,10 +86,10 @@ export const PhysicalLayoutPicker = ({
                                             }}
                                         />
                                         <div className="min-w-0 flex-1">
-                                            <h3 className="truncate text-[13.5px] font-bold leading-tight">
+                                            <h3 className="truncate text-panel-title font-bold leading-tight">
                                                 {layout.name}
                                             </h3>
-                                            <p className="truncate text-[11px] text-muted-foreground">
+                                            <p className="truncate text-caption text-muted-foreground">
                                                 {layout.keys.length} keys ·
                                                 hover to preview
                                             </p>
@@ -112,14 +113,15 @@ export const PhysicalLayoutPicker = ({
                                     }
                                     className="pointer-events-none w-auto p-2"
                                 >
-                                    <div className="mb-1 px-1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                                    <div className="eyebrow mb-1 px-1">
                                         {layout.name} · {layout.keys.length}{' '}
                                         keys
                                     </div>
                                     <div className="flex justify-center">
-                                        <LayerKeyboardPreview
-                                            physicalLayoutIndex={index}
-                                            oneU={13}
+                                        <LayoutThumb
+                                            layout={layout}
+                                            fit={{ width: 260, height: 120 }}
+                                            maxOneU={13}
                                         />
                                     </div>
                                 </PopoverContent>

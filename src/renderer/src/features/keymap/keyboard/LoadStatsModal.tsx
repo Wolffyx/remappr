@@ -1,5 +1,7 @@
 // Pattern check: no GoF pattern (-) — rejected — aggregates heatmap press counts into
 // hand/finger buckets via key geometry; pure computation + presentational bars, no abstraction.
+import { Button } from '@/ui/button'
+import { layerAccent } from '@/lib/keymap/keyCategory'
 import { useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { Modal } from '@/ui/modal'
@@ -109,37 +111,44 @@ export function LoadStatsModal({
               } hand carries more load — consider moving a hot key to the other half.`
 
     // pattern-check: skip — presentational stats layout, no abstraction
-    // Per-hand accent hues (design): left violet, right blue.
-    const HAND_HUE = [286, 210] as const
+    // Per-hand accents (design): left = layer-1, right = layer-2.
+    const HAND_ACCENT = [layerAccent(0), layerAccent(1)] as const
+    const heatmapOn = useHeatmapStore((s) => s.enabled)
+    const setHeatmap = useHeatmapStore((s) => s.setEnabled)
 
     return (
         <Modal
+            size="lg"
+            kind="readonly"
             opened={opened}
             onClose={onClose}
             title="Typing load"
             subtitle="Hand balance & per-finger load"
             headerIcon={<BarChart3 />}
-            customModalBoxClass="w-11/14 max-w-2xl"
             xButton
-            showFooter={false}
         >
             {stats.total === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                    No presses recorded yet. Enable the heatmap and type on your
-                    keyboard to build up load stats.
-                </p>
+                <div className="flex flex-col items-center gap-3 py-8 text-center">
+                    <p className="text-sm text-muted-foreground">
+                        No presses recorded yet. Turn on the heatmap and type on
+                        your keyboard to build up load stats.
+                    </p>
+                    {!heatmapOn && (
+                        <Button size="sm" onClick={() => setHeatmap(true)}>
+                            Turn on heatmap
+                        </Button>
+                    )}
+                </div>
             ) : (
                 <div className="space-y-5">
                     {/* hand balance + total */}
                     <div className="flex flex-col gap-3 sm:flex-row">
                         <div className="flex-1 rounded-xl border bg-background p-4">
-                            <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Hand balance
-                            </p>
+                            <p className="eyebrow mb-2.5">Hand balance</p>
                             <div className="flex items-center gap-2.5">
                                 <span
                                     className="text-xs font-bold"
-                                    style={{ color: 'oklch(0.7 0.15 286)' }}
+                                    style={{ color: HAND_ACCENT[0] }}
                                 >
                                     L {leftPct}%
                                 </span>
@@ -147,19 +156,19 @@ export function LoadStatsModal({
                                     <div
                                         style={{
                                             width: `${leftPct}%`,
-                                            background: 'oklch(0.6 0.16 286)',
+                                            background: HAND_ACCENT[0],
                                         }}
                                     />
                                     <div
                                         style={{
                                             width: `${rightPct}%`,
-                                            background: 'oklch(0.6 0.16 210)',
+                                            background: HAND_ACCENT[1],
                                         }}
                                     />
                                 </div>
                                 <span
                                     className="text-xs font-bold"
-                                    style={{ color: 'oklch(0.7 0.15 210)' }}
+                                    style={{ color: HAND_ACCENT[1] }}
                                 >
                                     {rightPct}% R
                                 </span>
@@ -169,13 +178,11 @@ export function LoadStatsModal({
                             </p>
                         </div>
                         <div className="rounded-xl border bg-background p-4 text-center sm:w-36">
-                            <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Total
-                            </p>
+                            <p className="eyebrow mb-2">Total</p>
                             <div className="text-2xl font-extrabold tabular-nums">
                                 {totalLabel}
                             </div>
-                            <div className="text-[11px] text-muted-foreground">
+                            <div className="text-caption text-muted-foreground">
                                 presses
                             </div>
                         </div>
@@ -186,9 +193,7 @@ export function LoadStatsModal({
                         {(['Left hand', 'Right hand'] as const).map(
                             (handLabel, hand) => (
                                 <div key={handLabel} className="flex-1">
-                                    <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                        {handLabel}
-                                    </p>
+                                    <p className="eyebrow mb-3">{handLabel}</p>
                                     {FINGERS.map((finger, fi) => {
                                         const v = stats.fingers[hand][fi]
                                         const pct = Math.round(
@@ -200,7 +205,7 @@ export function LoadStatsModal({
                                                 className="mb-2.5"
                                             >
                                                 <div className="mb-1 flex justify-between">
-                                                    <span className="text-[12.5px] font-semibold">
+                                                    <span className="text-control font-semibold">
                                                         {finger}
                                                     </span>
                                                     <span className="font-mono text-xs tabular-nums text-muted-foreground">
@@ -212,7 +217,10 @@ export function LoadStatsModal({
                                                         className="h-full rounded-full transition-[width] duration-300"
                                                         style={{
                                                             width: `${pct}%`,
-                                                            background: `oklch(0.65 0.16 ${HAND_HUE[hand]})`,
+                                                            background:
+                                                                HAND_ACCENT[
+                                                                    hand
+                                                                ],
                                                         }}
                                                     />
                                                 </div>

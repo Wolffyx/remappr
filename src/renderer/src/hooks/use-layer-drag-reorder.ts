@@ -39,6 +39,8 @@ interface UseLayerDragReorderResult {
     dragSourceIndex: number | null
     dragOverIndex: number | null
     handlersFor: (index: number) => DragHandlers
+    /** Move a layer without a drag (menu Move up / Move down). */
+    move: (start: number, dest: number) => void
 }
 
 export function useLayerDragReorder({
@@ -128,5 +130,5 @@ export function useLayerDragReorder({
         [performMove],
     )
 
-    return { dragSourceIndex, dragOverIndex, handlersFor }
+    return { dragSourceIndex, dragOverIndex, handlersFor, move: performMove }
 }

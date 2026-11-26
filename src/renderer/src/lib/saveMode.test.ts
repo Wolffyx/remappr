@@ -21,6 +21,8 @@ interface FakeOpts {
     saveMode?: 'manual' | 'automatic' | 'none'
     readOnly?: boolean
     withEncoders?: boolean
+    /** A device edited as controls: edits stage on the service itself. */
+    withControls?: boolean
 }
 
 function fakeService(opts: FakeOpts = {}): KeyboardService {
@@ -53,6 +55,16 @@ function fakeService(opts: FakeOpts = {}): KeyboardService {
         getKeymap: vi.fn(async () => ({ layers: [] })),
         ...(opts.withEncoders
             ? { encoders: { setEncoder: vi.fn(async () => undefined) } }
+            : {}),
+        ...(opts.withControls
+            ? {
+                  controls: { setBinding: vi.fn() },
+                  // what a controls edit or a settings-draft edit does
+                  stage: () => {
+                      pending = true
+                      for (const cb of listeners) cb(true)
+                  },
+              }
             : {}),
     }
     return svc as unknown as KeyboardService
@@ -201,6 +213,18 @@ describe('underlying manual (ZMK/Remappr)', () => {
         expect(base.commit).toHaveBeenCalledTimes(1)
     })
 
+    it('auto mode commits a device that stages edits on itself', async () => {
+        const base = fakeService({ saveMode: 'manual', withControls: true })
+        const svc = withSaveMode(base, true)
+        ;(base as unknown as { stage: () => void }).stage()
+        await vi.advanceTimersByTimeAsync(1_000)
+        expect(base.commit).toHaveBeenCalledTimes(1)
+        await applySaveMode(svc, false)
+        ;(base as unknown as { stage: () => void }).stage()
+        await vi.advanceTimersByTimeAsync(1_000)
+        expect(base.commit).toHaveBeenCalledTimes(1)
+    })
+
     it('auto-commit failure surfaces a toast', async () => {
         const base = fakeService({ saveMode: 'manual' })
         ;(base.commit as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
@@ -209,7 +233,10 @@ describe('underlying manual (ZMK/Remappr)', () => {
         const svc = withSaveMode(base, true)
         await svc.setKey(0, 0, action('kc_a'))
         await vi.advanceTimersByTimeAsync(1_000)
-        expect(toast.error).toHaveBeenCalledWith('NVS full')
+        expect(toast.error).toHaveBeenCalledWith(
+            'Auto-save failed: NVS full',
+            {},
+        )
     })
 
     it('switching back to manual cancels a pending auto-commit', async () => {

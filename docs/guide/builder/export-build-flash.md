@@ -72,6 +72,12 @@ README.md
 Split keyboards ship a shared `.dtsi` base plus two half overlays, and the build
 matrix builds both halves.
 
+A board with [layout variants](/guide/builder/overview#layout-variants) gets one
+`physical_layout` per variant, each with its own matrix transform; the first is
+the chosen (default) one. The `.keymap` follows the default layout's key order,
+and combos and hold-trigger positions are mapped to it, so keys that exist only
+in another variant keep their bindings through ZMK's position map.
+
 **QMK / VIA / Vial** → a `qmk_userspace` tree:
 
 ```

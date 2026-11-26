@@ -155,7 +155,6 @@ export const SlotValuePicker = ({
             <KeycodePickerGrid
                 onValueChanged={onChange}
                 onActionChosen={onActionChosen}
-                label={slot.label}
                 value={value}
                 highlightedKeys={highlightedKeys}
                 codec={codec}

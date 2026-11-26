@@ -79,6 +79,10 @@ export default defineConfig({
                             text: 'Export, build & flash',
                             link: '/guide/builder/export-build-flash',
                         },
+                        {
+                            text: 'Designing a device',
+                            link: '/guide/builder/device-layout',
+                        },
                     ],
                 },
                 {
@@ -116,6 +120,29 @@ export default defineConfig({
                         },
                     ],
                 },
+                {
+                    text: 'Mice & controllers',
+                    collapsed: false,
+                    items: [
+                        {
+                            text: 'Overview & demo devices',
+                            link: '/guide/devices/overview',
+                        },
+                        {
+                            text: 'The device editor',
+                            link: '/guide/devices/device-editor',
+                        },
+                        { text: 'Mice', link: '/guide/devices/mice' },
+                        {
+                            text: 'Gamepads & flight sticks',
+                            link: '/guide/devices/gamepads',
+                        },
+                        {
+                            text: 'Generic controllers & mice',
+                            link: '/guide/devices/generic-hid',
+                        },
+                    ],
+                },
             ],
             '/reference/': [
                 {
@@ -150,6 +177,20 @@ export default defineConfig({
                             text: 'JSON Schema',
                             link: '/reference/config/json-schema',
                         },
+                        {
+                            text: 'Device document',
+                            link: '/reference/config/device-document',
+                        },
+                    ],
+                },
+            ],
+            '/legal/': [
+                {
+                    text: 'Legal',
+                    items: [
+                        { text: 'Privacy policy', link: '/legal/privacy' },
+                        { text: 'Terms of service', link: '/legal/terms' },
+                        { text: 'Refund policy', link: '/legal/refunds' },
                     ],
                 },
             ],
@@ -168,6 +209,7 @@ export default defineConfig({
                             link: '/dev/adding-a-firmware-target',
                         },
                         { text: 'Contributing', link: '/dev/contributing' },
+                        { text: 'Operations', link: '/dev/operations' },
                     ],
                 },
             ],
@@ -188,7 +230,8 @@ export default defineConfig({
         },
 
         footer: {
-            message: 'Released under the Apache-2.0 License.',
+            message:
+                'Released under the Apache-2.0 License. · <a href="/legal/privacy">Privacy</a> · <a href="/legal/terms">Terms</a> · <a href="/legal/refunds">Refunds</a>',
             copyright: 'Remappr',
         },
     },

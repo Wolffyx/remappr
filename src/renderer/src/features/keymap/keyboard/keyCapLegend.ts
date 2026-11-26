@@ -9,11 +9,15 @@
 // fields, and the builder's CapLegend narrows it (tapText/category required). This
 // keeps the two parallel feeders honest without routing one through the other's
 // data model (see builderCapProps + lib/keymap/keyCategory).
-import type { HoldTapLabels } from './HoldTapKeyLabel'
 import type { KeyCategory } from '@/lib/keymap/keyCategory'
 import type { LegendPart } from '@firmware/paramLabel'
 
-export type { HoldTapLabels }
+/** A hold-tap cap's two legends: the tap on top, the hold below. */
+export interface HoldTapLabels {
+    tap: React.ReactNode
+    hold: React.ReactNode
+    tooltip?: string
+}
 
 export interface KeyCapLegend {
     /** Action-type tag shown top-left (e.g. "Key Press", "Layer-Tap"). */
