@@ -30,9 +30,11 @@ import {
 import {
     connectHidDevice,
     disconnectHidDevice,
+    getHidFeature,
     type HidDiscoveryFilter,
     listHidDevices,
     listHidMice,
+    sendHidFeature,
     writeHid,
 } from './hid'
 import { registerSecretHandlers } from './secret-store'
@@ -267,6 +269,29 @@ export function registerIpcHandlers(getWindows: () => BrowserWindow[]): void {
             return { ok: false, error: msg }
         }
     })
+
+    // Feature reports go only to the open HID link the renderer names.
+    const hidLink = (linkId: unknown): void => {
+        if (links.get(validateLinkId(linkId)) !== 'hid') {
+            throw new Error('The HID link is closed')
+        }
+    }
+
+    ipcMain.handle(
+        IpcChannels.HID_FEATURE_SEND,
+        async (_, linkId: unknown, reportId: unknown, data: unknown) => {
+            hidLink(linkId)
+            await sendHidFeature(Number(reportId), validateUint8Array(data))
+        },
+    )
+
+    ipcMain.handle(
+        IpcChannels.HID_FEATURE_GET,
+        async (_, linkId: unknown, reportId: unknown, length: unknown) => {
+            hidLink(linkId)
+            return await getHidFeature(Number(reportId), Number(length))
+        },
+    )
 
     // --- Transport Handlers (addressed by link id) ---
 

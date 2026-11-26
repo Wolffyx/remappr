@@ -145,7 +145,28 @@ async function openTransport(device: HIDDevice): Promise<Transport> {
         writable,
         vid: device.vendorId,
         pid: device.productId,
+        feature: {
+            send: (reportId, payload) =>
+                device.sendFeatureReport(reportId, payload.slice()),
+            receive: async (reportId, length) => {
+                const view = await device.receiveFeatureReport(reportId)
+                return featurePayload(view, reportId, length)
+            },
+        },
     }
+}
+
+// pattern-check: skip — one pure byte-normalising helper beside the transport, no abstraction.
+/** Chrome hands a numbered feature report back with its id in front; the
+ *  Transport contract wants the payload alone. */
+export function featurePayload(
+    view: DataView,
+    reportId: number,
+    length: number,
+): Uint8Array {
+    const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
+    const prefixed = bytes.length > length && bytes[0] === reportId
+    return (prefixed ? bytes.subarray(1) : bytes).slice(0, length)
 }
 
 export async function connectToGrantedDevice(
