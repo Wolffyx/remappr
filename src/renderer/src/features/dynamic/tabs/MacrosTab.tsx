@@ -1,157 +1,186 @@
-// pattern-check: skip — form tab composing primitives, mirrors sibling *Tab.tsx
-import { DockActions } from '@/ui/dock-shell'
-import { Circle, Plus } from 'lucide-react'
-import { useState } from 'react'
+// Pattern check: no GoF pattern (-) — rejected — tab orchestration: data loading + per-macro edit buffer, composing the new presentational pieces.
+//
+// The Macros tab: a searchable list of every macro on the left, the selected
+// macro's steps in the middle and the selected step on the right. Every macro is
+// read once on open (summaries, "Run macro" previews); edits are kept per macro
+// until saved or discarded.
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
-import type { KeyboardService, MacroAction } from '@firmware'
+import {
+    describeMacro,
+    type KeyboardService,
+    type MacroAction,
+} from '@firmware'
+import type { BehaviorRef, Keymap } from '@firmware/types'
 import { saveWithToast } from '@/lib/saveWithToast'
-import { Button } from '@/ui/button'
+import useKeymapStore from '@/stores/keymapStore'
 
-import { IndexInput } from '../_shared/IndexInput'
-import { useDynamicEntry } from '../_shared/useDynamicEntry'
-import { MacroActionRow } from './macros/MacroActionRow'
-import { useKeyboardRecorder } from './macros/useKeyboardRecorder'
+import { MacroEditor } from './macros/MacroEditor'
+import { MacroList, type MacroListItem } from './macros/MacroList'
+import { BASIC_MACRO_KINDS, keyName } from './macros/macroSteps'
 
 interface Props {
     service: KeyboardService
     opened: boolean
 }
 
-// pattern-check: skip — macro sequence editor body, extracted from MacroEditorModal
+/** Every macro's steps, read once while the tab is open. */
+function useAllMacros(
+    service: KeyboardService,
+    count: number,
+    opened: boolean,
+): [
+    MacroAction[][] | null,
+    React.Dispatch<React.SetStateAction<MacroAction[][] | null>>,
+] {
+    const [all, setAll] = useState<MacroAction[][] | null>(null)
+    useEffect(() => {
+        const api = service.macros
+        if (!opened || !api) return
+        let live = true
+        Promise.all(Array.from({ length: count }, (_, i) => api.getMacro(i)))
+            .then((list) => live && setAll(list))
+            .catch((e) => {
+                console.error(e)
+                toast.error('Failed to load macros')
+            })
+        return () => {
+            live = false
+        }
+    }, [service, count, opened])
+    return [all, setAll]
+}
+
+/** "base · key 14", "base · keys 3, 4, 5", "4 keys on 2 layers" or "Not on any
+ *  key", from the keymap the app already holds; undefined when the firmware
+ *  can't say which binding a macro is. */
+function usedOn(
+    keymap: Keymap | undefined,
+    ref: BehaviorRef | undefined,
+): string | undefined {
+    if (!keymap || !ref) return undefined
+    const params = ref.params ?? []
+    const hits = keymap.layers.flatMap((layer) =>
+        layer.keys.flatMap((k, i) =>
+            k.kind === ref.kind &&
+            k.params.length === params.length &&
+            k.params.every((p, j) => p === params[j])
+                ? [{ layer: layer.name || `Layer ${layer.id}`, key: i }]
+                : [],
+        ),
+    )
+    if (hits.length === 0) return 'Not on any key'
+    const layers = new Set(hits.map((h) => h.layer))
+    if (layers.size > 1) return `${hits.length} keys on ${layers.size} layers`
+    const keys = hits.map((h) => h.key)
+    return `${hits[0].layer} · ${keys.length > 1 ? 'keys' : 'key'} ${keys.join(', ')}`
+}
+
 export function MacrosTab({ service, opened }: Props): JSX.Element | null {
-    const count = service.macros?.getCount() ?? 0
-    const [rawIdx, setIdx] = useState(0)
-    const idx = Math.min(Math.max(0, rawIdx), Math.max(0, count - 1))
+    const api = service.macros
+    const count = api?.getCount() ?? 0
+    const [idx, setIdx] = useState(0)
+    const [all, setAll] = useAllMacros(service, count, opened)
+    const [edits, setEdits] = useState<Record<number, MacroAction[]>>({})
+    const keymap = useKeymapStore((s) => s.keymap)
 
-    // Editable only when the adapter is not view-only AND exposes a writer. ZMK
-    // (compile-time macros) exposes `macros` with `readonly: true` and no
-    // `setMacro` — the editor renders view-only. Never gate on a firmware name.
-    const editable =
-        !!service.macros &&
-        !service.macros.readonly &&
-        !!service.macros.setMacro
-
-    const {
-        entry: actions,
-        setEntry: setActions,
-        loading,
-    } = useDynamicEntry<MacroAction[]>(
-        service,
-        idx,
-        opened,
-        (s, i) => s.macros?.getMacro(i),
-        'macro',
+    const names = useMemo(
+        () =>
+            api?.listNames?.() ??
+            Array.from({ length: count }, (_, i) => `Macro ${i}`),
+        [api, count],
+    )
+    const summaries = useMemo(
+        () =>
+            new Map(
+                names.map((n, i) => [
+                    n,
+                    all ? describeMacro(all[i] ?? [], keyName) : '',
+                ]),
+            ),
+        [names, all],
     )
 
-    const [recording, setRecording] = useState(false)
-    useKeyboardRecorder(recording, editable, opened, setActions)
+    if (!api || count === 0) return null
 
-    const handleSetIdx = (n: number): void => {
-        setRecording(false)
-        setIdx(n)
-    }
+    const items: MacroListItem[] = names.map((name, i) => ({
+        name,
+        summary: summaries.get(name) ?? '',
+        used: usedOn(keymap, api.macroRef?.(i)),
+    }))
+    const saved = all?.[idx]
+    const steps = edits[idx] ?? saved
+    const writable = !api.readonly && !!api.setMacro
+    const dirty =
+        edits[idx] !== undefined &&
+        JSON.stringify(edits[idx]) !== JSON.stringify(saved)
 
-    if (count === 0) return null
+    const dropEdit = (): void =>
+        setEdits((prev) => {
+            const next = { ...prev }
+            delete next[idx]
+            return next
+        })
 
-    const update = (i: number, a: MacroAction): void => {
-        if (!actions) return
-        const next = actions.slice()
-        next[i] = a
-        setActions(next)
-    }
-
-    const remove = (i: number): void =>
-        setActions((prev) => (prev ? prev.filter((_, k) => k !== i) : prev))
-
-    const move = (i: number, delta: number): void => {
-        if (!actions) return
-        const j = i + delta
-        if (j < 0 || j >= actions.length) return
-        const next = actions.slice()
-        const [item] = next.splice(i, 1)
-        next.splice(j, 0, item)
-        setActions(next)
-    }
-
-    const add = (): void =>
-        setActions((prev) => [...(prev ?? []), { kind: 'tap', keycode: 0 }])
-
-    const save = (): Promise<void> =>
-        saveWithToast(
+    const save = async (): Promise<void> => {
+        const draft = edits[idx]
+        const setMacro = api.setMacro
+        if (!draft || !setMacro) return
+        const ok = await saveWithToast(
             async () => {
-                if (!actions || !service.macros?.setMacro) return
-                await service.macros.setMacro(idx, actions)
+                await setMacro(idx, draft)
+                return true
             },
-            `Macro #${idx} saved`,
+            `${names[idx]} saved`,
             'Failed to save macro',
         )
+        if (!ok) return
+        setAll((prev) => prev && prev.map((m, i) => (i === idx ? draft : m)))
+        dropEdit()
+    }
 
     return (
-        <div className="space-y-3">
-            {!editable && (
-                <div className="rounded border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
-                    This firmware doesn’t support editing macros from Remappr —
-                    macros are defined at build time. Showing them read-only.
-                </div>
-            )}
-            <IndexInput
-                label="Macro"
-                value={idx}
-                count={count}
-                onChange={handleSetIdx}
+        <div className="-m-4 grid h-[40vh] min-h-80 grid-cols-[15rem_minmax(0,1fr)_19rem]">
+            <MacroList
+                items={items}
+                selected={idx}
+                usedCount={all ? all.filter((m) => m.length > 0).length : count}
+                onSelect={setIdx}
             />
-            {loading && (
-                <p className="text-xs text-muted-foreground">Loading…</p>
-            )}
-            {actions && (
-                <div className="space-y-2">
-                    {actions.map((a, i) => (
-                        <MacroActionRow
-                            key={i}
-                            action={a}
-                            onChange={(na) => update(i, na)}
-                            onRemove={() => remove(i)}
-                            onMoveUp={() => move(i, -1)}
-                            onMoveDown={() => move(i, 1)}
-                            readOnly={!editable}
-                        />
-                    ))}
-                    {actions.length === 0 && (
-                        <p className="text-xs text-muted-foreground italic">
-                            {editable
-                                ? 'Empty macro. Add actions below.'
-                                : 'Empty macro.'}
-                        </p>
-                    )}
-                </div>
-            )}
-            {editable && (
-                <div className="flex items-center gap-2">
-                    <Button onClick={add} size="sm" variant="outline">
-                        <Plus className="h-3 w-3 mr-1" /> Add action
-                    </Button>
-                    <Button
-                        onClick={() => setRecording((r) => !r)}
-                        size="sm"
-                        variant={recording ? 'destructive' : 'outline'}
-                        disabled={!actions}
-                    >
-                        <Circle
-                            className={`h-3 w-3 mr-1 ${recording ? 'fill-current animate-pulse' : ''}`}
-                        />
-                        {recording ? 'Stop' : 'Record'}
-                    </Button>
-                    {recording && (
-                        <span className="text-xs text-muted-foreground">
-                            Press keys to capture…
-                        </span>
-                    )}
-                    <DockActions>
-                        <Button onClick={save} size="sm" disabled={!actions}>
-                            Save
-                        </Button>
-                    </DockActions>
-                </div>
+            {steps ? (
+                <MacroEditor
+                    key={idx}
+                    name={names[idx]}
+                    description={api.description?.(idx)}
+                    used={items[idx].used}
+                    steps={steps}
+                    setSteps={(update) =>
+                        setEdits((prev) => ({
+                            ...prev,
+                            [idx]: update(prev[idx] ?? saved ?? []),
+                        }))
+                    }
+                    writable={writable}
+                    blocked={api.editBlockedReason?.(idx) ?? null}
+                    kinds={api.actionKinds ?? BASIC_MACRO_KINDS}
+                    choices={{
+                        allowed:
+                            api.callTargets?.(idx) ??
+                            names.filter((_, i) => i !== idx),
+                        excluded: api.excludedCallTargets?.(idx) ?? [
+                            { macro: names[idx], reason: 'is this macro.' },
+                        ],
+                        summaries,
+                    }}
+                    dirty={dirty}
+                    onSave={() => void save()}
+                    onDiscard={dropEdit}
+                />
+            ) : (
+                <p className="col-span-2 p-5 text-sm text-muted-foreground">
+                    Loading…
+                </p>
             )}
         </div>
     )
