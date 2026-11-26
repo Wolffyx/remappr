@@ -5,6 +5,7 @@ import type {
     SensorSettingInfo,
     SensorSettingValue,
 } from '@firmware/devices/types'
+import { MATRIX_SETTINGS } from '@firmware/config/compilers/remappr/matrix'
 
 /** The values the user holds per part index, by setting name. A setting left
  *  out is at its default. */
@@ -19,9 +20,15 @@ export interface SettingChange {
     readonly value: SensorSettingValue
 }
 
-/** Settings a user can set as part settings (not a personality's own). */
+/** The matrix settings the config holds (scan period, press and release
+ *  debounce). Timing and defaults edits them and the commit writes them as
+ *  TBL_PART entries, so a live write here would be undone by the next save. */
+const CONFIG_HELD: ReadonlySet<string> = new Set(Object.values(MATRIX_SETTINGS))
+
+/** Settings a user can set here as live part settings: not a personality's
+ *  own, and not one the config holds. */
 const settable = (p: SensorInfo): readonly SensorSettingInfo[] =>
-    p.settings.filter((s) => !s.personality)
+    p.settings.filter((s) => !s.personality && !CONFIG_HELD.has(s.name))
 
 /** The device's key-matrix parts, each with only its settable settings; a
  *  matrix that describes none is left out. */

@@ -7,7 +7,7 @@
 //   • Per-key RGB      — select key(s) on the board, then colour them
 //   • Mix RGB          — 2-zone timeline (placeholder, not yet implemented)
 //   • Underglow        — RGB underglow / ZMK (placeholder)
-//   • Indicator Light  — caps/layer indicators (placeholder)
+//   • Indicator lights — caps/layer indicators (placeholder)
 //   • Advanced         — raw Mix-region + Indicator byte editors (power users)
 import { Lightbulb, Save } from 'lucide-react'
 
@@ -100,7 +100,7 @@ export function RgbSheet({
                     <IndicatorPanel rgb={rgb} />
                 ) : (
                     <ComingSoon
-                        title="Indicator Light"
+                        title="Indicator lights"
                         note={
                             rgb
                                 ? "This keyboard's firmware doesn't expose its indicator lights."

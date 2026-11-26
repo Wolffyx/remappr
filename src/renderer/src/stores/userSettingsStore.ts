@@ -49,9 +49,12 @@ export const DEFAULT_PINNED_TOOLS = ['heatmap', 'live', 'dynamic', 'lighting']
 const DEFAULT_FIRMWARE_KEY = '_default'
 
 // pattern-check: skip — additive optional fields on existing settings interface
+/** Which builder packages this device takes: stable only, or betas too. */
+export type BuilderChannel = 'stable' | 'beta'
+
 interface UserSettingsState {
-    theme: 'dark' | 'light'
     autosave: boolean
+    builderChannel: BuilderChannel
     autoLoadLayout: boolean
     /** When on, a wiped-but-known keyboard is silently restored from its backup
      *  on reconnect instead of prompting. See profileBackupStore / restoreProfile. */
@@ -100,8 +103,8 @@ interface UserSettingsState {
     setLayerList: (style: LayerListStyle) => void
     togglePinnedDevice: (key: string) => void
     markDeviceUsed: (key: string) => void
-    setTheme: (theme: 'dark' | 'light') => void
     setAutosave: (enabled: boolean) => void
+    setBuilderChannel: (channel: BuilderChannel) => void
     setAutoLoadLayout: (enabled: boolean) => void
     setAutoRestoreProfile: (enabled: boolean) => void
     setAutoConnectDeviceId: (id: string | null) => void
@@ -117,8 +120,8 @@ const useUserSettingsStore = create<UserSettingsState>()(
     devtools(
         persist(
             (set, get) => ({
-                theme: 'light',
                 autosave: false,
+                builderChannel: 'stable',
                 autoLoadLayout: false,
                 autoRestoreProfile: false,
                 autoConnectDeviceId: null,
@@ -176,8 +179,8 @@ const useUserSettingsStore = create<UserSettingsState>()(
                             ...s.recentDevices.filter((k) => k !== key),
                         ].slice(0, RECENT_DEVICES_MAX),
                     })),
-                setTheme: (theme) => set({ theme }),
                 setAutosave: (enabled) => set({ autosave: enabled }),
+                setBuilderChannel: (builderChannel) => set({ builderChannel }),
                 setAutoLoadLayout: (enabled) =>
                     set({ autoLoadLayout: enabled }),
                 setAutoRestoreProfile: (enabled) =>

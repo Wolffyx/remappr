@@ -14,7 +14,7 @@ import { KeycodePickerGrid } from '@/features/keymap/keycode-picker/KeycodePicke
 import { Button } from '@/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/popover'
 
-import { packedToRaw, rawToPacked } from './rawKeycode'
+import { packedToRaw, rawToPacked } from './hidUsage'
 
 export function KeycodeField({
     value,

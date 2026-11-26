@@ -7,12 +7,7 @@ import {
     STOCK_MOUSE,
 } from '@firmware/devices/stockLayouts'
 import type { DeviceModel } from '@firmware/devices/types'
-import {
-    calloutAnchors,
-    CALLOUT_H,
-    layoutCallouts,
-    stackCallouts,
-} from './callouts'
+import { CALLOUT_H, routeCallouts, stackCallouts } from './callouts'
 import {
     CALL_GAP,
     CALL_M,
@@ -99,7 +94,7 @@ describe('computeLayout', () => {
 
     it('puts keys on no side list (keys are labelled on the cap)', () => {
         const kb = defaultLayout('keyboard', 'K', { rows: 1, cols: 3 })
-        expect(calloutAnchors(kb, computeLayout(kb))).toEqual([])
+        expect(routeCallouts(kb, computeLayout(kb))).toEqual({})
     })
 })
 
@@ -133,8 +128,8 @@ describe('callouts', () => {
     it('lays out both sides independently', () => {
         const m = model(STOCK_MOUSE)
         const L = computeLayout(m)
-        const ys = layoutCallouts(calloutAnchors(m, L), L.H)
-        expect(Object.keys(ys).sort()).toEqual(
+        const routes = routeCallouts(m, L)
+        expect(Object.keys(routes).sort()).toEqual(
             ['back', 'dpi', 'fwd', 'lmb', 'rmb', 'sensor', 'wheel'].sort(),
         )
     })

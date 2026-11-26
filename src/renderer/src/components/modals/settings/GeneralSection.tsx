@@ -4,7 +4,7 @@
 //
 // General settings, matched to the design prototype's SettingsDialog "General"
 // pane: an Appearance group (8-theme swatch grid + segmented
-// light/dark/system) and a Keymap Display group (key header + colour-coding).
+// light/dark/system) and a Keymap display group (key header + colour-coding).
 import { Segmented } from '@/ui/segmented'
 import { KeyDisplayModePicker } from '@/components/KeyDisplayModePicker'
 import { ColorCodingPicker } from '@/components/ColorCodingPicker'
@@ -105,7 +105,7 @@ export function GeneralSection(): JSX.Element {
                         })}
                     </div>
                 </div>
-                <Row label="Dark Mode" desc="Light, dark, or follow the system">
+                <Row label="Dark mode" desc="Light, dark, or follow the system">
                     <Segmented
                         value={theme}
                         options={DARK_MODES}
@@ -116,10 +116,10 @@ export function GeneralSection(): JSX.Element {
 
             <div>
                 <h3 className="mb-1 text-lg font-bold tracking-tight">
-                    Keymap Display
+                    Keymap display
                 </h3>
                 <Row
-                    label="Key Header"
+                    label="Key header"
                     desc="Show the action name (Key Press) or binding code (&kp)"
                 >
                     <KeyDisplayModePicker />

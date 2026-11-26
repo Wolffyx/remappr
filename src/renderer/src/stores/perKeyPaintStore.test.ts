@@ -18,14 +18,6 @@ describe('perKeyPaintStore', () => {
         expect(s().colors[3]).toEqual({ h: 100, s: 200, v: 255 })
     })
 
-    it('eyedrop loads a key colour into the brush', () => {
-        s().setBrush({ h: 10, s: 20, v: 30 })
-        s().paint(1)
-        s().setBrush({ h: 0, s: 0, v: 0 })
-        s().eyedrop(1)
-        expect(s().brush).toEqual({ h: 10, s: 20, v: 30 })
-    })
-
     it('fillAll paints every given index', () => {
         s().setBrush({ h: 50, s: 60, v: 70 })
         s().fillAll([0, 1, 2])

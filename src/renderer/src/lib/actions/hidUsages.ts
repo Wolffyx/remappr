@@ -48,6 +48,10 @@ export const hidUsagePageAndIdFromUsage = (usage: number): [number, number] => [
     usage & 0xffff,
 ]
 
+// The Button page (mouse buttons in a mouse macro) has no names in the tables
+// above; name its usages the way the key catalog does ("Mouse button 1").
+const HID_PAGE_BUTTON = 0x09
+
 export const hid_usage_get_labels = (
     usage_page: number,
     usage_id: number,
@@ -56,9 +60,10 @@ export const hid_usage_get_labels = (
     med?: string
     long?: string
 } =>
-    overrides[usage_page.toString()]?.[usage_id.toString()] || {
-        short: usageNamesByPage.get(usage_page)?.get(usage_id),
-    }
+    overrides[usage_page.toString()]?.[usage_id.toString()] ||
+    (usage_page === HID_PAGE_BUTTON
+        ? { short: `MS B${usage_id}`, long: `Mouse button ${usage_id}` }
+        : { short: usageNamesByPage.get(usage_page)?.get(usage_id) })
 
 /**
  * Full, human-readable label for a HID usage (e.g. "ErrorUndefined", "Volume

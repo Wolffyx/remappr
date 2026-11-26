@@ -7,6 +7,7 @@ import { SidebarGroupLabel, SidebarMenu } from '@/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import { useLayerActions } from '@/hooks/use-layer-actions'
 import { useIndexShortcuts } from '@/features/sidebar/useIndexShortcuts'
+import { useFeatureAvailable } from '@/features/firmware/useFeatureAvailable'
 import { useLayerDragReorder } from '@/hooks/use-layer-drag-reorder'
 
 import { LayerListItem } from './LayerListItem'
@@ -15,9 +16,6 @@ interface Layer {
     id: number
     name?: string
 }
-
-export type LayerClickCallback = (index: number) => void
-export type LayerMovedCallback = (index: number, destination: number) => void
 
 // Pattern check: no GoF pattern (-) — rejected — header search toggle, scroll mode and ⌥ shortcuts added to the existing picker; small hook beside it.
 interface LayerPickerProps {
@@ -29,10 +27,8 @@ interface LayerPickerProps {
     editable?: boolean
     /** The list scrolls in the space left (the sidebar's scrolling style). */
     scroll?: boolean
-    onLayerClicked?: LayerClickCallback
     setKeymap?: (updater: (draft: Keymap) => void) => void
     keymap?: Keymap
-    setSelectedKey?: (key: number | undefined) => void
 }
 
 export const LayerPicker = ({
@@ -41,7 +37,6 @@ export const LayerPicker = ({
     canRemove,
     editable = true,
     scroll = false,
-    onLayerClicked,
     setKeymap,
     keymap,
 }: LayerPickerProps): JSX.Element => {
@@ -57,6 +52,12 @@ export const LayerPicker = ({
     } = useLayerActions({ keymap, setKeymap })
     const { dragSourceIndex, dragOverIndex, handlersFor, move } =
         useLayerDragReorder({ setKeymap })
+    // Each layer edit only where the firmware declares it: QMK/Vial keep a
+    // fixed, unnamed layer set in a fixed order.
+    const canRename = useFeatureAvailable('rename')
+    const canReorder = useFeatureAvailable('reorderLayers') && editable
+    const variableCount = useFeatureAvailable('variableLayerCount')
+    const addable = !!canAdd && variableCount
     const [query, setQuery] = useState<string | null>(null)
     const searchOpen = query !== null
     const searchRef = useRef<HTMLInputElement>(null)
@@ -71,9 +72,8 @@ export const LayerPicker = ({
                 name: l.name || i.toLocaleString(),
                 id: l.id,
                 index: i,
-                selected: i === selectedLayerIndex,
             })),
-        [layers, selectedLayerIndex],
+        [layers],
     )
 
     const names = useMemo(() => layersArray.map((l) => l.name), [layersArray])
@@ -129,22 +129,24 @@ export const LayerPicker = ({
                 >
                     <Search className="size-3.5" />
                 </button>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            type="button"
-                            onClick={add}
-                            disabled={!canAdd}
-                            aria-label="Add layer"
-                            className="grid size-[22px] place-items-center rounded-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground disabled:opacity-40"
-                        >
-                            <Plus className="size-4" />
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Add layer</p>
-                    </TooltipContent>
-                </Tooltip>
+                {variableCount && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                type="button"
+                                onClick={add}
+                                disabled={!addable}
+                                aria-label="Add layer"
+                                className="grid size-[22px] place-items-center rounded-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground disabled:opacity-40"
+                            >
+                                <Plus className="size-4" />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Add layer</p>
+                        </TooltipContent>
+                    </Tooltip>
+                )}
             </div>
             {query !== null && (
                 <label className="mx-0.5 mb-1.5 flex h-[30px] items-center gap-1.5 rounded-md border border-primary/45 bg-background px-2 text-muted-foreground">
@@ -193,30 +195,28 @@ export const LayerPicker = ({
                         names={names}
                         canRemove={canRemove}
                         editable={editable}
+                        canRename={canRename}
                         dragHandlers={
-                            editable && !needle
+                            canReorder && !needle
                                 ? handlersFor(item.index)
                                 : undefined
                         }
                         isDragSource={dragSourceIndex === item.index}
                         isDragOver={dragOverIndex === item.index}
-                        onSelect={(idx) => {
-                            selectionChanged(idx)
-                            onLayerClicked?.(idx)
-                        }}
-                        onRemove={remove}
-                        onDuplicate={duplicate}
-                        onMove={move}
+                        onSelect={selectionChanged}
+                        onRemove={variableCount ? remove : undefined}
+                        onDuplicate={addable ? duplicate : undefined}
+                        onMove={canReorder ? move : undefined}
                         onCopyFrom={copyKeysFrom}
                         onSaveNewLabel={handleSaveNewLabel}
                     />
                 ))}
             </SidebarMenu>
-            {!scroll && (
+            {!scroll && variableCount && (
                 <button
                     type="button"
                     onClick={add}
-                    disabled={!canAdd}
+                    disabled={!addable}
                     className="mt-1 flex w-full items-center gap-2 rounded-md border border-dashed border-sidebar-border px-2.5 py-2 text-panel-title font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:cursor-default disabled:opacity-40 disabled:hover:border-sidebar-border disabled:hover:text-muted-foreground"
                 >
                     <Plus className="size-4" /> Add layer

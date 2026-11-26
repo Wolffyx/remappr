@@ -30,6 +30,14 @@ export interface BundleFile {
     content: string
 }
 
+/** The branch moved since the commit a push was built on: pull first. */
+export class RemoteMovedError extends Error {
+    constructor(readonly head: string) {
+        super('The branch changed on GitHub since the last sync.')
+        this.name = 'RemoteMovedError'
+    }
+}
+
 export interface WorkflowRun {
     id: number
     status: string // queued | in_progress | completed
@@ -57,6 +65,8 @@ export interface GithubBuildClient {
         branch: string,
         files: BundleFile[],
         message: string,
+        /** Commit only on top of this commit; RemoteMovedError otherwise. */
+        parent?: string,
     ): Promise<{ commitSha: string }>
     /** Latest workflow run, optionally scoped to a specific pushed commit
      *  (`headSha`) so polling never latches onto a stale prior run. */
@@ -124,6 +134,9 @@ export function createGithubBuildClient(
                 ? { ...headers, 'Content-Type': 'application/json' }
                 : headers,
             body: body ? JSON.stringify(body) : undefined,
+            // GitHub lets browsers cache GETs for 60 s: a branch ref read
+            // from the cache is a stale parent for the next commit.
+            cache: 'no-store',
         })
         if (!res.ok) {
             const detail = await res.text().catch(() => '')
@@ -141,6 +154,7 @@ export function createGithubBuildClient(
         const { login } = await getUser()
         const res = await fetchImpl(`${API}/repos/${seg(login)}/${seg(name)}`, {
             headers,
+            cache: 'no-store',
         })
         if (res.ok) {
             const repo = (await res.json()) as { default_branch: string }
@@ -172,12 +186,14 @@ export function createGithubBuildClient(
         branch,
         files,
         message,
+        parent,
     ) => {
         const ref = await req<{ object: { sha: string } }>(
             'GET',
             `/repos/${seg(owner)}/${seg(repo)}/git/ref/heads/${refPath(branch)}`,
         )
         const baseSha = ref.object.sha
+        if (parent && baseSha !== parent) throw new RemoteMovedError(baseSha)
         const baseCommit = await req<{ tree: { sha: string } }>(
             'GET',
             `/repos/${seg(owner)}/${seg(repo)}/git/commits/${seg(baseSha)}`,
@@ -200,11 +216,17 @@ export function createGithubBuildClient(
             `/repos/${seg(owner)}/${seg(repo)}/git/commits`,
             { message, tree: tree.sha, parents: [baseSha] },
         )
+        // Not forced: a commit that landed meanwhile makes this a 422, never
+        // a lost commit.
         await req(
             'PATCH',
             `/repos/${seg(owner)}/${seg(repo)}/git/refs/heads/${refPath(branch)}`,
-            { sha: commit.sha },
-        )
+            { sha: commit.sha, force: false },
+        ).catch((e: unknown) => {
+            if (parent && /→ 422/.test(String(e)))
+                throw new RemoteMovedError(baseSha)
+            throw e
+        })
         return { commitSha: commit.sha }
     }
 

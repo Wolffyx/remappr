@@ -46,6 +46,12 @@ interface HidLike {
 
     write(data: number[]): number
 
+    /** `data[0]` is the report id. */
+    sendFeatureReport(data: number[]): number
+
+    /** Answers the report id followed by the payload. */
+    getFeatureReport(reportId: number, length: number): number[]
+
     close(): void
 }
 
@@ -269,6 +275,53 @@ export async function writeHid(data: Uint8Array): Promise<void> {
     activeConnection.device.write(wire)
 }
 
+// pattern-check: skip — two thin node-hid calls beside writeHid, no abstraction.
+const MAX_FEATURE_PAYLOAD = 4096
+
+function activeDevice(): HidLike {
+    if (!activeConnection) throw new Error('No active HID connection')
+    return activeConnection.device
+}
+
+function validReportId(reportId: number): number {
+    if (!Number.isInteger(reportId) || reportId < 0 || reportId > 255) {
+        throw new Error('Invalid HID report id')
+    }
+    return reportId
+}
+
+/** Send feature report `reportId` with `payload` (the id is added here). */
+export async function sendHidFeature(
+    reportId: number,
+    payload: Uint8Array,
+): Promise<void> {
+    if (payload.length > MAX_FEATURE_PAYLOAD) {
+        throw new Error('HID feature report too long')
+    }
+    activeDevice().sendFeatureReport([validReportId(reportId), ...payload])
+}
+
+// pattern-check: skip — bug fix inside the node-hid feature read: strip the id unconditionally.
+/** Read `length` payload bytes of feature report `reportId`. hidapi always
+ *  answers with the report id in front; it is stripped here. */
+export async function getHidFeature(
+    reportId: number,
+    length: number,
+): Promise<Uint8Array> {
+    if (
+        !Number.isInteger(length) ||
+        length < 1 ||
+        length > MAX_FEATURE_PAYLOAD
+    ) {
+        throw new Error('Invalid HID feature report length')
+    }
+    const got = activeDevice().getFeatureReport(
+        validReportId(reportId),
+        length + 1,
+    )
+    return Uint8Array.from(got.slice(1, 1 + length))
+}
+
 function closeQuietly(device: HidLike): void {
     try {
         device.close()
@@ -284,6 +337,7 @@ export async function disconnectHidDevice(): Promise<void> {
     closeQuietly(device)
 }
 
+/** Whether a node-hid handle is open (the error and close paths reset it). */
 export function hasActiveHidConnection(): boolean {
     return activeConnection !== null
 }

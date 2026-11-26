@@ -4,7 +4,6 @@ import { glyphNode } from './keyGlyph'
 // pattern-check: skip — additive optional render flag on existing props interface
 export interface HidUsageLabelProps {
     hid_usage: number
-    header?: string
     /** Suppress the inline modifier line (e.g. "CS") — used when the cap renders
      *  the chord modifiers as chips instead (KeyButton `mods`). */
     hideMods?: boolean

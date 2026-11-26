@@ -294,6 +294,7 @@ export function DeviceCard({
                             <MiniKeyboardPreview
                                 keys={preview.keys}
                                 encoders={preview.encoders}
+                                sliders={preview.sliders}
                                 oneU={20}
                             />
                         </div>

@@ -104,3 +104,17 @@ describe('WebHID transport (L4.6)', () => {
         expect(keyboard.closed).toBe(closes)
     })
 })
+
+describe('featurePayload', () => {
+    it('strips the report id Chrome puts in front', async () => {
+        const { featurePayload } = await import('./web-hid')
+        const view = new DataView(Uint8Array.from([0x11, 1, 2, 3]).buffer)
+        expect(Array.from(featurePayload(view, 0x11, 3))).toEqual([1, 2, 3])
+    })
+
+    it('keeps a payload that came without its id', async () => {
+        const { featurePayload } = await import('./web-hid')
+        const view = new DataView(Uint8Array.from([0x11, 1, 2]).buffer)
+        expect(Array.from(featurePayload(view, 0x11, 3))).toEqual([0x11, 1, 2])
+    })
+})

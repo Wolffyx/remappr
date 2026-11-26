@@ -59,10 +59,17 @@ describe('matrixParts', () => {
         ]
         const found = matrixParts(parts)
         expect(found.map((p) => p.index)).toEqual([1])
-        expect(found[0].settings.map((s) => s.name)).toEqual([
-            'scanPeriodMs',
-            'eagerPress',
-        ])
+        // scanPeriodMs is the config's: Timing and defaults edits it.
+        expect(found[0].settings.map((s) => s.name)).toEqual(['eagerPress'])
+    })
+
+    it('leaves the settings the config holds to Timing and defaults', () => {
+        const held = ['scanPeriodMs', 'debouncePressMs', 'debounceReleaseMs']
+        expect(
+            matrixParts([
+                part({ settings: held.map((name) => setting({ name })) }),
+            ]),
+        ).toEqual([])
     })
 
     it('leaves out a matrix that describes no settings', () => {

@@ -110,7 +110,7 @@ export function UnicodeInputModal({ opened, onClose }: Props): JSX.Element {
             kind="live"
             opened={opened}
             onClose={onClose}
-            title="Unicode Input"
+            title="Unicode input"
             subtitle="How &unicode bindings type a codepoint"
             headerIcon={<Languages />}
         >

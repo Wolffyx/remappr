@@ -236,7 +236,7 @@ export function DongleLanding(): JSX.Element {
         }
     }, [nodesApi, confirm, relist])
 
-    const dongleName = service?.deviceInfo.name?.trim() || 'Remappr Dongle'
+    const dongleName = service?.deviceInfo.name?.trim() || 'Wireless receiver'
     const connLabel = communication === 'ble' ? 'BLE' : 'USB'
 
     return (
@@ -379,11 +379,11 @@ export function DongleLanding(): JSX.Element {
                                                         <Badge
                                                             size="sm"
                                                             tone="warning"
-                                                            title="Coordinator: merges the other parts of this keyboard and talks to the host"
+                                                            title="Main node, chosen automatically"
                                                             className="shrink-0"
                                                         >
                                                             <Crown />
-                                                            Coordinator
+                                                            Main node
                                                         </Badge>
                                                     )}
                                                     {n.battery && (

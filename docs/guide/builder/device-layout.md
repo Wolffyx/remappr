@@ -12,7 +12,17 @@ generic layout.
 Open the Builder from the Start Page. Below the keyboard starts, the start
 dialog has **Or design a device**: **Mouse**, **Gamepad** or **Flight stick**.
 Each starts from a stock layout of that form, named _"My mouse"_, _"My
-gamepad"_ or _"My flight stick"_.
+gamepad"_ or _"My flight stick"_, and the dialog carries on through the same
+five steps as a keyboard: **Firmware** (the targets that build this device),
+**Features** (the same [feature cards](/guide/builder/identity-and-hardware#feature-cards)
+as a keyboard, the ones that suit this kind of device marked **Suggested**),
+**Controller & pins** (the board, and the keyboard's
+[Pins panel](/guide/builder/layout#pins) with a pin per control: one per button,
+two per wheel, an analog pin per stick axis or trigger, chip select and motion
+for the sensor on SPI, a battery pin when the board can't read the battery
+itself) and **Check**. Afterwards the same panel sits in the **Controller &
+pins** group, the firmware's own settings (pointer, power, radio) in
+**Firmware**.
 
 The header reads **Builder** with the form and the number of controls, e.g.
 _"Gamepad layout · 16 controls"_.
@@ -30,13 +40,35 @@ _"Gamepad layout · 16 controls"_.
 
 Controls are placed in key units (1U = 19.05 mm), like keyboard keys.
 
-| Do                   | To                                      |
-| -------------------- | --------------------------------------- |
-| **Drag** a control   | Move it on the ¼U grid.                 |
-| **Alt**-drag (**⌥**) | Place it freely, off the grid.          |
-| **Arrow keys**       | Nudge it ¼U. **Shift**+arrow nudges 1U. |
-| **Delete**           | Remove it (new designs only).           |
-| **Esc**              | Deselect.                               |
+| Do                   | To                                         |
+| -------------------- | ------------------------------------------ |
+| **Drag** a control   | Move it on the ¼U grid.                    |
+| **Alt**-drag (**⌥**) | Place it freely, off the grid.             |
+| **Arrow keys**       | Nudge it ¼U. **Shift**+arrow nudges 1U.    |
+| **Delete**           | Remove it (new designs only).              |
+| **R** / **Shift+R**  | Turn it 15° / back.                        |
+| **M**                | Mirror it to the other side (new designs). |
+| **Ctrl/⌘ + D**       | Copy it (new designs).                     |
+| **Esc**              | Deselect.                                  |
+
+### Toolbar, steps and search
+
+Like a keyboard, a selected control gets the
+[selection toolbar](/guide/builder/overview#selection-toolbar) under it:
+**Mirror to right side** / **left side** (a copy on the other side of the
+device's centre line, rotation mirrored — greyed out when a control already sits
+there or it is on the line), **Rotate** and **Duplicate**. Copies are named
+_"… copy"_ and lose the printed marking. Re-drawing a connected device offers
+only **Rotate**.
+
+The [steps bar](/guide/builder/overview#steps-bar) reads **1 Layout › 2
+Firmware › 3 Editor** (**3 Apply** when re-drawing): Layout flags controls that
+cover most of another one shown with them, Firmware asks for a target, and the
+last step opens the editor or applies the drawing.
+
+**/** or the search field finds controls to add, the **Device** and
+**Firmware** settings (each firmware target as a switch), the toolbar's actions
+and the selected control's edits, and every control by name.
 
 ### The Layout panel
 
@@ -67,6 +99,16 @@ Select a control to edit it:
 - **Callout**: which side its callout goes in the device editor (**Auto**,
   **Left**, **Right**), and its **Name**.
 - **Remove control** (new designs only).
+
+### Layout variants
+
+A new design can have more than one layout — say a gamepad with or without
+back paddles — in the same **LAYOUT · All · + Variant** bar as a keyboard's.
+**+ Variant** adds one, picking it dims the controls that belong to the
+others and fits the body to the ones left, and a control's **Layout variant**
+(**Place** tab) tags it into one; the default is **Common (all variants)**.
+The first variant is the device's default (`layouts` and each control's
+`variant` in the layout JSON).
 
 ## Re-drawing a device
 

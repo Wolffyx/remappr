@@ -4,7 +4,7 @@
 // shape, zone and callout, or — with nothing selected — the shell and the
 // controls you can add.
 import { useState, type JSX } from 'react'
-import { Code, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { CONTROL_KINDS, CONTROL_SHAPES } from '@firmware/devices/schema'
 import { SHELL_ZONES } from '@firmware/devices/stockLayouts'
 import type {
@@ -13,6 +13,7 @@ import type {
     DeviceModel,
     ShellType,
 } from '@firmware/devices/types'
+import { AppSelect } from '@/ui/app-select'
 import { Button } from '@/ui/button'
 import { Segmented } from '@/ui/segmented'
 import { RangeRow } from '@/components/RangeRow'
@@ -101,141 +102,184 @@ export function GeometryPanel({
     control: c,
     onPatch,
     onRemove,
+    part = 'all',
 }: {
     model: DeviceModel
     control: DeviceControl
     onPatch: (patch: ControlPatch) => void
     /** Absent when the device's inputs are fixed (re-drawing a device). */
     onRemove?: () => void
+    /** 'place' = position, rotation, shell; 'look' = shape, callout, name and
+     *  remove (the builder's inspector tabs); 'all' = every section. */
+    part?: 'all' | 'place' | 'look'
 }): JSX.Element {
     const zones = SHELL_ZONES[model.shell.type]
+    const place = part !== 'look'
+    const look = part !== 'place'
     return (
         <>
-            <InSection
-                label="Position (U)"
-                right={
-                    <span className="text-caption text-muted-foreground">
-                        drag · ⌥ for free
-                    </span>
-                }
-            >
-                <div className="grid grid-cols-2 gap-2.5">
-                    <NumField
-                        label="X"
-                        value={c.x}
-                        onChange={(x) => onPatch({ x })}
-                    />
-                    <NumField
-                        label="Y"
-                        value={c.y}
-                        onChange={(y) => onPatch({ y })}
-                    />
-                    <NumField
-                        label="Width"
-                        value={c.w}
-                        onChange={(w) => onPatch({ w: Math.max(0.25, w) })}
-                    />
-                    <NumField
-                        label="Height"
-                        value={c.h}
-                        onChange={(h) => onPatch({ h: Math.max(0.25, h) })}
-                    />
-                </div>
-                <div className="mt-2.5 flex flex-wrap gap-[5px]">
-                    {SIZE_PRESETS.map(([w, h]) => (
-                        <button
-                            key={`${w}x${h}`}
-                            type="button"
-                            onClick={() => onPatch({ w, h })}
-                            className={cn(
-                                'rounded-md border border-border px-2 py-1 font-mono text-caption font-semibold',
-                                c.w === w && c.h === h
-                                    ? 'bg-[color-mix(in_oklab,var(--primary)_18%,var(--secondary))] text-foreground'
-                                    : 'text-muted-foreground',
-                            )}
-                        >
-                            {w}×{h}
-                        </button>
-                    ))}
-                </div>
-            </InSection>
-            <InSection label="Rotation">
-                <div className="grid grid-cols-[1fr_auto] items-end gap-2.5">
-                    <NumField
-                        label="Angle"
-                        unit="°"
-                        step={5}
-                        value={c.r ?? 0}
-                        onChange={(r) => onPatch({ r: r || undefined })}
-                    />
-                    <Button
-                        variant="secondary"
-                        onClick={() => onPatch({ r: undefined })}
+            {place && (
+                <>
+                    {model.layouts?.length ? (
+                        <InSection label="Layout variant">
+                            <AppSelect
+                                aria-label="Layout variant"
+                                value={c.variant ?? ''}
+                                onChange={(e) =>
+                                    onPatch({
+                                        variant: e.target.value || undefined,
+                                    })
+                                }
+                                className="w-full rounded-lg border border-input bg-background px-2.5 py-2 text-panel-title font-semibold text-foreground outline-none focus:border-primary"
+                            >
+                                <option value="">Common (all variants)</option>
+                                {model.layouts.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.name}
+                                    </option>
+                                ))}
+                            </AppSelect>
+                        </InSection>
+                    ) : null}
+                    <InSection
+                        label="Position (U)"
+                        right={
+                            <span className="text-caption text-muted-foreground">
+                                drag · ⌥ for free
+                            </span>
+                        }
                     >
-                        Reset
-                    </Button>
-                </div>
-            </InSection>
-            <InSection label="Shape">
-                <Chips
-                    options={CONTROL_SHAPES}
-                    labels={SHAPE_LABEL}
-                    value={c.shape}
-                    onChange={(shape) => onPatch({ shape })}
-                />
-            </InSection>
-            <InSection label="Shell">
-                <p className="mb-2 text-xs leading-normal text-muted-foreground">
-                    Which part of the body this control sits on. The shell
-                    refits around its zone.
-                </p>
-                <Chips
-                    options={zones}
-                    value={c.zone ?? zones[0]!}
-                    onChange={(zone) =>
-                        onPatch({ zone: zone === 'body' ? undefined : zone })
-                    }
-                />
-                <SwitchRow
-                    label="On the edge / back"
-                    hint="Drawn outside the shell fit — side buttons, paddles"
-                    checked={!!c.edge}
-                    onChange={(edge) =>
-                        onPatch({
-                            edge: edge || undefined,
-                            back:
-                                edge && model.shell.type === 'gamepad'
-                                    ? true
-                                    : undefined,
-                        })
-                    }
-                />
-            </InSection>
-            <InSection label="Callout">
-                <div className="[&>div]:flex [&>div]:w-full [&_button]:flex-1">
-                    <Segmented
-                        value={c.label ?? 'auto'}
-                        options={[
-                            { value: 'auto', label: 'Auto side' },
-                            { value: 'L', label: 'Left' },
-                            { value: 'R', label: 'Right' },
-                        ]}
-                        onChange={(v) =>
-                            onPatch({ label: v === 'auto' ? undefined : v })
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <NumField
+                                label="X"
+                                value={c.x}
+                                onChange={(x) => onPatch({ x })}
+                            />
+                            <NumField
+                                label="Y"
+                                value={c.y}
+                                onChange={(y) => onPatch({ y })}
+                            />
+                            <NumField
+                                label="Width"
+                                value={c.w}
+                                onChange={(w) =>
+                                    onPatch({ w: Math.max(0.25, w) })
+                                }
+                            />
+                            <NumField
+                                label="Height"
+                                value={c.h}
+                                onChange={(h) =>
+                                    onPatch({ h: Math.max(0.25, h) })
+                                }
+                            />
+                        </div>
+                        <div className="mt-2.5 flex flex-wrap gap-[5px]">
+                            {SIZE_PRESETS.map(([w, h]) => (
+                                <button
+                                    key={`${w}x${h}`}
+                                    type="button"
+                                    onClick={() => onPatch({ w, h })}
+                                    className={cn(
+                                        'rounded-md border border-border px-2 py-1 font-mono text-caption font-semibold',
+                                        c.w === w && c.h === h
+                                            ? 'bg-[color-mix(in_oklab,var(--primary)_18%,var(--secondary))] text-foreground'
+                                            : 'text-muted-foreground',
+                                    )}
+                                >
+                                    {w}×{h}
+                                </button>
+                            ))}
+                        </div>
+                    </InSection>
+                    <InSection label="Rotation">
+                        <div className="grid grid-cols-[1fr_auto] items-end gap-2.5">
+                            <NumField
+                                label="Angle"
+                                unit="°"
+                                step={5}
+                                value={c.r ?? 0}
+                                onChange={(r) => onPatch({ r: r || undefined })}
+                            />
+                            <Button
+                                variant="secondary"
+                                onClick={() => onPatch({ r: undefined })}
+                            >
+                                Reset
+                            </Button>
+                        </div>
+                    </InSection>
+                </>
+            )}
+            {look && (
+                <InSection label="Shape">
+                    <Chips
+                        options={CONTROL_SHAPES}
+                        labels={SHAPE_LABEL}
+                        value={c.shape}
+                        onChange={(shape) => onPatch({ shape })}
+                    />
+                </InSection>
+            )}
+            {place && (
+                <InSection label="Shell">
+                    <p className="mb-2 text-xs leading-normal text-muted-foreground">
+                        Which part of the body this control sits on. The shell
+                        refits around its zone.
+                    </p>
+                    <Chips
+                        options={zones}
+                        value={c.zone ?? zones[0]!}
+                        onChange={(zone) =>
+                            onPatch({
+                                zone: zone === 'body' ? undefined : zone,
+                            })
                         }
                     />
-                </div>
-                <div className="mt-2.5">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                        Name
-                    </span>
-                    <NameField
-                        value={c.name}
-                        onChange={(name) => onPatch({ name })}
+                    <SwitchRow
+                        label="On the edge / back"
+                        hint="Drawn outside the shell fit — side buttons, paddles"
+                        checked={!!c.edge}
+                        onChange={(edge) =>
+                            onPatch({
+                                edge: edge || undefined,
+                                back:
+                                    edge && model.shell.type === 'gamepad'
+                                        ? true
+                                        : undefined,
+                            })
+                        }
                     />
-                </div>
-            </InSection>
-            {onRemove && (
+                </InSection>
+            )}
+            {look && (
+                <InSection label="Callout">
+                    <div className="[&>div]:flex [&>div]:w-full [&_button]:flex-1">
+                        <Segmented
+                            value={c.label ?? 'auto'}
+                            options={[
+                                { value: 'auto', label: 'Auto side' },
+                                { value: 'L', label: 'Left' },
+                                { value: 'R', label: 'Right' },
+                            ]}
+                            onChange={(v) =>
+                                onPatch({ label: v === 'auto' ? undefined : v })
+                            }
+                        />
+                    </div>
+                    <div className="mt-2.5">
+                        <span className="text-xs font-semibold text-muted-foreground">
+                            Name
+                        </span>
+                        <NameField
+                            value={c.name}
+                            onChange={(name) => onPatch({ name })}
+                        />
+                    </div>
+                </InSection>
+            )}
+            {look && onRemove && (
                 <div className="border-t border-border px-4 pt-3.5 pb-5">
                     <Button
                         variant="secondary"
@@ -291,15 +335,12 @@ export function ShellPanel({
     canAdd,
     onShell,
     onAdd,
-    onOpenJson,
 }: {
     model: DeviceModel
     /** False when re-drawing a device: its inputs are fixed. */
     canAdd: boolean
     onShell: (patch: Record<string, number>) => void
     onAdd: (kind: ControlKind) => void
-    /** Shows a "View / edit layout JSON" button when given. */
-    onOpenJson?: () => void
 }): JSX.Element {
     const shell = model.shell as unknown as Record<string, number>
     return (
@@ -359,17 +400,6 @@ export function ShellPanel({
                             </button>
                         ))}
                     </div>
-                </InSection>
-            )}
-            {onOpenJson && (
-                <InSection label="Device layout">
-                    <Button
-                        variant="secondary"
-                        className="w-full"
-                        onClick={onOpenJson}
-                    >
-                        <Code className="size-3.5" /> View / edit layout JSON
-                    </Button>
                 </InSection>
             )}
         </>

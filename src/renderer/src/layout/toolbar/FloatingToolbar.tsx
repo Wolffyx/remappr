@@ -283,16 +283,17 @@ function GroupsBar({ groups }: { groups: EditorToolGroup[] }): JSX.Element {
                 <IconTool key={t.id} tool={t} />
             ))}
             <Separator orientation="vertical" className={SEP} />
-            {visible(rest).map((g) =>
-                g.tools.length === 1 ? (
-                    <InlineTool key={g.id} tool={g.tools[0]} />
-                ) : (
-                    <Fragment key={g.id}>
-                        {g.tools.length > 0 && <GroupMenu group={g} />}
-                        <FirmwareExtras group={g} />
-                    </Fragment>
-                ),
-            )}
+            {visible(rest).map((g) => (
+                <Fragment key={g.id}>
+                    {g.tools.length === 1 ? (
+                        <InlineTool tool={g.tools[0]} />
+                    ) : (
+                        g.tools.length > 0 && <GroupMenu group={g} />
+                    )}
+                    {/* Sideload sits beside Export, however many tools. */}
+                    <FirmwareExtras group={g} />
+                </Fragment>
+            ))}
         </Shell>
     )
 }

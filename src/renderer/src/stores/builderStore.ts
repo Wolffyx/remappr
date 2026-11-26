@@ -10,20 +10,39 @@
 // (first move pushes the armed snapshot, later moves don't) → `endGesture()`.
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { ConfigKeymap } from '@firmware/config'
+import type { CanonGeometry, ConfigKeymap } from '@firmware/config'
 import { connectMockWithConfig } from '@firmware'
 import useConfigStore from '@/stores/configStore'
 import useConnectionStore from '@/stores/connectionStore'
 
-export type SnapMode = 'grid' | 'free'
+/** grid: ⅛U steps · lines: snap to the neighbours' row and column lines ·
+ *  free: no snapping. */
+export type SnapMode = 'grid' | 'lines' | 'free'
+
+/** Paint mode: sweeping keys puts them on `line` of `axis`. */
+export interface PaintBrush {
+    axis: 'row' | 'col'
+    line: number
+}
 
 export type BuilderDocKind = 'keymap' | 'device'
+
+/** The inspector's tab: where it sits, what it does, how it is wired. */
+export type InspectorTab = 'place' | 'settings' | 'wiring'
 
 // Pattern check: no GoF pattern (-) — rejected — additive plain data types +
 // zustand state for the picker-open target; discriminated slot string, no abstraction.
 /** Which binding slot the picker edits: a key's base binding, an encoder's
- *  clockwise / counter-clockwise / press slot, or a slider's custom action. */
-export type BindingSlot = 'key' | 'cw' | 'ccw' | 'press' | 'slider'
+ *  clockwise / counter-clockwise / press slot, a slider's up / down key, or
+ *  its older custom action. */
+export type BindingSlot =
+    | 'key'
+    | 'cw'
+    | 'ccw'
+    | 'press'
+    | 'slider'
+    | 'up'
+    | 'down'
 
 /** The key (and slot) the binding picker edits when it targets a layer. */
 export interface KeyBindingTarget {
@@ -67,12 +86,31 @@ interface BuilderState {
     docKind: BuilderDocKind
     /** Selected key indices (into `config.keyboard.keys`). */
     selection: Set<number>
+    /** The selected part (`config.keyboard.parts` id); a key selection and a
+     *  part selection never coexist. */
+    selectedPart: string | null
     /** Active layer index (left-panel layers list; clamped to layers length). */
     activeLayer: number
     /** Active physical-layout variant id ('' = show all / common keys). */
     activeVariant: string
     /** Whether the matrix-wiring overlay is shown on the canvas. */
+    /** Wiring view on (kept across opens, so the choice is remembered). */
     matrixView: boolean
+    inspectorTab: InspectorTab
+    /** The open settings group in the left panel (one at a time). */
+    settingsGroup: string | null
+    /** A setting to bring into view (its `data-setting` anchor), set by search;
+     *  the settings form scrolls to it and clears it. */
+    settingsFocus: string | null
+    /** The Firmware group's tab (a firmware target id); null = the first. */
+    firmwareTab: string | null
+    /** Painting rows or columns in the Wiring view; null = not painting. */
+    paint: PaintBrush | null
+    /** Keep each column's stagger when snapping to row lines. */
+    keepStagger: boolean
+    /** The key list of a board started blank: while the board still has it,
+     *  the canvas shows the empty-board start instead. */
+    blankKeys: CanonGeometry[] | null
     /** Whether the left tools panel (layers / build-from / identity) is shown. */
     leftOpen: boolean
     /** Whether the right dock shows the JSON config editor instead of the inspector. */
@@ -108,9 +146,21 @@ interface BuilderState {
     closeBinding: () => void
     setSelection: (selection: Set<number>) => void
     clearSelection: () => void
+    selectPart: (id: string | null) => void
     setActiveLayer: (index: number) => void
     setActiveVariant: (id: string) => void
     toggleMatrixView: () => void
+    setMatrixView: (on: boolean) => void
+    setInspectorTab: (tab: InspectorTab) => void
+    setSettingsGroup: (group: string | null) => void
+    /** Open `group` (and a firmware tab), show the left panel and bring the
+     *  `anchor` setting into view. */
+    focusSetting: (group: string, anchor?: string, firmwareTab?: string) => void
+    clearSettingsFocus: () => void
+    setFirmwareTab: (tab: string) => void
+    setPaint: (paint: PaintBrush | null) => void
+    setBlankKeys: (keys: CanonGeometry[] | null) => void
+    toggleKeepStagger: () => void
     toggleLeft: () => void
     setJsonOpen: (open: boolean) => void
     toggleJson: () => void
@@ -147,9 +197,17 @@ const useBuilderStore = create<BuilderState>()(
         open: false,
         docKind: 'keymap',
         selection: new Set<number>(),
+        selectedPart: null,
         activeLayer: 0,
         activeVariant: '',
         matrixView: false,
+        inspectorTab: 'settings',
+        settingsGroup: 'board',
+        settingsFocus: null,
+        firmwareTab: null,
+        paint: null,
+        blankKeys: null,
+        keepStagger: true,
         leftOpen: true,
         jsonOpen: false,
         snapMode: 'grid',
@@ -174,9 +232,9 @@ const useBuilderStore = create<BuilderState>()(
                           docKind: 'keymap',
                           cameFromBuilder: false,
                           selection: new Set<number>(),
+                          selectedPart: null,
                           activeLayer: 0,
                           activeVariant: '',
-                          matrixView: false,
                           jsonOpen: false,
                           view: DEFAULT_VIEW,
                           past: [],
@@ -193,16 +251,48 @@ const useBuilderStore = create<BuilderState>()(
         setCameFromBuilder: (cameFromBuilder) => set({ cameFromBuilder }),
         openBinding: (binding) => set({ binding }),
         closeBinding: () => set({ binding: null }),
-        setSelection: (selection) => set({ selection }),
-        clearSelection: () => set({ selection: new Set<number>() }),
+        setSelection: (selection) =>
+            set(
+                selection.size
+                    ? { selection, selectedPart: null }
+                    : { selection },
+            ),
+        clearSelection: () =>
+            set({ selection: new Set<number>(), selectedPart: null }),
+        selectPart: (selectedPart) =>
+            set(
+                selectedPart
+                    ? { selectedPart, selection: new Set<number>() }
+                    : { selectedPart },
+            ),
         setActiveLayer: (activeLayer) => set({ activeLayer }),
         setActiveVariant: (activeVariant) => set({ activeVariant }),
         toggleMatrixView: () => set((s) => ({ matrixView: !s.matrixView })),
+        // The Wiring view opens the inspector on its Wiring tab, and back.
+        setMatrixView: (matrixView) =>
+            set({
+                matrixView,
+                inspectorTab: matrixView ? 'wiring' : 'settings',
+            }),
+        setInspectorTab: (inspectorTab) => set({ inspectorTab }),
+        setSettingsGroup: (settingsGroup) => set({ settingsGroup }),
+        focusSetting: (group, anchor, firmwareTab) =>
+            set((s) => ({
+                settingsGroup: group,
+                settingsFocus: anchor ?? null,
+                firmwareTab: firmwareTab ?? s.firmwareTab,
+                leftOpen: true,
+            })),
+        clearSettingsFocus: () => set({ settingsFocus: null }),
+        setFirmwareTab: (firmwareTab) => set({ firmwareTab }),
+        setPaint: (paint) => set({ paint }),
+        setBlankKeys: (blankKeys) => set({ blankKeys }),
+        toggleKeepStagger: () => set((s) => ({ keepStagger: !s.keepStagger })),
         toggleLeft: () => set((s) => ({ leftOpen: !s.leftOpen })),
         setJsonOpen: (jsonOpen) => set({ jsonOpen }),
         toggleJson: () => set((s) => ({ jsonOpen: !s.jsonOpen })),
         setSnapMode: (snapMode) =>
-            set({ snapMode, snapping: snapMode === 'grid' }),
+            set({ snapMode, snapping: snapMode !== 'free' }),
         toggleSnapping: () => set((s) => ({ snapping: !s.snapping })),
         toggleSnapOnWire: () => set((s) => ({ snapOnWire: !s.snapOnWire })),
         setView: (patch) => set((s) => ({ view: { ...s.view, ...patch } })),
@@ -265,10 +355,9 @@ const useBuilderStore = create<BuilderState>()(
             // Mirror App's demo-connect lifecycle: clear the connection when the
             // service closes. setService re-seeds configStore from the service's
             // getConfigSource (the serialized board), keeping it source-of-truth.
-            service.onClosed(() => {
-                useConnectionStore.getState().setDeviceName(null)
-                useConnectionStore.getState().setService(null)
-            })
+            service.onClosed(() =>
+                useConnectionStore.getState().serviceClosed(service),
+            )
             conn.setDeviceName(service.deviceInfo.name)
             conn.setService(service)
             // Close the builder WITHOUT resetting its workspace (selection / view /

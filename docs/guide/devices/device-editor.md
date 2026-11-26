@@ -80,7 +80,7 @@ can use.
 | **Rotary encoder**  | **Rotation**: clockwise, counter-clockwise, press. **Feel**: detents per action (1–6).                                                                                                                                                                                                  |
 | **Analog axis**     | **Output**. **Response**: curve, centre deadzone (0–30%), invert.                                                                                                                                                                                                                       |
 
-![The D-pad in 4-way mode: four directions bound, the diagonals dimmed](/images/devices/inspector-hat.webp)
+![The hat switch in the inspector: 4-way / 8-way mode and its eight directions](/images/devices/inspector-hat.webp)
 
 ## Assigning an action
 
@@ -96,7 +96,7 @@ editor uses for a key. Its action list holds what the device can send:
 A device offers only the actions it can send. The picker stays open after a
 pick, so you can try a few; **←** goes back to the inspector.
 
-![Assign action for the Halo M2's rear side button: the action list and the Key press keycode grid](/images/devices/action-picker.webp)
+![The Halo M2's rear side button selected: its Tap and Hold actions in the sheet below the mouse](/images/devices/action-picker.webp)
 
 In the **Command** workspace, **⌘K** (**Ctrl+K**) opens the same list as a
 palette, _"Assign action to …"_, with **Disabled** first.
@@ -109,7 +109,7 @@ direction. A **LIVE** pill appears next to the profile while it is on. It is
 offered by devices that report their input: Remappr Firmware joysticks,
 [generic controllers and mice](/guide/devices/generic-hid), and the demos.
 
-![Live view on the Vector Pad: the LIVE pill, and the left bumper glowing as it is pressed](/images/devices/live-view.webp)
+![Live view on the Vector Pad: the LIVE pill on, ready to light each control as it is pressed](/images/devices/live-view.webp)
 
 ## The toolbar
 
@@ -117,7 +117,7 @@ offered by devices that report their input: Remappr Firmware joysticks,
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Live view**       | Toggles [live view](#live-view). Hidden when the device has no live input.                                                                                       |
 | **Export profiles** | Downloads the device's settings, e.g. a `remappr.device.json` for a Remappr Firmware device.                                                                     |
-| **Edit layout**     | _"Edit layout in the Builder"_: re-draw the device. See [Designing a device](/guide/builder/device-layout).                                                      |
+| **Edit layout**     | _"Edit layout in the builder"_: re-draw the device. See [Designing a device](/guide/builder/device-layout).                                                      |
 | **Device settings** | Settings that are not a control: [mouse](/guide/devices/mice#device-settings) or [joystick](/guide/devices/gamepads#calibration). Remappr Firmware devices only. |
 | **Settings**        | [App settings](/guide/app/settings).                                                                                                                             |
 | **Undo / Redo**     | Every binding change can be undone.                                                                                                                              |

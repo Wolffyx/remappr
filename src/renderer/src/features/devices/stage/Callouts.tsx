@@ -1,45 +1,44 @@
-// Pattern check: no GoF pattern (-) — rejected — presentational callout layer (leader lines, anchor dots, label cards); layout maths lives in callouts.ts.
+// Pattern check: no GoF pattern (-) — rejected — presentational callout layer (leader lines, label cards); layout and routing live in callouts.ts and router.ts.
 import type { JSX } from 'react'
 import type { DeviceControl } from '@firmware/devices/types'
 import type { BindingSummary } from '@/lib/devices/bindingSummary'
 import { categoryAccent } from '@/lib/devices/deviceCategory'
 import { cn } from '@/lib/cn'
-import { CALLOUT_H, type CalloutAnchor } from './callouts'
-import { CALL_M, CALL_W } from './geometry'
+import type { CalloutRoute } from './callouts'
+import { CALL_M } from './geometry'
 
-interface CalloutLayerProps {
-    anchors: readonly CalloutAnchor[]
-    ys: Readonly<Record<string, number>>
+interface CalloutLinesProps {
+    routes: Readonly<Record<string, CalloutRoute>>
     width: number
     height: number
     active: (id: string) => boolean
 }
 
-/** Leader lines from each card's inner edge to its control. Drawn under the
- *  controls so a line never crosses a face. */
+/** Leader lines, routed around every control by callouts.ts: each leaves its
+ *  control from a port on its outline and stops just short of it, so no line
+ *  runs under or over a control and no anchor dot covers a glyph. The active
+ *  line is drawn last, on top. */
 export function CalloutLines({
-    anchors,
-    ys,
+    routes,
     width,
     height,
     active,
-}: CalloutLayerProps): JSX.Element {
+}: CalloutLinesProps): JSX.Element {
+    const list = Object.values(routes).sort(
+        (a, b) => Number(active(a.id)) - Number(active(b.id)),
+    )
     return (
         <svg
             width={width}
             height={height}
             className="pointer-events-none absolute inset-0"
         >
-            {anchors.map((a) => {
-                const y = (ys[a.id] ?? 0) + CALLOUT_H / 2
-                const left = a.side === 'L'
-                const x0 = left ? CALL_M + CALL_W : width - CALL_M - CALL_W
-                const ex = left ? x0 + 24 : x0 - 24
-                const on = active(a.id)
+            {list.map((r) => {
+                const on = active(r.id)
                 return (
-                    <polyline
-                        key={a.id}
-                        points={`${x0},${y} ${ex},${y} ${a.ax},${a.ay}`}
+                    <path
+                        key={r.id}
+                        d={r.d}
                         fill="none"
                         stroke={
                             on
@@ -47,36 +46,6 @@ export function CalloutLines({
                                 : 'color-mix(in oklab, var(--foreground) 22%, transparent)'
                         }
                         strokeWidth={on ? 1.6 : 1}
-                    />
-                )
-            })}
-        </svg>
-    )
-}
-
-/** The anchor dots, drawn over the controls. */
-export function CalloutDots({
-    anchors,
-    width,
-    height,
-    active,
-}: Omit<CalloutLayerProps, 'ys'>): JSX.Element {
-    return (
-        <svg
-            width={width}
-            height={height}
-            className="pointer-events-none absolute inset-0"
-        >
-            {anchors.map((a) => {
-                const on = active(a.id)
-                return (
-                    <circle
-                        key={a.id}
-                        cx={a.ax}
-                        cy={a.ay}
-                        r={on ? 3.5 : 2.5}
-                        fill={on ? 'var(--primary)' : 'var(--foreground)'}
-                        opacity={on ? 1 : 0.55}
                     />
                 )
             })}

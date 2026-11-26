@@ -1,0 +1,72 @@
+:root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --fg: #18181b;
+    --muted: #63636b;
+    --card: #ffffff;
+    --border: #e4e4e7;
+    --accent: #e0457b;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #111113;
+        --fg: #f4f4f5;
+        --muted: #a1a1aa;
+        --card: #1b1b1f;
+        --border: #2e2e33;
+    }
+}
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.5 system-ui, sans-serif;
+}
+main {
+    max-width: 28rem;
+    margin: 16px;
+    padding: 32px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    text-align: center;
+}
+h1 {
+    font-size: 20px;
+    margin: 16px 0 8px;
+}
+p {
+    color: var(--muted);
+}
+code {
+    display: block;
+    margin: 12px 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--bg);
+    font-size: 13px;
+    word-break: break-all;
+}
+.actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+button,
+.actions a {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+.actions a {
+    background: transparent;
+    color: var(--fg);
+}

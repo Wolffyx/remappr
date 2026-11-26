@@ -66,7 +66,7 @@ export function MousePointerSection({
                 <div className="flex items-center gap-2">
                     <Label
                         htmlFor="mouse-cpi"
-                        className="w-40 shrink-0 text-xs"
+                        className="w-24 shrink-0 text-xs @sm/setting:w-40"
                     >
                         DPI
                     </Label>
@@ -91,7 +91,7 @@ export function MousePointerSection({
                         </span>
                     )}
                 </div>
-                <p className="pl-[10.5rem] text-caption text-muted-foreground">
+                <p className="text-caption text-muted-foreground @sm/setting:pl-[10.5rem]">
                     {range ? `${range.min}–${range.max}. ` : ''}
                     Empty = the sensor&apos;s own resolution.
                 </p>
@@ -99,7 +99,6 @@ export function MousePointerSection({
             {FLAG_ROWS.map((f) => (
                 <SwitchSettingRow
                     key={f.key}
-                    id={`mouse-${f.key}`}
                     label={f.label}
                     description={f.description}
                     checked={value.flags[f.key]}
@@ -229,7 +228,6 @@ export function RadioSection({
             description="How the mouse talks to its dongle."
         >
             <SwitchSettingRow
-                id="radio-auto-pair"
                 label="Pair on its own"
                 description="While the mouse has no dongle bond it looks for an open pairing window by itself. Off: pairing waits for an explicit request."
                 checked={value.autoPair}

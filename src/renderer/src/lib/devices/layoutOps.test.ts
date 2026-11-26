@@ -4,10 +4,14 @@ import { STOCK_FLIGHTSTICK, STOCK_MOUSE } from '@firmware/devices/stockLayouts'
 import type { DeviceControl, DeviceModel } from '@firmware/devices/types'
 import {
     addControl,
+    duplicateControl,
+    mirrorControl,
+    mirrorSide,
     moveControl,
     nudgeControl,
     patchControl,
     removeControl,
+    rotateControl,
     setShell,
     snapU,
 } from './layoutOps'
@@ -68,5 +72,63 @@ describe('layout ops', () => {
             pad: 0.2,
             tail: 2,
         })
+    })
+})
+
+describe('selection ops', () => {
+    const pad = (controls: DeviceControl[]): DeviceModel => ({
+        ...mouse,
+        controls,
+    })
+    const btn = (id: string, x: number, r?: number): DeviceControl => ({
+        id,
+        name: id,
+        kind: 'button',
+        shape: 'round',
+        x,
+        y: 1,
+        w: 1,
+        h: 1,
+        ...(r ? { r } : {}),
+    })
+
+    it('rotates about the control, wrapping and dropping 0', () => {
+        const m = pad([btn('a', 0, 170)])
+        expect(find(rotateControl(m, 'a', 15), 'a').r).toBe(-175)
+        expect(
+            find(rotateControl(pad([btn('a', 0, 15)]), 'a', -15), 'a').r,
+        ).toBeUndefined()
+    })
+
+    it('duplicates as a new control of the same kind', () => {
+        const r = duplicateControl(pad([btn('button1', 0)]), 'button1')!
+        expect(r.id).toBe('button2')
+        expect(find(r.model, 'button2')).toMatchObject({
+            x: 0.25,
+            y: 1.25,
+            name: 'button1 copy',
+        })
+    })
+
+    it('mirrors across the centre line, unless on it or taken', () => {
+        const m = pad([btn('button1', 0, 20), btn('mid', 2.5), btn('far', 5)])
+        expect(mirrorSide(m, 'button1')).toBe('right')
+        expect(mirrorSide(m, 'far')).toBe('left')
+        expect(mirrorSide(m, 'mid')).toBeNull()
+        expect(mirrorControl(m, 'far')).toBeNull()
+        const r = mirrorControl(
+            pad([btn('button1', 0, 20), btn('x', 5, 0)]),
+            'button1',
+        )
+        expect(r).toBeNull()
+        const ok = mirrorControl(
+            pad(
+                [btn('button1', 0, 20), btn('x', 5, 0)].map((c) =>
+                    c.id === 'x' ? { ...c, y: 4 } : c,
+                ),
+            ),
+            'button1',
+        )!
+        expect(find(ok.model, ok.id)).toMatchObject({ x: 5, r: -20 })
     })
 })

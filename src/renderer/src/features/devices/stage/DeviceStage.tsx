@@ -17,8 +17,8 @@ import {
 } from '@/lib/devices/bindingSummary'
 import { categoryAccent } from '@/lib/devices/deviceCategory'
 import { cn } from '@/lib/cn'
-import { calloutAnchors, layoutCallouts } from './callouts'
-import { Callout, CalloutDots, CalloutLines } from './Callouts'
+import { routeCallouts } from './callouts'
+import { Callout, CalloutLines } from './Callouts'
 import { ControlShape, type ControlBox } from './ControlShape'
 import { computeLayout, DEV_S, hasCallout, type StageLayout } from './geometry'
 import { ShellView } from './ShellView'
@@ -116,11 +116,10 @@ export function DeviceStage({
         [model, bindings, index, categories],
     )
 
-    const anchors = useMemo(
-        () => (showCallouts ? calloutAnchors(model, L) : []),
+    const routes = useMemo(
+        () => (showCallouts ? routeCallouts(model, L) : {}),
         [showCallouts, model, L],
     )
-    const ys = useMemo(() => layoutCallouts(anchors, L.H), [anchors, L.H])
     const active = useCallback(
         (id: string) => id === selected || id === hover,
         [selected, hover],
@@ -162,8 +161,7 @@ export function DeviceStage({
                     <ShellView parts={L.shell} ox={L.ox} oy={L.oy} />
                     {showCallouts ? (
                         <CalloutLines
-                            anchors={anchors}
-                            ys={ys}
+                            routes={routes}
                             width={L.W}
                             height={L.H}
                             active={active}
@@ -184,14 +182,6 @@ export function DeviceStage({
                             onHover={onHover}
                         />
                     ))}
-                    {showCallouts ? (
-                        <CalloutDots
-                            anchors={anchors}
-                            width={L.W}
-                            height={L.H}
-                            active={active}
-                        />
-                    ) : null}
                     {showCallouts
                         ? model.controls
                               .filter(hasCallout)
@@ -200,7 +190,7 @@ export function DeviceStage({
                                       key={c.id}
                                       control={c}
                                       side={L.side(c)}
-                                      y={ys[c.id] ?? 0}
+                                      y={routes[c.id]?.y ?? 0}
                                       summary={summaries.get(c.id)!}
                                       selected={selected === c.id}
                                       hovered={hover === c.id}

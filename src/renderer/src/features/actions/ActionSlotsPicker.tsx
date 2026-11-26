@@ -13,7 +13,6 @@ export interface ActionSlotsPickerProps {
     onSlotChanged: (slotIndex: number, value?: number) => void
     onActionChosen?: (kind: string, params?: number[]) => void
     highlightedKeys?: number[]
-    holdInvalidHint?: string
     codec?: KeycodeCodec
     catalog?: KeyCatalog
     typeIcon?: string
@@ -27,7 +26,6 @@ export const ActionSlotsPicker = ({
     onSlotChanged,
     onActionChosen,
     highlightedKeys,
-    holdInvalidHint,
     codec,
     catalog,
     typeIcon,
@@ -59,9 +57,6 @@ export const ActionSlotsPicker = ({
 
     return (
         <div className="flex flex-col gap-2 mt-3">
-            {holdInvalidHint && safeIndex === 1 && (
-                <p className="text-xs text-warning italic">{holdInvalidHint}</p>
-            )}
             <div className="flex flex-row flex-wrap items-center gap-2">
                 <SlotValuePicker
                     key={safeIndex}

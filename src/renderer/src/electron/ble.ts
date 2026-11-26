@@ -9,7 +9,11 @@
  * requestDevice() chooser elsewhere.
  */
 
-import { IpcChannels, IpcEvents } from '../../../shared/ipc-types'
+import {
+    IpcChannels,
+    IpcEvents,
+    type LinkConnectResult,
+} from '../../../shared/ipc-types'
 import type { Transport } from '@firmware'
 import type { AvailableDevice } from '@/transport'
 import { TransportAdapter } from '../transport/adapter/base'
@@ -17,6 +21,7 @@ import {
     electronIpc,
     type IpcConnectResult,
     IpcTransportAdapter,
+    linkIdOf,
 } from '../transport/adapter/ipc-adapter'
 import { registerTransport } from '../transport/adapter/registry'
 
@@ -200,18 +205,13 @@ export class ElectronBluezAdapter extends IpcTransportAdapter {
             devicePath: this.dev.id,
             serviceUuid: this.serviceUuid,
             charUuid: this.charUuid,
-        })) as {
-            ok: boolean
-            label?: string
-            error?: string
-            connectionId?: number
-        }
+        })) as LinkConnectResult
         if (!result.ok) {
             throw new Error(result.error ?? 'Failed to connect via BlueZ')
         }
         return {
             label: result.label ?? this.dev.label ?? 'BLE Device',
-            connectionId: result.connectionId,
+            linkId: linkIdOf(result),
         }
     }
 }
@@ -370,11 +370,8 @@ registerTransport({
         return {
             label: 'BLE',
             communication: 'ble',
+            singleLink: true,
             isWireless: true,
-            // BlueZ (Linux) runs in the main process and shares its single
-            // connection. Web Bluetooth (macOS, Windows) doesn't, but closing
-            // first there only costs the instant switch.
-            exclusive: true,
             pick_and_connect: {
                 list: () => list_devices(ble.serviceUuid, ble.charUuid),
                 connect: (dev) =>

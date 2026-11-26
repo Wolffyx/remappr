@@ -2,10 +2,11 @@
 // service.sensor, reusing the inspector's SensorSettings rows; no new
 // abstraction.
 //
-// A keyboard's key-matrix settings (scan period, debounce, sleep scan, eager
-// press): whatever its matrix part describes over the PART namespace, drawn
-// generically, so a setting the firmware adds shows up without app changes.
-// Save sets each changed value on the device at once (PART SET_SETTING).
+// A keyboard's live key-matrix settings (sleep scan, eager press): whatever its
+// matrix part describes over the PART namespace, drawn generically, so a
+// setting the firmware adds shows up without app changes. Scan period and
+// debounce are the config's and stay in Timing and defaults. Save sets each
+// changed value on the device at once (PART SET_SETTING).
 import { useCallback, useEffect, useState } from 'react'
 import { Grid3x3 } from 'lucide-react'
 import type { SensorInfo } from '@firmware/devices/types'
@@ -120,7 +121,8 @@ export function ScanningSettingsModal({ opened, onClose }: Props): JSX.Element {
                 <p className="text-xs text-muted-foreground">
                     How the keyboard reads its keys. Changes take effect at once
                     and last until the keyboard restarts or its config is saved
-                    again.
+                    again. Scan period and debounce are saved with the config,
+                    in Timing and defaults.
                 </p>
                 {error && <p className="text-xs text-destructive">{error}</p>}
                 {parts === null && !error && (
@@ -128,7 +130,8 @@ export function ScanningSettingsModal({ opened, onClose }: Props): JSX.Element {
                 )}
                 {parts?.length === 0 && !error && (
                     <p className="text-sm text-muted-foreground">
-                        This keyboard describes no key-matrix settings.
+                        This keyboard has no key-matrix settings beyond the ones
+                        in Timing and defaults.
                     </p>
                 )}
                 {parts?.map((p) => (

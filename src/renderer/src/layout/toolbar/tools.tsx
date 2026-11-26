@@ -18,7 +18,9 @@ import {
     Grid3x3,
     Languages,
     Layers,
+    Library,
     Lightbulb,
+    MonitorSmartphone,
     Network,
     ScanLine,
     Sliders,
@@ -218,6 +220,15 @@ export const TOOLS: readonly ToolDef[] = [
         action: 'dialog',
     },
     {
+        id: 'displays',
+        group: 'device',
+        label: 'Displays',
+        description: 'What the screens show: text, values, clock, pictures',
+        icon: MonitorSmartphone,
+        feature: 'displays',
+        action: 'dialog',
+    },
+    {
         id: 'cluster',
         group: 'device',
         label: 'Cluster',
@@ -242,6 +253,14 @@ export const TOOLS: readonly ToolDef[] = [
         short: 'Export',
         description: 'Download a buildable firmware project',
         icon: Download,
+        action: 'dialog',
+    },
+    {
+        id: 'library',
+        group: 'firmware',
+        label: 'Library',
+        description: 'Save keymaps on this machine and reopen them',
+        icon: Library,
         action: 'dialog',
     },
 ]
@@ -375,7 +394,14 @@ export function useToolHousekeeping(): void {
         const target = s.config?.meta.target
         return target ? !supportsRuntimeLighting(target) : false
     })
+    const advOpen = useAdvancedSheetStore((s) => s.open)
+    const setAdvOpen = useAdvancedSheetStore((s) => s.setOpen)
     const keyTestAvailable = !!service && !!FEATURE_PROBES.keyTest(service)
+    // The dock left open on a device with entries would, on one without
+    // (ZMK), render nothing yet still hide the key picker.
+    const dockAvailable =
+        !!service &&
+        (!!FEATURE_PROBES.dynamic(service) || !!FEATURE_PROBES.macros(service))
 
     useEffect(() => {
         if (!keyTestAvailable && keyTestOn) setKeyTestActive(false)
@@ -383,4 +409,7 @@ export function useToolHousekeeping(): void {
     useEffect(() => {
         if (rgbUnsupported && rgbOpen) setRgbOpen(false)
     }, [rgbUnsupported, rgbOpen, setRgbOpen])
+    useEffect(() => {
+        if (!dockAvailable && advOpen) setAdvOpen(false)
+    }, [dockAvailable, advOpen, setAdvOpen])
 }

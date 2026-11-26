@@ -6,6 +6,16 @@
 import { toast } from 'sonner'
 import { create } from 'zustand'
 import { connectMockDeviceWithModel } from '@firmware'
+import {
+    BUILDER_FIRMWARE_TARGETS,
+    SUGGESTED_FEATURES,
+    newDeviceConfig,
+    targetBuildsForm,
+    type BuilderFirmwareId,
+    type CanonController,
+    type ConfigDevice,
+    type DesignFeature,
+} from '@firmware/config'
 import type { DeviceModel } from '@firmware/devices/types'
 import useBuilderStore from '@/stores/builderStore'
 import useConnectionStore from '@/stores/connectionStore'
@@ -16,6 +26,33 @@ export type LayoutOrigin = 'new' | 'device'
 
 const HISTORY_CAP = 60
 
+/** What a device design is built for: the firmware targets and the Remappr
+ *  device document (radio, power, pointer, …). Kept beside the layout, which
+ *  is what gets applied to a device. */
+export interface DeviceFirmware {
+    targets: BuilderFirmwareId[]
+    settings: ConfigDevice | null
+    /** The feature cards picked — the same list a keyboard has. */
+    features: DesignFeature[]
+    /** The controller board it is built on. */
+    controller?: CanonController
+    /** Pin slot id → pin label (see devicePins). */
+    pins: Record<string, string>
+}
+
+/** Every target that builds this form, with default settings. */
+export function defaultDeviceFirmware(layout: DeviceModel): DeviceFirmware {
+    return {
+        targets: BUILDER_FIRMWARE_TARGETS.filter((t) =>
+            targetBuildsForm(t, layout.form),
+        ).map((t) => t.id),
+        settings: newDeviceConfig(layout.form, layout.name),
+        features: [...SUGGESTED_FEATURES[layout.form]],
+        controller: { board: 'nice_nano_v2' },
+        pins: {},
+    }
+}
+
 interface DeviceBuilderState {
     layout: DeviceModel | null
     origin: LayoutOrigin
@@ -24,8 +61,14 @@ interface DeviceBuilderState {
     future: DeviceModel[]
     /** The layout when a drag began; pushed to history once it moves. */
     gesture: DeviceModel | null
+    firmware: DeviceFirmware
 
-    start: (layout: DeviceModel, origin: LayoutOrigin) => void
+    start: (
+        layout: DeviceModel,
+        origin: LayoutOrigin,
+        firmware?: DeviceFirmware,
+    ) => void
+    setFirmware: (patch: Partial<DeviceFirmware>) => void
     select: (id: string | null) => void
     commit: (next: DeviceModel) => void
     beginGesture: () => void
@@ -47,17 +90,26 @@ const useDeviceBuilderStore = create<DeviceBuilderState>()((set, get) => ({
     past: [],
     future: [],
     gesture: null,
+    firmware: { targets: [], settings: null, features: [], pins: {} },
 
-    start: (layout, origin) =>
+    start: (layout, origin, firmware) => {
+        // The variant filter and open settings group are the builder's; a
+        // design starts on All with its Device group open.
+        useBuilderStore.setState({ activeVariant: '', settingsGroup: 'device' })
         set({
             layout,
             origin,
+            // A design saved before features and pins existed gets them.
+            firmware: { ...defaultDeviceFirmware(layout), ...firmware },
             selected: null,
             past: [],
             future: [],
             gesture: null,
-        }),
+        })
+    },
     select: (selected) => set({ selected }),
+    setFirmware: (patch) =>
+        set((s) => ({ firmware: { ...s.firmware, ...patch } })),
     commit: (next) => {
         const cur = get().layout
         set((s) => ({
@@ -105,10 +157,9 @@ const useDeviceBuilderStore = create<DeviceBuilderState>()((set, get) => ({
         if (!layout) return
         const service = connectMockDeviceWithModel(layout)
         const conn = useConnectionStore.getState()
-        service.onClosed(() => {
-            useConnectionStore.getState().setDeviceName(null)
-            useConnectionStore.getState().setService(null)
-        })
+        service.onClosed(() =>
+            useConnectionStore.getState().serviceClosed(service),
+        )
         conn.setDeviceName(service.deviceInfo.name)
         conn.setService(service)
         // Keep the builder workspace so "Back to Builder" restores it.

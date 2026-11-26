@@ -22,7 +22,6 @@ import { Input } from '@/ui/input'
 // pattern-check: skip additive optional codec-injection prop on existing data interface
 interface KeycodePickerGridProps {
     value?: number
-    label?: string
     highlightedKeys?: number[]
     onValueChanged?: (value?: number) => void
     // Fired when the user clicks a tile carrying entry.behaviorRef
@@ -249,7 +248,7 @@ export function KeycodePickerGrid({
                             label={entry.label}
                             name={entry.name}
                             icon={entry.icon}
-                            aliases={entry.aliases}
+                            names={codec?.names?.(entry.id)}
                             notes={entry.notes}
                             colorMode={colorMode}
                             baseKeyValue={entryValue ?? 0}

@@ -2,8 +2,10 @@
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import {
+    IpcChannels,
     IpcEvents,
     type UpdateAvailablePayload,
+    type UpdateDownloadedPayload,
 } from '../../../shared/ipc-types'
 import { compareVersions } from '@shared/semver'
 import { getApi } from '@/electron/api'
@@ -86,7 +88,27 @@ export function UpdateNotification(): null {
             })
         })
 
-        return unsubscribe
+        // Self-updating installs (AppImage, NSIS, signed macOS) download the
+        // update themselves; it installs on restart, or at the next quit.
+        const offDownloaded = api.on(IpcEvents.UPDATE_DOWNLOADED, (...args) => {
+            const payload = args[0] as UpdateDownloadedPayload | undefined
+            if (!payload) return
+            toast(`Remappr v${payload.version} is ready`, {
+                description:
+                    'Restart to update now, or it updates the next time you quit.',
+                duration: Infinity,
+                action: {
+                    label: 'Restart',
+                    onClick: () => void api.invoke(IpcChannels.UPDATES_INSTALL),
+                },
+                cancel: { label: 'Later', onClick: () => undefined },
+            })
+        })
+
+        return () => {
+            unsubscribe()
+            offDownloaded()
+        }
     }, [])
 
     return null

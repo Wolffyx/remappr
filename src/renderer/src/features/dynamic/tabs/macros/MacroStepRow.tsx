@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn'
 import { catStyle, categoryForUsage } from '@/lib/keymap/keyCategory'
 import { HidUsageLabel } from '@/features/keymap/keyboard/HidUsageLabel'
 
-import { rawToPacked } from '../../_shared/rawKeycode'
+import { rawToPacked } from '../../_shared/hidUsage'
 import { STEP_META } from './macroSteps'
 
 /** A key as a small keycap chip, tinted by its key category (modifiers violet). */
@@ -24,7 +24,7 @@ export function KeyChip({
 }): JSX.Element {
     if (!code) {
         return (
-            <span className="text-sm text-muted-foreground italic">
+            <span className="text-control text-muted-foreground italic">
                 no key yet
             </span>
         )
@@ -41,8 +41,8 @@ export function KeyChip({
             className={cn(
                 'inline-flex items-center justify-center rounded-md border border-input bg-background font-semibold',
                 large
-                    ? 'h-10 min-w-10 px-3.5 text-base'
-                    : 'h-6 min-w-6 px-2 text-xs',
+                    ? 'h-10 min-w-10 px-3.5 text-title'
+                    : 'h-6 min-w-6 px-2 text-caption',
             )}
         >
             <HidUsageLabel hid_usage={packed} />
@@ -52,7 +52,7 @@ export function KeyChip({
 
 export function MonoChip({ children }: { children: ReactNode }): JSX.Element {
     return (
-        <span className="inline-flex h-6 items-center rounded-md border border-input bg-muted px-2 font-mono text-xs">
+        <span className="inline-flex h-6 items-center rounded-md border border-input bg-muted px-2 font-mono text-caption">
             {children}
         </span>
     )
@@ -89,7 +89,7 @@ function StepWords({
     callSummary?: string
 }): JSX.Element {
     const line = (verb: string, rest?: ReactNode): JSX.Element => (
-        <span className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="flex flex-wrap items-center gap-2 text-control">
             <span>{verb}</span>
             {rest}
         </span>
@@ -123,7 +123,7 @@ function StepWords({
                         <MonoChip>{step.macro || 'no macro yet'}</MonoChip>,
                     )}
                     {callSummary && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-caption text-muted-foreground">
                             {callSummary}
                         </span>
                     )}
@@ -191,14 +191,14 @@ export function MacroStepRow({
                         draggable ? 'cursor-grab' : 'opacity-0',
                     )}
                 />
-                <span className="w-4 shrink-0 text-right text-xs text-muted-foreground">
+                <span className="w-4 shrink-0 text-right text-caption text-muted-foreground">
                     {n}
                 </span>
                 <StepTile kind={step.kind} />
                 <span className="min-w-0 flex-1">
                     <StepWords step={step} callSummary={callSummary} />
                 </span>
-                <span className="shrink-0 text-xs text-muted-foreground">
+                <span className="shrink-0 text-caption text-muted-foreground">
                     {STEP_META[step.kind].tag}
                 </span>
             </button>

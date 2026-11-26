@@ -26,6 +26,15 @@ class FakeHid extends EventEmitter {
         return data.length
     }
 
+    sendFeatureReport(data: number[]): number {
+        this.writes.push(data)
+        return data.length
+    }
+
+    getFeatureReport(reportId: number, length: number): number[] {
+        return [reportId, ...Array.from({ length: length - 1 }, (_, i) => i)]
+    }
+
     close(): void {
         this.closed++
     }
@@ -56,8 +65,10 @@ vi.mock('node-hid', () => ({
 import {
     connectHidDevice,
     disconnectHidDevice,
+    getHidFeature,
     hasActiveHidConnection,
     listHidDevices,
+    sendHidFeature,
     startHidDevicePolling,
     writeHid,
 } from './hid'
@@ -133,6 +144,18 @@ describe('node-hid transport', () => {
         await connectHidDevice(KEYBOARD.path, callbacks())
         await writeHid(new Uint8Array([1, 2]))
         expect(fake.opened[0].writes).toEqual([[0, 1, 2]])
+    })
+
+    it('sends a feature report with its id in front', async () => {
+        await connectHidDevice(KEYBOARD.path, callbacks())
+        await sendHidFeature(0x11, new Uint8Array([0xf9, 0xff]))
+        expect(fake.opened[0].writes).toEqual([[0x11, 0xf9, 0xff]])
+    })
+
+    it('reads a feature report without its id', async () => {
+        await connectHidDevice(KEYBOARD.path, callbacks())
+        expect(Array.from(await getHidFeature(0x12, 3))).toEqual([0, 1, 2])
+        await expect(getHidFeature(256, 3)).rejects.toThrow(/report id/)
     })
 
     it('refuses a path the last listing did not surface', async () => {

@@ -2,14 +2,27 @@
 //
 // The centre and right of the Macros tab for one macro: name, "What it does",
 // the numbered steps (click to select, drag to reorder), Add step / Record keys,
-// the held-key check with Save and Discard, and the selected step's side panel.
+// the held-key check and the selected step's side panel. Save and Discard sit in
+// the dock header (the tab puts them there), like every other section's Save.
 // Keyed by macro index, so switching macros resets the selection.
 import { CircleCheck, Circle, TriangleAlert } from 'lucide-react'
 import { useRef, useState } from 'react'
 
-import { describeMacro, heldAtEnd, type MacroAction } from '@firmware'
+import {
+    describeMacro,
+    heldAtEnd,
+    type MacroAction,
+    type MacroPlayMode,
+} from '@firmware'
 import { cn } from '@/lib/cn'
 import { Button } from '@/ui/button'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/ui/select'
 
 import { AddStepMenu } from './AddStepMenu'
 import {
@@ -33,16 +46,86 @@ export interface MacroEditorProps {
     blocked: string | null
     kinds: readonly StepKind[]
     choices: CallChoices
-    dirty: boolean
-    onSave: () => void
-    onDiscard: () => void
+    /** "keyboard" or "mouse": what the copy calls the device. */
+    deviceNoun: string
+    /** How the macro plays, where the firmware lets each macro choose. */
+    playMode?: {
+        modes: readonly MacroPlayMode[]
+        mode: MacroPlayMode
+        onChange: (mode: MacroPlayMode) => void
+    }
+}
+
+const PLAY_MODE: Readonly<
+    Record<MacroPlayMode, { label: string; explain: string }>
+> = {
+    once: {
+        label: 'Once',
+        explain: 'Plays the steps once each time you press it.',
+    },
+    whileHeld: {
+        label: 'While held',
+        explain: 'Repeats the steps while you hold it down.',
+    },
+    toggle: {
+        label: 'Until pressed again',
+        explain: 'Starts on one press and repeats until you press it again.',
+    },
+    untilAnyKey: {
+        label: 'Until any key',
+        explain: 'Repeats until you press any key.',
+    },
+}
+
+/** The macro-level play mode: each choice says what it does. */
+function PlayModeSelect({
+    playMode,
+    editable,
+}: {
+    playMode: NonNullable<MacroEditorProps['playMode']>
+    editable: boolean
+}): JSX.Element {
+    return (
+        <span className="flex items-center gap-2 text-caption text-muted-foreground">
+            Plays
+            <Select
+                value={playMode.mode}
+                disabled={!editable}
+                onValueChange={(m) => playMode.onChange(m as MacroPlayMode)}
+            >
+                <SelectTrigger
+                    className="h-8 w-44"
+                    aria-label="How the macro plays"
+                    title={PLAY_MODE[playMode.mode].explain}
+                >
+                    <SelectValue>{PLAY_MODE[playMode.mode].label}</SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end">
+                    {playMode.modes.map((m) => (
+                        <SelectItem
+                            key={m}
+                            value={m}
+                            textValue={PLAY_MODE[m].label}
+                        >
+                            <span className="flex flex-col">
+                                <span>{PLAY_MODE[m].label}</span>
+                                <span className="text-caption text-muted-foreground">
+                                    {PLAY_MODE[m].explain}
+                                </span>
+                            </span>
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </span>
+    )
 }
 
 function HeldCheck({ steps }: { steps: readonly MacroAction[] }): JSX.Element {
     const held = heldAtEnd(steps)
     if (held.length === 0) {
         return (
-            <span className="flex items-center gap-1.5 text-xs text-success">
+            <span className="flex items-center gap-1.5 text-caption text-success">
                 <CircleCheck className="size-3.5" aria-hidden />
                 Every held key is let go by the end
             </span>
@@ -51,7 +134,7 @@ function HeldCheck({ steps }: { steps: readonly MacroAction[] }): JSX.Element {
     const names = held.map(keyName).join(', ')
     return (
         <span
-            className="flex items-center gap-1.5 text-xs text-warning"
+            className="flex items-center gap-1.5 text-caption text-warning"
             role="status"
         >
             <TriangleAlert className="size-3.5" aria-hidden />
@@ -71,7 +154,8 @@ export function MacroEditor(props: MacroEditorProps): JSX.Element {
         blocked,
         kinds,
         choices,
-        dirty,
+        deviceNoun,
+        playMode,
     } = props
     const editable = writable && !blocked
     const [sel, setSel] = useState<number | null>(steps.length ? 0 : null)
@@ -115,22 +199,28 @@ export function MacroEditor(props: MacroEditorProps): JSX.Element {
                 <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-5 pt-3">
                     <div className="flex items-center gap-3">
                         <div className="flex min-w-0 flex-1 items-baseline gap-2">
-                            <h2 className="font-mono text-base font-extrabold tracking-tight">
+                            <h2 className="font-mono text-title font-extrabold tracking-tight">
                                 {name}
                             </h2>
                             {description && (
-                                <span className="truncate text-sm text-muted-foreground">
+                                <span className="truncate text-control text-muted-foreground">
                                     {description}
                                 </span>
                             )}
                         </div>
+                        {playMode && (
+                            <PlayModeSelect
+                                playMode={playMode}
+                                editable={editable}
+                            />
+                        )}
                         {used && (
-                            <span className="flex h-6.5 items-center rounded-full border border-border px-2.5 text-xs whitespace-nowrap text-muted-foreground">
+                            <span className="flex h-6.5 items-center rounded-full border border-border px-2.5 text-caption whitespace-nowrap text-muted-foreground">
                                 {used}
                             </span>
                         )}
                     </div>
-                    <p className="rounded-lg bg-muted px-3 py-2 text-sm leading-5">
+                    <p className="rounded-lg bg-muted px-3 py-2 text-control leading-5">
                         <span className="font-semibold">What it does: </span>
                         {describeMacro(steps, keyName)}
                     </p>
@@ -160,7 +250,7 @@ export function MacroEditor(props: MacroEditorProps): JSX.Element {
                                 />
                             ))}
                             {steps.length === 0 && (
-                                <li className="text-sm text-muted-foreground italic">
+                                <li className="text-control text-muted-foreground italic">
                                     {editable
                                         ? 'No steps yet. Add one below.'
                                         : 'No steps.'}
@@ -173,6 +263,7 @@ export function MacroEditor(props: MacroEditorProps): JSX.Element {
                                     kinds={kinds}
                                     hasCallTarget={choices.allowed.length > 0}
                                     insertAfter={insertAt}
+                                    deviceNoun={deviceNoun}
                                     onAdd={add}
                                 />
                                 <Button
@@ -192,7 +283,7 @@ export function MacroEditor(props: MacroEditorProps): JSX.Element {
                                         ? 'Stop recording'
                                         : 'Record keys'}
                                 </Button>
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-caption text-muted-foreground">
                                     {recording
                                         ? 'Press keys to add them as Tap steps…'
                                         : insertAt === 0
@@ -206,35 +297,8 @@ export function MacroEditor(props: MacroEditorProps): JSX.Element {
                 <footer className="flex items-center gap-2 border-t border-border px-5 py-2.5">
                     <HeldCheck steps={steps} />
                     <div className="flex-1" />
-                    {editable ? (
-                        <>
-                            {dirty && (
-                                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <span
-                                        aria-hidden
-                                        className="size-2 rounded-full bg-warning"
-                                    />
-                                    Unsaved changes
-                                </span>
-                            )}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={!dirty}
-                                onClick={props.onDiscard}
-                            >
-                                Discard
-                            </Button>
-                            <Button
-                                size="sm"
-                                disabled={!dirty}
-                                onClick={props.onSave}
-                            >
-                                Save to keyboard
-                            </Button>
-                        </>
-                    ) : (
-                        <span className="text-xs text-muted-foreground">
+                    {!editable && (
+                        <span className="text-caption text-muted-foreground">
                             View only
                         </span>
                     )}
@@ -247,7 +311,7 @@ export function MacroEditor(props: MacroEditorProps): JSX.Element {
                 {!writable && (
                     <MacroViewOnlyPanel
                         title="Macros are view only here"
-                        reason="Your keyboard’s firmware sets its macros when it is built, so you can look at them here but not change them."
+                        reason={`Your ${deviceNoun}’s firmware sets its macros when it is built, so you can look at them here but not change them.`}
                     />
                 )}
                 {writable && blocked && (
@@ -280,7 +344,7 @@ export function MacroEditor(props: MacroEditorProps): JSX.Element {
                     />
                 )}
                 {editable && (sel === null || !steps[sel]) && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-control text-muted-foreground">
                         Pick a step to change it, or add one.
                     </p>
                 )}

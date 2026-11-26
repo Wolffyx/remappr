@@ -48,7 +48,10 @@ function TimeoutRow({
     return (
         <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-                <Label htmlFor={id} className="w-40 shrink-0 text-xs">
+                <Label
+                    htmlFor={id}
+                    className="w-24 shrink-0 text-xs @sm/setting:w-40"
+                >
                     {field.label}
                 </Label>
                 <Select
@@ -58,7 +61,7 @@ function TimeoutRow({
                     }
                     disabled={disabled}
                 >
-                    <SelectTrigger id={id} className="h-8 w-44">
+                    <SelectTrigger id={id} className="h-8 w-44 min-w-0 shrink">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -73,7 +76,7 @@ function TimeoutRow({
                     </SelectContent>
                 </Select>
             </div>
-            <p className="pl-[10.5rem] text-caption text-muted-foreground">
+            <p className="text-caption text-muted-foreground @sm/setting:pl-[10.5rem]">
                 {field.description}
             </p>
         </div>

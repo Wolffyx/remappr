@@ -1,13 +1,15 @@
 name: release
 
-# A merge into `main` is a release (RELEASING.md): a branch cut from `main`,
-# tested on `dev`, then merged into `main`, feature or quick fix alike. release-please turns the batch's
-# conventional commits into a version (feat → minor, fix → patch while 0.x)
-# and a release PR, which is auto-merged. Merging it creates the release as a
-# DRAFT; the notes job adds the sibling repos' changes and their pinned
-# commits, and the publish job publishes it. Only then does `published` fire
-# the installers, remappr.com, docs and Discord — all reading the finished
-# notes.
+# A merge of `dev` into `main` is a release (RELEASING.md): branches cut from
+# `main` land in `dev`, and a PR `dev` → `main`, merged with a merge commit,
+# ships the batch. main-guard.yml refuses any other PR into `main`.
+# release-please turns the batch's conventional commits into a version
+# (feat → minor, fix → patch while 0.x) and a release PR, which is
+# auto-merged. Merging it creates the release as a DRAFT; the notes job adds
+# the sibling repos' changes and their pinned commits, and the publish job
+# publishes it. Only then does `published` fire the installers, remappr.com,
+# docs and Discord — all reading the finished notes. Last, sync-dev brings
+# `dev` level with `main` (the release commit).
 on:
     push:
         branches: [main]
@@ -124,4 +126,37 @@ jobs:
                   else
                     echo "::warning::No finished notes — publishing $TAG with release-please's notes."
                     gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+                  fi
+
+    # Brings `dev` level with `main` once the release is out, so `dev` carries
+    # the release commit (version bump, CHANGELOG) before the next batch: a PR
+    # `main` → `dev`, merged at once with a merge commit. Uses the PAT so the
+    # merge fires dev-deploy. A conflict leaves the PR open for a hand merge.
+    sync-dev:
+        needs: [release, publish]
+        if: always() && needs.release.outputs.release_created == 'true' && needs.publish.result == 'success'
+        runs-on: ubuntu-latest
+        environment: github-pages
+        steps:
+            - name: Bring dev level with main
+              env:
+                  GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+                  TAG: ${{ needs.release.outputs.tag_name }}
+              run: |
+                  set -euo pipefail
+                  missing=$(gh api "repos/$GITHUB_REPOSITORY/compare/dev...main" --jq '.ahead_by')
+                  if [ "$missing" = 0 ]; then
+                    echo "dev already has everything on main; nothing to sync"
+                    exit 0
+                  fi
+                  url=$(gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head main --state open --json url --jq '.[0].url // empty')
+                  if [ -z "$url" ]; then
+                    url=$(gh pr create --repo "$GITHUB_REPOSITORY" --base dev --head main \
+                      --title "chore: bring dev level with main ($TAG)" \
+                      --body "The release commit of $TAG, back on dev.")
+                  fi
+                  if gh pr merge "$url" --repo "$GITHUB_REPOSITORY" --merge; then
+                    echo "dev is level with main ($TAG): $url"
+                  else
+                    echo "::warning::$url could not be merged (a conflict?); merge it by hand."
                   fi

@@ -64,7 +64,7 @@ export function TransportSection({
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle>Available Devices</CardTitle>
+                        <CardTitle>Available devices</CardTitle>
                         <CardDescription>
                             {hasSimpleConnectOnly
                                 ? 'Select a connection type to connect your device'

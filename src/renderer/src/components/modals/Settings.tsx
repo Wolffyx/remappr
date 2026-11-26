@@ -9,6 +9,8 @@ import {
     Palette,
     Radio,
     Settings as SettingsIcon,
+    UserRound,
+    Plug,
 } from 'lucide-react'
 import { Modal } from '@/ui/modal'
 import { ScrollArea } from '@/ui/scroll-area'
@@ -31,6 +33,9 @@ import { WorkspaceSection } from './settings/WorkspaceSection'
 import { StartPageSection } from './settings/StartPageSection'
 import { CommunicationSection } from './settings/CommunicationSection'
 import { AboutSection } from './settings/AboutSection'
+import { IntegrationsSection } from './settings/IntegrationsSection'
+import { AccountSection } from '@/features/account/AccountSection'
+import { isCloudConfigured } from '@/lib/cloud/env'
 
 // Settings the dialog can mutate — snapshotted on open so Cancel reverts them.
 interface SettingsSnapshot {
@@ -65,14 +70,7 @@ interface SettingsProps {
     onClose?: () => void
     /** Limit which sections show (builder hides device-only "communication").
      *  Defaults to all. */
-    sections?: Array<
-        | 'general'
-        | 'keycaps'
-        | 'workspace'
-        | 'start'
-        | 'communication'
-        | 'about'
-    >
+    sections?: SettingsSection[]
 }
 
 type SettingsSection =
@@ -81,6 +79,8 @@ type SettingsSection =
     | 'workspace'
     | 'start'
     | 'communication'
+    | 'account'
+    | 'integrations'
     | 'about'
 
 const SECTIONS: {
@@ -93,8 +93,15 @@ const SECTIONS: {
     { id: 'workspace', label: 'Workspace', icon: LayoutPanelLeft },
     { id: 'start', label: 'Start page', icon: Newspaper },
     { id: 'communication', label: 'Communication', icon: Radio },
+    { id: 'account', label: 'Account', icon: UserRound },
+    { id: 'integrations', label: 'Integrations', icon: Plug },
     { id: 'about', label: 'About', icon: Info },
 ]
+
+/** Account shows only in builds with a cloud backend. */
+const AVAILABLE_SECTIONS = isCloudConfigured()
+    ? SECTIONS
+    : SECTIONS.filter((s) => s.id !== 'account')
 
 // pattern-check: skip — additive snapshot/revert refs; Memento considered, rejected as overkill
 export function Settings({
@@ -103,8 +110,8 @@ export function Settings({
     sections,
 }: SettingsProps): JSX.Element {
     const visibleSections = sections
-        ? SECTIONS.filter((s) => sections.includes(s.id))
-        : SECTIONS
+        ? AVAILABLE_SECTIONS.filter((s) => sections.includes(s.id))
+        : AVAILABLE_SECTIONS
     const [section, setSection] = useState<SettingsSection>(
         sections?.[0] ?? 'general',
     )
@@ -208,6 +215,8 @@ export function Settings({
                     {section === 'workspace' && <WorkspaceSection />}
                     {section === 'start' && <StartPageSection />}
                     {section === 'communication' && <CommunicationSection />}
+                    {section === 'account' && <AccountSection />}
+                    {section === 'integrations' && <IntegrationsSection />}
                     {section === 'about' && <AboutSection />}
                 </ScrollArea>
             </div>

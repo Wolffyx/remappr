@@ -1,9 +1,10 @@
 // Pattern check: no GoF pattern (-) — rejected — the device editor's toolbar composed from the shared ToolbarButton / ToolbarSlot / HistoryTools primitives.
-import { Download, Ruler, Zap } from 'lucide-react'
+import { Download, Ruler, Sparkles, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { Separator } from '@/ui/separator'
 import { Settings } from '@/components/modals/Settings'
 import { downloadExports } from '@/lib/blob'
+import useAdvancedSheetStore from '@/stores/advancedSheetStore'
 import useConnectionStore from '@/stores/connectionStore'
 import useLiveViewStore from '@/stores/liveViewStore'
 import { HistoryTools } from '@/layout/toolbar/HistoryTools'
@@ -30,6 +31,12 @@ export function DeviceToolClusters(): JSX.Element {
     const liveOn = useLiveViewStore((s) => s.enabled)
     const toggleLive = useLiveViewStore((s) => s.toggle)
     const editLayout = useEditLayout()
+    const macrosOpen = useAdvancedSheetStore((s) => s.open)
+    const toggleMacros = (): void => {
+        const sheet = useAdvancedSheetStore.getState()
+        if (sheet.open) sheet.setOpen(false)
+        else sheet.openAt('macros')
+    }
     const canExport = useConnectionStore(
         (s) => !!s.service?.capabilities.exportFormats.length,
     )
@@ -52,10 +59,18 @@ export function DeviceToolClusters(): JSX.Element {
                     onClick={() => void exportProfiles()}
                 />
             )}
+            <ToolbarButton
+                icon={Sparkles}
+                tooltip="Macros"
+                label="Macros"
+                active={macrosOpen}
+                onClick={toggleMacros}
+                feature="macros"
+            />
             {editLayout && (
                 <ToolbarButton
                     icon={Ruler}
-                    tooltip="Edit layout in the Builder"
+                    tooltip="Edit layout in the builder"
                     label="Edit layout"
                     onClick={editLayout}
                 />

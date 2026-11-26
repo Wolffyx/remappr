@@ -16,22 +16,24 @@ import {
 
 import { ADD_GROUPS, STEP_META, type StepKind } from './macroSteps'
 
-const NO_FIRMWARE = 'Your keyboard’s firmware can’t do this yet.'
-
 export function AddStepMenu({
     kinds,
     hasCallTarget,
     insertAfter,
+    deviceNoun,
     onAdd,
 }: {
     kinds: readonly StepKind[]
     hasCallTarget: boolean
     /** 1-based step the new one goes after; 0 = at the start. */
     insertAfter: number
+    /** "keyboard" or "mouse", for the reason a kind is missing. */
+    deviceNoun: string
     onAdd: (kind: StepKind) => void
 }): JSX.Element {
     const whyNot = (kind: StepKind): string | null => {
-        if (!kinds.includes(kind)) return NO_FIRMWARE
+        if (!kinds.includes(kind))
+            return `Your ${deviceNoun}’s firmware can’t do this yet.`
         if (kind === 'call' && !hasCallTarget)
             return 'There’s no other macro this one can run.'
         return null
@@ -46,7 +48,7 @@ export function AddStepMenu({
             <DropdownMenuContent align="start" side="top" className="w-96">
                 {ADD_GROUPS.map((g) => (
                     <div key={g.label}>
-                        <DropdownMenuLabel className="text-xs tracking-wider text-muted-foreground uppercase">
+                        <DropdownMenuLabel className="eyebrow">
                             {g.label}
                         </DropdownMenuLabel>
                         {g.kinds.map((kind) => {
@@ -61,7 +63,7 @@ export function AddStepMenu({
                                     <span className="font-semibold">
                                         {STEP_META[kind].title}
                                     </span>
-                                    <span className="text-xs text-muted-foreground">
+                                    <span className="text-caption text-muted-foreground">
                                         {reason ?? STEP_META[kind].menu}
                                     </span>
                                 </DropdownMenuItem>
@@ -70,7 +72,7 @@ export function AddStepMenu({
                     </div>
                 ))}
                 <DropdownMenuSeparator />
-                <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                <p className="px-2 py-1.5 text-caption text-muted-foreground">
                     {insertAfter === 0
                         ? 'New steps go at the start.'
                         : `New steps go after step ${insertAfter}.`}{' '}

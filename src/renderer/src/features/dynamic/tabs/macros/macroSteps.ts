@@ -18,7 +18,7 @@ import {
 import { heldAtEnd, type MacroAction } from '@firmware'
 import { hidUsageLongLabel, usageGlyph } from '@/lib/actions/hidUsages'
 
-import { rawToPacked } from '../../_shared/rawKeycode'
+import { rawToPacked } from '../../_shared/hidUsage'
 
 export type StepKind = MacroAction['kind']
 

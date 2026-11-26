@@ -34,7 +34,6 @@ interface LayerItem {
     id: number
     name: string
     index: number
-    selected: boolean
 }
 
 interface LayerListItemProps {
@@ -47,11 +46,14 @@ interface LayerListItemProps {
     canRemove?: boolean
     /** Read-only views hide rename and the menu. Defaults true. */
     editable?: boolean
+    /** The firmware names its layers. Defaults true. */
+    canRename?: boolean
     dragHandlers?: DragHandlers
     isDragSource?: boolean
     isDragOver?: boolean
     onSelect: (index: number) => void
-    onRemove: (index: number) => void
+    /** Absent on a firmware with a fixed layer count. */
+    onRemove?: (index: number) => void
     onDuplicate?: (index: number) => void
     onMove?: (index: number, dest: number) => void
     onCopyFrom?: (index: number, source: number) => void
@@ -100,6 +102,7 @@ export function LayerListItem({
     names,
     canRemove,
     editable = true,
+    canRename = true,
     dragHandlers,
     isDragSource,
     isDragOver,
@@ -117,6 +120,7 @@ export function LayerListItem({
     const others = names
         .map((name, index) => ({ name, index }))
         .filter((l) => l.index !== item.index)
+    const renamable = editable && canRename
     const finishRename = (next: string | null): void => {
         setRenaming(false)
         if (next) onSaveNewLabel(item.id, item.name, next)
@@ -143,9 +147,9 @@ export function LayerListItem({
                 asChild
                 isActive={active}
                 onClick={() => onSelect(item.index)}
-                onDoubleClick={() => editable && setRenaming(true)}
+                onDoubleClick={() => renamable && setRenaming(true)}
                 onKeyDown={(e) => {
-                    if (e.key === 'F2' && editable) setRenaming(true)
+                    if (e.key === 'F2' && renamable) setRenaming(true)
                 }}
                 // Active row is tinted with the layer's own accent (design spec),
                 // overriding shadcn's neutral bg-sidebar-accent via inline style.
@@ -194,11 +198,13 @@ export function LayerListItem({
                         </SidebarMenuAction>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="right" align="start">
-                        <DropdownMenuItem onClick={() => setRenaming(true)}>
-                            <Pencil />
-                            <span>Rename</span>
-                            <DropdownMenuShortcut>F2</DropdownMenuShortcut>
-                        </DropdownMenuItem>
+                        {renamable && (
+                            <DropdownMenuItem onClick={() => setRenaming(true)}>
+                                <Pencil />
+                                <span>Rename</span>
+                                <DropdownMenuShortcut>F2</DropdownMenuShortcut>
+                            </DropdownMenuItem>
+                        )}
                         {onDuplicate && (
                             <DropdownMenuItem
                                 onClick={(e) => {
@@ -256,18 +262,22 @@ export function LayerListItem({
                                 </DropdownMenuItem>
                             </>
                         )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            variant="destructive"
-                            disabled={!canRemove}
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                onRemove(item.index)
-                            }}
-                        >
-                            <Trash />
-                            <span>Delete</span>
-                        </DropdownMenuItem>
+                        {onRemove && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    disabled={!canRemove}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onRemove(item.index)
+                                    }}
+                                >
+                                    <Trash />
+                                    <span>Delete</span>
+                                </DropdownMenuItem>
+                            </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}

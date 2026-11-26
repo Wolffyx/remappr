@@ -41,7 +41,7 @@ Which of these a device actually offers depends on its firmware: see
 ## Where devices show up
 
 **Firmware devices** (a Remappr Firmware mouse or joystick) connect like a
-keyboard: they appear in **Available Devices** on the Start Page, and **Connect**
+keyboard: they appear in **Available devices** on the Start Page, and **Connect**
 opens the device editor. See [Connecting a device](/guide/app/connecting).
 
 **Any other controller or mouse** appears in the **Controllers & mice** section
@@ -80,7 +80,7 @@ joysticks are fully editable in the device editor today; see the
 
 ## Try it without hardware
 
-**Try Demo** on the Start Page opens _"Try a demo device"_: six simulated
+**Try demo** on the Start Page opens _"Try a demo device"_: six simulated
 devices, _"nothing is written anywhere"_.
 
 ![The demo chooser: Corne, Deck 9, Halo M2, Vector Pad, Apex Flight Stick and Generic USB Gamepad](/images/devices/demo-chooser.webp)

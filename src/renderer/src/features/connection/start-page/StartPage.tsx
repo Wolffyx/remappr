@@ -9,6 +9,8 @@ import { DownloadLatestButton } from '@/components/DownloadLatestButton'
 import { APP_VERSION } from '@/lib/constants'
 import { LicenseNoticeModal } from '@/components/modals/LicenseNoticeModal'
 import { Settings } from '@/components/modals/Settings'
+import { AccountButton } from '@/features/account/AccountButton'
+import { isCloudConfigured } from '@/lib/cloud/env'
 import { WindowControls } from '@/layout/WindowControls'
 import { TrafficLightInset } from '@/layout/TrafficLightInset'
 import { CommunityLinks } from '@/layout/toolbar/CommunityLinks'
@@ -58,7 +60,7 @@ interface StartPageProps {
         t: Transport,
         communication: 'serial' | 'ble' | 'hid',
     ) => Promise<boolean>
-    /** Open the demo device `id` (Try Demo's chooser picks it). */
+    /** Open the demo device `id` (Try demo's chooser picks it). */
     onDemoConnect?: (id: DemoDeviceId) => void | Promise<void>
 }
 
@@ -164,6 +166,7 @@ export function StartPage({
                     style={NO_DRAG}
                 >
                     {newsStyle === 'inbox' && <NewsBell {...news} />}
+                    {isCloudConfigured() && <AccountButton />}
                     <Settings />
                     {/* native window controls (Electron, non-mac) merged into
                         the bar so the start page is a single top bar. */}
@@ -187,7 +190,7 @@ export function StartPage({
                             COMPAT_BADGE
                         )}
                         <h1 className="mb-3 text-hero font-extrabold leading-[1.05] tracking-tight">
-                            Configure Your Devices
+                            Configure your devices
                         </h1>
                         <p className="text-[16px] leading-normal text-muted-foreground">
                             Connect your keyboard, mouse or controller to
@@ -237,14 +240,14 @@ export function StartPage({
                             <div className="mt-4 grid gap-4 sm:grid-cols-2">
                                 <FeatureCard
                                     icon={Sparkles}
-                                    title="Try Demo Mode"
+                                    title="Try the demo"
                                     description="Explore Remappr with simulated keyboards, a mouse and controllers — no device required."
                                     action={
                                         <Button
                                             variant="secondary"
                                             onClick={openDemo}
                                         >
-                                            Try Demo
+                                            Try demo
                                         </Button>
                                     }
                                 />

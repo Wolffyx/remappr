@@ -1,4 +1,4 @@
-import { JSX, Suspense, lazy, useCallback, useEffect } from 'react'
+import { JSX, useCallback, useEffect } from 'react'
 import { UnlockPanel } from '@/features/connection/UnlockPanel'
 import { LeaveGuardDialog } from '@/features/connection/LeaveGuardDialog'
 import { SaveAllPromptDialog } from '@/features/firmware/SaveAllPromptDialog'
@@ -19,27 +19,33 @@ import { ToolSearch } from '@/layout/toolbar/ToolSearch'
 import { AutoLayoutResolver } from '@/features/firmware/AutoLayoutResolver'
 import { DevicePreviewCapture } from '@/features/connection/DevicePreviewCapture'
 import { ProfileRestoreManager } from '@/features/connection/ProfileRestoreManager'
-// import { Footer } from '@/layout/Footer'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
 import { StartPage } from '@/features/connection/start-page/StartPage'
 import useBuilderStore from '@/stores/builderStore'
 import { CoachmarkTour } from '@/features/onboarding/CoachmarkTour'
 import { UpdateNotification } from '@/components/UpdateNotification'
+import { BuilderUpdateNotice } from '@/components/BuilderUpdateNotice'
 import { WhatsNewDialog } from '@/features/news/WhatsNewDialog'
 import { TitleBar } from '@/layout/TitleBar'
 import { isElectron as isElectronEnv } from '@/transport'
+import { isCloudConfigured } from '@/lib/cloud/env'
+import useAuthStore from '@/stores/authStore'
+import useSyncStore from '@/stores/syncStore'
+import useGitSyncStore from '@/stores/gitSyncStore'
+import useHistoryStore from '@/stores/historyStore'
+import useLicenseStore from '@/stores/licenseStore'
 import { useConfigRuntimeSync } from '@/hooks/use-config-runtime-sync'
+import { useHostFeed } from '@/features/display/useHostFeed'
 import { connectDemo } from '@/features/connection/demo/connectDemo'
 import { connectTransport } from '@/features/connection/connectTransport'
 import { categoryForFirmware } from '@/lib/adapterCategories'
 import { SIDEBAR_STYLE } from '@/layout/sidebarStyle'
 import { needsTitleBar, resolveLanding, type Landing } from '@/app/landing'
-
-// Code-split the full-screen builder: it drags in Monaco (multi-MB), which
-// otherwise lands in the entry chunk for users who never open the builder.
-const Builder = lazy(() =>
-    import('@/features/builder').then((m) => ({ default: m.Builder })),
-)
+import { SyncOnboardingDialog } from '@/features/library/SyncOnboardingDialog'
+import { BuilderGate } from '@/features/builder-gate/BuilderGate'
+import { startBuilderPrefetch } from '@/lib/builderPackage/prefetch'
+import { ShareLinkHandler } from '@/features/community/ShareLinkHandler'
+import { DesktopSignInHandler } from '@/features/account/DesktopSignInHandler'
 
 function App(): JSX.Element {
     // pattern-check: skip — UI sweep, replace store-connection with store-service
@@ -53,6 +59,8 @@ function App(): JSX.Element {
     // Raise visual-editor edits back into the config (source of truth) so the
     // download modal compiles what the user sees. Mock/demo only.
     useConfigRuntimeSync()
+    // Time, CPU, media, texts... for the connected device's screens.
+    useHostFeed()
 
     const updateLockState = useCallback(async (): Promise<void> => {
         if (!service) return
@@ -91,6 +99,23 @@ function App(): JSX.Element {
 
     const isElectron = isElectronEnv()
 
+    // Version history of library entries: local, no account needed.
+    useEffect(() => {
+        useHistoryStore.getState().start()
+        // GitHub sync of linked entries: no account needed either.
+        useGitSyncStore.getState().start()
+    }, [])
+
+    // Restore a signed-in session (and pick up a desktop sign-in deep link that
+    // launched the app). Builds without a backend never load supabase-js.
+    useEffect(() => {
+        if (!isCloudConfigured()) return
+        void useAuthStore.getState().init()
+        useSyncStore.getState().start()
+        void useLicenseStore.getState().init()
+        return startBuilderPrefetch()
+    }, [])
+
     useEffect(() => {
         if (!isElectron) return
         document.body.classList.add('app-electron')
@@ -113,11 +138,7 @@ function App(): JSX.Element {
 
     // Pattern check: Dispatch Map (Tier 0) — applied — landing → screen table replaces the nested service.kind ternary; one entry per screen.
     const screens: Record<Landing, () => JSX.Element> = {
-        builder: () => (
-            <Suspense fallback={null}>
-                <Builder />
-            </Suspense>
-        ),
+        builder: () => <BuilderGate />,
         start: () => (
             <StartPage
                 onTransportCreated={connectTransport}
@@ -143,7 +164,6 @@ function App(): JSX.Element {
                             <KeymapEditor />
                         </ErrorBoundary>
                     </div>
-                    {/*<Footer />*/}
                 </SidebarInset>
                 <CoachmarkTour />
             </SidebarProvider>
@@ -162,8 +182,12 @@ function App(): JSX.Element {
                 </div>
             </div>
             <UpdateNotification />
+            <BuilderUpdateNotice />
             <WhatsNewDialog />
             <Toaster richColors position="top-center" />
+            {isCloudConfigured() && <SyncOnboardingDialog />}
+            {isCloudConfigured() && <ShareLinkHandler />}
+            {isCloudConfigured() && !isElectron && <DesktopSignInHandler />}
             <UnlockPanel layout="card" />
             <LeaveGuardDialog />
             <SaveAllPromptDialog />

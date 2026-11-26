@@ -11,4 +11,6 @@ export {
     TIMING_FIELDS,
     fieldSupported,
     groupedTimingFields,
+    partTimingFields,
+    timingFieldsFor,
 } from '@firmware/config'

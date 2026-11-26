@@ -11,7 +11,9 @@ import { cn } from '@/lib/cn'
 import { clampInt, parseIntSafe } from '@/lib/clampInt'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
+import { NumberInput } from '@/ui/number-input'
 import { RadioGroup, RadioGroupItem } from '@/ui/radio-group'
+import { SectionLabel } from '@/ui/section-label'
 
 import { KeycodeField } from '../../_shared/KeycodeField'
 import { STEP_META } from './macroSteps'
@@ -63,7 +65,7 @@ function Note({
     children: ReactNode
 }): JSX.Element {
     return (
-        <div className="rounded-lg bg-muted px-3 py-2.5 text-xs leading-5 text-muted-foreground">
+        <div className="rounded-lg bg-muted px-3 py-2.5 text-caption leading-5 text-muted-foreground">
             {title && (
                 <span className="mb-1 block font-semibold text-foreground">
                     {title}
@@ -91,11 +93,11 @@ function CallField({
     return (
         <>
             <fieldset className="flex min-w-0 flex-col gap-1.5">
-                <legend className="mb-1.5 text-sm font-semibold">
+                <legend className="mb-1.5 text-control font-semibold">
                     Macro to run
                 </legend>
                 {names.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-control text-muted-foreground">
                         There’s no other macro this one can run.
                     </p>
                 )}
@@ -109,7 +111,7 @@ function CallField({
                             key={name}
                             htmlFor={`call-target-${name}`}
                             className={cn(
-                                'flex min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 text-sm',
+                                'flex min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 text-control',
                                 name === value
                                     ? 'border-primary'
                                     : 'border-border',
@@ -121,7 +123,7 @@ function CallField({
                             />
                             <span className="flex min-w-0 flex-col">
                                 <span className="font-mono">{name}</span>
-                                <span className="truncate text-xs text-muted-foreground">
+                                <span className="truncate text-caption text-muted-foreground">
                                     {choices.summaries.get(name)}
                                 </span>
                             </span>
@@ -159,7 +161,7 @@ function StepField({
         case 'up':
             return (
                 <div className="flex flex-col gap-1.5">
-                    <span className="text-sm font-semibold">Key</span>
+                    <span className="text-control font-semibold">Key</span>
                     <KeycodeField
                         value={step.keycode}
                         onChange={(keycode) => onChange({ ...step, keycode })}
@@ -168,34 +170,31 @@ function StepField({
             )
         case 'delay':
             return (
-                <div className="flex flex-col gap-1.5 text-sm font-semibold">
+                <div className="flex flex-col gap-1.5 text-control font-semibold">
                     <label htmlFor={id}>How long</label>
-                    <span className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
-                        <Input
-                            id={id}
-                            type="number"
-                            min={0}
-                            max={0xffff}
-                            value={step.ms}
-                            onChange={(e) =>
-                                onChange({
-                                    kind: 'delay',
-                                    ms: clampInt(
-                                        parseIntSafe(e.target.value),
-                                        0,
-                                        0xffff,
-                                    ),
-                                })
-                            }
-                            className="w-24"
-                        />
-                        milliseconds
-                    </span>
+                    <NumberInput
+                        id={id}
+                        unit="ms"
+                        min={0}
+                        max={0xffff}
+                        value={step.ms}
+                        onChange={(e) =>
+                            onChange({
+                                kind: 'delay',
+                                ms: clampInt(
+                                    parseIntSafe(e.target.value),
+                                    0,
+                                    0xffff,
+                                ),
+                            })
+                        }
+                        className="w-28 font-normal"
+                    />
                 </div>
             )
         case 'text':
             return (
-                <div className="flex flex-col gap-1.5 text-sm font-semibold">
+                <div className="flex flex-col gap-1.5 text-control font-semibold">
                     <label htmlFor={id}>Text</label>
                     <Input
                         id={id}
@@ -243,10 +242,12 @@ export function MacroViewOnlyPanel({
             <span className="flex size-10 items-center justify-center rounded-lg bg-warning/15 text-warning">
                 <Lock className="size-5" aria-hidden />
             </span>
-            <h3 className="text-base font-bold">{title}</h3>
-            <p className="text-sm leading-5 text-muted-foreground">{reason}</p>
+            <h3 className="text-title font-bold">{title}</h3>
+            <p className="text-control leading-5 text-muted-foreground">
+                {reason}
+            </p>
             {hint && (
-                <p className="text-sm leading-5 text-muted-foreground">
+                <p className="text-control leading-5 text-muted-foreground">
                     {hint}
                 </p>
             )}
@@ -274,13 +275,11 @@ export function MacroStepPanel({
     const step = steps[index]
     return (
         <div className="flex h-full flex-col gap-3.5">
-            <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                Step {index + 1}
-            </span>
-            <h3 className="-mt-2 text-base font-bold">
+            <SectionLabel>Step {index + 1}</SectionLabel>
+            <h3 className="-mt-2 text-title font-bold">
                 {STEP_META[step.kind].title}
             </h3>
-            <p className="text-sm leading-5 text-muted-foreground">
+            <p className="text-control leading-5 text-muted-foreground">
                 {explain(steps, index)}
             </p>
             <StepField step={step} choices={choices} onChange={onChange} />

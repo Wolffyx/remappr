@@ -592,6 +592,7 @@ export async function disconnectGattDevice(): Promise<void> {
     if (a.weConnected) await dropLink(a.bus, a.devicePath)
 }
 
+/** Whether a GATT link is open (a failed connect and the close reset it). */
 export function hasActiveBluezConnection(): boolean {
     return active !== null
 }

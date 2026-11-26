@@ -53,7 +53,7 @@ function makeService(
 /* A listed device whose transport hands back a fake rpc. */
 function listed(
     id: string,
-    exclusive = false,
+    singleLink = false,
 ): {
     target: DeviceWithTransport
     pick: ReturnType<typeof vi.fn>
@@ -65,7 +65,7 @@ function listed(
             transport: {
                 label: 'USB',
                 communication: 'hid',
-                exclusive,
+                singleLink,
                 pick_and_connect: { list: async () => [], connect: pick },
             } as unknown as DeviceWithTransport['transport'],
             status: 'available',
@@ -188,7 +188,9 @@ describe('switchToDevice', () => {
         expect(current()).toBe(next)
     })
 
-    describe('on a transport the host holds one connection for (L4.1)', () => {
+    // The current device is on HID too: a single-link HID transport would
+    // close it on the open, so it closes first (L4.1).
+    describe('on a single-link transport already holding the device (L4.1)', () => {
         it('closes the old device before it opens the new one', async () => {
             const old = makeService('Old')
             connectCurrent(old)

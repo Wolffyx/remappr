@@ -7,6 +7,8 @@ import { cn } from '@/lib/cn'
 import { profileAccent } from '@/lib/devices/deviceCategory'
 import { FORM_LABEL } from '@/lib/devices/labels'
 import { useFeatureAvailable } from '@/features/firmware/useFeatureAvailable'
+import { AdvancedSheet } from '@/features/dynamic/AdvancedSheet'
+import useAdvancedSheetStore from '@/stores/advancedSheetStore'
 import {
     AccentPill,
     LivePill,
@@ -134,6 +136,10 @@ export function DeviceWorkbench({
     const live = useLiveViewStore((s) => s.enabled) && liveFeature
     const model = loaded?.model
     const banner = !!model?.defaulted
+    // The keymap editor's macro sheet, for a device that keeps macros.
+    const macros = useFeatureAvailable('macros')
+    const sheetOpen = useAdvancedSheetStore((s) => s.open) && macros
+    const setSheetOpen = useAdvancedSheetStore((s) => s.setOpen)
 
     // `isolate` keeps the stage's own z-scale (the sheet and dock at 80, the
     // palette at 85) inside this box, so a dialog or tooltip portalled to the
@@ -175,7 +181,10 @@ export function DeviceWorkbench({
             {model && loaded && (
                 <div
                     className="absolute inset-0 transition-[bottom] duration-200"
-                    style={{ right: dockWidth, bottom: stageBottom }}
+                    style={{
+                        right: dockWidth,
+                        bottom: sheetOpen ? '46%' : stageBottom,
+                    }}
                 >
                     <DeviceStage
                         model={model}
@@ -203,6 +212,14 @@ export function DeviceWorkbench({
                 </Hint>
             )}
             {children}
+            {sheetOpen && (
+                <div
+                    className="absolute bottom-0 left-0 z-[81] flex h-[46%] flex-col overflow-hidden border-t border-border bg-popover"
+                    style={{ right: dockWidth }}
+                >
+                    <AdvancedSheet onClose={() => setSheetOpen(false)} />
+                </div>
+            )}
         </main>
     )
 }

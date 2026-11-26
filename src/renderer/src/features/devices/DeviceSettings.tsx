@@ -14,19 +14,36 @@ import { MouseSettingsPanel } from '@/features/device/MouseSettingsPanel'
 import { JoystickSettingsPanel } from '@/features/device/JoystickSettingsPanel'
 import { SensorPanel } from '@/features/device/SensorPanel'
 import { DevicePowerPanel } from '@/features/device/PowerSection'
+import { DeviceDisplaysPanel } from '@/features/display/DeviceDisplaysPanel'
 
 type Panel = (service: KeyboardService) => JSX.Element | null
+
+/** The device's displays, where its firmware draws screens from its
+ *  document and it has a display part. */
+function displaysOf(s: KeyboardService): JSX.Element | null {
+    if (!s.device || !s.screens) return null
+    return (
+        <DeviceDisplaysPanel
+            device={s.device}
+            screens={s.screens}
+            deviceName={s.deviceInfo.name}
+        />
+    )
+}
 
 const PANELS: Partial<Record<DeviceKind, Panel>> = {
     mouse: (s) => {
         if (s.device) {
             return (
-                <MouseSettingsPanel
-                    device={s.device}
-                    motion={s.motion}
-                    sensor={s.sensor}
-                    power={s.capabilities.power}
-                />
+                <div className="flex flex-col gap-4">
+                    <MouseSettingsPanel
+                        device={s.device}
+                        motion={s.motion}
+                        sensor={s.sensor}
+                        power={s.capabilities.power}
+                    />
+                    {displaysOf(s)}
+                </div>
             )
         }
         // A mouse with no settings document (the demo) still has its sensor.
@@ -42,6 +59,7 @@ const PANELS: Partial<Record<DeviceKind, Panel>> = {
                         powerOff={s.capabilities.power.powerOff}
                     />
                 )}
+                {displaysOf(s)}
             </div>
         ) : null,
 }

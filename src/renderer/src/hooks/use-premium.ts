@@ -1,39 +1,39 @@
-// Pattern check: no GoF pattern (-) — rejected — thin React hook wrapping
-// hasPremium() with a storage-event listener; no abstraction.
+// Pattern check: no GoF pattern (-) — rejected — thin React hooks re-reading
+// the entitlement predicates on change events; no abstraction.
 import { useEffect, useState } from 'react'
 import {
     hasBuilderAccess,
     getBuilderStage,
-    LICENSE_CHANGE_EVENT,
+    ENTITLEMENTS_CHANGE_EVENT,
+    PLAN_STORAGE_KEY,
     type BuilderStage,
 } from '@/lib/entitlements'
 
-/**
- * Reactive builder-access flag. During the free alpha this is `true` for everyone;
- * once monetization lands it collapses to the premium entitlement (see
- * `hasBuilderAccess`). Re-evaluates when the license key changes in another tab
- * (storage event) or the same tab (LICENSE_CHANGE_EVENT).
- */
-// pattern-check: skip — add same-tab license-change listener to existing hook
-export function useBuilderAccess(): boolean {
-    const [access, setAccess] = useState(hasBuilderAccess)
+/** Re-read `read` whenever the cached plan changes in this tab (the change
+ *  event) or another one (the storage event). */
+function useEntitlement<T>(read: () => T): T {
+    const [value, setValue] = useState(read)
     useEffect(() => {
-        const reeval = (): void => setAccess(hasBuilderAccess())
+        const reeval = (): void => setValue(read())
         const onStorage = (e: StorageEvent): void => {
-            if (e.key === null || e.key.includes('license')) reeval()
+            if (e.key === null || e.key === PLAN_STORAGE_KEY) reeval()
         }
         window.addEventListener('storage', onStorage)
-        // Same-tab updates: setLicenseKey dispatches this (storage fires only cross-tab).
-        window.addEventListener(LICENSE_CHANGE_EVENT, reeval)
+        window.addEventListener(ENTITLEMENTS_CHANGE_EVENT, reeval)
         return () => {
             window.removeEventListener('storage', onStorage)
-            window.removeEventListener(LICENSE_CHANGE_EVENT, reeval)
+            window.removeEventListener(ENTITLEMENTS_CHANGE_EVENT, reeval)
         }
-    }, [])
-    return access
+    }, [read])
+    return value
+}
+
+/** Reactive builder-access flag (see `hasBuilderAccess`). */
+export function useBuilderAccess(): boolean {
+    return useEntitlement(hasBuilderAccess)
 }
 
 /** The builder's lifecycle stage (drives the badge label + "free for now" copy). */
 export function useBuilderStage(): BuilderStage {
-    return getBuilderStage()
+    return useEntitlement(getBuilderStage)
 }

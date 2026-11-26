@@ -2,8 +2,9 @@
 //
 // The header's search: a field-shaped button that opens a palette over every
 // tool (same table as the floating toolbar), the toolbar styles and the help
-// links. "/" opens it from anywhere outside a text field; ⌘K stays the key
-// editor's assign shortcut.
+// links. "/" opens it from anywhere outside a text field, a dialog or a menu,
+// except while typed keys are the input (live view, heatmap, key test); ⌘K
+// stays the key editor's assign shortcut.
 import { useEffect, useState } from 'react'
 import { BookOpen, LayoutPanelTop, Search } from 'lucide-react'
 
@@ -19,6 +20,9 @@ import {
     CommandList,
 } from '@/ui/command'
 import useUserSettingsStore from '@/stores/userSettingsStore'
+import useHeatmapStore from '@/stores/heatmapStore'
+import useLiveViewStore from '@/stores/liveViewStore'
+import useKeyTestStore from '@/stores/keyTestStore'
 import { useEditorTools } from './tools'
 import { TOOLBAR_STYLE_OPTIONS } from './toolbarStyles'
 
@@ -34,9 +38,16 @@ const isTyping = (t: EventTarget | null): boolean => {
         !!el &&
         (el.tagName === 'INPUT' ||
             el.tagName === 'TEXTAREA' ||
-            el.isContentEditable)
+            el.isContentEditable ||
+            !!el.closest('[role="dialog"],[role="menu"],[role="listbox"]'))
     )
 }
+
+/** Live view, the heatmap and key test count the keys typed on the board. */
+const keysAreInput = (): boolean =>
+    useLiveViewStore.getState().enabled ||
+    useHeatmapStore.getState().enabled ||
+    useKeyTestStore.getState().active
 
 export function ToolSearch(): JSX.Element {
     const [open, setOpen] = useState(false)
@@ -45,7 +56,8 @@ export function ToolSearch(): JSX.Element {
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent): void => {
-            if (e.key !== '/' || isTyping(e.target)) return
+            if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
+            if (isTyping(e.target) || keysAreInput()) return
             e.preventDefault()
             setOpen(true)
         }
@@ -72,7 +84,11 @@ export function ToolSearch(): JSX.Element {
                     /
                 </kbd>
             </button>
-            <CommandDialog open={open} onOpenChange={setOpen}>
+            <CommandDialog
+                open={open}
+                onOpenChange={setOpen}
+                title="Search tools and settings"
+            >
                 <CommandInput placeholder="Search tools, settings and help" />
                 <CommandList>
                     <CommandEmpty>Nothing matches.</CommandEmpty>

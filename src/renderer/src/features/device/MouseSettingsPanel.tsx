@@ -74,12 +74,15 @@ export function MouseSettingsPanel({
     motion,
     sensor,
     power,
+    stagedNote = 'Changes are staged with the rest of the device; Save in the header writes them.',
 }: {
     device: DeviceConfigApi
     motion?: MouseMotionApi
     sensor?: SensorApi
     /** Its power hardware: the Power section shows only with a battery. */
     power?: Capabilities['power']
+    /** Where staged changes go (the builder keeps them with the design). */
+    stagedNote?: string
 }): JSX.Element {
     const draft = device.draft
     const { doc, loading, error } = useSettingsSource(device)
@@ -191,7 +194,7 @@ export function MouseSettingsPanel({
                         <p className="text-caption text-muted-foreground">
                             {Object.keys(errors).length
                                 ? 'Fix the marked fields — they are not staged.'
-                                : 'Changes are staged with the rest of the device; Save in the header writes them.'}
+                                : stagedNote}
                         </p>
                     )}
                 </>
